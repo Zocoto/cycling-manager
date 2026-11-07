@@ -151,6 +151,6 @@ export function CollectorAlbumBoosters({ state, snapshot, ready, onAction, onVie
         return <div key={rarity}><dt>{CARD_RARITY_LABELS[rarity]}</dt><dd>{odds[rarity]} % <small>soit {(odds[rarity] / count).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} % par carte de cette finition</small></dd></div>;
       })}</dl>
     </details>
-    <p className={styles.testBanner}>Deux sachets de démonstration, sans achat. À partir de S5 : boosters de connexion et de parrainage, ainsi que ceux du Gala avec présence validée. Aucune attribution par la Gazette.</p>
+    <p className={styles.testBanner}>Deux sachets de démonstration, sans achat. À partir de S5 : boosters de connexion et de parrainage, ainsi que ceux du Gala avec présence validée.</p>
   </section>;
 }

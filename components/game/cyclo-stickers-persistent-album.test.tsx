@@ -24,3 +24,33 @@ it("renders only real collectors and protects already pasted special cards", () 
   expect(html).not.toContain("Simuler l’acceptation");
   expect(html).not.toContain("Décoller pour le test");
 });
+
+it("offers a direct paste after opening and counts a second copy as a duplicate", () => {
+  const snapshot = createCycloStickersFinalSnapshot(createFinalCycloStickersSourceFixture());
+  const state = createCycloStickersPersistentStateFixture();
+  state.openedPacks = [{ id: "new-pack", inventorySource: "edition", cards: [1, 1] }];
+  state.owned = [{ cardNumber: 1, quantity: 2, pasted: false, reserved: 0 }];
+  const opened = renderToStaticMarkup(<CycloStickersPersistentAlbum snapshot={snapshot} initialState={state} initialTab="boosters" />);
+  expect(opened.match(/>Coller dans mon album<\/button>/g)).toHaveLength(1);
+  expect(opened).toContain("Double dans ce sachet");
+
+  state.owned[0].pasted = true;
+  const pasted = renderToStaticMarkup(<CycloStickersPersistentAlbum snapshot={snapshot} initialState={state} initialTab="boosters" />);
+  expect(pasted).toContain("Collée dans l’album");
+  expect(pasted).not.toContain(">Coller dans mon album<");
+});
+
+it("shows available and reserved duplicate copies while excluding single stickers", () => {
+  const snapshot = createCycloStickersFinalSnapshot(createFinalCycloStickersSourceFixture());
+  const state = createCycloStickersPersistentStateFixture();
+  state.owned = [
+    { cardNumber: 1, quantity: 4, pasted: true, reserved: 1 },
+    { cardNumber: 2, quantity: 1, pasted: false, reserved: 0 },
+  ];
+  const html = renderToStaticMarkup(<CycloStickersPersistentAlbum snapshot={snapshot} initialState={state} initialTab="duplicates" />);
+  expect(html).toContain("Inventaire des doubles");
+  expect(html).toContain("N° 01");
+  expect(html).not.toContain("N° 02");
+  expect(html).toContain("<b>2</b> en stock");
+  expect(html).toContain("<b>1</b> en réservation");
+});

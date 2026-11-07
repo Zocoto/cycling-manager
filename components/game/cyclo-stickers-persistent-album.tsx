@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { ALBUM_ACHIEVEMENTS, getAlbumAchievementProgress, type AlbumPilotAction, type CollectorAlbumSnapshot } from "@/lib/game/collector-album";
 import { getCycloStickersLeaderboard, type StickerAlbumLeaderboard } from "@/lib/game/cyclo-stickers-leaderboard";
@@ -10,8 +10,10 @@ import { CollectorAlbum, type CollectorAlbumTab } from "./collector-album";
 import { CollectorCardFace } from "./collector-card-face";
 import { AlbumBoosterArtwork } from "./collector-album-artwork";
 import styles from "./collector-album-retro.module.css";
+import collection from "./cyclo-stickers-collection.module.css";
 
 type Mutation = (name: string, args: Record<string, unknown>, message: string) => Promise<boolean>;
+const BOOSTER_SOURCE_LABELS = { login: "Connexion", referral: "Parrainage", edition: "Événement" };
 /** Only RPC responses can replace the collection. Browser demonstration saves are never read. */
 export function CycloStickersPersistentAlbum({
   snapshot,
@@ -66,30 +68,124 @@ export function CycloStickersPersistentAlbum({
     boosterCount: state.boosterCount, tradeCount: state.incomingOffers.length + state.outgoingOffers.length,
     notice, onAction: send,
     leaderboard, onViewLeaderboard: () => void refreshLeaderboard(),
-    boosters: <PersistentBoosters snapshot={snapshot} state={state} busy={busy} mutate={mutate} />,
+    boosters: <PersistentBoosters snapshot={snapshot} state={state} busy={busy} mutate={mutate} onPaste={card => send({ type: "paste", card })} />,
+    duplicates: <PersistentDuplicates snapshot={snapshot} owned={state.owned} />,
     achievements: <PersistentAchievements snapshot={snapshot} state={state} busy={busy} onAction={send} />,
     trades: requestedCard => <PersistentTrades key={requestedCard ?? "desk"} snapshot={snapshot} state={state} busy={busy} mutate={mutate} initialTarget={requestedCard} />,
   }} />;
 }
 
-function PersistentBoosters({ snapshot, state, busy, mutate }: { snapshot: CollectorAlbumSnapshot; state: CycloStickersPersistentState; busy: boolean; mutate: Mutation }) {
-  const closed = state.boosters.filter(pack => !pack.openedAt);
-  const latest = state.openedPacks[0];
+function PersistentBoosters({ snapshot, state, busy, mutate, onPaste }: {
+  snapshot: CollectorAlbumSnapshot;
+  state: CycloStickersPersistentState;
+  busy: boolean;
+  mutate: Mutation;
+  onPaste: (number: number) => void;
+}) {
+  const [openedKey, setOpenedKey] = useState<string | null>(null);
+  const reveal = useRef<HTMLElement>(null);
+  const closed = state.boosters
+    .filter(pack => !pack.openedAt)
+    .sort((left, right) => Number(right.acquisitionSource === "gazette") - Number(left.acquisitionSource === "gazette"));
+  const latest = state.openedPacks.find(pack => `${pack.inventorySource}:${pack.id}` === openedKey) ?? state.openedPacks[0];
+
+  useEffect(() => {
+    if (!openedKey || !reveal.current) return;
+    reveal.current.focus({ preventScroll: true });
+    reveal.current.scrollIntoView({ block: "start", behavior: "auto" });
+  }, [openedKey]);
+
+  const openPack = async (pack: CycloStickersPersistentState["boosters"][number]) => {
+    const rpc = getCycloStickersOpenRpc(state.edition.id, pack.inventorySource, pack.id);
+    const opened = await mutate(rpc.rpcName, rpc.args, "Sachet ouvert : deux vignettes ont rejoint ta collection.");
+    if (opened) setOpenedKey(`${pack.inventorySource}:${pack.id}`);
+  };
+
   return <section className={styles.boosterDesk} aria-label="Les sachets de cartes">
     <header className={styles.sectionHeading}><p>LES SACHETS · COLLECTION S{state.edition.collectionSeason}</p><h2>Deux vignettes à découvrir.</h2><span>Chaque sachet conserve son édition. Les doublons sont possibles.</span></header>
     <div className={styles.packShelf}>{closed.length ? closed.map((pack, index) => <div className={styles.packOffer} key={`${pack.inventorySource}:${pack.id}`}>
-      <button type="button" className={styles.openPackButton} disabled={busy} aria-label={`Ouvrir le sachet ${index + 1}`} onClick={() => {
-        const rpc = getCycloStickersOpenRpc(state.edition.id, pack.inventorySource, pack.id);
-        void mutate(rpc.rpcName, rpc.args, "Sachet ouvert : deux vignettes ont rejoint ta collection.");
-      }}><AlbumBoosterArtwork sourceSeason={snapshot.presentationSeason ?? snapshot.sourceSeason} gamesEdition={snapshot.gamesEdition} additionalRiders={snapshot.cards.filter(card=>!card.kind&&card.number>69).length} /><span>Ouvrir ce sachet ↗</span></button>
-      <p>{pack.inventorySource === "login" ? "Connexion" : pack.inventorySource === "referral" ? "Parrainage" : "Événement"} · 2 vignettes</p>
+      <button type="button" className={styles.openPackButton} disabled={busy} aria-label={`Ouvrir le sachet ${index + 1}`} onClick={() => void openPack(pack)}><AlbumBoosterArtwork sourceSeason={snapshot.presentationSeason ?? snapshot.sourceSeason} gamesEdition={snapshot.gamesEdition} additionalRiders={snapshot.cards.filter(card=>!card.kind&&card.number>69).length} /><span>Ouvrir ce sachet ↗</span></button>
+      <p>{pack.acquisitionSource === "gazette" ? "Cadeau Cyclogazette" : BOOSTER_SOURCE_LABELS[pack.inventorySource]} · 2 vignettes</p>
     </div>) : <p>Aucun sachet fermé dans cette édition.</p>}</div>
-    {latest ? <section className={styles.reveal} aria-label="Dernier sachet ouvert"><h3>Les deux vignettes de ton dernier sachet</h3><div className={styles.packShelf}>{latest.cards.map((number, index) => {
-      const card = snapshot.cards.find(row => row.number === number);
-      return card ? <CollectorCardFace key={index} card={card} season={snapshot.sourceSeason} /> : null;
-    })}</div></section> : null}
+    {latest && (
+      <section ref={reveal} tabIndex={-1} className={`${styles.reveal} ${collection.reveal}`} aria-label="Dernier sachet ouvert">
+        <h3>Les deux vignettes de ton dernier sachet</h3>
+        <div className={collection.revealedCards}>
+          {latest.cards.map((number, index) => {
+            const card = snapshot.cards.find(row => row.number === number);
+            if (!card) return null;
+            const owned = state.owned.find(row => row.cardNumber === number);
+            const secondCopy = latest.cards.indexOf(number) < index;
+            const canPaste = owned && !owned.pasted && owned.quantity > owned.reserved && !secondCopy;
+            return (
+              <div className={collection.revealedCard} key={`${number}-${index}`}>
+                <CollectorCardFace card={card} season={snapshot.sourceSeason} />
+                {canPaste ? (
+                  <button
+                    type="button"
+                    className={collection.paste}
+                    aria-label={`Coller ${card.name} dans mon album`}
+                    disabled={busy}
+                    onClick={() => onPaste(number)}
+                  >
+                    Coller dans mon album
+                  </button>
+                ) : (
+                  <p className={collection.cardStatus}>
+                    {secondCopy
+                      ? "Double dans ce sachet"
+                      : owned?.pasted
+                        ? "Collée dans l’album"
+                        : "Vignette indisponible pour le collage"}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    )}
     <details className={styles.odds}><summary>Les chances de cette édition</summary><dl>{Object.entries(state.edition.odds).map(([rarity, odds]) => <div key={rarity}><dt>{rarity === "bronze" ? "Bronze" : rarity === "silver" ? "Argent" : rarity === "gold" ? "Or" : "Vignettes spéciales"}</dt><dd>{odds} %</dd></div>)}</dl></details>
   </section>;
+}
+
+function PersistentDuplicates({ snapshot, owned }: {
+  snapshot: CollectorAlbumSnapshot;
+  owned: CycloStickersPersistentState["owned"];
+}) {
+  const byNumber = new Map(owned.map(row => [row.cardNumber, row]));
+  const doubles = snapshot.cards.flatMap(card => {
+    const row = byNumber.get(card.number);
+    if (!row || row.quantity < 2) return [];
+    const count = row.quantity - 1;
+    const reserved = Math.min(row.reserved, count);
+    return [{ card, available: count - reserved, reserved }];
+  });
+
+  return (
+    <section className={styles.achievementDesk} aria-label="Inventaire des doubles">
+      <header className={styles.sectionHeading}>
+        <h2>Inventaire des doubles</h2>
+        <span>Retrouve les exemplaires au-delà du premier et ceux déjà réservés dans tes échanges.</span>
+      </header>
+      {doubles.length ? (
+        <ul className={collection.doubles}>
+          {doubles.map(({ card, available, reserved }) => (
+            <li className={collection.doubleRow} key={card.number}>
+              <span className={collection.stickerNumber}>N° {String(card.number).padStart(2, "0")}</span>
+              <strong className={collection.stickerName}>{card.name}</strong>
+              <span className={collection.quantities}>
+                <span><b>{available}</b> en stock</span>
+                {reserved > 0 && <span><b>{reserved}</b> en réservation</span>}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className={collection.empty}>Tu n’as pas encore de vignette en double.</p>
+      )}
+    </section>
+  );
 }
 
 function PersistentAchievements({ snapshot, state, busy, onAction }: { snapshot: CollectorAlbumSnapshot; state: CycloStickersPersistentState; busy: boolean; onAction: (action: AlbumPilotAction) => void }) {

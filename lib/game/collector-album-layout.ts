@@ -1,5 +1,12 @@
 import { ALBUM_PROFILES, type AlbumProfile, type CollectorCard } from "./collector-album";
 
+export const ALBUM_INTRODUCTION_TITLES = [
+  "Les équipes au sommet",
+  "Les champions des continents",
+  "Les maillots distinctifs",
+  "Les souvenirs de la saison",
+] as const;
+
 /** Keep the catalogue's frozen order within a complete profile chapter. */
 export function getAlbumProfileCards<T extends Pick<CollectorCard, "profileKey"> & Partial<Pick<CollectorCard,"kind">>>(
   cards: readonly T[],

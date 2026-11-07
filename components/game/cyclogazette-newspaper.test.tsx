@@ -1,10 +1,15 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { CyclogazetteEdition } from "@/lib/game/cyclogazette";
 import type { CyclogazetteInterviewReactionStates } from "@/lib/game/cyclogazette-interview-reactions";
 
 import { CyclogazetteNewspaper } from "./cyclogazette-newspaper";
+import { CyclogazetteStickerGift } from "./cyclogazette-sticker-gift";
+
+vi.mock("@/app/jeu/gazette/actions", () => ({
+  claimCyclogazetteBoosterGiftAction: vi.fn(),
+}));
 
 const teamVisual = {
   name: "Veloria Mobilités",
@@ -158,6 +163,28 @@ const interviewReactions: CyclogazetteInterviewReactionStates = {
 };
 
 describe("CyclogazetteNewspaper", () => {
+  it("attaches the gift under the masthead and sends a claimed pack to the album", () => {
+    const render = (initiallyClaimed: boolean) => renderToStaticMarkup(
+      <CyclogazetteNewspaper
+        edition={{ ...edition, issueNumber: 114, issueDate: "2026-11-07", dayNumber: 2 }}
+        stickerGift={<CyclogazetteStickerGift editionId={edition.id} sourceSeason={4} initiallyClaimed={initiallyClaimed} />}
+      />,
+    );
+
+    const available = render(false);
+    const masthead = available.indexOf("</header>");
+    const gift = available.indexOf('data-cyclogazette-sticker-gift="available"');
+    expect(gift).toBeGreaterThan(masthead);
+    expect(gift).toBeLessThan(available.indexOf("<main"));
+    expect(available).toContain("Récupérer ma pochette");
+    expect(available).not.toContain("/jeu/album?onglet=boosters");
+
+    const claimed = render(true);
+    expect(claimed).toContain('data-cyclogazette-sticker-gift="claimed"');
+    expect(claimed).toContain('href="/jeu/album?onglet=boosters"');
+    expect(claimed).not.toContain("Récupérer ma pochette");
+  });
+
   it("place le palmarès d'ouverture avant la Une", () => {
     const markup = renderToStaticMarkup(
       <CyclogazetteNewspaper

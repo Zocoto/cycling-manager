@@ -221,6 +221,7 @@ export function CyclogazetteNewspaper({
   edition,
   community,
   interviewReactions,
+  stickerGift,
   seasonOpeningAwards,
   seasonQuizSection,
   gamesSection,
@@ -230,6 +231,7 @@ export function CyclogazetteNewspaper({
   edition: CyclogazetteEdition;
   community?: CyclogazetteCommunity;
   interviewReactions?: CyclogazetteInterviewReactionStates;
+  stickerGift?: ReactNode;
   seasonOpeningAwards?: ReactNode;
   seasonQuizSection?: ReactNode;
   gamesSection?: ReactNode;
@@ -485,6 +487,8 @@ export function CyclogazetteNewspaper({
           {localizeCyclogazetteText(edition.subtitle, locale)}
         </p>
       </header>
+
+      {stickerGift}
 
       {isSportsDailyEdition ? (
         <div

@@ -31,8 +31,9 @@ describe("illustrated collector album profile spreads", () => {
     const rightNumbers = [...html.slice(rightStart, footerStart).matchAll(/data-album-slot="(\d+)"/g)].map(match => Number(match[1]));
     expect([leftNumbers, rightNumbers]).toEqual(expectedLeaves.map(leaf => leaf.map(card => card.number)));
     expect(html).toContain("Toute la catégorie sur cette double page");
-    expect(html).not.toContain('aria-label="Page précédente"');
-    expect(html).not.toContain('aria-label="Page suivante"');
+    const spreadMarkup = html.slice(html.indexOf(`data-profile="${profile.id}"`), footerStart);
+    expect(spreadMarkup).not.toContain('aria-label="Page précédente"');
+    expect(spreadMarkup).not.toContain('aria-label="Page suivante"');
     for (const card of cards) expect(html).toContain(`>${card.name}</h3>`);
   });
 

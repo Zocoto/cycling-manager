@@ -54,7 +54,7 @@ try{
     create table sporting_director_referrals(id uuid primary key);
     create table team_manager_assignments(id uuid primary key default gen_random_uuid(),sporting_director_id uuid,team_id uuid,role text,status text,created_at timestamptz default now());
     create table team_seasons(id uuid primary key,team_id uuid,season_id uuid references seasons,cash_balance numeric not null default 0);
-    create table season_days(id uuid primary key,season_id uuid references seasons,day_number integer);
+    create table season_days(id uuid primary key,season_id uuid references seasons,day_number integer,calendar_date date);
     create table riders(id uuid primary key);create table countries(id uuid primary key);
     grant select on sporting_directors,seasons to authenticated;
   `);
@@ -91,6 +91,8 @@ try{
   await db.exec(await read('20261027181000_expose_unified_cyclo_sticker_booster_inventory'));
   await db.exec(await read('20261105140000_prepare_persistent_cyclo_stickers'));
   await db.exec(await read('20261107100000_add_cyclo_stickers_leaderboard'));
+  await db.exec(table(await read('20260801093000_create_cyclogazette_and_post_race_interviews'),'cyclogazette_editions'));
+  await db.exec(await read('20261107152000_add_cyclogazette_booster_gift'));
   eq(await scalar('select count(*)::int from cyclo_stickers_editions'),0,'migration seeds no editions');
   eq(await scalar('select count(*)::int from cyclo_stickers_card_inventory'),0,'migration grants no demonstration cards');
   eq(await scalar('select count(*)::int from reward_events'),0,'migration pays no rewards');
@@ -179,11 +181,15 @@ try{
   }
   await as('a');
   eq((await rows('select inventory_source from cyclo_stickers_booster_inventory order by inventory_source')).map(r=>r.inventory_source),['edition','edition','login','login','referral'],'unified view keeps owner RLS across all three sources');
-  eq((await state()).boosterCount,4,'only correctly bound edition packs count');
+  const availablePacks=await state();
+  eq(availablePacks.boosterCount,4,'only correctly bound edition packs count');
+  const packOrigins=album=>album.boosters.map(pack=>`${pack.inventorySource}:${pack.acquisitionSource}`).sort();
+  eq(packOrigins(availablePacks),['edition:gala','edition:gala','login:weekly_login','referral:referral'],'album exposes acquisition and opening sources separately');
   await rejects(()=>open('login','other-pack'),/ne vous appartient pas/,'cannot consume another owner pack');
   await rejects(()=>open('login','wrong-edition-pack'),/correspond pas/,'cannot relabel another edition');
   const opened=await open('login','pack-login');
   eq(opened.cards.length,2,'real login pack contains exactly two independent draws');
+  eq(packOrigins(opened.state),['edition:gala','edition:gala','referral:referral'],'opening a pack preserves the remaining origins in the mutation state');
   const repeat=await open('login','pack-login');eq(repeat.cards,opened.cards,'opening replay returns original receipt');eq(repeat.alreadyOpened,true,'opening replay is explicit');
   await open('referral','pack-referral');
   const galaPack=(await state()).boosters.find(p=>p.inventorySource==='edition');
@@ -282,9 +288,58 @@ try{
   await db.exec("select set_config('test.cm_strength','10',false)");await as('b');await claim('count-10');await claim('count-10');
   await admin();eq(await scalar('select reputation_points::float8 from sporting_directors where id=$1',[id('b')]),5.5,'existing community-manager trigger adds its normal reputation bonus once');
   eq(await scalar('select experience_points from sporting_directors where id=$1',[id('b')]),64200,'current uncapped XP progression is preserved');
+  const giftIssue=id('gazette-114');
+  const otherIssue=id('gazette-115');
+  const getGift=(issue=giftIssue)=>rpc('get_current_cyclogazette_booster_gift',[issue]);
+  const claimGift=(issue=giftIssue)=>rpc('claim_current_cyclogazette_booster_gift',[issue]);
+  await db.query(`insert into season_days values
+    ($1,$3,2,date '2026-11-07'),($2,$3,3,date '2026-11-08')`,[id('day-s5-2'),id('day-s5-3'),id('s5')]);
+  await db.query(`insert into cyclogazette_editions
+    (id,season_id,season_day_id,issue_number,subtitle,issue_date,content,published_at) values
+    ($1,$3,$4,114,'Gift issue',date '2026-11-07','{}',now()+interval '1 hour'),
+    ($2,$3,$5,115,'Next issue',date '2026-11-08','{}',now()-interval '1 minute')`,
+    [giftIssue,otherIssue,id('s5'),id('day-s5-2'),id('day-s5-3')]);
+  await as('a');
+  eq(await getGift(),null,'the gift remains hidden until its exact issue is published');
+  await rejects(()=>claimGift(),/ne propose pas/,'an unpublished issue cannot grant a pack');
+  eq(await getGift(otherIssue),null,'another published issue has no gift');
+  await rejects(()=>claimGift(otherIssue),/ne propose pas/,'another issue cannot grant a pack');
+  await admin();
+  await db.query("update cyclogazette_editions set published_at=now()-interval '1 hour' where id=$1",[giftIssue]);
+  await db.exec('set role anon');
+  await rejects(()=>getGift(),/permission denied/,'anonymous gift state is denied');
+  await rejects(()=>claimGift(),/permission denied/,'anonymous gift claim is denied');
+  await as('inactive');
+  await rejects(()=>claimGift(),/directeur actif/,'inactive director cannot receive a gift');
+  await as('a');
+  const packsBeforeGift=(await state()).boosterCount;
+  eq(await getGift(),'available','published gift remains available when a later issue is published');
+  eq((await state()).boosterCount,packsBeforeGift,'viewing the gift grants nothing');
+  eq(await claimGift(),'claimed','claiming the Gazette gift succeeds');
+  eq(await claimGift(),'claimed','claim retry returns the same successful status');
+  eq(await getGift(),'claimed','the gift state is saved for this account');
+  eq((await state()).boosterCount,packsBeforeGift+1,'the gift adds exactly one openable pack to the album');
+  const giftPack=await scalar("select id from cyclo_stickers_booster_inventory where acquisition_source='gazette'");
+  const giftAlbum=await state();
+  const giftStock=giftAlbum.boosters.find(pack=>pack.id===giftPack);
+  eq(giftStock?.acquisitionSource,'gazette','the gifted pack is labeled with its Gazette acquisition');
+  eq(giftStock?.inventorySource,'login','the gifted pack keeps its opening discriminator');
+  const openedGift=await rpc('open_current_cyclo_stickers_booster',[edition,'login',giftPack]);
+  eq(openedGift.cards.length,2,'the Gazette pack opens through the regular album workflow');
+  eq(packOrigins(openedGift.state),packOrigins({boosters:giftAlbum.boosters.filter(pack=>pack.id!==giftPack)}),'opening a Gazette pack preserves the other pack origins');
+  eq(await claimGift(),'claimed','opening a gifted pack does not permit another claim');
+  eq((await state()).boosterCount,packsBeforeGift,'the consumed gift remains counted only once');
+  await as('b');
+  eq(await getGift(),'available','each account has its own gift');
+  eq(await claimGift(),'claimed','a second account can claim independently');
+  await admin();
+  eq(await scalar("select count(*)::int from cyclo_stickers_boosters where acquisition_source='gazette' and source_reference=$1",[giftIssue]),2,'exactly one gift receipt exists per claimant');
+
   await db.exec("update seasons set status=case when game_year=4 then 'completed' when game_year=5 then 'completed' else 'active' end");
   await as('a');eq((await state()).edition.collectionSeason,5,'later seasons preserve the old edition and unopened packs');
   await admin();await db.exec("update cyclo_stickers_editions set configuration=jsonb_set(configuration,'{enabled}','false')");await as('a');await rejects(()=>open('login','pack-login'),/pas encore disponible/,'server kill switch also guards opening replays');
+  eq(await getGift(),null,'disabling the album hides the gift');
+  await rejects(()=>claimGift(),/ne propose pas/,'disabling the album blocks gift claims');
   await admin();await db.exec('set role anon');await rejects(()=>state(),/permission denied/,'anonymous API access denied');
   console.log(JSON.stringify({isolatedPostgresChecks:checks,productionAccess:false,editionSeeds:0,realStockSources:3,atomicCopyConservation:true,rewardsPaidOnce:true}));
 }finally{await db.close();}

@@ -15,7 +15,7 @@ export type CycloStickersPersistentState = {
   owner: {directorId: string; displayName: string};
   owned: {cardNumber: number; quantity: number; pasted: boolean; reserved: number}[];
   boosters: {
-    id: string; inventorySource: CycloStickersInventorySource; acquiredAt: string; openedAt: string | null;
+    id: string; inventorySource: CycloStickersInventorySource; acquisitionSource?: string; acquiredAt: string; openedAt: string | null;
     collectionSeasonId: string; sourceSeasonId: string;
   }[];
   boosterCount: number;

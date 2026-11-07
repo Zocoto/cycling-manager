@@ -1,8 +1,33 @@
 import { ALBUM_PROFILES, type AlbumProfile, type CollectorCard } from "./collector-album";
-import { getAlbumIntroductionLeaves, getAlbumProfileCards, getAlbumProfileLeaves } from "./collector-album-layout";
+import { ALBUM_INTRODUCTION_TITLES, getAlbumIntroductionLeaves, getAlbumProfileCards, getAlbumProfileLeaves } from "./collector-album-layout";
 
 export type AlbumPagePosition = { profile: AlbumProfile; leaf: 1 | 2 };
 export type AlbumBookPosition = {section:"introduction";leaf:number} | ({section:"riders"} & AlbumPagePosition);
+type AlbumReadingPage = { position: AlbumBookPosition; title: string };
+
+/** The contents follow the same physical leaves as mobile page turns. */
+export function getAlbumReadingPages(cards: readonly CollectorCard[]): AlbumReadingPage[] {
+  const pages: AlbumReadingPage[] = cards.some(card => card.kind)
+    ? ALBUM_INTRODUCTION_TITLES.map((title, leaf) => ({ position: { section: "introduction", leaf }, title }))
+    : [];
+
+  for (const { id: profile, label: title } of ALBUM_PROFILES) {
+    pages.push({ position: { section: "riders", profile, leaf: 1 }, title });
+    if (getAlbumProfileLeaves(getAlbumProfileCards(cards, profile))[1].length > 0) {
+      pages.push({ position: { section: "riders", profile, leaf: 2 }, title });
+    }
+  }
+
+  return pages;
+}
+
+export function getAlbumReadingPageIndex(pages: readonly AlbumReadingPage[], position: AlbumBookPosition) {
+  return pages.findIndex(page =>
+    page.position.section === position.section &&
+    page.position.leaf === position.leaf &&
+    (page.position.section !== "riders" || (position.section === "riders" && page.position.profile === position.profile)),
+  );
+}
 
 export function getAlbumBookTurn(cards: readonly CollectorCard[], position: AlbumBookPosition, singlePage: boolean, direction: -1|1): AlbumBookPosition | null {
   if (direction !== -1 && direction !== 1) return null;

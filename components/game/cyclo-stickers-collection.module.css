@@ -1,0 +1,106 @@
+.reveal {
+  scroll-margin-top: 7rem;
+}
+
+.revealedCards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 260px));
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.revealedCard {
+  display: grid;
+  align-content: start;
+  gap: .65rem;
+  min-width: 0;
+}
+
+.paste,
+.cardStatus {
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  padding: .5rem .7rem;
+  border-radius: 6px;
+  text-align: center;
+  font-size: .8rem;
+  font-weight: 800;
+}
+
+.paste {
+  color: #fff5db;
+  background: #294650;
+}
+
+.paste:hover:not(:disabled) {
+  background: #365b65;
+}
+
+.paste:disabled {
+  cursor: wait;
+  opacity: .65;
+}
+
+.cardStatus {
+  color: #476056;
+  background: #e7e8d3;
+}
+
+.doubles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .65rem;
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0;
+}
+
+.doubleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+  min-width: 0;
+  padding: .65rem .75rem;
+  border: 1px solid #c9b791;
+  border-radius: 8px;
+  background: #fff8e8;
+  color: #294650;
+}
+
+.stickerNumber {
+  flex: none;
+  padding: .2rem .35rem;
+  border-radius: 3px;
+  background: #ead9b2;
+  font-size: .7rem;
+  font-weight: 800;
+}
+
+.stickerName {
+  flex: 1 1 8rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.quantities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .3rem .6rem;
+  font-size: .75rem;
+}
+
+.empty {
+  margin-top: 1rem;
+  color: #605846;
+}
+
+@media (max-width: 760px) {
+  .doubles { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 570px) {
+  .revealedCards { grid-template-columns: minmax(0, 250px); }
+}

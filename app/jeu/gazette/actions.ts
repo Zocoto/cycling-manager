@@ -27,6 +27,8 @@ export type CyclogazettePollActionState = {
   optionId: string | null;
 };
 
+export type CyclogazetteBoosterGiftActionState = "idle" | "claimed" | "error";
+
 export type CyclogazetteSeasonQuizActionState = {
   result: "idle" | "success" | "failure" | "incomplete";
   correctAnswers: number;
@@ -47,6 +49,27 @@ const RIVALRY_TAUNT_CODES = new Set([
   "pressure",
   "appointment",
 ]);
+
+export async function claimCyclogazetteBoosterGiftAction(
+  _previousState: CyclogazetteBoosterGiftActionState,
+  formData: FormData,
+): Promise<CyclogazetteBoosterGiftActionState> {
+  const editionId = String(formData.get("editionId") ?? "");
+  if (!isUuid(editionId)) return "error";
+
+  const supabase = await createSupabaseServerClient();
+  const { data: { user }, error: authenticationError } = await getAuthenticatedUser(supabase);
+  if (authenticationError || !user) return "error";
+
+  const { data, error } = await supabase.rpc("claim_current_cyclogazette_booster_gift", {
+    p_edition_id: editionId,
+  });
+  if (error || data !== "claimed") return "error";
+
+  revalidatePath("/jeu/gazette");
+  revalidatePath("/jeu/album");
+  return "claimed";
+}
 
 export async function publishMediaCenterArticleAction(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();

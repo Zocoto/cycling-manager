@@ -10,10 +10,10 @@ import { CyclogazetteReadMarker } from "@/components/game/cyclogazette-read-mark
 import { CyclogazetteRivalries } from "@/components/game/cyclogazette-rivalries";
 import { CyclogazetteSeasonQuiz } from "@/components/game/cyclogazette-season-quiz";
 import { CyclogazetteSectionNavigation } from "@/components/game/cyclogazette-section-navigation";
+import { CyclogazetteStickerGift } from "@/components/game/cyclogazette-sticker-gift";
 import { GameHeader } from "@/components/game/game-header";
-import Link from "@/components/ui/app-link";
-import { canAccessCollectorAlbum } from "@/lib/game/collector-album-access";
 import { MediaCenterComposer } from "@/components/game/media-center-composer";
+import { CYCLO_STICKERS_RELEASE } from "@/lib/game/cyclo-stickers-release";
 import {
   getCyclogazetteOpeningSourceGameYear,
   selectCyclogazetteGalaAwards,
@@ -103,6 +103,7 @@ export default async function CyclogazettePage({
       : Promise.resolve(null),
   ]);
   const edition = requestedEdition ?? latestEdition;
+  const isStickerGiftEdition = edition?.issueDate === "2026-11-07" && edition.issueNumber === 114;
   const isSeasonFinaleEdition = edition?.dayNumber === 28;
   const finaleGameYear = isSeasonFinaleEdition && edition ? Math.ceil(edition.issueNumber / 28) : null;
   // A late first reader may have triggered publication while the parallel
@@ -117,7 +118,7 @@ export default async function CyclogazettePage({
         .sort((left, right) => right.issueNumber - left.issueNumber)[0]
         ?? null
     : null;
-  const [community, gamesOverview, seasonQuizOverview] =
+  const [community, gamesOverview, seasonQuizOverview, stickerGift] =
     edition && latestEdition
       ? await Promise.all([
           getCyclogazetteCommunity(
@@ -137,8 +138,12 @@ export default async function CyclogazettePage({
             edition,
             latestEditionId: latestEdition.id,
           }),
+          CYCLO_STICKERS_RELEASE.publicReady && isStickerGiftEdition
+            ? supabase.rpc("get_current_cyclogazette_booster_gift", { p_edition_id: edition.id })
+            : null,
         ])
-      : [null, null, null];
+      : [null, null, null, null];
+  const stickerGiftState = stickerGift?.error ? null : stickerGift?.data;
   const isItalianGrandTourEdition = isItalianGrandTourGazetteDay(
     edition?.dayNumber ?? 0,
   );
@@ -190,12 +195,6 @@ export default async function CyclogazettePage({
       />
       <div className="px-2 py-5 sm:px-5 sm:py-9 lg:px-8">
         <CyclogazetteSectionNavigation activeSection={activeSection} />
-        {canAccessCollectorAlbum(user.id) ? (
-          <Link href="/jeu/album" className="mx-auto mb-5 flex max-w-[1100px] flex-wrap items-center justify-between gap-3 rounded-xl border border-[#b59a59]/50 bg-[#f6edcf] px-5 py-4 text-[#263d33]">
-            <span><strong className="font-serif text-xl">L’Album du peloton</strong><span className="ml-3 text-xs font-bold">Aperçu privé · Série S4</span></span>
-            <span className="text-sm font-black">Ouvrir l’album →</span>
-          </Link>
-        ) : null}
         {activeSection === "awards" ? (
           <CyclogazetteAwards awards={awards} />
         ) : activeSection === "rivalries" ? (
@@ -223,6 +222,16 @@ export default async function CyclogazettePage({
                   commentLanguages={getGazetteCommentLanguageHints(edition.content)}
                   community={community ?? undefined}
                   interviewReactions={community?.interviewReactions}
+                  stickerGift={
+                    stickerGiftState === "available" || stickerGiftState === "claimed" ? (
+                      <CyclogazetteStickerGift
+                        key={edition.id}
+                        editionId={edition.id}
+                        sourceSeason={CYCLO_STICKERS_RELEASE.sourceSeason}
+                        initiallyClaimed={stickerGiftState === "claimed"}
+                      />
+                    ) : null
+                  }
                   seasonOpeningAwards={
                     galaAwards.length > 0 ? (
                       <CyclogazetteAwards awards={galaAwards} mode="gala" />

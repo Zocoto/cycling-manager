@@ -3,7 +3,7 @@ import raw from "@/data/collector-album-pilot.json";
 import source from "@/data/collector-album-intro-pilot.json";
 import {createCycloStickersPreview} from "./cyclo-stickers-release";
 import {getAlbumIntroductionLeaves,getAlbumProfileCards,getAlbumProfileLeaves} from "./collector-album-layout";
-import {getAlbumBookTurn,type AlbumBookPosition} from "./collector-album-navigation";
+import {getAlbumBookTurn,getAlbumReadingPages,type AlbumBookPosition} from "./collector-album-navigation";
 import {createAlbumPilotState,getAlbumPilotPacks,readAlbumPilotState,updateAlbumPilot,type CollectorAlbumSnapshot} from "./collector-album";
 const snapshot=createCycloStickersPreview(raw as CollectorAlbumSnapshot,source);
 function traverse(start:AlbumBookPosition,single:boolean,direction:-1|1) {
@@ -19,6 +19,7 @@ describe("one bound Cyclo-Stickers book",()=>{
   it.each([false,true])("visits every sticker once, forward and back (mobile=%s)",single=>{
     const pages=traverse({section:"introduction",leaf:0},single,1);
     expect(traverse(pages.at(-1)!,single,-1)).toEqual([...pages].reverse());
+    if (single) expect(getAlbumReadingPages(snapshot.cards).map(page => page.position)).toEqual(pages);
     const cards=pages.flatMap(page=>page.section==="introduction"
       ?getAlbumIntroductionLeaves(snapshot.cards).slice(page.leaf,page.leaf+(single?1:2)).flat()
       :single?getAlbumProfileLeaves(getAlbumProfileCards(snapshot.cards,page.profile))[page.leaf-1]:getAlbumProfileCards(snapshot.cards,page.profile));

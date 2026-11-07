@@ -1,6 +1,6 @@
 "use client";
 import { getLooseAlbumCardCount, type AlbumPilotAction, type AlbumPilotState, type CollectorAlbumSnapshot } from "@/lib/game/collector-album";
-import { getAlbumIntroductionLeaves } from "@/lib/game/collector-album-layout";
+import { ALBUM_INTRODUCTION_TITLES, getAlbumIntroductionLeaves } from "@/lib/game/collector-album-layout";
 import { CollectorCardFace } from "./collector-card-face";
 import { isProvisionalCollectorAlbum } from "./collector-album-source-presentation";
 import { CycloStickersGamesArtwork } from "./cyclo-stickers-games-artwork";
@@ -19,7 +19,6 @@ export function CycloStickersIntroduction({snapshot,state,ready,onAction,leaf=0,
   const editionSeason=snapshot.presentationSeason??snapshot.sourceSeason;
   const provisional=isProvisionalCollectorAlbum(snapshot);
   const first=singlePage?leaf:Math.floor(leaf/2)*2;
-  const titles=["Les équipes au sommet","Les champions des continents","Les maillots distinctifs","Les souvenirs de la saison"];
   return <>
     <div className={book.pageEdges}><button type="button" aria-label="Feuille précédente" disabled={previousDisabled} onClick={()=>onTurn?.(-1)}>← Feuille précédente</button><span>Édition S{snapshot.presentationSeason??snapshot.sourceSeason} · Pages d’ouverture · {first+1}{singlePage?"":`–${first+2}`} / 4</span><button type="button" aria-label="Feuille suivante" disabled={nextDisabled} onClick={()=>onTurn?.(1)}>Feuille suivante →</button></div>
     <header className={spread.chapterHeading}>
@@ -28,7 +27,7 @@ export function CycloStickersIntroduction({snapshot,state,ready,onAction,leaf=0,
     </header>
     {privatePreview ? <p className={styles.sourceNote}>{snapshot.sourceSeason===3?"Aperçu privé : identités et notes S3. Les spécimens ne désignent pas les futurs champions S4. Les titres définitifs seront figés après la clôture de S4.":provisional?"Aperçu privé : identités, maillots et notes natives de S4. Le classement et les titres restent provisoires jusqu’à la clôture de S4.":"Aperçu privé de la série S4 : identités, maillots, notes natives et résultats de la saison 4."}</p> : null}
     <div className={spread.leaves}>{leaves.slice(first,first+(singlePage?1:2)).map((cards,index)=><div className={spread.leaf} key={first+index} data-opening-leaf={first+index+1}>
-      <div className={spread.leafHeader}><span>{titles[first+index]}</span><span>COLLECTION S4</span></div>
+      <div className={spread.leafHeader}><span>{ALBUM_INTRODUCTION_TITLES[first+index]}</span><span>COLLECTION S4</span></div>
       <div className={`${spread.slots} ${format.grid}`}>{cards.map(card=>{
         const pasted=state.pasted.includes(card.number),available=getLooseAlbumCardCount(state,card.number)>0;
         return <div key={card.id} className={`${spread.slotWrap} ${format.slot}`} data-album-slot={card.number}>

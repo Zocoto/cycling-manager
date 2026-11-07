@@ -54,6 +54,7 @@ describe("the private album as a book", () => {
     expect(implicit).not.toContain("data-album-slot=");
     expect(implicit).not.toContain("data-album-leaf=");
     expect(implicit).not.toContain('aria-label="Profils de coureurs"');
+    expect(implicit).not.toContain('href="/jeu/gazette"');
     expect(buttonMarkup(implicit, "Ouvrir mon album")).toContain('disabled=""');
   });
 
@@ -107,6 +108,14 @@ describe("the private album as a book", () => {
     expect(standings).toContain("Collector 6");
     expect(standings).not.toContain("Couverture de l’album");
     expect(trades).not.toHaveBeenCalled();
+  });
+
+  it("offers a mobile jump to every readable page and marks the current chapter’s first page", () => {
+    const html = renderToStaticMarkup(<CollectorAlbum snapshot={snapshot} storageOwnerId={storageOwnerId} initialProfile="hills" />);
+    expect(html).toContain('aria-label="Sommaire de l’album"');
+    expect(html).toContain(">Page 6 / 14</strong>");
+    expect(html).toContain('value="6" selected="">6 · Puncheurs</option>');
+    expect(html).toContain('value="14">14 · Baroudeurs</option>');
   });
 
   it.each([
