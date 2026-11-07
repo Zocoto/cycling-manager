@@ -1,0 +1,98 @@
+.hero {
+  padding: clamp(20px, 4vw, 40px);
+  border: 1px solid #a68a47;
+  border-radius: 20px;
+  background: radial-gradient(ellipse at top right, #d8ac5836, transparent 60%), #16191d;
+}
+
+.hero time { color: #e3c77c; font-size: .85rem; font-weight: 700; }
+.hero h1 {
+  margin-top: 7px;
+  color: #f5e8c7;
+  font: 700 clamp(2rem, 5vw, 3.6rem) / 1.05 Georgia, serif;
+  letter-spacing: -.04em;
+}
+
+.nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.nav a, .liveHeading a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  padding: 7px 12px;
+  border: 1px solid #77643c;
+  border-radius: 9px;
+  color: #f3dda8;
+  background: #26231b;
+  font-size: .78rem;
+  font-weight: 700;
+}
+
+.notice {
+  margin-top: 15px;
+  padding: 13px 17px;
+  border: 1px solid #75603a;
+  border-radius: 12px;
+  background: #242119;
+  color: #f5dfaa;
+}
+
+.notice p, .empty { color: #c7c2b3; font-size: .82rem; line-height: 1.55; }
+.section { margin-top: 28px; scroll-margin-top: 5rem; }
+.section h2 { margin: 0 0 12px; color: #f5e8c7; font: 700 1.6rem Georgia, serif; }
+.courseGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap: 14px; align-items: start; }
+
+.course {
+  min-width: 0;
+  overflow: hidden;
+  padding: 15px 15px 0;
+  border: 1px solid #494237;
+  border-radius: 14px;
+  background: #181b20;
+}
+
+.courseHeading { display: flex; gap: 8px; justify-content: space-between; align-items: flex-start; }
+.courseHeading h3 { color: #f5e8c7; font: 700 1.2rem / 1.2 Georgia, serif; }
+.courseHeading p { margin-top: 4px; color: #c7c2b3; font-size: .76rem; }
+.ranking { margin: 0 -15px; border-top: 1px solid #494237; }
+.ranking summary, .prizeSchedule summary {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 15px;
+  cursor: pointer;
+  list-style: none;
+  color: #f0d996;
+  font-size: .8rem;
+}
+
+.ranking summary::-webkit-details-marker, .prizeSchedule summary::-webkit-details-marker { display: none; }
+.ranking summary::after, .prizeSchedule summary::after { margin-left: auto; content: "+"; }
+.ranking[open] summary::after, .prizeSchedule[open] summary::after { content: "−"; }
+.ranking summary span { color: #c7c2b3; }
+.ranking .empty { padding: 0 15px 14px; }
+
+.table { width: 100%; table-layout: fixed; text-align: left; font-size: .74rem; line-height: 1.4; }
+.table th, .table td { padding: 8px 6px; border-top: 1px solid #3d3c37; vertical-align: top; overflow-wrap: anywhere; }
+.table th { color: #dec99e; }
+.table th:first-child, .table td:first-child { width: 3.1rem; padding-left: 12px; color: #e3c77c; }
+.table th:nth-child(2) { width: 41%; }
+.table td strong, .table td span { display: block; }
+.table td span { margin-top: 3px; color: #c7c2b3; }
+.prizeList { display: grid; gap: 3px; }
+
+.prizeSchedule { margin-top: 17px; border: 1px solid #494237; border-radius: 12px; background: #181b20; }
+.prizeSchedule ul { padding: 0 15px 12px; }
+.prizeSchedule li { display: flex; gap: 12px; padding: 8px 0; border-top: 1px solid #3d3c37; font-size: .82rem; }
+.prizeSchedule li b { flex: 0 0 4rem; color: #e3c77c; }
+.prizeSchedule small { display: block; color: #c7c2b3; font-size: .76rem; }
+
+.live { padding: 16px; border: 1px solid #635070; border-radius: 14px; background: #1d1924; }
+.liveHeading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.liveHost { display: flex; align-items: center; gap: 10px; }
+.liveHost img { flex-shrink: 0; border: 1px solid #9b76b5; border-radius: 50%; }
+.liveHeading h2 { margin: 0; }
+.liveHeading a { border-color: #705685; background: #352645; color: #f2e0ff; }
+.liveGift, .participants { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 12px 0; font-size: .8rem; }
+.liveGift span, .participants li { padding: 5px 8px; border: 1px solid #635070; border-radius: 6px; overflow-wrap: anywhere; }
+.liveGift span { color: #f3dda8; }

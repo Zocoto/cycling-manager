@@ -45,6 +45,7 @@ try {
   }
   await db.exec(`insert into daily_reward_inventory(sporting_director_id,team_season_id,source_claim_id,reward_key,expires_after_game_year) values('${id(30)}','${id(20)}','${id(999)}','energy-ration',6);`);
   await db.exec(readFileSync('supabase/migrations/20261023120000_prepare_season_four_gala_rewards.sql','utf8'));
+  await db.exec(readFileSync('supabase/migrations/20261107150000_fix_season_four_gala_partial_program_results.sql','utf8'));
   check(await scalar('select count(*)::int from season_gala_reward_grants'),0);
   check(await scalar('select count(*)::int from daily_reward_inventory'),1);
   check(await scalar("select count(*)::int from equipment_catalog_items where acquisition_channel='event_reward'"),12);
@@ -101,6 +102,19 @@ try {
   check(await scalar('select get_daily_reward_training_multiplier_for_session($1,$2)',[id(10),id(303)]),'2');
   check(await scalar('select get_daily_reward_training_multiplier_for_session($1,$2)',[id(10),id(304)]),'3');
   check(await scalar('select get_daily_reward_training_multiplier_for_session($1,$2)',[id(11),id(304)]),'1');
+  // This club entered only the mountain. It must not prevent a valid result
+  // from being imported on the other two Continental profiles.
+  await db.exec(`insert into season_gala_registrations values('${id(60)}','${id(1)}','${id(50)}','continental',now());`);
+  for (let position=1;position<=7;position++) {
+    await db.query('insert into riders values($1,$2,$3)',[id(1050+position),'Entrant',String(position)]);
+    await db.query("insert into season_gala_registration_riders values($1,'mountain',$2,$3)",[id(60),id(1050+position),position]);
+  }
+  const unrelatedWinner=top('continental').map((row,index)=>index===9 ? { ...row, rider_id:id(1051), team_id:id(50) } : row);
+  await assert.rejects(()=>settle('continental:hills',unrelatedWinner),/ne figure pas dans la composition/);checks++;
+  await db.query("insert into season_gala_registration_riders values($1,'hills',$2,1)",[id(60),id(1051)]);
+  await assert.rejects(()=>settle('continental:hills',top('continental')),/7 à 8 coureurs/);checks++;
+  check(await scalar("select count(*)::int from season_gala_result_imports where event_key='continental:hills'"),0);
+  await db.query("delete from season_gala_registration_riders where registration_id=$1 and profile='hills'",[id(60)]);
   for(const key of ['world-tour:hills','world-tour:cobbles','continental:mountain','continental:hills','continental:sprint']) {
     check((await settle(key,top(key.startsWith('world-tour')?'world-tour':'continental'))).consumableUnits,25);
   }

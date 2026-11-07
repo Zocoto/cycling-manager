@@ -13,7 +13,7 @@ describe("private S4 gala rehearsal", () => {
   it("authenticates the public game page and separately restricts exports", () => {
     const page=readFileSync(join(process.cwd(),"app/jeu/gala-saison-4/page.tsx"),"utf8");
     expect(page).not.toContain('notFound()');
-    expect(page.indexOf('if (error || !user) redirect("/connexion")')).toBeLessThan(page.indexOf('getGameHeaderData(supabase,user.id)'));
+    expect(page.indexOf('if (error || !user) redirect("/connexion")')).toBeLessThan(page.indexOf('getGameHeaderData(supabase, user.id)'));
     expect(page).toContain('canExportSeasonFourGala(user.id)');
     expect(page).toContain('index: false, follow: false');
     expect(page).not.toContain('searchParams');

@@ -48,9 +48,11 @@ describe("private gala presentation",()=>{
     expect(html).not.toContain('Amstel Gold Race · 2023');
     expect(html).not.toContain('Paris–Roubaix · 2026');
   });
-  it("exposes the event tile to all players without a draft label or extra player lookup",async()=>{
+  it("links every player to the gala results alongside the active Halloween tile",async()=>{
     const other=renderToStaticMarkup(await DashboardSeasonFourGalaEvents({userId:'another-player'}));
-    expect(other).toContain('Halloween');expect(other).toContain('/jeu/gala-saison-4');expect(other).not.toMatch(/draft/i);
+    expect(other).toContain('Halloween');expect(other).toContain('href="/jeu/gala-saison-4"');
+    expect(other).toContain('Consulter les résultats du gala du 6 novembre');
+    expect(other).not.toContain('Suivre le live sur Twitch');
     const owner=renderToStaticMarkup(await DashboardSeasonFourGalaEvents({userId:'58140add-54c6-40af-9528-f823d0051d0f'}));
     expect(owner).toContain('/jeu/gala-saison-4');expect(owner).toContain('/jeu/halloween');
     expect(owner).toContain('data-with-halloween="true"');

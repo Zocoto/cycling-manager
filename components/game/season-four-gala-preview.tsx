@@ -12,6 +12,7 @@ import type {GalaExportStatus} from "@/lib/game/season-four-gala";
 import type { SeasonFourGalaContext } from "@/lib/game/season-four-gala-registration";
 import { SeasonFourGalaRegistration } from "./season-four-gala-registration";
 import { SeasonFourGalaEntries } from "./season-four-gala-entries";
+import { SeasonFourGalaCourseProfile } from "./season-four-gala-course-profile";
 
 const demoTeams: { name: string; director: string; rider: string; jersey: AmateurJerseyConfig }[] = [
   { name: "Vélo Club des Cimes", director: "AlpineFox", rider: "Noé Castan", jersey: { pattern: "chevron", primaryColor: "#23534C", secondaryColor: "#E9DEC1", accentColor: "#D8B656" } },
@@ -59,7 +60,7 @@ export function SeasonFourGalaPreview({exportStatus, context, canExport = false}
       </div>
       <div role="tabpanel" id={`${tabId}-panel`} aria-labelledby={`${tabId}-${program === "world-tour" ? "wt" : "ct"}`} tabIndex={0}>
         {context ? <><SeasonFourGalaRegistration context={context} program={program} onKeepProgram={setProgram}
-          renderProfile={profile => <CourseProfile course={GALA_COURSES[profile]} />}
+          renderProfile={profile => <SeasonFourGalaCourseProfile course={GALA_COURSES[profile]} />}
           renderDetails={profile => <CourseBody course={GALA_COURSES[profile]} program={program} context={context} showEntries={false} />}
         />{!context.team && !context.unavailable ? <div className={styles.raceGrid}>{profiles.map((profile,index)=><CourseCard key={profile} course={GALA_COURSES[profile]} program={program} number={index+1} context={context}/>)}</div> : null}</> : <><div className={styles.raceGrid}>{profiles.map((profile, index) => <CourseCard key={`${program}-${profile}`} course={GALA_COURSES[profile]} program={program} number={index + 1} />)}</div><p role="status" className={styles.previewStatus}>Démonstration locale : aucune inscription ne sera enregistrée.</p></>}
       </div>
@@ -92,7 +93,7 @@ function CourseCard({ course, program, number, context }: { course: GalaCourse; 
   return <article className={styles.raceCard}>
     <header><span className={styles.courseNumber}>0{number}</span><span className={styles.smallBadge}>{course.profile}</span></header>
     <p className={styles.raceTitle}>{course.title}</p><h3>{course.name}</h3><p className={styles.raceDistance}>{course.distance} <span>· {program === "world-tour" ? "World Tour" : "Continental · 75 max."}</span></p>
-    <CourseProfile course={course} /><CourseBody course={course} program={program} context={context} />
+    <SeasonFourGalaCourseProfile course={course} /><CourseBody course={course} program={program} context={context} />
   </article>;
 }
 
@@ -106,12 +107,6 @@ function CourseBody({course,program,context,showEntries=true}: {course:GalaCours
     </>}
     <details className={styles.courseDetails}><summary>Parcours & capacité PCM <span aria-hidden="true">＋</span></summary><div className={styles.capacityDetails}><strong>{galaClubCapacity(course)} clubs + 1 équipe de simulation</strong><p>Capacité PCM : {course.nativeCapacity} équipes au total. Aucun blocage à l’inscription ; un dépassement demandera un arbitrage avant la simulation.</p><code>{course.filename}</code>{course.sourceUrl ? <a href={course.sourceUrl} target="_blank" rel="noopener noreferrer">En savoir plus sur le parcours ↗</a> : null}</div></details>
   </div>;
-}
-
-function CourseProfile({course}: {course: GalaCourse}) {
-  const id=useId();
-  const line=course.elevation.map((height,index)=>`${(course.elevationPositions?.[index] ?? index/(course.elevation.length-1))*480},${112-height}`).join(' ');
-  return <figure className={styles.profile}><svg viewBox="0 0 480 120" role="img" aria-label={`Profil schématique : ${course.profile}`} preserveAspectRatio="none"><defs><linearGradient id={id} x1="0" x2="0" y1="0" y2="1"><stop stopColor="#EACA7C" stopOpacity=".35"/><stop offset="1" stopColor="#EACA7C" stopOpacity=".02"/></linearGradient></defs><path d={`M0 120 L${line.replaceAll(' ',' L')} L480 120Z`} fill={`url(#${id})`}/><polyline points={line} stroke="#EACA7C" strokeWidth="2" fill="none" vectorEffect="non-scaling-stroke"/>{course.id==='cobbles'?<path d="M160 116H200M220 116H265M290 116H335M355 116H395M415 116H455" stroke="#B0916A" strokeWidth="5"/>:null}</svg><figcaption>Profil schématique <span>{course.profile}</span></figcaption></figure>;
 }
 
 export function GalaTrophy() { return <svg viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M29 18H71V37C71 54 61 65 50 65S29 54 29 37V18Z" stroke="currentColor" strokeWidth="2"/><path d="M29 24H16V32C16 46 24 50 35 50M71 24H84V32C84 46 76 50 65 50M50 65V79M35 84H65M39 79H61L65 84H35L39 79Z" stroke="currentColor" strokeWidth="2"/><path d="M50 28L53 37L63 37L55 43L58 53L50 47L42 53L45 43L37 37L47 37L50 28Z" fill="currentColor"/><path d="M19 61Q22 75 36 79M81 61Q78 75 64 79" stroke="currentColor" strokeWidth="2"/></svg>; }
