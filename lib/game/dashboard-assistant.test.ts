@@ -30,7 +30,7 @@ const snapshot: DashboardAssistantSnapshot = {
   seniorSkippedCount: 3,
   seniorProgressCount: 5,
   juniorRiderCount: 6,
-  juniorSessionCount: 6,
+  juniorTrainedRiderCount: 6,
   juniorProgressCount: 2,
   juniorManualTrainingDueCount: 2,
   juniorManualTrainingSlot: "manual_am",
@@ -101,6 +101,11 @@ describe("dashboard DS assistant", () => {
     });
     const reports = groups.information.filter(line => ["senior-training", "junior-training", "form-camp-report"].includes(line.id));
     expect(reports.map(line => line.id)).toEqual(["senior-training", "junior-training", "form-camp-report"]);
+    expect(reports[1]).toMatchObject({
+      metric: "6",
+      detail: expect.stringContaining("6/6 entraînés"),
+      href: "/jeu/centre-de-formation/rapport-entrainement",
+    });
     expect(reports[2]).toMatchObject({
       metric: "2", title: "Compte rendu des stages de forme",
       detail: "Bilan de J25 · 2 coureurs · +15 points de forme reçus au total",

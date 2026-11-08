@@ -23,7 +23,7 @@ const quietSnapshot = {
   seniorSkippedCount: 0,
   seniorProgressCount: 0,
   juniorRiderCount: 0,
-  juniorSessionCount: 0,
+  juniorTrainedRiderCount: 0,
   juniorProgressCount: 0,
   juniorManualTrainingDueCount: 0,
   juniorManualTrainingSlot: null,

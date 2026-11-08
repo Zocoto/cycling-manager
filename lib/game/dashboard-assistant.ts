@@ -84,7 +84,7 @@ export type DashboardAssistantSnapshot = {
   seniorSkippedCount: number;
   seniorProgressCount: number;
   juniorRiderCount: number;
-  juniorSessionCount: number;
+  juniorTrainedRiderCount: number;
   juniorProgressCount: number;
   juniorManualTrainingDueCount: number;
   juniorManualTrainingSlot: "manual_am" | "manual_pm" | null;
@@ -749,9 +749,9 @@ export function buildDashboardAssistantLines({
     information.push({
       id: "junior-training",
       tone: "info",
-      metric: String(snapshot.juniorSessionCount),
+      metric: String(snapshot.juniorTrainedRiderCount),
       title: "Rapport quotidien des juniors",
-      detail: `${snapshot.juniorSessionCount}/${snapshot.juniorRiderCount} entraînés · ${formatProgressCount(snapshot.juniorProgressCount)}`,
+      detail: `${snapshot.juniorTrainedRiderCount}/${snapshot.juniorRiderCount} entraînés · ${formatProgressCount(snapshot.juniorProgressCount)}`,
       href: "/jeu/centre-de-formation/rapport-entrainement",
     });
   }

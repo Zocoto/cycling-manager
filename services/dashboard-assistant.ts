@@ -31,7 +31,7 @@ type DashboardAssistantSummaryRow = {
   senior_skipped_count: number;
   senior_progress_count: number;
   junior_rider_count: number;
-  junior_session_count: number;
+  junior_session_count: number; // Legacy RPC name for the count of juniors with a session.
   junior_progress_count: number;
   auction_count: number;
   daily_auction_count: number;
@@ -226,7 +226,7 @@ export async function getCurrentDashboardAssistantSummary(
     seniorSkippedCount: row.senior_skipped_count,
     seniorProgressCount: row.senior_progress_count,
     juniorRiderCount: row.junior_rider_count,
-    juniorSessionCount: row.junior_session_count,
+    juniorTrainedRiderCount: row.junior_session_count,
     juniorProgressCount: row.junior_progress_count,
     juniorManualTrainingDueCount:
       assistantPayload.juniorManualTrainingDueCount,
