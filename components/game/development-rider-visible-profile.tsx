@@ -10,11 +10,13 @@ export function DevelopmentRiderVisibleProfile({
   jersey,
   avatarClassName = "h-14 w-14",
   seasonRaceDays,
+  projectedSeasonRaceDays,
 }: {
   rider: DevelopmentRider;
   jersey?: RiderJerseyAppearance;
   avatarClassName?: string;
   seasonRaceDays?: number | null;
+  projectedSeasonRaceDays?: number | null;
 }) {
   return (
     <span className="block">
@@ -35,13 +37,19 @@ export function DevelopmentRiderVisibleProfile({
           <span className="mt-0.5 block text-[10px] font-bold text-[#60756E]">
             {rider.countryCode} · {rider.age} ans · {rider.sportingProfile}
           </span>
-          <span className="mt-2 flex items-center gap-2">
-            <span className="text-[9px] font-black uppercase tracking-[0.1em] text-[#60756E]">
-              Potentiel
+          <span className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="inline-flex items-center gap-2">
+              <span className="text-[9px] font-black uppercase tracking-[0.1em] text-[#60756E]">
+                Potentiel
+              </span>
+              <PotentialStars potentialSteps={rider.potentialSteps} compact />
             </span>
-            <PotentialStars potentialSteps={rider.potentialSteps} compact />
+            <SeasonRaceDaysBadge
+              seasonRaceDays={seasonRaceDays}
+              projectedSeasonRaceDays={projectedSeasonRaceDays}
+              warnOnOverload={false}
+            />
           </span>
-          <SeasonRaceDaysBadge seasonRaceDays={seasonRaceDays} className="mt-2" />
         </span>
       </span>
 

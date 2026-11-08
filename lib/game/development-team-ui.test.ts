@@ -11,6 +11,10 @@ const panel = readFileSync(
   join(process.cwd(), "components/game/development-team-panel.tsx"),
   "utf8",
 );
+const selectionForm = readFileSync(
+  join(process.cwd(), "components/game/development-race-selection-form.tsx"),
+  "utf8",
+);
 const builder = readFileSync(
   join(process.cwd(), "components/game/development-team-builder.tsx"),
   "utf8",
@@ -50,7 +54,7 @@ describe("Development Team UI", () => {
   });
 
   it("montre toutes les notes, le potentiel et le talent lors du choix", () => {
-    expect(panel).toContain("DevelopmentRiderVisibleProfile");
+    expect(selectionForm).toContain("<DevelopmentRiderVisibleProfile");
     expect(riderProfile).toContain("RIDER_RATING_AXES.map");
     expect(riderProfile).toContain("rider.ratings[axis.key]");
     expect(riderProfile).toContain("PotentialStars");
@@ -59,8 +63,9 @@ describe("Development Team UI", () => {
   });
 
   it("expose le calendrier, les inscriptions et les résultats bruts", () => {
-    expect(panel).toContain("registerDevelopmentRaceAction");
-    expect(panel).toContain("Dix rendez-vous, des résultats au fil des jours");
+    expect(panel).toContain("<DevelopmentRaceSelectionForm");
+    expect(selectionForm).toContain("action={registerDevelopmentRaceAction}");
+    expect(panel).toContain("{overview.races.length} rendez-vous juniors");
     expect(panel).toContain("Résultats bruts");
     expect(panel).toContain("Classement général final");
     expect(panel).toContain("formatRaceTime");

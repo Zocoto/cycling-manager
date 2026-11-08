@@ -12,6 +12,7 @@ import {
   getRosterFormClasses,
   sortAndFilterRaceRosterOptions,
 } from "./race-roster-selector";
+import { SeasonRaceDaysBadge } from "./season-race-days-badge";
 
 const rider = {
   riderId: "00000000-0000-4000-8000-000000000001",
@@ -46,7 +47,15 @@ describe("RaceRosterSelector", () => {
     const markup = renderToStaticMarkup(
       <form>
         <RaceRosterSelector
-          riders={[rider]}
+          riders={[
+            rider,
+            {
+              ...rider,
+              riderId: "00000000-0000-4000-8000-000000000002",
+              seasonRaceDays: 24,
+              projectedSeasonRaceDays: 32,
+            },
+          ]}
           minimum={1}
           maximum={1}
           jersey={FREE_AGENT_RIDER_JERSEY}
@@ -56,7 +65,11 @@ describe("RaceRosterSelector", () => {
     );
 
     expect(markup).toContain("Forme 87,5/100");
-    expect(markup).toContain("Jours de course cette saison · 0");
+    expect(markup).toContain(">0 JDC</span>");
+    expect(markup).toContain(">32 JDC prév.</span>");
+    expect(markup).toContain('title="Jours de course projetés · 32 (24 disputés, 8 à venir)"');
+    expect(markup).toContain("Surcharge prévue");
+    expect(markup).toContain("Au-delà de 30 JDC, chaque jour de course supplémentaire coûte 1 point de moral.");
     expect(markup).toContain("Lieutenant");
     expect(markup).toContain("MON 78 · VAL 76 · PLA 69");
     expect(markup).toContain("CLM 66 · PAV 63 · SPR 61 · BAR 73");
@@ -67,6 +80,20 @@ describe("RaceRosterSelector", () => {
     expect(markup).toContain("− Pluie");
     expect(markup).toContain("bonus de 1,5 point");
     expect(markup).toContain("malus de 1,25 point");
+  });
+
+  it("signale le dépassement du seuil pour les coureurs soumis au malus de moral", () => {
+    const atThreshold = renderToStaticMarkup(<SeasonRaceDaysBadge seasonRaceDays={30} />);
+    const overThreshold = renderToStaticMarkup(<SeasonRaceDaysBadge seasonRaceDays={31} />);
+    const noPenalty = renderToStaticMarkup(
+      <SeasonRaceDaysBadge seasonRaceDays={31} projectedSeasonRaceDays={32} warnOnOverload={false} />,
+    );
+
+    expect(atThreshold).not.toContain("bg-red-100");
+    expect(overThreshold).toContain("bg-red-100");
+    expect(overThreshold).toContain("Calendrier surchargé");
+    expect(noPenalty).toContain(">32 JDC prév.</span>");
+    expect(noPenalty).not.toContain("bg-red-100");
   });
 
   it("permet de modifier la sélection et les rôles existants dans le même formulaire", () => {

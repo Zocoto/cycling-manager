@@ -148,6 +148,18 @@ type SelectionRow = {
   academy_rider_id: string;
 };
 
+type FederationRegistrationRow = {
+  race_edition_id: string;
+  national_federation_junior_race_registration_riders: Array<{
+    academy_rider_id: string;
+  }>;
+};
+
+type StageParticipationRow = {
+  academy_rider_id: string;
+  stage_id: string;
+};
+
 type ResultRow = {
   id: string;
   race_edition_id: string;
@@ -212,6 +224,7 @@ export type DevelopmentRider = {
   promotionGameYear: number | null;
   careerRaceDays: number;
   seasonRaceDays?: number;
+  projectedSeasonRaceDays?: number;
   raceNumber: number | null;
   championshipTitle: JuniorChampionshipTitle | null;
   proNationalCallup: boolean;
@@ -387,7 +400,15 @@ export async function getDevelopmentTeamOverview(
   const editions = editionsResult.data ?? [];
   const academyCountryIds = unique(academyRows.map((rider) => rider.country_id));
   const academyIds = academyRows.map((rider) => rider.id);
-  const [countriesResult, stagesResult, titlesResult, callupsResult, raceDaysResult] = await Promise.all([
+  const loadRaceDays = view === "calendrier" && Boolean(teamRow) && academyIds.length > 0;
+  const upcomingFederationEditionIds = loadRaceDays
+    ? editions.filter((edition) =>
+        edition.status === "planned" &&
+        edition.end_day_number >= context.currentDayNumber &&
+        (edition.competition_type.startsWith("world_") || edition.competition_type.startsWith("continental_")),
+      ).map((edition) => edition.id)
+    : [];
+  const [countriesResult, stagesResult, titlesResult, callupsResult, raceDaysResult, federationRegistrationsResult] = await Promise.all([
     academyCountryIds.length
       ? admin
           .from("countries")
@@ -422,23 +443,33 @@ export async function getDevelopmentTeamOverview(
           .in("academy_rider_id", academyIds)
           .returns<AcademyCompetitionLinkRow[]>()
       : Promise.resolve({ data: [] as AcademyCompetitionLinkRow[], error: null }),
-    view === "calendrier" && teamRow && academyIds.length
-      ? collectChunkedPaginatedRows<{ academy_rider_id: string }, { message: string }, string>({
+    loadRaceDays
+      ? collectChunkedPaginatedRows<StageParticipationRow, { message: string }, string>({
           values: academyIds,
           fetchPage: async (riderIds, from, to) => {
             const result = await admin
               .from("development_race_results")
-              .select("academy_rider_id, development_race_editions!inner(season_id)")
+              .select("academy_rider_id, stage_id, development_race_editions!inner(season_id)")
               .eq("development_race_editions.season_id", context.seasonId)
               .eq("result_scope", "stage")
               .in("academy_rider_id", riderIds)
               .order("id", { ascending: true })
               .range(from, to)
-              .returns<Array<{ academy_rider_id: string }>>();
+              .returns<StageParticipationRow[]>();
             return { data: result.data, error: result.error };
           },
         })
       : Promise.resolve(null),
+    upcomingFederationEditionIds.length
+      ? admin
+          .from("national_federation_junior_race_registrations")
+          .select("race_edition_id, national_federation_junior_race_registration_riders!inner(academy_rider_id)")
+          .in("race_edition_id", upcomingFederationEditionIds)
+          .eq("status", "registered")
+          .in("national_federation_junior_race_registration_riders.academy_rider_id", academyIds)
+          .abortSignal(AbortSignal.timeout(2_000))
+          .returns<FederationRegistrationRow[]>()
+      : Promise.resolve({ data: [] as FederationRegistrationRow[], error: null }),
   ]);
   assertQuery(countriesResult.error, "les nationalités des juniors");
   assertQuery(stagesResult.error, "les étapes juniors");
@@ -544,27 +575,55 @@ export async function getDevelopmentTeamOverview(
   const proCallupRiderIds = new Set(
     (callupsResult.data ?? []).map((link) => link.academy_rider_id),
   );
-  const raceDaysByRiderId = new Map<string, number>();
+  const riddenStageIdsByRiderId = new Map<string, Set<string>>();
+  const publishedRaceDayStageIds = new Set<string>();
   if (raceDaysResult?.error) {
     console.warn("development_race_days_unavailable");
   } else {
     for (const row of raceDaysResult?.data ?? []) {
-      raceDaysByRiderId.set(row.academy_rider_id, (raceDaysByRiderId.get(row.academy_rider_id) ?? 0) + 1);
+      const ridden = riddenStageIdsByRiderId.get(row.academy_rider_id) ?? new Set<string>();
+      ridden.add(row.stage_id);
+      riddenStageIdsByRiderId.set(row.academy_rider_id, ridden);
+      publishedRaceDayStageIds.add(row.stage_id);
     }
   }
-  const riders = academyRows.map((rider) => ({
-    ...toDevelopmentRider(
-      rider,
-      countriesById.get(rider.country_id),
-      context.gameYear,
-      raceNumberByRiderId.get(rider.id) ?? null,
-      titleByRiderId.get(rider.id) ?? null,
-      proCallupRiderIds.has(rider.id),
-    ),
-    seasonRaceDays: raceDaysResult && !raceDaysResult.error
-      ? raceDaysByRiderId.get(rider.id) ?? 0
-      : undefined,
-  }));
+  const stagesByEditionId = groupBy(
+    stagesResult.data ?? [],
+    (stage) => stage.race_edition_id,
+  );
+  if (federationRegistrationsResult.error) {
+    console.warn("development_race_day_projection_unavailable");
+  }
+  const remainingStagesByRiderId = raceDaysResult && !raceDaysResult.error && !federationRegistrationsResult.error
+    ? getRemainingDevelopmentStagesByRider({
+        currentDayNumber: context.currentDayNumber,
+        editions,
+        stagesByEditionId,
+        registrations: registrationRows,
+        selections: selectionRows,
+        federationRegistrations: federationRegistrationsResult.data ?? [],
+        publishedStageIds: publishedRaceDayStageIds,
+      })
+    : null;
+  const riders = academyRows.map((rider) => {
+    const seasonRaceDays = raceDaysResult && !raceDaysResult.error
+      ? riddenStageIdsByRiderId.get(rider.id)?.size ?? 0
+      : undefined;
+    return {
+      ...toDevelopmentRider(
+        rider,
+        countriesById.get(rider.country_id),
+        context.gameYear,
+        raceNumberByRiderId.get(rider.id) ?? null,
+        titleByRiderId.get(rider.id) ?? null,
+        proCallupRiderIds.has(rider.id),
+      ),
+      seasonRaceDays,
+      projectedSeasonRaceDays: seasonRaceDays !== undefined && remainingStagesByRiderId
+        ? seasonRaceDays + (remainingStagesByRiderId.get(rider.id)?.size ?? 0)
+        : undefined,
+    };
+  });
   const riderById = new Map(riders.map((rider) => [rider.id, rider]));
   const roster = rosterRows.flatMap((row) => {
     const rider = riderById.get(row.academy_rider_id);
@@ -576,10 +635,6 @@ export async function getDevelopmentTeamOverview(
   );
   const registrationByEditionId = new Map(
     registrationRows.map((registration) => [registration.race_edition_id, registration]),
-  );
-  const stagesByEditionId = groupBy(
-    stagesResult.data ?? [],
-    (stage) => stage.race_edition_id,
   );
   const publishedStageIds = new Set(
     resultRows.flatMap((result) =>
@@ -1281,6 +1336,58 @@ function isUuid(value: string) {
 
 function unique(values: string[]) {
   return [...new Set(values)];
+}
+
+export function getRemainingDevelopmentStagesByRider({
+  currentDayNumber,
+  editions,
+  stagesByEditionId,
+  registrations,
+  selections,
+  federationRegistrations,
+  publishedStageIds,
+}: {
+  currentDayNumber: number;
+  editions: Array<Pick<EditionRow, "id" | "status">>;
+  stagesByEditionId: ReadonlyMap<string, ReadonlyArray<Pick<StageRow, "id" | "day_number">>>;
+  registrations: Array<Pick<RegistrationRow, "id" | "race_edition_id" | "status">>;
+  selections: SelectionRow[];
+  federationRegistrations: FederationRegistrationRow[];
+  publishedStageIds: ReadonlySet<string>;
+}) {
+  const remainingStageIdsByEdition = new Map<string, string[]>();
+  for (const edition of editions) {
+    if (edition.status !== "planned") continue;
+    // A junior tour remains planned until its last stage settles.
+    const remaining = (stagesByEditionId.get(edition.id) ?? [])
+      .filter((stage) => stage.day_number >= currentDayNumber && !publishedStageIds.has(stage.id))
+      .map((stage) => stage.id);
+    if (remaining.length) remainingStageIdsByEdition.set(edition.id, remaining);
+  }
+
+  const remainingStageIdsByRider = new Map<string, Set<string>>();
+  function addStages(riderId: string, editionId: string) {
+    const stages = remainingStageIdsByEdition.get(editionId);
+    if (!stages) return;
+    const riderStages = remainingStageIdsByRider.get(riderId) ?? new Set<string>();
+    for (const stageId of stages) riderStages.add(stageId);
+    remainingStageIdsByRider.set(riderId, riderStages);
+  }
+
+  const registeredEditionById = new Map(
+    registrations.filter((registration) => registration.status === "registered")
+      .map((registration) => [registration.id, registration.race_edition_id]),
+  );
+  for (const selection of selections) {
+    const editionId = registeredEditionById.get(selection.registration_id);
+    if (editionId) addStages(selection.academy_rider_id, editionId);
+  }
+  for (const registration of federationRegistrations) {
+    for (const rider of registration.national_federation_junior_race_registration_riders) {
+      addStages(rider.academy_rider_id, registration.race_edition_id);
+    }
+  }
+  return remainingStageIdsByRider;
 }
 
 function groupBy<T>(rows: T[], key: (row: T) => string) {

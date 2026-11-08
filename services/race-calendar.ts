@@ -703,6 +703,7 @@ export type RaceRosterOption = {
   form: number;
   morale: number;
   seasonRaceDays?: number;
+  projectedSeasonRaceDays?: number;
   squadStatus: SquadStatus | null;
   climateProfile: RiderClimateProfile;
   isSelected: boolean;
@@ -2344,7 +2345,8 @@ export async function getCurrentTeamRaceRosterOptions(
     breakaway: rider.breakaway,
     form: Number(rider.current_form),
     morale: moraleByRiderId.get(rider.rider_id) ?? 60,
-    seasonRaceDays: raceDaysByRiderId.get(rider.rider_id),
+    seasonRaceDays: raceDaysByRiderId.get(rider.rider_id)?.season_race_days,
+    projectedSeasonRaceDays: raceDaysByRiderId.get(rider.rider_id)?.projected_season_race_days,
     squadStatus: parseSquadStatus(rider.squad_status),
     climateProfile: getRiderClimateProfile({
       riderId: rider.rider_id,
@@ -2376,9 +2378,15 @@ export async function getCurrentTeamRaceRosterOptions(
   }));
 }
 
+type RegistrationSeasonRaceDaysRow = {
+  rider_id: string;
+  season_race_days: number;
+  projected_season_race_days?: number;
+};
+
 async function loadCurrentRaceRosterCondition(riderIds: string[]) {
   const moraleByRiderId = new Map<string, number>();
-  const raceDaysByRiderId = new Map<string, number>();
+  const raceDaysByRiderId = new Map<string, RegistrationSeasonRaceDaysRow>();
   const condition = { moraleByRiderId, raceDaysByRiderId };
   const uniqueRiderIds = [...new Set(riderIds)];
   if (uniqueRiderIds.length === 0) return condition;
@@ -2392,7 +2400,7 @@ async function loadCurrentRaceRosterCondition(riderIds: string[]) {
   assertQuerySucceeded(seasonResult.error, "la saison active du moral");
   if (!seasonResult.data) return condition;
 
-  const [dayResult, raceDaysResult] = await Promise.all([
+  const [dayResult, projectionResult] = await Promise.all([
     admin
       .from("season_days")
       .select("id")
@@ -2400,17 +2408,28 @@ async function loadCurrentRaceRosterCondition(riderIds: string[]) {
       .eq("day_number", seasonResult.data.current_day_number ?? 1)
       .maybeSingle<{ id: string }>(),
     admin
-      .from("rider_season_ratings")
-      .select("rider_id, season_race_days")
-      .eq("season_id", seasonResult.data.id)
-      .in("rider_id", uniqueRiderIds)
-      .returns<Array<{ rider_id: string; season_race_days: number }>>(),
+      .rpc("get_registration_season_race_days", {
+        p_season_id: seasonResult.data.id,
+        p_rider_ids: uniqueRiderIds,
+      })
+      .abortSignal(AbortSignal.timeout(3_000)),
   ]);
+  if (projectionResult.error) {
+    console.warn("race_roster_race_days_projection_unavailable", { code: projectionResult.error.code });
+  }
+  const raceDaysResult = projectionResult.error
+    ? await admin
+        .from("rider_season_ratings")
+        .select("rider_id, season_race_days")
+        .eq("season_id", seasonResult.data.id)
+        .in("rider_id", uniqueRiderIds)
+        .returns<RegistrationSeasonRaceDaysRow[]>()
+    : projectionResult;
   if (raceDaysResult.error) {
     console.warn("race_roster_race_days_unavailable", { code: raceDaysResult.error.code });
-  } else {
-    for (const row of raceDaysResult.data ?? []) {
-      raceDaysByRiderId.set(row.rider_id, row.season_race_days);
+  } else if (Array.isArray(raceDaysResult.data)) {
+    for (const row of raceDaysResult.data as RegistrationSeasonRaceDaysRow[]) {
+      raceDaysByRiderId.set(row.rider_id, row);
     }
   }
 

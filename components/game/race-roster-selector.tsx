@@ -6,7 +6,11 @@ import { useFormStatus } from "react-dom";
 
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { RaceRoleGuide } from "@/components/game/race-role-guide";
-import { SeasonRaceDaysBadge } from "@/components/game/season-race-days-badge";
+import {
+  isSeasonRaceDaysOverloaded,
+  SEASON_RACE_DAYS_OVERLOAD_WARNING,
+  SeasonRaceDaysBadge,
+} from "@/components/game/season-race-days-badge";
 import { SquadStatusBadge } from "@/components/game/squad-status-badge";
 import {
   RIDER_CLIMATE_LABELS,
@@ -318,6 +322,13 @@ export function RaceRosterSelector({
         </label>
       </div>
 
+      {visibleRiders.some(isSeasonRaceDaysOverloaded) ? (
+        <p className="mt-3 flex items-start gap-1.5 text-[11px] font-bold leading-4 text-red-200">
+          <span aria-hidden="true">⚠</span>
+          {SEASON_RACE_DAYS_OVERLOAD_WARNING}
+        </p>
+      ) : null}
+
       <div
         data-tutorial-id={tutorialIds?.roleAssignment}
       >
@@ -398,7 +409,11 @@ export function RaceRosterSelector({
                       <span className="rounded-full border border-[#76A7E5]/40 bg-[#173A61] px-2 py-0.5 text-[10px] font-black text-[#B8D8FF]">
                         Moral {Math.round(rider.morale)}/100
                       </span>
-                      <SeasonRaceDaysBadge seasonRaceDays={rider.seasonRaceDays} tone="dark" />
+                      <SeasonRaceDaysBadge
+                        seasonRaceDays={rider.seasonRaceDays}
+                        projectedSeasonRaceDays={rider.projectedSeasonRaceDays}
+                        tone="dark"
+                      />
                       <SquadStatusBadge
                         status={rider.squadStatus}
                         tone="dark"

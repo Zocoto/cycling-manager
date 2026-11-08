@@ -5,6 +5,7 @@ const fixture = vi.hoisted(() => ({
   calls: [] as Array<{ source: string; args?: Record<string, unknown> }>,
   filters: [] as Array<{ source: string; operator: string; key: string; value: unknown }>,
   compactUnavailable: false,
+  projectionUnavailable: false,
   client: null as unknown,
 }));
 vi.mock("next/cache", () => ({ unstable_cache: (fn: unknown) => fn }));
@@ -36,6 +37,9 @@ function createClient(): Client {
             && Number(row.bonus_end_game_day) >= Number(args?.p_min_game_day)),
       }));
     }
+    if (source === "get_registration_season_race_days" && fixture.projectionUnavailable) {
+      error = { message: "race-days projection not available" };
+    }
     const result = () => {
       fixture.calls.push({ source, args });
       return { data: error ? null : rows.slice(from, to + 1), error };
@@ -50,7 +54,7 @@ function createClient(): Client {
       return builder;
     };
     const builder = {
-      select: () => builder, order: () => builder,
+      select: () => builder, order: () => builder, abortSignal: () => builder,
       eq: (key: string, value: unknown) => filter("eq", key, value),
       is: (key: string, value: unknown) => filter("is", key, value),
       neq: (key: string, value: unknown) => filter("neq", key, value),
@@ -81,6 +85,7 @@ function riderPreparations(calendar: Awaited<ReturnType<typeof load>>) {
 describe("race preparation context season window", () => {
   beforeEach(() => {
     fixture.calls = []; fixture.filters = []; fixture.compactUnavailable = false;
+    fixture.projectionUnavailable = false;
     fixture.rows = {
       seasons: [{ id: "season", status: "active", game_year: 4, name: "S4", starts_on: "2026-10-09", ends_on: "2026-11-05", current_day_number: 28 }],
       season_days: [1, 28].map((day) => ({ id: `day-${day}`, season_id: "season", day_number: day, calendar_date: day === 1 ? "2026-10-09" : "2026-11-05", label: `J${day}` })),
@@ -189,7 +194,32 @@ describe("race preparation context season window", () => {
     });
   });
 
-  it("loads completed race days for the active season in one batch for the selectable roster", async () => {
+  it("loads actual and projected race days in one batch for the active season and selectable roster", async () => {
+    fixture.rows.get_current_team_race_roster_options = [
+      { rider_id: RIDER, country_iso_alpha2: "FR", current_form: 80 },
+      { rider_id: "debutant", country_iso_alpha2: "BE", current_form: 75 },
+    ];
+    fixture.rows.get_registration_season_race_days = [
+      { rider_id: RIDER, season_race_days: 29, projected_season_race_days: 34 },
+      { rider_id: "debutant", season_race_days: 0, projected_season_race_days: 2 },
+    ];
+    fixture.rows.rider_condition_states = [{ rider_id: RIDER, season_day_id: "day-28", morale: 71 }];
+
+    const riders = await getCurrentTeamRaceRosterOptions(fixture.client as Client, "edition");
+
+    expect(riders.map(({ riderId, morale, seasonRaceDays, projectedSeasonRaceDays }) =>
+      ({ riderId, morale, seasonRaceDays, projectedSeasonRaceDays }))).toEqual([
+      { riderId: RIDER, morale: 71, seasonRaceDays: 29, projectedSeasonRaceDays: 34 },
+      { riderId: "debutant", morale: 60, seasonRaceDays: 0, projectedSeasonRaceDays: 2 },
+    ]);
+    expect(fixture.calls.filter(({ source }) => source === "get_registration_season_race_days")).toEqual([
+      { source: "get_registration_season_race_days", args: { p_season_id: "season", p_rider_ids: [RIDER, "debutant"] } },
+    ]);
+    expect(fixture.calls.some(({ source }) => source === "rider_season_ratings")).toBe(false);
+  });
+
+  it("keeps actual race days available when the projection fails", async () => {
+    fixture.projectionUnavailable = true;
     fixture.rows.seasons[0].game_year = 5;
     fixture.rows.get_current_team_race_roster_options = [
       { rider_id: RIDER, country_iso_alpha2: "FR", current_form: 80 },
@@ -203,12 +233,15 @@ describe("race preparation context season window", () => {
     ];
     fixture.rows.rider_condition_states = [{ rider_id: RIDER, season_day_id: "day-28", morale: 71 }];
 
-    const riders = await getCurrentTeamRaceRosterOptions(fixture.client as Client, "edition");
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const riders = await getCurrentTeamRaceRosterOptions(fixture.client as Client, "edition")
+      .finally(() => warning.mockRestore());
 
     expect(riders.map(({ riderId, morale, seasonRaceDays }) => ({ riderId, morale, seasonRaceDays }))).toEqual([
       { riderId: RIDER, morale: 71, seasonRaceDays: 29 },
       { riderId: "debutant", morale: 60, seasonRaceDays: 0 },
     ]);
+    expect(riders.every((rider) => rider.projectedSeasonRaceDays === undefined)).toBe(true);
     expect(fixture.calls.filter(({ source }) => source === "rider_season_ratings")).toHaveLength(1);
     expect(fixture.filters.filter(({ source }) => source === "rider_season_ratings")).toEqual([
       { source: "rider_season_ratings", operator: "eq", key: "season_id", value: "season" },

@@ -101,6 +101,7 @@ export function DevelopmentRaceSelectionForm({
                 jersey={getDevelopmentRiderJersey(rider, teamJersey)}
                 avatarClassName="h-12 w-12"
                 seasonRaceDays={rider.seasonRaceDays}
+                projectedSeasonRaceDays={rider.projectedSeasonRaceDays}
               />
             </label>
           );
