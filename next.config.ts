@@ -18,6 +18,10 @@ const nextConfig: NextConfig = {
       "./node_modules/sharp/**/*",
       "./node_modules/@img/sharp-*/**/*",
     ],
+    "/api/cron/global-chat-quiz": [
+      "./node_modules/sharp/**/*",
+      "./node_modules/@img/sharp-*/**/*",
+    ],
     "/api/admin/pcm-export": [
       "./assets/pcm/OfficialRelease.template.cdb",
       "./assets/pcm/OfficialLocal.template.cdb",

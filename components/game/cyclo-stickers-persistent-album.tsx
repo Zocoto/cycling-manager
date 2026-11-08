@@ -17,6 +17,10 @@ import collection from "./cyclo-stickers-collection.module.css";
 
 type Mutation = (name: string, args: Record<string, unknown>, message: string) => Promise<CycloStickersPersistentState | null>;
 const BOOSTER_SOURCE_LABELS = { login: "Connexion", referral: "Parrainage", edition: "Événement" };
+const BOOSTER_ACQUISITION_LABELS = new Map([
+  ["gazette", "Cadeau Cyclogazette"],
+  ["global_chat_quiz", "Quizz’o Stratège"],
+]);
 /** Only RPC responses can replace the collection. Browser demonstration saves are never read. */
 export function CycloStickersPersistentAlbum({
   snapshot,
@@ -122,7 +126,7 @@ function PersistentBoosters({ snapshot, state, busy, mutate, loginBoosterProgres
     {loginBoosterProgress ? <WeeklyLoginBoostersPanel progress={loginBoosterProgress} /> : null}
     <div className={styles.packShelf}>{closed.length ? closed.map((pack, index) => <div className={styles.packOffer} key={`${pack.inventorySource}:${pack.id}`}>
       <button type="button" className={styles.openPackButton} disabled={busy} aria-label={`Ouvrir le sachet ${index + 1}`} onClick={() => void openPack(pack)}><AlbumBoosterArtwork sourceSeason={snapshot.presentationSeason ?? snapshot.sourceSeason} gamesEdition={snapshot.gamesEdition} additionalRiders={snapshot.cards.filter(card=>!card.kind&&card.number>69).length} /><span>Ouvrir ce sachet ↗</span></button>
-      <p>{pack.acquisitionSource === "gazette" ? "Cadeau Cyclogazette" : BOOSTER_SOURCE_LABELS[pack.inventorySource]} · 2 vignettes</p>
+      <p>{BOOSTER_ACQUISITION_LABELS.get(pack.acquisitionSource ?? "") ?? BOOSTER_SOURCE_LABELS[pack.inventorySource]} · 2 vignettes</p>
     </div>) : <p>Aucun sachet fermé dans cette édition.</p>}</div>
     {latest && (
       <section ref={reveal} tabIndex={-1} className={`${styles.reveal} ${collection.reveal}`} aria-label="Dernier sachet ouvert">

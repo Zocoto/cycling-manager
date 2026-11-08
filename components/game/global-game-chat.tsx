@@ -28,6 +28,7 @@ import { GameStaffBadge } from "@/components/game/game-staff-badge";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import { useGlobalChatReactions } from "@/components/game/use-global-chat-reactions";
 import { GlobalChatMessageReactions } from "@/components/game/global-chat-message-reactions";
+import { GlobalChatQuiz } from "@/components/game/global-chat-quiz";
 import { ChatTranslationSettings } from "@/components/game/chat-translation-settings";
 import { useChatAutoTranslation } from "@/components/game/use-chat-auto-translation";
 import {
@@ -67,6 +68,13 @@ import {
   type ChatMessageTranslationState,
 } from "@/lib/game/chat-translation";
 import { notifyGlobalChatMessagesRead } from "@/lib/game/global-chat-read-sync";
+import { notifyCycloStickersBoostersChanged } from "@/lib/game/cyclo-stickers-booster-sync";
+import {
+  GLOBAL_CHAT_QUIZ_PORTRAIT_BUCKET,
+  mergeGlobalChatQuizRound,
+  readGlobalChatQuizRound,
+  type GlobalChatQuizRound,
+} from "@/lib/game/global-chat-quiz";
 import {
   applyGlobalChatGameStaffStatuses,
   applyGlobalChatRookieStatuses,
@@ -157,6 +165,13 @@ export function GlobalGameChat({
   const gameStaffIds = useMemo(() => new Set(gameStaffDirectorIds), [gameStaffDirectorIds]);
   const [messages, setMessages] =
     useState<GlobalChatMessage[]>(initialMessages);
+  const [quizRound, setQuizRound] = useState<GlobalChatQuizRound | null>(null);
+  const quizRevision = useRef(0);
+  const syncedQuizWinId = useRef<string | null>(null);
+  const applyQuizRound = useCallback((round: GlobalChatQuizRound) => {
+    quizRevision.current++;
+    setQuizRound((current) => mergeGlobalChatQuizRound(current, round));
+  }, []);
   const [historySearch, setHistorySearch] =
     useState<GlobalChatHistorySearch | null>(null);
   const [isSearchingHistory, setIsSearchingHistory] = useState(false);
@@ -710,6 +725,30 @@ export function GlobalGameChat({
   }, [mentionSearchText]);
 
   useEffect(() => {
+    if (quizRound?.status !== "won" || quizRound.winnerSportingDirectorId !== identity.sportingDirectorId ||
+      syncedQuizWinId.current === quizRound.id) return;
+    syncedQuizWinId.current = quizRound.id;
+    notifyCycloStickersBoostersChanged();
+  }, [identity.sportingDirectorId, quizRound]);
+
+  useEffect(() => {
+    let disposed = false;
+    let quizRead = 0;
+
+    async function refreshQuiz() {
+      const request = ++quizRead;
+      const revision = quizRevision.current;
+      try {
+        const { data, error } = await supabase.rpc("get_global_chat_quiz");
+        if (disposed || request !== quizRead || error) return;
+        const round = readGlobalChatQuizRound(data);
+        if (round) applyQuizRound(round);
+        else if (data === null && revision === quizRevision.current) setQuizRound(null);
+      } catch {
+        // The ordinary chat remains available when the optional quiz is unavailable.
+      }
+    }
+
     const channel = supabase
       .channel("global-game-chat:v1", {
         config: {
@@ -792,7 +831,22 @@ export function GlobalGameChat({
           setMessages((current) => upsertRealtimeMessage(current, message));
         },
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "global_chat_quiz_events" },
+        ({ new: row }: { new: Record<string, unknown> }) => {
+          const round = readGlobalChatQuizRound(row);
+          if (round) applyQuizRound(round);
+        },
+      )
       .subscribe(async (status: string) => {
+        if (disposed) return;
+        // Read once when the subscription starts (including a reconnect), or once
+        // on initial failure so the user can still see the current quiz.
+        if (status === "SUBSCRIBED" || (quizRead === 0 &&
+          (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"))) {
+          void refreshQuiz();
+        }
         if (status !== "SUBSCRIBED") return;
 
         await channel.track({
@@ -811,10 +865,11 @@ export function GlobalGameChat({
       });
 
     return () => {
+      disposed = true;
       void channel.untrack();
       void supabase.removeChannel(channel);
     };
-  }, [identity, supabase]);
+  }, [applyQuizRound, identity, supabase]);
 
   const draftLimit = GLOBAL_CHAT_MESSAGE_MAX_LENGTH;
 
@@ -1427,6 +1482,15 @@ export function GlobalGameChat({
           ) : null}
           {translationEnabled ? <ChatTranslationSettings {...translationPreferences} isEnglish={locale === "en"} /> : null}
         </header>
+
+        {quizRound ? (
+          <GlobalChatQuiz
+            key={quizRound.id}
+            round={quizRound}
+            portraitUrl={supabase.storage.from(GLOBAL_CHAT_QUIZ_PORTRAIT_BUCKET).getPublicUrl(quizRound.portraitPath).data.publicUrl}
+            onReply={() => textareaRef.current?.focus({ preventScroll: true })}
+          />
+        ) : null}
 
         {mentionAlert ? (
           <button

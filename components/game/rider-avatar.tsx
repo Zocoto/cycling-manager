@@ -47,7 +47,6 @@ export function RiderAvatar({
 }: RiderAvatarProps) {
   const rawId = useId();
   const svgId = rawId.replace(/:/g, "");
-  const shoulderClipId = `rider-shoulders-${svgId}`;
   const design = createRiderAvatarDesign({
     profileKey,
     seed,
@@ -55,10 +54,6 @@ export function RiderAvatar({
     age,
   });
   const resolvedJersey = jersey ?? FREE_AGENT_RIDER_JERSEY;
-  const { countryCode, nationalDesign } = resolvedJersey;
-  const hasNationalDesign = !!nationalDesign && !!countryCode
-    && (resolvedJersey.status === "national-team" || resolvedJersey.status === "national-champion");
-  const fullJersey = presentation === "jersey" && hasNationalDesign;
 
   if (renderMode === "compact") {
     return (
@@ -72,6 +67,56 @@ export function RiderAvatar({
     );
   }
 
+  const { artwork, fullJersey } = renderDetailedRiderAvatarArtwork({
+    design, resolvedJersey, svgId, label, presentation, bordered: !!championshipBorder,
+  });
+
+  return (
+    <span
+      data-championship-border={championshipBorder?.kind}
+      title={championshipBorder?.label}
+      className={[
+        fullJersey
+          ? "relative inline-flex shrink-0 overflow-hidden rounded-xl [contain:paint]"
+          : "relative inline-flex shrink-0 overflow-hidden rounded-full border border-[#315B3E]/20 bg-white shadow-sm [contain:paint]",
+        className,
+      ].join(" ")}
+      style={getChampionshipBorderStyle(championshipBorder)}
+    >
+      {artwork}
+    </span>
+  );
+}
+
+/** The same detailed portrait with a plain jersey and no team or title art. */
+export function createNeutralRiderAvatarArtwork({
+  profileKey, seed, riderId, age, size,
+}: Pick<RiderAvatarProps, "profileKey" | "seed" | "riderId" | "age"> & { size: number }) {
+  return renderDetailedRiderAvatarArtwork({
+    design: createRiderAvatarDesign({ profileKey, seed, fallbackKey: riderId, age }),
+    resolvedJersey: FREE_AGENT_RIDER_JERSEY,
+    svgId: "neutral-portrait",
+    presentation: "avatar",
+    size,
+  }).artwork;
+}
+
+function renderDetailedRiderAvatarArtwork({
+  design, resolvedJersey, svgId, label, presentation, bordered, size,
+}: {
+  design: RiderAvatarDesign;
+  resolvedJersey: RiderJerseyAppearance;
+  svgId: string;
+  label?: string;
+  presentation: RiderAvatarProps["presentation"];
+  bordered?: boolean;
+  size?: number;
+}) {
+  const shoulderClipId = `rider-shoulders-${svgId}`;
+  const { countryCode, nationalDesign } = resolvedJersey;
+  const hasNationalDesign = !!nationalDesign && !!countryCode
+    && (resolvedJersey.status === "national-team" || resolvedJersey.status === "national-champion");
+  const fullJersey = presentation === "jersey" && hasNationalDesign;
   const featureLayout = getRiderAvatarFeatureLayout(design);
 
   const centerX = 48;
@@ -98,25 +143,16 @@ export function RiderAvatar({
   const shouldersPath =
     "M 1 96 C 3 82, 14 76, 34 71 L 39 69 H 57 L 62 71 C 82 76, 93 82, 95 96 Z";
 
-  return (
-    <span
-      data-championship-border={championshipBorder?.kind}
-      title={championshipBorder?.label}
-      className={[
-        fullJersey
-          ? "relative inline-flex shrink-0 overflow-hidden rounded-xl [contain:paint]"
-          : "relative inline-flex shrink-0 overflow-hidden rounded-full border border-[#315B3E]/20 bg-white shadow-sm [contain:paint]",
-        className,
-      ].join(" ")}
-      style={getChampionshipBorderStyle(championshipBorder)}
-    >
+  return { fullJersey, artwork: (
       <svg
         aria-label={label}
         role="img"
         viewBox={fullJersey ? "0 0 96 178" : "0 0 96 96"}
+        width={size}
+        height={size}
         data-rider-presentation={fullJersey ? "full-jersey" : undefined}
         className="block h-full w-full overflow-hidden"
-        style={championshipBorder ? { borderRadius: "inherit" } : undefined}
+        style={bordered ? { borderRadius: "inherit" } : undefined}
       >
         <defs>
           <clipPath id={shoulderClipId}>
@@ -191,10 +227,7 @@ export function RiderAvatar({
           />
         ) : (
           <>
-            <JerseyPattern
-              jersey={resolvedJersey}
-              clipPathId={shoulderClipId}
-            />
+            {renderJerseyPattern({ jersey: resolvedJersey, clipPathId: shoulderClipId })}
             {resolvedJersey.status === "sponsored" &&
             resolvedJersey.imagePath ? (
               <SponsorJerseyArtwork
@@ -232,7 +265,7 @@ export function RiderAvatar({
           </>
         ) : null}
 
-        <Ears design={design} centerX={centerX} y={earY} />
+        {renderEars({ design, centerX, y: earY })}
 
         <path
           d={facePath}
@@ -256,18 +289,17 @@ export function RiderAvatar({
           opacity="0.25"
         />
 
-        <Hair design={design} faceTop={faceTop} />
-        <Brows design={design} leftEyeX={leftEyeX} rightEyeX={rightEyeX} />
-        <Eye design={design} x={leftEyeX} y={leftEyeY} direction={-1} />
-        <Eye design={design} x={rightEyeX} y={rightEyeY} direction={1} />
-        <Nose design={design} layout={featureLayout} />
-        <FaceMarks design={design} />
-        <FacialHair design={design} faceBottom={faceBottom} />
-        <Mouth design={design} layout={featureLayout} />
-        <AgingDetails design={design} faceBottom={faceBottom} />
+        {renderHair({ design, faceTop })}
+        {renderBrows({ design, leftEyeX, rightEyeX })}
+        {renderEye({ design, x: leftEyeX, y: leftEyeY, direction: -1 })}
+        {renderEye({ design, x: rightEyeX, y: rightEyeY, direction: 1 })}
+        {renderNose({ design, layout: featureLayout })}
+        {renderFaceMarks({ design })}
+        {renderFacialHair({ design, faceBottom })}
+        {renderMouth({ design, layout: featureLayout })}
+        {renderAgingDetails({ design, faceBottom })}
       </svg>
-    </span>
-  );
+  ) };
 }
 
 function getChampionshipBorderStyle(
@@ -402,7 +434,7 @@ function CompactRiderAvatar({
   );
 }
 
-function AgingDetails({
+function renderAgingDetails({
   design,
   faceBottom,
 }: {
@@ -625,7 +657,7 @@ function SponsorJerseyArtwork({
   );
 }
 
-function JerseyPattern({
+function renderJerseyPattern({
   jersey,
   clipPathId,
 }: {
@@ -855,7 +887,7 @@ function JerseyPattern({
   );
 }
 
-function Ears({
+function renderEars({
   design,
   centerX,
   y,
@@ -988,7 +1020,7 @@ function Ears({
   );
 }
 
-function Hair({
+function renderHair({
   design,
   faceTop,
 }: {
@@ -1416,7 +1448,7 @@ function Hair({
   );
 }
 
-function Brows({
+function renderBrows({
   design,
   leftEyeX,
   rightEyeX,
@@ -1474,7 +1506,7 @@ function Brows({
   );
 }
 
-function Eye({
+function renderEye({
   design,
   x,
   y,
@@ -1618,7 +1650,7 @@ function Eye({
   );
 }
 
-function Nose({
+function renderNose({
   design,
   layout,
 }: {
@@ -1750,7 +1782,7 @@ function Nose({
   );
 }
 
-function Mouth({
+function renderMouth({
   design,
   layout,
 }: {
@@ -1998,7 +2030,7 @@ function Mouth({
   );
 }
 
-function FacialHair({
+function renderFacialHair({
   design,
   faceBottom,
 }: {
@@ -2154,7 +2186,7 @@ function FacialHair({
   );
 }
 
-function FaceMarks({ design }: { design: RiderAvatarDesign }) {
+function renderFaceMarks({ design }: { design: RiderAvatarDesign }) {
   if (design.faceMark === "none") {
     return null;
   }
