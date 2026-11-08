@@ -1,5 +1,5 @@
 -- Isolated PostgreSQL only. Load this file, the original global chat migration,
--- quiz_fixture_install_chat_metadata(), then the quiz migration.
+-- quiz_fixture_install_chat_metadata(), then the quiz migrations in order.
 create role anon;
 create role authenticated;
 create role service_role bypassrls;
@@ -38,6 +38,7 @@ returns bigint language sql
 as $$
   insert into cron.fixture_jobs(name, schedule, command)
   values (p_name, p_schedule, p_command)
+  on conflict (name) do update set schedule = excluded.schedule, command = excluded.command
   returning id
 $$;
 
@@ -136,7 +137,8 @@ begin
 end;
 $$;
 
-create function public.quiz_fixture_open_round() returns uuid language plpgsql
+create function public.quiz_fixture_open_round(p_duration interval default interval '30 minutes')
+returns uuid language plpgsql
 as $$
 declare
   v_round uuid := gen_random_uuid();
@@ -148,7 +150,7 @@ begin
     id, paris_day, starts_at, ends_at, collection_season_id, rider_id, avatar_profile_key,
     avatar_seed, age, answer_name, answer_key, reverse_answer_key, portrait_ready
   ) values (
-    v_round, (clock_timestamp() at time zone 'Europe/Paris')::date, v_start, v_start + interval '10 minutes',
+    v_round, (clock_timestamp() at time zone 'Europe/Paris')::date, v_start, v_start + p_duration,
     '50000000-0000-4000-8000-000000000005', '40000000-0000-4000-8000-000000000001',
     'france', 123456789012345678, 28, 'Émile D’Arcy', 'emile d''arcy', 'd''arcy emile', true
   );

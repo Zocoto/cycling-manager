@@ -54,6 +54,46 @@ try {
   await runFixture('../supabase/migrations/20260727220000_create_global_game_chat.sql');
   await db.exec('select public.quiz_fixture_install_chat_metadata()');
   await runFixture('../supabase/migrations/20261108170000_add_global_chat_quiz.sql');
+  await db.exec(`
+    with fixture_windows as (
+      select (now() at time zone 'Europe/Paris')::date + offset_days as day, start_time
+      from (values (-1, time '12:00'), (1, time '21:45')) fixture(offset_days, start_time)
+    )
+    insert into private.global_chat_quiz_rounds (
+      paris_day, starts_at, ends_at, collection_season_id, rider_id, age,
+      answer_name, answer_key, reverse_answer_key
+    )
+    select day, (day + start_time) at time zone 'Europe/Paris',
+      ((day + start_time) at time zone 'Europe/Paris') + interval '10 minutes',
+      '50000000-0000-4000-8000-000000000005', '${target}', 28,
+      'Émile D’Arcy', 'emile d''arcy', 'd''arcy emile'
+    from fixture_windows;
+    insert into public.global_chat_quiz_events (
+      id, starts_at, ends_at, portrait_path, status, answer_name, answer_rider_id
+    )
+    select id, starts_at, ends_at, id::text || '.webp', 'expired', answer_name, rider_id
+    from private.global_chat_quiz_rounds where ends_at < now();
+  `);
+  const legacyEvent = await rows('select * from public.global_chat_quiz_events');
+  await runFixture('../supabase/migrations/20261108171000_extend_global_chat_quiz_to_thirty_minutes.sql');
+  equal(await rows('select * from public.global_chat_quiz_events'), legacyEvent, 'published ten-minute history is preserved');
+  equal(await rows(`
+    select extract(epoch from ends_at - starts_at)::integer as duration,
+      (starts_at at time zone 'Europe/Paris')::time::text as local_start,
+      (ends_at at time zone 'Europe/Paris')::time::text as local_end
+    from private.global_chat_quiz_rounds order by paris_day
+  `), [
+    { duration: 600, local_start: '12:00:00', local_end: '12:10:00' },
+    { duration: 1800, local_start: '21:30:00', local_end: '22:00:00' },
+  ], 'future unpublished late slot moves earlier and ends at 22:00');
+  equal(await rows("select schedule from cron.fixture_jobs where name = 'global-chat-quiz-tick'"),
+    [{ schedule: '0,15,30,45 10-21 * * *' }], 'the existing cron runs on all quarter hours, including final CET close');
+  await assert.rejects(
+    db.exec("update private.global_chat_quiz_rounds set ends_at = starts_at + interval '10 minutes' where ends_at > now()"),
+    /global_chat_quiz_rounds_duration_check/
+  );
+  checks += 1;
+  await db.exec('delete from public.global_chat_quiz_events; delete from private.global_chat_quiz_rounds;');
 
   equal(await scalar('select enabled from private.global_chat_quiz_settings'), false, 'starts disabled');
   equal(await publicState(), null, 'no public state with switch off');
@@ -75,13 +115,15 @@ try {
   const [schedule] = await rows(`select id, rider_id,
     extract(hour from starts_at at time zone 'Europe/Paris')::integer as hour,
     extract(minute from starts_at at time zone 'Europe/Paris')::integer as minute,
+    ((ends_at at time zone 'Europe/Paris')::time <= time '22:00') as before_close,
     extract(epoch from ends_at - starts_at)::integer as duration
     from private.global_chat_quiz_rounds`);
   equal(schedule.rider_id, target, 'filters homonyms and retired riders');
   equal(schedule.hour >= 12 && schedule.hour <= 21 && schedule.minute % 15 === 0, true, 'draw uses daytime Paris slots');
-  equal(schedule.duration, 600, 'ten-minute window');
+  equal(schedule.before_close, true, 'scheduled round finishes by 22:00 Paris');
+  equal(schedule.duration, 1800, 'thirty-minute window');
   await db.exec(`update private.global_chat_quiz_rounds
-    set starts_at = now() + interval '10 minutes', ends_at = now() + interval '20 minutes'`);
+    set starts_at = now() + interval '10 minutes', ends_at = now() + interval '40 minutes'`);
   const before = await prepare();
   equal(before.id, schedule.id, 'repeated calls retain the original round');
   equal(before.avatarSeed, '123456789012345678', 'bigint seed stays exact in trusted payload');
@@ -102,11 +144,18 @@ try {
   equal(await eventCount(), 0, 'ready future round stays private');
 
   const round = await scalar('select public.quiz_fixture_open_round()');
+  await db.exec(`
+    update private.global_chat_quiz_rounds
+      set starts_at = now() - interval '11 minutes', ends_at = now() + interval '19 minutes';
+    update public.global_chat_quiz_events event
+      set starts_at = round.starts_at, ends_at = round.ends_at
+      from private.global_chat_quiz_rounds round where round.id = event.id;
+  `);
   await db.exec('select public.process_global_chat_quiz()');
   equal(await eventCount(), 1, 'lifecycle tick is idempotent');
   const open = await publicState();
   equal(open.id, round, 'current round is public');
-  equal(open.status, 'open', 'round is open');
+  equal(open.status, 'open', 'round is still open after eleven minutes');
   equal(open.answerName, null, 'open answer name withheld');
   equal(open.answerRiderId, null, 'open rider ID withheld');
   equal(open.winnerSportingDirectorId, null, 'no winner before score');
@@ -159,7 +208,13 @@ try {
   equal(await scalar("select opened_at is null from public.cyclo_stickers_boosters where acquisition_source = 'global_chat_quiz'"), true, 'booster is unopened');
 
   await db.exec('select public.quiz_fixture_open_round()');
-  await db.exec("update public.global_chat_quiz_events set ends_at = clock_timestamp() - interval '1 second'");
+  await db.exec(`
+    update private.global_chat_quiz_rounds
+      set starts_at = now() - interval '30 minutes 1 second', ends_at = now() - interval '1 second';
+    update public.global_chat_quiz_events event
+      set starts_at = round.starts_at, ends_at = round.ends_at
+      from private.global_chat_quiz_rounds round where round.id = event.id;
+  `);
   await post(12, exact);
   equal(await packs(), 1, 'late posts are ordinary chat even before closing tick');
   await db.exec('select public.process_global_chat_quiz()');
@@ -186,7 +241,7 @@ try {
   equal(rolloverRound.age, 29, 'post-rollover selection uses current rider ratings');
   equal(rolloverRound.collection_season_id, '50000000-0000-4000-8000-000000000005', 'retains the latest published album after its collection season');
   await db.exec(`update private.global_chat_quiz_rounds
-    set starts_at = now() - interval '1 minute', ends_at = now() + interval '9 minutes',
+    set starts_at = now() - interval '1 minute', ends_at = now() + interval '29 minutes',
         portrait_ready = true;
     select public.process_global_chat_quiz();`);
   await post(13, exact);

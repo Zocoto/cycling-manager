@@ -12,7 +12,7 @@ it("keeps the prompt in chat and announces the winner with a real profile link",
   const round: GlobalChatQuizRound = {
     id: roundId,
     status: "open",
-    startsAt: new Date(now - 60_000).toISOString(),
+    startsAt: new Date(now - 29 * 60_000).toISOString(),
     endsAt: new Date(now + 60_000).toISOString(),
     portraitPath: `${roundId}.webp`,
     answerName: "Le Nom",
@@ -28,6 +28,17 @@ it("keeps the prompt in chat and announces the winner with a real profile link",
   expect(open).not.toContain("<form");
   expect(open).not.toContain("Le Nom");
   expect(open).not.toContain(riderId);
+
+  const elapsedRound = {
+    ...round,
+    startsAt: new Date(now - 30 * 60_000).toISOString(),
+    endsAt: new Date(now).toISOString(),
+    answerName: null,
+    answerRiderId: null,
+  };
+  const elapsed = renderToStaticMarkup(<GlobalChatQuiz round={elapsedRound} portraitUrl={portraitUrl} onReply={onReply} />);
+  expect(elapsed).toContain("Temps écoulé.");
+  expect(elapsed).not.toContain("Répondre");
 
   const result = renderToStaticMarkup(<GlobalChatQuiz round={{ ...round, status: "won", winnerUsername: "joueur", winnerSportingDirectorId: directorId }} portraitUrl={portraitUrl} onReply={onReply} />);
   expect(result).toContain("Oui ! Oui ! Oui !");
