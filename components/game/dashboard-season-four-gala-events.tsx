@@ -3,8 +3,20 @@ import { SEASON_FOUR_GALA } from "@/lib/game/season-four-gala";
 import { DashboardHalloweenShortcut } from "./dashboard-halloween-shortcut";
 import styles from "./season-four-gala-shortcut.module.css";
 
-export async function DashboardSeasonFourGalaEvents({userId}: { userId: string }) {
-  if (!userId) return <DashboardHalloweenShortcut />;
+const GALA_RESULTS_TILE_EXPIRES_AT = Date.parse("2026-11-08T12:00:00+01:00");
+
+export async function DashboardSeasonFourGalaEvents({
+  userId,
+  // eslint-disable-next-line react-hooks/purity -- Request-time clock for the server-rendered expiry.
+  now = Date.now(),
+}: {
+  userId: string;
+  now?: number;
+}) {
+  if (!userId || now >= GALA_RESULTS_TILE_EXPIRES_AT) {
+    return <DashboardHalloweenShortcut />;
+  }
+
   const halloween = await DashboardHalloweenShortcut({ compact: true });
   return <div className={styles.events} data-with-halloween={!!halloween} data-private-gala-events>
     <DashboardSeasonFourGalaCard />

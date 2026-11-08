@@ -5,6 +5,8 @@ import { SeasonFourGalaPreview } from "./season-four-gala-preview";
 vi.mock("./dashboard-halloween-shortcut",()=>({DashboardHalloweenShortcut:vi.fn(()=> <a href="/jeu/halloween">Halloween</a>)}));
 import { DashboardSeasonFourGalaEvents } from "./dashboard-season-four-gala-events";
 
+const PARIS_NOON_NOVEMBER_8 = Date.parse("2026-11-08T11:00:00.000Z");
+
 describe("private gala presentation",()=>{
   it("guides organizers to flat native XML files and the matching Steam database",()=>{
     const html=renderToStaticMarkup(<SeasonFourGalaPreview canExport exportStatus={{counts:{}}}/>);
@@ -48,14 +50,23 @@ describe("private gala presentation",()=>{
     expect(html).not.toContain('Amstel Gold Race · 2023');
     expect(html).not.toContain('Paris–Roubaix · 2026');
   });
-  it("links every player to the gala results alongside the active Halloween tile",async()=>{
-    const other=renderToStaticMarkup(await DashboardSeasonFourGalaEvents({userId:'another-player'}));
+  it("links every player to the gala results until noon in Paris",async()=>{
+    const now = PARIS_NOON_NOVEMBER_8 - 1;
+    const other=renderToStaticMarkup(await DashboardSeasonFourGalaEvents({userId:'another-player', now}));
     expect(other).toContain('Halloween');expect(other).toContain('href="/jeu/gala-saison-4"');
     expect(other).toContain('Consulter les résultats du gala du 6 novembre');
     expect(other).not.toContain('Suivre le live sur Twitch');
-    const owner=renderToStaticMarkup(await DashboardSeasonFourGalaEvents({userId:'58140add-54c6-40af-9528-f823d0051d0f'}));
+    const owner=renderToStaticMarkup(await DashboardSeasonFourGalaEvents({userId:'58140add-54c6-40af-9528-f823d0051d0f', now}));
     expect(owner).toContain('/jeu/gala-saison-4');expect(owner).toContain('/jeu/halloween');
     expect(owner).toContain('data-with-halloween="true"');
+  });
+  it("removes the results tile and its container at noon while keeping the Halloween shortcut", async () => {
+    for (const now of [PARIS_NOON_NOVEMBER_8, PARIS_NOON_NOVEMBER_8 + 60_000]) {
+      const html = renderToStaticMarkup(await DashboardSeasonFourGalaEvents({ userId: "player", now }));
+      expect(html).not.toContain("/jeu/gala-saison-4");
+      expect(html).not.toContain("data-private-gala-events");
+      expect(html).toContain('href="/jeu/halloween"');
+    }
   });
   it('uses real registrations for the public page and hides organizer exports by default',()=>{
     const html=renderToStaticMarkup(<SeasonFourGalaPreview context={{isOpen:true,team:null,program:null,selections:{},riders:[],counts:{"world-tour":0,continental:0}}}/>);
