@@ -31,9 +31,9 @@ describe("rendu du maillot sponsor dans l’avatar", () => {
     expect(markup).toContain('data-sponsor-jersey-artwork="true"');
     expect(markup).toContain('data-avatar-jersey-viewport="upper-body"');
     expect(markup).toContain(`href="${imagePath}"`);
-    expect(markup).toContain('viewBox="0 36 600 212.5"');
-    expect(markup).toContain('width="600"');
-    expect(markup).toContain('height="750"');
+    expect(markup).toContain('y="58.24"');
+    expect(markup).toContain('width="96"');
+    expect(markup).toContain('height="120"');
     expect(markup).toContain('preserveAspectRatio="xMidYMid meet"');
     expect(markup).not.toContain('preserveAspectRatio="none"');
   });

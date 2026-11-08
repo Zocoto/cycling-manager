@@ -88,14 +88,17 @@ export function RiderAvatar({
   );
 }
 
-/** The same detailed portrait with a plain jersey and no team or title art. */
-export function createNeutralRiderAvatarArtwork({
-  profileKey, seed, riderId, age, size,
-}: Pick<RiderAvatarProps, "profileKey" | "seed" | "riderId" | "age"> & { size: number }) {
+/** Standalone artwork for server-rendered portraits, using the profile framing. */
+export function createRiderAvatarArtwork({
+  profileKey, seed, riderId, age, size, jersey,
+}: Pick<RiderAvatarProps, "profileKey" | "seed" | "riderId" | "age"> & {
+  size: number;
+  jersey: RiderJerseyAppearance;
+}) {
   return renderDetailedRiderAvatarArtwork({
     design: createRiderAvatarDesign({ profileKey, seed, fallbackKey: riderId, age }),
-    resolvedJersey: FREE_AGENT_RIDER_JERSEY,
-    svgId: "neutral-portrait",
+    resolvedJersey: jersey,
+    svgId: "rider-portrait",
     presentation: "avatar",
     size,
   }).artwork;
@@ -230,10 +233,7 @@ function renderDetailedRiderAvatarArtwork({
             {renderJerseyPattern({ jersey: resolvedJersey, clipPathId: shoulderClipId })}
             {resolvedJersey.status === "sponsored" &&
             resolvedJersey.imagePath ? (
-              <SponsorJerseyArtwork
-                imagePath={resolvedJersey.imagePath}
-                clipPathId={shoulderClipId}
-              />
+              renderSponsorJerseyArtwork({ imagePath: resolvedJersey.imagePath, clipPathId: shoulderClipId })
             ) : null}
           </>
         )}
@@ -617,7 +617,7 @@ function QuadrennialChampionAvatarPattern({ clipPathId }: { clipPathId: string }
   </g>;
 }
 
-function SponsorJerseyArtwork({
+function renderSponsorJerseyArtwork({
   imagePath,
   clipPathId,
 }: {
@@ -626,26 +626,16 @@ function SponsorJerseyArtwork({
 }) {
   return (
     <g clipPath={`url(#${clipPathId})`}>
-      <svg
+      <image
         data-avatar-jersey-viewport="upper-body"
+        data-sponsor-jersey-artwork="true"
+        href={imagePath}
         x="0"
-        y="64"
+        y="58.24"
         width="96"
-        height="34"
-        viewBox="0 36 600 212.5"
+        height="120"
         preserveAspectRatio="xMidYMid meet"
-        overflow="hidden"
-      >
-        <image
-          data-sponsor-jersey-artwork="true"
-          href={imagePath}
-          x="0"
-          y="0"
-          width="600"
-          height="750"
-          preserveAspectRatio="xMidYMid meet"
-        />
-      </svg>
+      />
       <path
         d="M2 94C8 80 20 75 35 71M94 94C88 80 76 75 61 71"
         fill="none"
