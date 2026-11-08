@@ -117,6 +117,7 @@ export function FederationFinancePreview({
   );
   const hasTreasuryAccount = Boolean(treasuryState?.account);
   const settledOpening = treasuryState?.account?.openingBreakdown ?? null;
+  const openingCarryover = treasuryState?.account?.carryoverBalance ?? 0;
   const availableBalance =
     treasuryState?.account?.balance ?? projection.solidarityEnvelope;
   const solidarityLimit = hasTreasuryAccount
@@ -221,6 +222,13 @@ export function FederationFinancePreview({
               Composition de l’ouverture S{targetGameYear}
             </p>
             <dl className="mt-5 divide-y divide-[#315B3E]/10 overflow-hidden rounded-2xl border border-[#315B3E]/12 bg-[#F8FBF9]">
+              {openingCarryover > 0 ? (
+                <FinanceLine
+                  label={`Solde reporté de S${sourceGameYear}`}
+                  detail="Trésorerie disponible à la clôture"
+                  value={openingCarryover}
+                />
+              ) : null}
               <FinanceLine label="Socle commun" detail="Base de chaque fédération active" value={openingCommonGrant} />
               <FinanceLine label="Dotation UCI" detail={`Rang #${openingNationRank} en S${sourceGameYear}`} value={openingUciGrant} />
               <FinanceLine label="Nations Cup · socle de division" detail={`Division ${openingDivision} issue de la S${sourceGameYear}`} value={openingRankingBonus > 0 ? openingDivisionBaseGrant : openingNationsCupGrant} />
@@ -270,6 +278,9 @@ export function FederationFinancePreview({
             jusqu’à 100 000 € chacune sur la saison, y compris l’équipe du
             président. Les versements cumulés restent plafonnés à 10 % du budget
             d’ouverture de la fédération.
+            {openingCarryover > 0 ? (
+              <> Le plafond est calculé sur les dotations, primes et recettes d’ouverture de la nouvelle saison.</>
+            ) : null}
           </p>
           <div className="mt-6 space-y-6">
             <RangeControl label="Réputation maximale éligible" value={reputationThreshold} display={`${reputationThreshold} points`} min={0} max={500} step={10} onChange={setReputationThreshold} />
@@ -397,6 +408,7 @@ function FinanceFeedback({
 function formatCategory(category: string) {
   const labels: Record<string, string> = {
     opening_grant: "Dotation",
+    season_carryover: "Report de solde",
     race_revenue: "Course",
     quadrennial_prize: "Jeux quadriennaux",
     objective_bonus: "Objectif",

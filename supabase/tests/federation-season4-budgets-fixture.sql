@@ -3,6 +3,7 @@
 create role anon;
 create role authenticated;
 create role service_role;
+create schema private;
 create table public.seasons (id uuid primary key default gen_random_uuid(), game_year integer unique, status text);
 create table public.countries (id uuid primary key default gen_random_uuid(), iso_alpha2 text, is_active boolean default true);
 create table public.teams (id uuid primary key default gen_random_uuid(), status text default 'active');
@@ -16,7 +17,8 @@ create table public.race_registrations (id uuid primary key default gen_random_u
 create table public.race_rosters (id uuid primary key default gen_random_uuid(), race_registration_id uuid, status text);
 create table public.national_federation_accounts (
   id uuid primary key default gen_random_uuid(), country_id uuid, season_id uuid,
-  opening_balance numeric not null, balance numeric not null, source_game_year integer,
+  opening_balance numeric(14, 2) not null, balance numeric(14, 2) not null check (balance >= 0),
+  source_game_year integer,
   uci_rank integer, nations_cup_division integer,
   objective_level text default 'none', objective_completed_count integer default 0,
   objective_bonus numeric default 0, updated_at timestamptz default now(),
@@ -24,7 +26,15 @@ create table public.national_federation_accounts (
 );
 create table public.national_federation_transactions (
   id uuid primary key default gen_random_uuid(), account_id uuid, day_number integer,
-  amount numeric, category text, description text, source_reference text unique, metadata jsonb
+  amount numeric(14, 2) not null check (amount <> 0), category text not null,
+  description text, source_reference text unique, metadata jsonb,
+  constraint national_federation_transactions_category_allowed check (
+    category in (
+      'opening_grant', 'race_revenue', 'objective_bonus', 'donation',
+      'solidarity', 'infrastructure', 'refund', 'hosting',
+      'race_creation', 'race_maintenance', 'equipment', 'quadrennial_prize'
+    )
+  )
 );
 create table public.national_federation_journal_entries (
   country_id uuid, season_id uuid, day_number integer, category text, title text,

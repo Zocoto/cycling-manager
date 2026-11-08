@@ -15,6 +15,7 @@ export type FederationTreasuryState = {
   account: {
     id: string;
     openingBalance: number;
+    carryoverBalance: number;
     balance: number;
     sourceGameYear: number;
     uciRank: number;
@@ -45,6 +46,7 @@ export type FederationTreasuryState = {
 type AccountRow = {
   id: string;
   opening_balance: number | string;
+  carryover_balance: number | string;
   balance: number | string;
   source_game_year: number;
   uci_rank: number;
@@ -95,7 +97,7 @@ export async function getFederationTreasuryState({
       admin
         .from("national_federation_accounts")
         .select(
-          "id, opening_balance, balance, source_game_year, uci_rank, nations_cup_division, objective_level, objective_completed_count, objective_bonus",
+          "id, opening_balance, carryover_balance, balance, source_game_year, uci_rank, nations_cup_division, objective_level, objective_completed_count, objective_bonus",
         )
         .eq("country_id", countryId)
         .eq("season_id", seasonId)
@@ -163,6 +165,7 @@ export async function getFederationTreasuryState({
       account: {
         id: account.id,
         openingBalance: Number(account.opening_balance),
+        carryoverBalance: Number(account.carryover_balance),
         balance: Number(account.balance),
         sourceGameYear: account.source_game_year,
         uciRank: account.uci_rank,
