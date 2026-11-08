@@ -6,6 +6,7 @@ import { useLocale } from "@/components/i18n/locale-provider";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { PushNotificationControl } from "@/components/pwa/push-notification-control";
 import Link from "@/components/ui/app-link";
+import { CYCLO_STICKERS_SHOW_BOOSTERS_EVENT } from "@/lib/game/cyclo-stickers-booster-sync";
 import { canAccessPcmExport } from "@/lib/game/pcm-export/access";
 import { CycloStickersBoosterBadge, CycloStickersStickerIcon } from "./cyclo-stickers-shortcut";
 import { MarketingEmailPreferenceControl } from "./marketing-email-preference-control";
@@ -156,6 +157,7 @@ export function GameUserMenu({
                 ? <CycloStickersBoosterBadge isEnglish={isEnglish} />
                 : isEnglish ? "Sticker album" : "Album de vignettes"}
               icon={<CycloStickersStickerIcon />}
+              onNavigate={hasCollectorBoosters ? () => window.dispatchEvent(new Event(CYCLO_STICKERS_SHOW_BOOSTERS_EVENT)) : undefined}
             />
           ) : null}
 
@@ -246,12 +248,14 @@ function UserMenuLink({
   description,
   icon,
   target,
+  onNavigate,
 }: {
   href: string;
   label: string;
   description: ReactNode;
   icon: ReactNode;
   target?: "_blank";
+  onNavigate?: () => void;
 }) {
   return (
     <Link
@@ -259,6 +263,7 @@ function UserMenuLink({
       target={target}
       rel={target === "_blank" ? "noopener noreferrer" : undefined}
       prefetchOnIntent={target !== "_blank"}
+      onNavigate={onNavigate}
       showPendingIndicator={false}
       className="group flex min-h-[4.25rem] items-center gap-3 rounded-xl border border-white/10 bg-white/[0.045] px-3 py-2.5 transition hover:border-[var(--game-header-accent)]/45 hover:bg-white/[0.075] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
     >

@@ -11,6 +11,7 @@ import { CollectorAlbumTradeDesk } from "./collector-album-trades";
 import { AlbumProfileArtwork } from "./collector-album-profile-artwork";
 import { getAlbumIntroductionLeaves, getAlbumProfileCards, getAlbumProfileLeaves } from "@/lib/game/collector-album-layout";
 import { getAlbumBookTurn, getAlbumReadingPageIndex, getAlbumReadingPages, getAlbumSwipeDirection, type AlbumBookPosition } from "@/lib/game/collector-album-navigation";
+import { CYCLO_STICKERS_SHOW_BOOSTERS_EVENT } from "@/lib/game/cyclo-stickers-booster-sync";
 import type { StickerAlbumLeaderboard } from "@/lib/game/cyclo-stickers-leaderboard";
 import { albumReadingStorageKey, createAlbumReadingState, getNextAlbumChapter, readAlbumReadingState, updateAlbumReading, type AlbumReadingAction } from "@/lib/game/collector-album-reading";
 import {
@@ -53,6 +54,13 @@ export function CollectorAlbum({ snapshot, storageOwnerId, initialTab = "album",
   const [localStore, dispatch] = useReducer(reducer, {ready: false, state: runtime?.state ?? createAlbumPilotState(snapshot.collectionSeason,snapshot.cards), cards: snapshot.cards});
   const store = useMemo(() => runtime ? { ...localStore, ready: runtime.ready, state: runtime.state } : localStore, [localStore, runtime]);
   const [tab, setTab] = useState(initialTab);
+  useEffect(() => {
+    if (!isPersistent) return;
+    // The menu can target the URL already open while an in-album tab is selected.
+    const showBoosters = () => setTab("boosters");
+    window.addEventListener(CYCLO_STICKERS_SHOW_BOOSTERS_EVENT, showBoosters);
+    return () => window.removeEventListener(CYCLO_STICKERS_SHOW_BOOSTERS_EVENT, showBoosters);
+  }, [isPersistent]);
   const leaderboard = runtime?.leaderboard;
   const leaderboardButton = useRef<HTMLButtonElement>(null);
   const hasIntroduction=snapshot.cards.some(card=>card.kind);
