@@ -3,16 +3,19 @@
 import { useEffect, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { ALBUM_ACHIEVEMENTS, getAlbumAchievementProgress, type AlbumPilotAction, type CollectorAlbumSnapshot } from "@/lib/game/collector-album";
+import { notifyCycloStickersBoostersChanged } from "@/lib/game/cyclo-stickers-booster-sync";
 import { getCycloStickersLeaderboard, type StickerAlbumLeaderboard } from "@/lib/game/cyclo-stickers-leaderboard";
 import { createCycloStickersTradeRequestIds, getCycloStickersActionRpc, getCycloStickersOpenRpc, toCycloStickersAlbumView } from "@/lib/game/cyclo-stickers-persistent-view";
 import type { CycloStickersCollector, CycloStickersPersistentState, CycloStickersTrade } from "@/lib/game/cyclo-stickers-persistence";
+import type { WeeklyLoginBoosterProgress } from "@/lib/game/weekly-login-boosters";
 import { CollectorAlbum, type CollectorAlbumTab } from "./collector-album";
 import { CollectorCardFace } from "./collector-card-face";
 import { AlbumBoosterArtwork } from "./collector-album-artwork";
+import { WeeklyLoginBoostersPanel } from "./weekly-login-boosters-panel";
 import styles from "./collector-album-retro.module.css";
 import collection from "./cyclo-stickers-collection.module.css";
 
-type Mutation = (name: string, args: Record<string, unknown>, message: string) => Promise<boolean>;
+type Mutation = (name: string, args: Record<string, unknown>, message: string) => Promise<CycloStickersPersistentState | null>;
 const BOOSTER_SOURCE_LABELS = { login: "Connexion", referral: "Parrainage", edition: "Événement" };
 /** Only RPC responses can replace the collection. Browser demonstration saves are never read. */
 export function CycloStickersPersistentAlbum({
@@ -20,11 +23,13 @@ export function CycloStickersPersistentAlbum({
   initialState,
   initialLeaderboard = null,
   initialTab = "album",
+  loginBoosterProgress = null,
 }: {
   snapshot: CollectorAlbumSnapshot;
   initialState: CycloStickersPersistentState;
   initialLeaderboard?: StickerAlbumLeaderboard | null;
   initialTab?: CollectorAlbumTab;
+  loginBoosterProgress?: WeeklyLoginBoosterProgress | null;
 }) {
   const [state, setState] = useState(initialState);
   const [leaderboard, setLeaderboard] = useState(initialLeaderboard);
@@ -32,6 +37,13 @@ export function CycloStickersPersistentAlbum({
   const [notice, setNotice] = useState("");
   const locked = useRef(false);
   const refreshingLeaderboard = useRef(false);
+
+  useEffect(() => {
+    if (loginBoosterProgress?.boosterAwardedToday) {
+      notifyCycloStickersBoostersChanged(initialState.boosterCount > 0);
+    }
+  }, [initialState.boosterCount, loginBoosterProgress?.boosterAwardedToday]);
+
   const refreshLeaderboard = async () => {
     if (refreshingLeaderboard.current) return;
     refreshingLeaderboard.current = true;
@@ -43,17 +55,17 @@ export function CycloStickersPersistentAlbum({
     }
   };
   const mutate: Mutation = async (name, args, message) => {
-    if (locked.current) return false;
+    if (locked.current) return null;
     locked.current = true; setBusy(true); setNotice("");
     try {
       const result = await createSupabaseBrowserClient().rpc(name, args);
       if (result.error) throw new Error(result.error.message);
       const next = result.data?.state as CycloStickersPersistentState | undefined;
       if (!next || next.edition.id !== state.edition.id || next.directorId !== state.directorId) throw new Error("La réponse du serveur ne correspond pas à ta collection.");
-      setState(next); setNotice(message); return true;
+      setState(next); setNotice(message); return next;
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "L’action n’a pas pu être confirmée. Recharge la page pour retrouver ta collection.");
-      return false;
+      return null;
     } finally { locked.current = false; setBusy(false); }
   };
   const send = (action: AlbumPilotAction) => {
@@ -68,18 +80,19 @@ export function CycloStickersPersistentAlbum({
     boosterCount: state.boosterCount, tradeCount: state.incomingOffers.length + state.outgoingOffers.length,
     notice, onAction: send,
     leaderboard, onViewLeaderboard: () => void refreshLeaderboard(),
-    boosters: <PersistentBoosters snapshot={snapshot} state={state} busy={busy} mutate={mutate} onPaste={card => send({ type: "paste", card })} />,
+    boosters: <PersistentBoosters snapshot={snapshot} state={state} busy={busy} mutate={mutate} loginBoosterProgress={loginBoosterProgress} onPaste={card => send({ type: "paste", card })} />,
     duplicates: <PersistentDuplicates snapshot={snapshot} owned={state.owned} />,
     achievements: <PersistentAchievements snapshot={snapshot} state={state} busy={busy} onAction={send} />,
     trades: requestedCard => <PersistentTrades key={requestedCard ?? "desk"} snapshot={snapshot} state={state} busy={busy} mutate={mutate} initialTarget={requestedCard} />,
   }} />;
 }
 
-function PersistentBoosters({ snapshot, state, busy, mutate, onPaste }: {
+function PersistentBoosters({ snapshot, state, busy, mutate, loginBoosterProgress, onPaste }: {
   snapshot: CollectorAlbumSnapshot;
   state: CycloStickersPersistentState;
   busy: boolean;
   mutate: Mutation;
+  loginBoosterProgress: WeeklyLoginBoosterProgress | null;
   onPaste: (number: number) => void;
 }) {
   const [openedKey, setOpenedKey] = useState<string | null>(null);
@@ -97,12 +110,16 @@ function PersistentBoosters({ snapshot, state, busy, mutate, onPaste }: {
 
   const openPack = async (pack: CycloStickersPersistentState["boosters"][number]) => {
     const rpc = getCycloStickersOpenRpc(state.edition.id, pack.inventorySource, pack.id);
-    const opened = await mutate(rpc.rpcName, rpc.args, "Sachet ouvert : deux vignettes ont rejoint ta collection.");
-    if (opened) setOpenedKey(`${pack.inventorySource}:${pack.id}`);
+    const next = await mutate(rpc.rpcName, rpc.args, "Sachet ouvert : deux vignettes ont rejoint ta collection.");
+    if (next) {
+      setOpenedKey(`${pack.inventorySource}:${pack.id}`);
+      notifyCycloStickersBoostersChanged(next.boosterCount > 0);
+    }
   };
 
   return <section className={styles.boosterDesk} aria-label="Les sachets de cartes">
     <header className={styles.sectionHeading}><p>LES SACHETS · COLLECTION S{state.edition.collectionSeason}</p><h2>Deux vignettes à découvrir.</h2><span>Chaque sachet conserve son édition. Les doublons sont possibles.</span></header>
+    {loginBoosterProgress ? <WeeklyLoginBoostersPanel progress={loginBoosterProgress} /> : null}
     <div className={styles.packShelf}>{closed.length ? closed.map((pack, index) => <div className={styles.packOffer} key={`${pack.inventorySource}:${pack.id}`}>
       <button type="button" className={styles.openPackButton} disabled={busy} aria-label={`Ouvrir le sachet ${index + 1}`} onClick={() => void openPack(pack)}><AlbumBoosterArtwork sourceSeason={snapshot.presentationSeason ?? snapshot.sourceSeason} gamesEdition={snapshot.gamesEdition} additionalRiders={snapshot.cards.filter(card=>!card.kind&&card.number>69).length} /><span>Ouvrir ce sachet ↗</span></button>
       <p>{pack.acquisitionSource === "gazette" ? "Cadeau Cyclogazette" : BOOSTER_SOURCE_LABELS[pack.inventorySource]} · 2 vignettes</p>

@@ -15,6 +15,21 @@ it("renders the authenticated owner and empty server stock without demonstration
   expect(html).not.toContain("collectionneurs sont fictifs");
 });
 
+it("shows the connection cycle and the earned booster in the Boosters tab", () => {
+  const snapshot = createCycloStickersFinalSnapshot(createFinalCycloStickersSourceFixture());
+  const initialState = createCycloStickersPersistentStateFixture();
+  const loginBoosterProgress = { consecutiveDays: 6, totalBoostersAwarded: 2, boosterAwardedToday: true };
+  const boosters = renderToStaticMarkup(<CycloStickersPersistentAlbum snapshot={snapshot} initialState={initialState} initialTab="boosters" loginBoosterProgress={loginBoosterProgress} />);
+  expect(boosters).toContain("3 jours d’affilée, 1 booster");
+  expect(boosters).toContain("Boosters gagnés : 2");
+  expect(boosters).toContain("Votre booster du jour a été ajouté");
+  expect(boosters).toContain('aria-valuenow="3"');
+  expect(boosters).toContain("Un jour manqué remet la série à zéro");
+
+  const album = renderToStaticMarkup(<CycloStickersPersistentAlbum snapshot={snapshot} initialState={initialState} loginBoosterProgress={loginBoosterProgress} />);
+  expect(album).not.toContain("3 jours d’affilée, 1 booster");
+});
+
 it("renders only real collectors and protects already pasted special cards", () => {
   const state = createCycloStickersPersistentStateFixture();
   state.owned = [{ cardNumber: 68, quantity: 1, pasted: true, reserved: 0 }];

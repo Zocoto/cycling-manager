@@ -11,6 +11,10 @@ import {
   type ReactNode,
 } from "react";
 
+import {
+  CYCLO_STICKERS_BOOSTERS_CHANGED_EVENT,
+  type CycloStickersBoostersChangedDetail,
+} from "@/lib/game/cyclo-stickers-booster-sync";
 import { CYCLOGAZETTE_READ_EVENT } from "@/lib/game/cyclogazette-read-sync";
 import {
   DIRECTOR_MAILBOX_CHANGED_EVENT,
@@ -43,6 +47,7 @@ type GameHeaderIndicatorsRow = {
   has_unread_global_chat: boolean | null;
   has_unread_cyclogazette: boolean | null;
   collector_album_available?: boolean | null;
+  collector_album_has_unopened_boosters?: boolean | null;
 };
 
 const EMPTY_INDICATORS: GameHeaderIndicators = {
@@ -54,19 +59,28 @@ const EMPTY_INDICATORS: GameHeaderIndicators = {
 };
 
 const GameHeaderIndicatorsContext =
-  createContext<(GameHeaderIndicators & { collectorAlbumAvailable: boolean; pcmExportAvailable: boolean }) | null>(null);
+  createContext<(GameHeaderIndicators & {
+    collectorAlbumAvailable: boolean;
+    collectorAlbumHasUnopenedBoosters: boolean;
+    pcmExportAvailable: boolean;
+  }) | null>(null);
 
 export function GameHeaderIndicatorsProvider({
   children,
+  attendanceReady,
 }: {
   children: ReactNode;
+  attendanceReady?: Promise<void>;
 }) {
   const [indicators, setIndicators] =
     useState<GameHeaderIndicators>(EMPTY_INDICATORS);
   const requestVersionRef = useRef(0);
   const [collectorAlbumAvailable, setCollectorAlbumAvailable] = useState(false);
   const [pcmExportAvailable, setPcmExportAvailable] = useState(false);
-  const contextValue = useMemo(() => ({ ...indicators, collectorAlbumAvailable, pcmExportAvailable }), [indicators, collectorAlbumAvailable, pcmExportAvailable]);
+  const [collectorAlbumHasUnopenedBoosters, setCollectorAlbumHasUnopenedBoosters] = useState(false);
+  const contextValue = useMemo(() => ({
+    ...indicators, collectorAlbumAvailable, collectorAlbumHasUnopenedBoosters, pcmExportAvailable,
+  }), [indicators, collectorAlbumAvailable, collectorAlbumHasUnopenedBoosters, pcmExportAvailable]);
 
   useEffect(() => {
     let active = true;
@@ -77,11 +91,14 @@ export function GameHeaderIndicatorsProvider({
     let authUserId: string | null = null;
     let signedOut = false;
     let publicAlbumAvailable = false;
+    let boosterRevision = 0;
     let authSubscription: { unsubscribe: () => void } | null = null;
     const refreshScheduler = createVisibleRefreshScheduler({
       isVisible: () => document.visibilityState === "visible",
       refresh: async () => {
-        if (!supabase) return;
+        // The first connection of the day can grant a pack during game entry.
+        await attendanceReady;
+        if (!active || !supabase || signedOut || document.visibilityState !== "visible") return;
         const generation = subscriptionGeneration;
         const row = await refreshIndicators();
         if (active && row?.current_sporting_director_id && !subscribedChannel) {
@@ -98,8 +115,9 @@ export function GameHeaderIndicatorsProvider({
       if (!supabase) return null;
 
       const requestVersion = ++requestVersionRef.current;
+      const requestedBoosterRevision = boosterRevision;
       const result = await supabase
-        .rpc("get_current_game_header_indicators_v4")
+        .rpc("get_current_game_header_indicators_v5")
         .maybeSingle();
 
       if (!active || result.error || requestVersion !== requestVersionRef.current) {
@@ -127,6 +145,9 @@ export function GameHeaderIndicatorsProvider({
       // fetch, additional polling or request from an individual shortcut.
       publicAlbumAvailable = Boolean(row?.current_sporting_director_id && row.collector_album_available === true);
       if (!signedOut) setCollectorAlbumAvailable(canAccessCollectorAlbum(authUserId) || publicAlbumAvailable);
+      if (requestedBoosterRevision === boosterRevision) {
+        setCollectorAlbumHasUnopenedBoosters(publicAlbumAvailable && row?.collector_album_has_unopened_boosters === true);
+      }
 
       return row;
     }
@@ -191,6 +212,18 @@ export function GameHeaderIndicatorsProvider({
       }));
     }
 
+    function handleCycloStickersBoostersChanged(event: Event) {
+      if (signedOut) return;
+      boosterRevision += 1;
+      const hasUnopenedBoosters = (event as CustomEvent<CycloStickersBoostersChangedDetail>).detail?.hasUnopenedBoosters;
+      if (typeof hasUnopenedBoosters === "boolean") {
+        setCollectorAlbumHasUnopenedBoosters(hasUnopenedBoosters);
+      } else {
+        refreshWhenVisible();
+      }
+    }
+
+    window.addEventListener(CYCLO_STICKERS_BOOSTERS_CHANGED_EVENT, handleCycloStickersBoostersChanged);
     window.addEventListener(
       DIRECTOR_MAILBOX_CHANGED_EVENT,
       handleDirectorMailboxChanged,
@@ -221,12 +254,19 @@ export function GameHeaderIndicatorsProvider({
       authSubscription = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
         if (active) {
           const nextUserId = session?.user.id ?? null;
+          const accountChanged = authUserId !== null && authUserId !== nextUserId;
+          const signedInAgain = signedOut && nextUserId !== null;
           signedOut = nextUserId === null;
-          if (signedOut || (authUserId !== null && authUserId !== nextUserId)) publicAlbumAvailable = false;
-          if (signedOut) requestVersionRef.current += 1;
+          if (signedOut || accountChanged) {
+            publicAlbumAvailable = false;
+            requestVersionRef.current += 1;
+            setCollectorAlbumHasUnopenedBoosters(false);
+            stopRealtimeIndicators();
+          }
           authUserId = nextUserId;
           setCollectorAlbumAvailable(canAccessCollectorAlbum(authUserId) || publicAlbumAvailable);
           setPcmExportAvailable(canAccessDelegatedPcmExport(session?.user.id));
+          if (!signedOut && (accountChanged || signedInAgain)) scheduleRefresh(0);
         }
       }).data.subscription;
       scheduleRefresh(0);
@@ -324,6 +364,7 @@ export function GameHeaderIndicatorsProvider({
       requestVersionRef.current += 1;
       refreshScheduler.dispose();
       authSubscription?.unsubscribe();
+      window.removeEventListener(CYCLO_STICKERS_BOOSTERS_CHANGED_EVENT, handleCycloStickersBoostersChanged);
       window.removeEventListener(
         DIRECTOR_MAILBOX_CHANGED_EVENT,
         handleDirectorMailboxChanged,
@@ -344,7 +385,7 @@ export function GameHeaderIndicatorsProvider({
       document.removeEventListener("visibilitychange", refreshWhenVisible);
       stopRealtimeIndicators();
     };
-  }, []);
+  }, [attendanceReady]);
 
   return (
     <GameHeaderIndicatorsContext value={contextValue}>

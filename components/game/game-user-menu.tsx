@@ -7,7 +7,7 @@ import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { PushNotificationControl } from "@/components/pwa/push-notification-control";
 import Link from "@/components/ui/app-link";
 import { canAccessPcmExport } from "@/lib/game/pcm-export/access";
-import { CycloStickersStickerIcon } from "./cyclo-stickers-shortcut";
+import { CycloStickersBoosterBadge, CycloStickersStickerIcon } from "./cyclo-stickers-shortcut";
 import { MarketingEmailPreferenceControl } from "./marketing-email-preference-control";
 import { useGameHeaderIndicators } from "./game-header-indicators-provider";
 import { GameStaffBadge } from "./game-staff-badge";
@@ -24,6 +24,7 @@ export function GameUserMenu({
   const { locale } = useLocale();
   const indicators = useGameHeaderIndicators();
   const gameStaffRole = indicators?.gameStaffRole ?? null;
+  const hasCollectorBoosters = indicators?.collectorAlbumHasUnopenedBoosters === true;
   const isEnglish = locale === "en";
   const [open, setOpen] = useState(false);
   const panelId = useId();
@@ -149,9 +150,11 @@ export function GameUserMenu({
 
           {collectorAlbumAvailable || indicators?.collectorAlbumAvailable ? (
             <UserMenuLink
-              href="/jeu/album"
+              href={hasCollectorBoosters ? "/jeu/album?onglet=boosters" : "/jeu/album"}
               label={isEnglish ? "Cyclo-Stickers Album" : "Album de Cyclo-Stickers"}
-              description={isEnglish ? "Sticker album" : "Album de vignettes"}
+              description={hasCollectorBoosters
+                ? <CycloStickersBoosterBadge isEnglish={isEnglish} />
+                : isEnglish ? "Sticker album" : "Album de vignettes"}
               icon={<CycloStickersStickerIcon />}
             />
           ) : null}
@@ -246,7 +249,7 @@ function UserMenuLink({
 }: {
   href: string;
   label: string;
-  description: string;
+  description: ReactNode;
   icon: ReactNode;
   target?: "_blank";
 }) {

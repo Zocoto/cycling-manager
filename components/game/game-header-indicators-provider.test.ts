@@ -43,7 +43,7 @@ describe("game header indicators provider", () => {
     expect(provider).not.toContain(
       'import { createSupabaseBrowserClient } from "@/lib/supabase/client"',
     );
-    expect(provider).toContain('.rpc("get_current_game_header_indicators_v4")');
+    expect(provider).toContain('.rpc("get_current_game_header_indicators_v5")');
     expect(provider).toContain('.channel("game-header-indicators:v2")');
     expect(provider.match(/\.channel\(/g)).toHaveLength(1);
     expect(provider).toContain('table: "sporting_director_messages"');
@@ -90,9 +90,8 @@ describe("game header indicators provider", () => {
   });
 
   it("persists across game navigations instead of reconnecting per page", () => {
-    expect(gameLayout).toContain("<GameHeaderIndicatorsProvider>");
+    expect(gameLayout).toContain("<GameHeaderIndicatorsProvider attendanceReady={attendanceReady}>");
     expect(gameHeader).not.toContain("GameHeaderIndicatorsProvider");
-    expect(provider).toContain("}, []);");
   });
 
   it("keeps shortcut components presentational", () => {

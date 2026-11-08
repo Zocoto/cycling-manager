@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { CYCLO_STICKERS_RELEASE, assertCycloStickersFinalSnapshot } from "@/lib/game/cyclo-stickers-release";
 import { serializeCycloStickersSnapshot } from "@/lib/game/cyclo-stickers-final-snapshot";
 import type { CycloStickersPersistentState } from "@/lib/game/cyclo-stickers-persistence";
+import { normalizeWeeklyLoginBoosterProgress } from "@/lib/game/weekly-login-boosters";
 
 /** Code readiness arms the completed-S4/sealed-edition/S5 DB gates; a null catalogue stays unavailable. */
 export async function getPublicCycloStickersAlbum(supabase: SupabaseClient) {
@@ -17,8 +18,8 @@ export async function getPublicCycloStickersAlbum(supabase: SupabaseClient) {
     || createHash("sha256").update(serializeCycloStickersSnapshot(snapshot)).digest("hex") !== sha256) throw new Error("Le catalogue scellé ne correspond pas à son empreinte.");
   const inventory = await supabase.rpc("get_current_cyclo_stickers_state", { p_edition: snapshot.edition });
   if (inventory.error || !inventory.data) throw new Error("Impossible de charger ta collection.");
-  const state = inventory.data as CycloStickersPersistentState;
+  const { weeklyLogin, ...state } = inventory.data as CycloStickersPersistentState & { weeklyLogin?: unknown };
   if (!state.edition.enabled || state.edition.id !== snapshot.edition || state.edition.sourceSeasonId !== snapshot.sourceSeasonId
     || state.edition.sourceSeason !== 4 || state.edition.collectionSeason !== 5 || state.directorId !== state.owner.directorId) throw new Error("La collection ne correspond pas à cette édition.");
-  return { snapshot, state };
+  return { snapshot, state, loginBoosterProgress: normalizeWeeklyLoginBoosterProgress(weeklyLogin) };
 }

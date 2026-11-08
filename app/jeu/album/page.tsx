@@ -40,6 +40,7 @@ export default async function CollectorAlbumPage({searchParams}: {searchParams?:
           initialState={album.state}
           initialLeaderboard={leaderboard}
           initialTab={params?.onglet === "classement" ? "leaderboard" : initialTab}
+          loginBoosterProgress={album.loginBoosterProgress}
         />
       </main>;
     }

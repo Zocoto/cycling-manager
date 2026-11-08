@@ -2,12 +2,15 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { GameStaffRole } from "@/lib/game/game-product-news";
 
-const indicators = vi.hoisted(() => ({ role: null as GameStaffRole, pcmExportAvailable: false, collectorAlbumAvailable: false }));
+const indicators = vi.hoisted(() => ({
+  role: null as GameStaffRole, pcmExportAvailable: false, collectorAlbumAvailable: false, collectorAlbumHasUnopenedBoosters: false,
+}));
 vi.mock("./game-header-indicators-provider", () => ({
   useGameHeaderIndicators: () => ({
     gameStaffRole: indicators.role,
     pcmExportAvailable: indicators.pcmExportAvailable,
     collectorAlbumAvailable: indicators.collectorAlbumAvailable,
+    collectorAlbumHasUnopenedBoosters: indicators.collectorAlbumHasUnopenedBoosters,
   }),
 }));
 
@@ -22,6 +25,7 @@ beforeEach(() => {
   indicators.role = null;
   indicators.pcmExportAvailable = false;
   indicators.collectorAlbumAvailable = false;
+  indicators.collectorAlbumHasUnopenedBoosters = false;
 });
 
 describe("GameUserMenu", () => {
@@ -41,6 +45,18 @@ describe("GameUserMenu", () => {
     const shortcut = renderToStaticMarkup(<CycloStickersShortcut />);
     expect(shortcut).toContain('href="/jeu/album"');
     expect(shortcut).toContain("Cyclo-Stickers");
+    expect(shortcut).not.toContain("data-cyclo-stickers-booster-badge");
+    expect(menu).not.toContain("data-cyclo-stickers-booster-badge");
+  });
+
+  it("signale les boosters fermés et ouvre directement le bon onglet depuis les deux raccourcis", () => {
+    indicators.collectorAlbumAvailable = true;
+    indicators.collectorAlbumHasUnopenedBoosters = true;
+    for (const shortcut of [<GameUserMenu displayName="Joueur" />, <CycloStickersShortcut />]) {
+      const markup = renderToStaticMarkup(shortcut);
+      expect(markup).toContain("Boosters à ouvrir");
+      expect(markup).toContain('href="/jeu/album?onglet=boosters"');
+    }
   });
 
   it("garde l’entrée dans le menu dès que la page de l’album a confirmé l’accès", () => {

@@ -15,7 +15,7 @@ import { getPublicCycloStickersAlbum } from "./cyclo-stickers-album";
 beforeEach(() => { flags.ready = false; });
 function createClient() {
   const snapshot = createCycloStickersFinalSnapshot(createFinalCycloStickersSourceFixture());
-  const state = createCycloStickersPersistentStateFixture();
+  const state: ReturnType<typeof createCycloStickersPersistentStateFixture> & { weeklyLogin?: unknown } = createCycloStickersPersistentStateFixture();
   const data = { snapshot, editionId: snapshot.edition, sha256: createHash("sha256").update(serializeCycloStickersSnapshot(snapshot)).digest("hex") };
   const rpc = vi.fn().mockResolvedValueOnce({ data, error: null }).mockResolvedValueOnce({ data: state, error: null });
   return { rpc, data, state, client: { rpc } as unknown as SupabaseClient };
@@ -33,7 +33,18 @@ it("verifies the immutable seal after JSONB key reordering before loading the au
   data.snapshot = Object.fromEntries(Object.entries(data.snapshot).reverse()) as typeof data.snapshot;
   const album = await getPublicCycloStickersAlbum(client);
   expect(album?.snapshot.cards).toHaveLength(72);
+  expect(album?.loginBoosterProgress).toBeNull();
   expect(rpc).toHaveBeenNthCalledWith(2, "get_current_cyclo_stickers_state", { p_edition: data.editionId });
+});
+
+it("loads the connection streak with the authenticated collection without an additional RPC", async () => {
+  flags.ready = true;
+  const { rpc, state, client } = createClient();
+  state.weeklyLogin = { consecutiveDays: 3, totalBoostersAwarded: 1, boosterAwardedToday: true };
+  const album = await getPublicCycloStickersAlbum(client);
+  expect(album?.loginBoosterProgress).toEqual(state.weeklyLogin);
+  expect(album?.state).not.toHaveProperty("weeklyLogin");
+  expect(rpc).toHaveBeenCalledTimes(2);
 });
 
 it("refuses missing editions, forged seals and inventories from another source or owner", async () => {

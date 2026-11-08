@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { notifyCycloStickersBoostersChanged } from "@/lib/game/cyclo-stickers-booster-sync";
 import { GLOBAL_CHAT_MESSAGES_READ_EVENT } from "@/lib/game/global-chat-read-sync";
 
 const runtime = vi.hoisted(() => {
@@ -14,6 +15,7 @@ const runtime = vi.hoisted(() => {
     setIndicators: vi.fn(),
     setCollectorAlbumAvailable: vi.fn(),
     setPcmExportAvailable: vi.fn(),
+    setCollectorAlbumHasUnopenedBoosters: vi.fn(),
     booleanStateIndex: 0,
     authState,
     unsubscribeAuth,
@@ -36,7 +38,7 @@ vi.mock("react", async (importOriginal) => ({
   ...await importOriginal<typeof import("react")>(),
   useEffect: (effect: () => void | (() => void)) => { runtime.effects.push(effect); },
   useState: (initial: unknown) => [initial, typeof initial === "boolean"
-    ? runtime.booleanStateIndex++ === 0 ? runtime.setCollectorAlbumAvailable : runtime.setPcmExportAvailable
+    ? [runtime.setCollectorAlbumAvailable, runtime.setPcmExportAvailable, runtime.setCollectorAlbumHasUnopenedBoosters][runtime.booleanStateIndex++]
     : runtime.setIndicators],
   useMemo: (factory: () => unknown) => factory(),
   useRef: (initial: unknown) => ({ current: initial }),
@@ -55,6 +57,7 @@ const ROW = {
   has_unread_global_chat: true,
   has_unread_cyclogazette: false,
   collector_album_available: false,
+  collector_album_has_unopened_boosters: false,
 };
 const SUCCESS = { data: ROW, error: null };
 
@@ -80,8 +83,8 @@ describe("header subscription initialization", () => {
     vi.unstubAllGlobals();
   });
 
-  async function mount() {
-    GameHeaderIndicatorsProvider({ children: null });
+  async function mount(attendanceReady?: Promise<void>) {
+    GameHeaderIndicatorsProvider({ children: null, attendanceReady });
     cleanup = runtime.effects[0]();
     await vi.dynamicImportSettled();
     await vi.advanceTimersByTimeAsync(0);
@@ -91,6 +94,41 @@ describe("header subscription initialization", () => {
     window.dispatchEvent(new Event("focus"));
     await vi.runAllTimersAsync();
   }
+
+  it("reads the booster indicator after the first attendance, in the shared snapshot", async () => {
+    let recordAttendance!: () => void;
+    const attendanceReady = new Promise<void>((resolve) => { recordAttendance = resolve; });
+    runtime.maybeSingle.mockResolvedValue({
+      data: { ...ROW, collector_album_available: true, collector_album_has_unopened_boosters: true },
+      error: null,
+    });
+    await mount(attendanceReady);
+    expect(runtime.client.rpc).not.toHaveBeenCalled();
+    recordAttendance();
+    await vi.runAllTimersAsync();
+    expect(runtime.client.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_header_indicators_v5");
+    expect(runtime.setCollectorAlbumHasUnopenedBoosters).toHaveBeenLastCalledWith(true);
+  });
+
+  it("clears the badge on opening the last pack without letting a stale snapshot restore it", async () => {
+    const withPack = {
+      data: { ...ROW, collector_album_available: true, collector_album_has_unopened_boosters: true },
+      error: null,
+    };
+    let resolveRefresh!: (value: typeof withPack) => void;
+    runtime.maybeSingle.mockResolvedValueOnce(withPack).mockImplementationOnce(
+      () => new Promise<typeof withPack>((resolve) => { resolveRefresh = resolve; }),
+    );
+    await mount();
+    expect(runtime.setCollectorAlbumHasUnopenedBoosters).toHaveBeenLastCalledWith(true);
+    window.dispatchEvent(new Event("focus"));
+    await vi.advanceTimersByTimeAsync(0);
+    notifyCycloStickersBoostersChanged(false);
+    resolveRefresh(withPack);
+    await vi.runAllTimersAsync();
+    expect(runtime.setCollectorAlbumHasUnopenedBoosters).toHaveBeenLastCalledWith(false);
+    expect(runtime.client.rpc).toHaveBeenCalledTimes(2);
+  });
 
   it("updates the delegated export menu on login and clears it on logout without new requests", async () => {
     runtime.maybeSingle.mockResolvedValue(SUCCESS);
@@ -106,7 +144,7 @@ describe("header subscription initialization", () => {
   });
 
   function expectCompleteSubscription() {
-    expect(runtime.client.rpc).toHaveBeenCalledWith("get_current_game_header_indicators_v4");
+    expect(runtime.client.rpc).toHaveBeenCalledWith("get_current_game_header_indicators_v5");
     expect(runtime.client.channel).toHaveBeenCalledTimes(1);
     expect(runtime.channel.on).toHaveBeenCalledTimes(5);
     expect(runtime.channel.on).toHaveBeenCalledWith(
@@ -126,7 +164,7 @@ describe("header subscription initialization", () => {
     expect(runtime.setCollectorAlbumAvailable).toHaveBeenLastCalledWith(false);
     runtime.authState.callback!("SIGNED_OUT", null);
     expect(runtime.setCollectorAlbumAvailable).toHaveBeenLastCalledWith(false);
-    expect(runtime.client.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_header_indicators_v4");
+    expect(runtime.client.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_header_indicators_v5");
     const calls = runtime.setCollectorAlbumAvailable.mock.calls.length;
     cleanup?.(); cleanup=undefined;
     expect(runtime.unsubscribeAuth).toHaveBeenCalledTimes(1);
@@ -140,7 +178,7 @@ describe("header subscription initialization", () => {
     expect(runtime.setCollectorAlbumAvailable).toHaveBeenLastCalledWith(true);
     runtime.authState.callback!("INITIAL_SESSION", {user:{id:"another-account"}});
     expect(runtime.setCollectorAlbumAvailable).toHaveBeenLastCalledWith(true);
-    expect(runtime.client.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_header_indicators_v4");
+    expect(runtime.client.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_header_indicators_v5");
     runtime.authState.callback!("SIGNED_OUT", null);
     expect(runtime.setCollectorAlbumAvailable).toHaveBeenLastCalledWith(false);
   });
@@ -187,7 +225,7 @@ describe("header subscription initialization", () => {
   it.each(["owner", "game_staff"])("expose le rôle %s via le même snapshot sans nouvelle RPC", async (role) => {
     runtime.maybeSingle.mockResolvedValue({ data: { ...ROW, game_role: role }, error: null });
     await mount();
-    expect(runtime.client.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_header_indicators_v4");
+    expect(runtime.client.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_header_indicators_v5");
     expect(runtime.setIndicators).toHaveBeenCalledWith(expect.objectContaining({ gameStaffRole: role }));
     expectCompleteSubscription();
   });

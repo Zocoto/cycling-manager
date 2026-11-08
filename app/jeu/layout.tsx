@@ -37,13 +37,10 @@ export const metadata: Metadata = {
   },
 };
 
-async function synchronizeGameEntryState(
+async function settleGameEntryStaffReputation(
   supabase: SupabaseServerClient,
 ): Promise<void> {
-  const [dailyReputation, attendance] = await Promise.all([
-    supabase.rpc("settle_current_team_staff_daily_reputation"),
-    supabase.rpc("record_current_sporting_director_attendance"),
-  ]);
+  const dailyReputation = await supabase.rpc("settle_current_team_staff_daily_reputation");
 
   if (dailyReputation.error) {
     console.error(
@@ -51,20 +48,26 @@ async function synchronizeGameEntryState(
       dailyReputation.error,
     );
   }
+}
 
-  if (attendance.error) {
+async function recordGameEntryAttendance(supabasePromise: Promise<SupabaseServerClient>) {
+  try {
+    const supabase = await supabasePromise;
+    const { error } = await supabase.rpc("record_current_sporting_director_attendance");
+    if (error) throw error;
+  } catch (error) {
     console.error(
       "Impossible d’enregistrer la présence quotidienne du Directeur Sportif.",
-      attendance.error,
+      error,
     );
   }
 }
 
-async function loadTutorialBootstrap(): Promise<TutorialProviderBootstrap> {
+async function loadTutorialBootstrap(supabasePromise: Promise<SupabaseServerClient>): Promise<TutorialProviderBootstrap> {
   try {
-    const supabase = await createSupabaseServerClient();
+    const supabase = await supabasePromise;
 
-    after(() => synchronizeGameEntryState(supabase));
+    after(() => settleGameEntryStaffReputation(supabase));
 
     const [progress, onboardingState] = await Promise.all([
       listAuthenticatedTutorialProgress(supabase),
@@ -100,11 +103,13 @@ async function loadTutorialBootstrap(): Promise<TutorialProviderBootstrap> {
 
 async function GameRuntime({ children }: { children: ReactNode }) {
   await connection();
-  const tutorialBootstrapPromise = loadTutorialBootstrap();
+  const supabasePromise = createSupabaseServerClient();
+  const attendanceReady = recordGameEntryAttendance(supabasePromise);
+  const tutorialBootstrapPromise = loadTutorialBootstrap(supabasePromise);
 
   return (
     <TutorialProvider bootstrapPromise={tutorialBootstrapPromise}>
-      <GameHeaderIndicatorsProvider>
+      <GameHeaderIndicatorsProvider attendanceReady={attendanceReady}>
         <FinancialRiskWarningProvider>
           <GamePresenceHeartbeat />
           <div className="game-shell">

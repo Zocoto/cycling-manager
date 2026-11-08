@@ -341,5 +341,35 @@ try{
   eq(await getGift(),null,'disabling the album hides the gift');
   await rejects(()=>claimGift(),/ne propose pas/,'disabling the album blocks gift claims');
   await admin();await db.exec('set role anon');await rejects(()=>state(),/permission denied/,'anonymous API access denied');
+
+  await admin();
+  const loginSource=await read('20261027170000_weekly_login_cyclo_stickers_boosters');
+  await db.exec(table(loginSource,'weekly_login_booster_states'));
+  await db.exec(fn(loginSource,'private.record_weekly_login_booster_connection'));
+  await db.exec(fn(loginSource,'private.get_weekly_login_booster_progress'));
+  await db.exec(await read('20261105141000_three_day_login_sticker_boosters'));
+  const loginProgressMigration=await read('20261108151000_move_login_booster_progress_to_cyclo_stickers');
+  await db.exec(loginProgressMigration);
+  await db.exec(loginProgressMigration);
+  await as('a');
+  await rejects(()=>state(),/pas encore disponible/,'the progress migration still gates disabled editions');
+  await admin();
+  eq(await scalar('select count(*)::int from weekly_login_booster_states'),0,'deployment and disabled edition visits do not record a connection');
+  await db.exec("update cyclo_stickers_editions set configuration=jsonb_set(configuration,'{enabled}','true')");
+  await db.exec("update seasons set status=case game_year when 4 then 'completed' when 5 then 'active' else 'planned' end");
+  await db.query(`insert into weekly_login_booster_states(sporting_director_id,last_connection_on,streak_started_on,consecutive_days)
+    values($1,(now() at time zone 'Europe/Paris')::date-1,(now() at time zone 'Europe/Paris')::date-2,2)`,[id('a')]);
+  const beforeLogin=await scalar('select count(*)::int from cyclo_stickers_booster_inventory where sporting_director_id=$1 and collection_season_id=$2 and opened_at is null',[id('a'),id('s5')]);
+  await as('a');
+  const thirdDay=await state();
+  eq(thirdDay.weeklyLogin,{consecutiveDays:3,totalBoostersAwarded:1,boosterAwardedToday:true},'opening the album first records the third consecutive day');
+  eq(thirdDay.boosterCount,beforeLogin+1,'the milestone pack is openable on the same response');
+  eq((await state()).boosterCount,thirdDay.boosterCount,'a reload does not grant another milestone pack');
+  await as('b');
+  eq((await state()).weeklyLogin,{consecutiveDays:1,totalBoostersAwarded:0,boosterAwardedToday:false},'the new progress remains scoped to the authenticated account');
+  await as('inactive');
+  await rejects(()=>state(),/directeur actif/,'the migration preserves the active director requirement');
+  await admin();await db.exec('set role anon');
+  await rejects(()=>state(),/permission denied/,'the migration preserves anonymous denial');
   console.log(JSON.stringify({isolatedPostgresChecks:checks,productionAccess:false,editionSeeds:0,realStockSources:3,atomicCopyConservation:true,rewardsPaidOnce:true}));
 }finally{await db.close();}

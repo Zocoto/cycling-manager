@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useId, useRef } from "react";
 import { claimCyclogazetteBoosterGiftAction } from "@/app/jeu/gazette/actions";
 import Link from "@/components/ui/app-link";
+import { notifyCycloStickersBoostersChanged } from "@/lib/game/cyclo-stickers-booster-sync";
 import { AlbumBoosterArtwork } from "./collector-album-artwork";
 
 const actionClassName = "inline-flex min-h-11 w-full items-center justify-center rounded-sm bg-[#294650] px-4 py-2 text-center text-sm font-black leading-snug text-[#FFF5DB] transition hover:bg-[#345862] focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[#345862] disabled:cursor-wait disabled:opacity-70 sm:w-auto";
@@ -22,7 +23,10 @@ export function CyclogazetteStickerGift({
   const claimed = initiallyClaimed || claimState === "claimed";
 
   useEffect(() => {
-    if (claimState === "claimed") albumLink.current?.focus({ preventScroll: true });
+    if (claimState === "claimed") {
+      albumLink.current?.focus({ preventScroll: true });
+      notifyCycloStickersBoostersChanged();
+    }
   }, [claimState]);
 
   return (
