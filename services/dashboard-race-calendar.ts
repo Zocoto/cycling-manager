@@ -105,6 +105,7 @@ type RegistrationRow = {
 
 type SponsorObjectiveRaceRow = {
   race_edition_id: string;
+  sponsor_role: "principal" | "secondary";
 };
 
 export async function getDashboardRaceCalendar(
@@ -180,7 +181,7 @@ export async function getDashboardRaceCalendar(
       .abortSignal(signal)
       .returns<DayRow[]>(),
     supabase.rpc("get_current_team_calendar_registrations").abortSignal(signal),
-    supabase.rpc("get_current_team_sponsor_objective_races").abortSignal(signal),
+    supabase.rpc("get_current_team_calendar_sponsor_objective_races").abortSignal(signal),
   ]);
 
   assertQuery(editionsResult.error, "les courses du bureau");
@@ -188,7 +189,16 @@ export async function getDashboardRaceCalendar(
   assertQuery(registrationsResult.error, "les inscriptions de l'équipe");
   assertQuery(sponsorObjectivesResult.error, "les objectifs sponsor");
   const editions = editionsResult.data ?? [];
-  const sponsorObjectiveEditionIds = new Set(((sponsorObjectivesResult.data as SponsorObjectiveRaceRow[] | null) ?? []).map((objective) => objective.race_edition_id));
+  const sponsorObjectiveEditionIds = new Set<string>();
+  const secondarySponsorObjectiveEditionIds = new Set<string>();
+  const sponsorObjectives = (sponsorObjectivesResult.data as SponsorObjectiveRaceRow[] | null) ?? [];
+  for (const objective of sponsorObjectives) {
+    if (objective.sponsor_role === "secondary") {
+      secondarySponsorObjectiveEditionIds.add(objective.race_edition_id);
+    } else {
+      sponsorObjectiveEditionIds.add(objective.race_edition_id);
+    }
+  }
   const regionalRaceContext =
     ((regionalRaceContextResult.data as RegionalRaceContextRow[] | null) ??
       [])[0] ?? null;
@@ -350,6 +360,7 @@ export async function getDashboardRaceCalendar(
         isGrandTour: race.is_grand_tour,
         isMonument: race.is_monument,
         isSponsorObjective: sponsorObjectiveEditionIds.has(edition.id),
+        isSecondarySponsorObjective: secondarySponsorObjectiveEditionIds.has(edition.id) || undefined,
         registrationClosesAt: edition.registration_closes_at,
         wildcardClosesAt: edition.wildcard_closes_at,
         withdrawalClosesAt: edition.withdrawal_closes_at,

@@ -11,7 +11,7 @@ const transferPage = read("app/jeu/transferts/page.tsx");
 const staffService = read("services/team-staff.ts");
 const calendarService = read("services/race-calendar.ts");
 const dashboardCalendarService = read("services/dashboard-race-calendar.ts");
-const calendarComponent = read("components/game/season-calendar.tsx");
+const sponsorObjectiveBadge = read("components/game/sponsor-objective-badge.tsx");
 const dashboardRaces = read("components/game/dashboard-eligible-races.tsx");
 const registrationPage = read(
   "app/jeu/courses/[slug]/race-profile-content.tsx",
@@ -74,8 +74,8 @@ describe("ajustements de gestion demandés", () => {
     expect(dashboardCalendarService).toContain(
       "isSponsorObjective: sponsorObjectiveEditionIds.has(edition.id)",
     );
-    expect(calendarComponent).toContain('label: "Objectif sponsor principal"');
-    expect(calendarComponent).toContain('label: "Objectif sponsor secondaire"');
+    expect(sponsorObjectiveBadge).toContain('label: "Objectif sponsor principal"');
+    expect(sponsorObjectiveBadge).toContain('label: "Objectif sponsor secondaire"');
     expect(dashboardRaces).toContain('aria-label="Objectif sponsor"');
   });
 

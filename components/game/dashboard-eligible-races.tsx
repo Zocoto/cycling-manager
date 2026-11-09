@@ -1,5 +1,6 @@
 import Link from "@/components/ui/app-link";
 import { RaceImportanceBadge } from "@/components/game/race-importance-badge";
+import { SponsorObjectiveBadge } from "@/components/game/sponsor-objective-badge";
 import {
   RACE_CATEGORY_STYLE,
   getCalendarRaceDisplayName,
@@ -156,11 +157,13 @@ function DashboardRaceListItem({ race }: { race: DashboardEligibleRace }) {
             ? "bg-[#FFF0F1] ring-1 ring-inset ring-[#EF5B65]/55"
             : edition.isSponsorObjective
               ? "bg-[#F5EEFF] ring-1 ring-inset ring-[#8B5CF6]"
-              : importance === "grand_tour"
-                ? "bg-[#FFF9DF] ring-1 ring-inset ring-[#C59A19]/70"
-                : importance === "monument"
-                  ? "bg-[#F3F4F6] ring-1 ring-inset ring-[#222222]/65"
-                  : ""
+              : edition.isSecondarySponsorObjective
+                ? "bg-[#FAF7FF] ring-1 ring-inset ring-[#8B5CF6]/55"
+                : importance === "grand_tour"
+                  ? "bg-[#FFF9DF] ring-1 ring-inset ring-[#C59A19]/70"
+                  : importance === "monument"
+                    ? "bg-[#F3F4F6] ring-1 ring-inset ring-[#222222]/65"
+                    : ""
         }`}
       >
         <span
@@ -189,6 +192,9 @@ function DashboardRaceListItem({ race }: { race: DashboardEligibleRace }) {
               >
                 !
               </span>
+            ) : null}
+            {edition.isSecondarySponsorObjective ? (
+              <SponsorObjectiveBadge kind="secondary" />
             ) : null}
             <span className="truncate text-[13px] font-black text-[#183F37] transition group-hover:text-[#176951]">
               {displayName}

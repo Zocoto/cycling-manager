@@ -187,7 +187,11 @@ describe("dashboard eligible races", () => {
     expect(markup).not.toContain("Course hors-fenetre");
   });
 
-  it("signale visuellement une course qui est un objectif sponsor", () => {
+  it.each([
+    [true, false, "bg-[#F5EEFF]"],
+    [false, true, "bg-[#FAF7FF]"],
+    [true, true, "bg-[#F5EEFF]"],
+  ])("distingue les objectifs sponsor principal (%s) et secondaire (%s)", (principal, secondary, background) => {
     const markup = renderToStaticMarkup(
       <DashboardEligibleRaces
         calendar={createCalendar([
@@ -195,7 +199,8 @@ describe("dashboard eligible races", () => {
             minimumReputation: 0,
             minimumRosterSize: 6,
             startDay: 12,
-            isSponsorObjective: true,
+            isSponsorObjective: principal,
+            isSecondarySponsorObjective: secondary,
           }),
         ])}
         reputationPoints={125}
@@ -205,9 +210,11 @@ describe("dashboard eligible races", () => {
     );
 
     expect(markup).toContain("Course objectif-sponsor");
-    expect(markup).toContain('aria-label="Objectif sponsor"');
-    expect(markup).toContain("bg-[#F5EEFF]");
-    expect(markup).toContain("bg-[#8B5CF6]");
+    expect(markup.includes('aria-label="Objectif sponsor"')).toBe(principal);
+    expect(markup.includes('aria-label="Objectif sponsor secondaire"')).toBe(secondary);
+    expect(markup.includes("bg-[#8B5CF6]")).toBe(principal);
+    expect(markup.includes("bg-[#E8DDFD]")).toBe(secondary);
+    expect(markup).toContain(background);
   });
 
   it("hiérarchise les Grands Tours et les Monuments parmi les courses élite", () => {
@@ -335,6 +342,7 @@ function createEdition(
     registrationPolicy = "open",
     startDay,
     isSponsorObjective = false,
+    isSecondarySponsorObjective = false,
     isGrandTour = false,
     isMonument = false,
     currentTeamRegistration = null,
@@ -344,6 +352,7 @@ function createEdition(
     registrationPolicy?: RaceCalendarEdition["registrationPolicy"];
     startDay: number;
     isSponsorObjective?: boolean;
+    isSecondarySponsorObjective?: boolean;
     isGrandTour?: boolean;
     isMonument?: boolean;
     currentTeamRegistration?: RaceCalendarEdition["currentTeamRegistration"];
@@ -366,6 +375,7 @@ function createEdition(
     isGrandTour,
     isMonument,
     isSponsorObjective,
+    isSecondarySponsorObjective,
     registrationClosesAt: "2026-07-11T22:00:00.000Z",
     wildcardClosesAt: null,
     withdrawalClosesAt: null,
