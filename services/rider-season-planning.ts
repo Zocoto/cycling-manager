@@ -50,6 +50,7 @@ type RiderRow = {
   last_name: string;
   avatar_profile_key: string | null;
   avatar_seed: number | string | null;
+  rider_special_abilities?: Array<{ ability_code: string }>;
 };
 type RatingRow = {
   rider_id: string;
@@ -209,9 +210,10 @@ export async function getCurrentTeamRiderSeasonPlanning({
     admin
       .from("riders")
       .select(
-        "id, country_id, first_name, last_name, avatar_profile_key, avatar_seed",
+        "id, country_id, first_name, last_name, avatar_profile_key, avatar_seed, rider_special_abilities(ability_code)",
       )
       .in("id", riderIds)
+      .eq("rider_special_abilities.ability_code", "etapovore")
       .returns<RiderRow[]>(),
     admin
       .from("rider_season_ratings")
@@ -562,6 +564,7 @@ export async function getCurrentTeamRiderSeasonPlanning({
           context.season.game_year,
           raceDaysByRiderId.get(rider.id) ?? 0,
           remainingStageIdsByRiderId.get(rider.id)?.size ?? 0,
+          rider.rider_special_abilities?.some((ability) => ability.ability_code === "etapovore"),
         ),
         events: [...(eventsByRiderId.get(rider.id) ?? [])].sort(
           (left, right) =>

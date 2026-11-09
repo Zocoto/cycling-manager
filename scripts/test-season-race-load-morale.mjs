@@ -20,7 +20,8 @@ try{
     create table riders(id uuid primary key);
     create table rider_season_ratings(rider_id uuid,season_id uuid,primary key(rider_id,season_id));
     create table race_editions(id uuid primary key,season_id uuid);
-    create table stages(id uuid primary key,race_edition_id uuid,season_day_id uuid);
+    create table stages(id uuid primary key,race_edition_id uuid,season_day_id uuid,departure_at timestamptz);
+    create table rider_special_abilities(rider_id uuid,ability_code text,unlocked_at timestamptz,primary key(rider_id,ability_code));
     create table race_rosters(id uuid primary key,rider_id uuid);
     create table stage_results(id uuid primary key default gen_random_uuid(),stage_id uuid,race_roster_id uuid,status text,rank integer,unique(stage_id,race_roster_id));
     create table rider_condition_states(id uuid primary key default gen_random_uuid(),rider_id uuid,season_day_id uuid,form numeric default 75,fatigue integer default 0,morale numeric default 60,source text,updated_at timestamptz default now(),unique(rider_id,season_day_id),check(morale between 0 and 100));
@@ -31,14 +32,15 @@ try{
   await db.exec(`revoke all on function public.apply_rider_morale_event(uuid,uuid,text,text,numeric,text,jsonb) from public,anon,authenticated; grant execute on function public.apply_rider_morale_event(uuid,uuid,text,text,numeric,text,jsonb) to service_role;`);
   const acl=(await db.query(`select proacl::text acl from pg_proc where oid='public.apply_rider_morale_event(uuid,uuid,text,text,numeric,text,jsonb)'::regprocedure`)).rows[0].acl;
   await db.exec(read('20261102150000_add_season_race_load_morale'));
+  await db.exec(read('20261109162000_apply_etapovore_race_load_morale'));
   await db.exec(`
     insert into seasons values('${id(4)}',4,'completed',28),('${id(5)}',5,'active',25),('${id(6)}',6,'planned',1);
-    insert into riders values('${id(1)}'),('${id(2)}');
-    insert into race_rosters values('${id(10)}','${id(1)}'),('${id(11)}','${id(2)}');
+    insert into riders values('${id(1)}'),('${id(2)}'),('${id(3)}');
+    insert into race_rosters values('${id(10)}','${id(1)}'),('${id(11)}','${id(2)}'),('${id(13)}','${id(3)}');
     insert into rider_season_ratings(rider_id,season_id) select r.id,s.id from riders r cross join seasons s;
     insert into season_days select ('00000000-0000-4000-8000-'||lpad((s.game_year*100+n)::text,12,'0'))::uuid,s.id,n from seasons s cross join generate_series(1,28) n;
     insert into race_editions select ('00000000-0000-4000-8000-'||lpad((s.game_year*1000)::text,12,'0'))::uuid,s.id from seasons s;
-    insert into stages select ('00000000-0000-4000-8000-'||lpad((s.game_year*10000+n)::text,12,'0'))::uuid,e.id,
+    insert into stages(id,race_edition_id,season_day_id) select ('00000000-0000-4000-8000-'||lpad((s.game_year*10000+n)::text,12,'0'))::uuid,e.id,
       ('00000000-0000-4000-8000-'||lpad((s.game_year*100+(n+1)/2)::text,12,'0'))::uuid
       from seasons s join race_editions e on e.season_id=s.id cross join generate_series(1,45) n;
     insert into rider_condition_states(rider_id,season_day_id,morale) values('${id(1)}','${id(525)}',60),('${id(2)}','${id(525)}',60);
@@ -89,9 +91,84 @@ try{
   // Missing archived ratings do not block result persistence.
   await db.exec(`delete from rider_season_ratings where rider_id='${id(2)}' and season_id='${id(6)}';`);await insert(1,1,6,'finished',11);checks++;
   assert.equal((await db.query(`select proacl::text acl from pg_proc where oid='public.apply_rider_morale_event(uuid,uuid,text,text,numeric,text,jsonb)'::regprocedure`)).rows[0].acl,acl);checks++;
-  for(const fn of ['private.adjust_rider_season_race_load(uuid,uuid,uuid,integer)','private.sync_season_race_load_from_stage_result()']){
+  for(const fn of ['private.adjust_rider_season_race_load(uuid,uuid,uuid,uuid,integer)','private.sync_season_race_load_from_stage_result()']){
     assert.equal((await db.query('select has_function_privilege($1,$2,\'execute\') allowed',['authenticated',fn])).rows[0].allowed,false);checks++;
   }
-  console.log(`PASS ${checks} isolated SQL assertions: S5 threshold, stages, retries, DNS/DNF/OTL, replay/refunds, clipping, transfers, rollover, missing archives and privileges.`);
+
+  const talentCheck = async (days,morale,debit) => {
+    const row=await snap(3,6);
+    assert.equal(row.days,days);
+    assert.equal(Number(row.morale),morale);
+    assert.equal(Number(row.debit),debit);
+    checks+=3;
+  };
+  const talentInsert = (from,to=from) => insert(from,to,6,'finished',13);
+  const removeTalentStage = stage => db.query(
+    "delete from stage_results where stage_id=$1 and race_roster_id=$2", [id(60000+stage),id(13)]
+  );
+  await db.exec(`
+    insert into rider_condition_states(rider_id,season_day_id,morale) values('${id(3)}','${id(601)}',60);
+    update stages set departure_at='2026-11-08T12:00:00Z' where id in('${id(60031)}','${id(60032)}','${id(60036)}');
+    update stages set departure_at='2026-11-09T12:00:00Z' where id in('${id(60033)}','${id(60034)}','${id(60035)}');
+  `);
+  await talentInsert(1,30);
+  await talentCheck(30,60,0);
+  await talentInsert(31);
+  await talentCheck(31,59,1);
+  await db.exec(`insert into rider_special_abilities values('${id(3)}','etapovore','2026-11-09T10:00:00Z');`);
+  await talentCheck(31,59,1);
+  await talentInsert(32);
+  await talentCheck(32,58,2);
+  await talentInsert(33,34);
+  await talentCheck(34,59,2);
+
+  // Earlier starts shift the threshold; already-paid ordinary and talent
+  // slots are reversed in order unless the corrected result has its own slot.
+  await removeTalentStage(2);
+  await talentCheck(33,60,1);
+  await removeTalentStage(34);
+  await talentCheck(32,59.5,1);
+  await removeTalentStage(31);
+  await talentCheck(31,60.5,0);
+  await removeTalentStage(3);
+  await talentCheck(30,60,0);
+
+  const setTalentMorale = morale => db.query(
+    "update rider_condition_states set morale=$1 where rider_id=$2 and season_day_id=$3", [morale,id(3),id(601)]
+  );
+  await setTalentMorale(99.75);
+  await talentInsert(35);
+  await talentCheck(31,100,0);
+  await removeTalentStage(35);
+  await talentCheck(30,99.75,0);
+  await setTalentMorale(100);
+  await talentInsert(35);
+  await setTalentMorale(90);
+  await db.exec(`update stage_results set status='did_not_start' where stage_id='${id(60035)}' and race_roster_id='${id(13)}';`);
+  await talentCheck(30,90,0);
+  await db.exec(`update stage_results set status='abandoned' where stage_id='${id(60035)}' and race_roster_id='${id(13)}';`);
+  await talentCheck(31,90.5,0);
+  await db.exec(`update stage_results set status='outside_time_limit' where stage_id='${id(60035)}' and race_roster_id='${id(13)}';`);
+  await talentCheck(31,90.5,0);
+  await talentInsert(36);
+  await talentCheck(32,89.5,1);
+  await removeTalentStage(35);
+  await talentCheck(31,89,1);
+  await removeTalentStage(4);
+  await talentCheck(30,90,0);
+
+  // An undated legacy stage cannot prove that the rider already held the talent.
+  await talentInsert(37);
+  await talentCheck(31,89,1);
+  await removeTalentStage(37);
+  await talentCheck(30,90,0);
+  await talentInsert(35);
+  await talentCheck(31,90.5,0);
+  await db.exec(`update seasons set status='completed' where id='${id(6)}';`);
+  await removeTalentStage(35);
+  await talentCheck(30,90.5,0);
+  assert.equal((await db.query(`select has_table_privilege('authenticated','private.rider_etapovore_race_load_slots','select') allowed`)).rows[0].allowed,false);
+  checks++;
+  console.log(`PASS ${checks} isolated SQL assertions: ordinary race load, Étapovore eligibility, result retries and corrections, clipping, earlier starts, season boundaries and privileges.`);
 }catch(error){console.error('FAIL:',error.message,error.where??'');process.exitCode=1;}
 finally{await db.close();}

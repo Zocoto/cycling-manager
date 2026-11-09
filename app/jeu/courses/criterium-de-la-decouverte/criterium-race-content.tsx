@@ -417,6 +417,7 @@ export async function CriteriumDiscoveryRaceContent({
                       isStageRace={false}
                       submitLabel="Valider l’inscription"
                       showRoleGuide
+                      warnOnRaceLoad={false}
                       tutorialIds={{
                         selection: "criterium-rider-selection",
                         roleGuide: "criterium-role-guide",

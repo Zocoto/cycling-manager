@@ -20,6 +20,7 @@ try {
     create table seasons (id uuid primary key, current_day_number integer);
     create table season_days (id uuid primary key, day_number integer);
     create table rider_season_ratings (rider_id uuid, season_id uuid, season_race_days integer, primary key (rider_id, season_id));
+    create table rider_special_abilities (rider_id uuid, ability_code text, primary key (rider_id, ability_code));
     create table race_editions (id uuid primary key, season_id uuid, status text);
     create table race_registrations (id uuid primary key, race_edition_id uuid, status text);
     create table race_rosters (id uuid primary key, race_registration_id uuid, rider_id uuid, status text, unique (race_registration_id, rider_id));
@@ -33,6 +34,10 @@ try {
   await db.exec(readFileSync(
     "supabase/migrations/20261108180719_add_registration_season_race_day_projections.sql", "utf8",
   ));
+  await db.exec(readFileSync(
+    "supabase/migrations/20261109163000_expose_etapovore_on_race_registration.sql", "utf8",
+  ));
+  await db.exec(`insert into rider_special_abilities values (${uuid(1)},'etapovore'),(${uuid(1)},'flahute'),(${uuid(2)},'flahute')`);
 
   const editions = [
     [100, 5, "in_progress"], [110, 5, "registration_open"], [120, 5, "registration_closed"],
@@ -79,6 +84,8 @@ try {
   for (const [role, allowed] of [["anon", false], ["authenticated", false], ["service_role", true]]) {
     const privilege = await db.query("select has_function_privilege($1, $2, 'execute') as allowed", [role, signature]);
     assert.equal(privilege.rows[0].allowed, allowed);
+    const v2Privilege = await db.query("select has_function_privilege($1, $2, 'execute') as allowed", [role, "public.get_registration_season_race_days_v2(uuid,uuid[])"]);
+    assert.equal(v2Privilege.rows[0].allowed, allowed);
   }
   await db.exec("set role service_role");
   const snapshot = async () => (await db.query(
@@ -92,6 +99,10 @@ try {
     // The DNF persists even if the official roster was replaced.
     { rider_id: id(3), season_race_days: 4, projected_season_race_days: 4 },
   ]);
+  assert.deepEqual((await db.query(
+    "select * from public.get_registration_season_race_days_v2($1, $2) order by rider_id",
+    [id(5), [id(1), id(1), id(2), id(3), id(9)]],
+  )).rows, (await snapshot()).map(row => ({ ...row, has_etapovore: row.rider_id === id(1) })));
   await db.exec("reset role");
   await db.exec(`
     update stages set status = 'completed' where id = ${uuid(401)};

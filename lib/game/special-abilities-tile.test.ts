@@ -9,12 +9,12 @@ const riderPage = readFileSync(
 );
 
 describe("special abilities tile", () => {
-  it("répartit les quatorze médaillons sur une grille responsive", () => {
+  it("répartit les médaillons sur une grille responsive", () => {
     expect(riderPage).toContain(
       "grid grid-cols-5 justify-items-center gap-2 sm:grid-cols-7 sm:gap-3",
     );
     expect(riderPage).toContain(
-      'aria-label="Catalogue des 14 capacités spéciales"',
+      'aria-label="Catalogue des capacités spéciales"',
     );
     expect(riderPage).toContain("SPECIAL_ABILITY_CATALOG.map");
   });

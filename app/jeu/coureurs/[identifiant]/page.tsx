@@ -1923,7 +1923,7 @@ function SpecialAbilitiesCard({
       </p>
       <div
         className="mt-4 grid grid-cols-5 justify-items-center gap-2 sm:grid-cols-7 sm:gap-3"
-        aria-label="Catalogue des 14 capacités spéciales"
+        aria-label="Catalogue des capacités spéciales"
       >
         {SPECIAL_ABILITY_CATALOG.map((ability) => (
           <SpecialAbilityMedallion

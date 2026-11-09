@@ -27,15 +27,16 @@ try {
  create table rider_season_ratings(rider_id uuid references riders,season_id uuid references seasons,
  mountain int default 50,hills int default 50,flat int default 50,time_trial int default 50,cobbles int default 50,sprint int default 50,
  acceleration int default 50,downhill int default 50,endurance int default 50,resistance int default 50,recovery int default 50,breakaway int default 50,prologue int default 50,updated_at timestamptz default now());
- create table inventory_catalog_items(id uuid primary key default gen_random_uuid(),item_key text unique,name text,description text,effect_summary text,icon_key text,category text,effect_payload jsonb,rarity text,status text,is_consumable bool default true);
+ create table inventory_catalog_items(id uuid primary key default gen_random_uuid(),item_key text unique,name text,description text,effect_summary text,icon_key text,category text,effect_payload jsonb,rarity text,status text default 'active',is_consumable bool default true,updated_at timestamptz default now());
  create table team_item_inventory(id uuid primary key default gen_random_uuid(),team_season_id uuid references team_seasons,inventory_item_id uuid references inventory_catalog_items,quantity int check(quantity>=0),acquired_at timestamptz default now(),updated_at timestamptz default now(),unique(team_season_id,inventory_item_id));
  create table rider_consumable_item_applications(id uuid primary key,rider_id uuid,inventory_item_id uuid,team_season_id uuid,category text,item_name text,effect_summary text,ability_code text,potential_bonus int,rating_key text,rating_bonus int);
  create table daily_reward_catalog(reward_key text primary key,name text,description text,effect_summary text,icon_key text,effect_kind text,effect_payload jsonb,importance int,is_active bool);
  create table daily_reward_inventory(id uuid primary key default gen_random_uuid(),sporting_director_id uuid references sporting_directors,team_season_id uuid references team_seasons,reward_key text references daily_reward_catalog,
  status text default 'available',expires_after_game_year int,acquired_at timestamptz default now(),used_at timestamptz,usage_payload jsonb,source_reference text);
- create table special_ability_catalog(code text primary key,is_active bool);
- create table rider_special_abilities(rider_id uuid,ability_code text,source_type text,source_reference text,unique(rider_id,ability_code));
- insert into special_ability_catalog values('panache',true);
+ create table special_ability_catalog(code text primary key,name text not null,effect_description text not null,icon_key text not null,medallion_tone text not null,is_active bool default true,
+ constraint special_ability_catalog_code_allowed check(code='panache'));
+ create table rider_special_abilities(rider_id uuid,ability_code text references special_ability_catalog(code),source_type text,source_reference text,unique(rider_id,ability_code));
+ insert into special_ability_catalog values('panache','Panache','Baseline description','fireworks','gold',true);
  insert into seasons values('${id(1)}',4,'active',10),('${id(2)}',5,'planned',1);
  insert into season_days values('${id(3)}','${id(1)}',10);
  insert into sporting_directors values('${id(10)}','${id(11)}','active'),('${id(20)}','${id(21)}','active');
@@ -103,6 +104,29 @@ try {
  check(await scalar(`select acceleration from rider_season_ratings where season_id='${id(1)}'`),99);
  await consume('acceleration-focus',1);
  check(await scalar(`select acceleration from rider_season_ratings where season_id='${id(1)}'`),100);
+
+ const etapovore=readFileSync('supabase/migrations/20261109161000_add_etapovore_special_ability.sql','utf8');
+ await db.exec(etapovore);
+ await db.exec(etapovore);
+ check(await rows("select code,name,is_active from special_ability_catalog order by code"),[
+  {code:'etapovore',name:'Étapovore',is_active:true},{code:'panache',name:'Panache',is_active:true},
+ ]);
+ check(await rows("select category,rarity,status,effect_payload from inventory_catalog_items where item_key='medallion-etapovore'"),[
+  {category:'special_ability',rarity:'epic',status:'active',effect_payload:{abilityCode:'etapovore'}},
+ ]);
+ check(await scalar('select count(*)::int from rider_special_abilities'),0);
+ check(await scalar("select count(*)::int from team_item_inventory stock join inventory_catalog_items item on item.id=stock.inventory_item_id where item.item_key='medallion-etapovore'"),0);
+ await stock('medallion-etapovore',2);
+ await consume('medallion-etapovore',1);
+ check(await scalar('select ability_code from rider_special_abilities where rider_id=$1',[id(30)]),'etapovore');
+ await assert.rejects(()=>consume('medallion-etapovore',1),/déjà cette capacité spéciale/);checks++;
+ check(await scalar("select quantity from team_item_inventory stock join inventory_catalog_items item on item.id=stock.inventory_item_id where item.item_key='medallion-etapovore'"),1);
+ await db.query("insert into riders(id,potential_steps,status,country_id) values($1,2,'active',$2)",[id(32),id(99)]);
+ await db.query("insert into rider_contracts values($1,$2,'active')",[id(32),id(12)]);
+ await daily(109,'talent-revealed');
+ await scalar('select redeem_current_daily_rewards($1,1,$2,null,$3)',[id(109),id(32),'etapovore']);
+ check(await scalar('select ability_code from rider_special_abilities where rider_id=$1',[id(32)]),'etapovore');
+
  await db.exec("select set_config('request.jwt.claim.sub','',false)");
  await assert.rejects(()=>consume('potential-notebook',1));checks++;
  await denied('select redeem_current_daily_rewards($1,1,$2,$3)',[id(106),id(30),'mountain']);

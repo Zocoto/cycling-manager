@@ -704,6 +704,7 @@ export type RaceRosterOption = {
   morale: number;
   seasonRaceDays?: number;
   projectedSeasonRaceDays?: number;
+  hasEtapovore?: boolean;
   squadStatus: SquadStatus | null;
   climateProfile: RiderClimateProfile;
   isSelected: boolean;
@@ -2347,6 +2348,8 @@ export async function getCurrentTeamRaceRosterOptions(
     morale: moraleByRiderId.get(rider.rider_id) ?? 60,
     seasonRaceDays: raceDaysByRiderId.get(rider.rider_id)?.season_race_days,
     projectedSeasonRaceDays: raceDaysByRiderId.get(rider.rider_id)?.projected_season_race_days,
+    hasEtapovore: raceDaysByRiderId.get(rider.rider_id)?.has_etapovore ??
+      raceDaysByRiderId.get(rider.rider_id)?.riders?.rider_special_abilities.some((ability) => ability.ability_code === "etapovore"),
     squadStatus: parseSquadStatus(rider.squad_status),
     climateProfile: getRiderClimateProfile({
       riderId: rider.rider_id,
@@ -2382,6 +2385,8 @@ type RegistrationSeasonRaceDaysRow = {
   rider_id: string;
   season_race_days: number;
   projected_season_race_days?: number;
+  has_etapovore?: boolean;
+  riders?: { rider_special_abilities: Array<{ ability_code: string }> } | null;
 };
 
 async function loadCurrentRaceRosterCondition(riderIds: string[]) {
@@ -2408,7 +2413,7 @@ async function loadCurrentRaceRosterCondition(riderIds: string[]) {
       .eq("day_number", seasonResult.data.current_day_number ?? 1)
       .maybeSingle<{ id: string }>(),
     admin
-      .rpc("get_registration_season_race_days", {
+      .rpc("get_registration_season_race_days_v2", {
         p_season_id: seasonResult.data.id,
         p_rider_ids: uniqueRiderIds,
       })
@@ -2420,9 +2425,10 @@ async function loadCurrentRaceRosterCondition(riderIds: string[]) {
   const raceDaysResult = projectionResult.error
     ? await admin
         .from("rider_season_ratings")
-        .select("rider_id, season_race_days")
+        .select("rider_id, season_race_days, riders(rider_special_abilities(ability_code))")
         .eq("season_id", seasonResult.data.id)
         .in("rider_id", uniqueRiderIds)
+        .eq("riders.rider_special_abilities.ability_code", "etapovore")
         .returns<RegistrationSeasonRaceDaysRow[]>()
     : projectionResult;
   if (raceDaysResult.error) {

@@ -40,6 +40,7 @@ type RaceRosterSelectorProps = {
   lockedRiderIds?: readonly string[];
   submitLabel?: string;
   showRoleGuide?: boolean;
+  warnOnRaceLoad?: boolean;
   tutorialIds?: {
     selection?: string;
     roleGuide?: string;
@@ -142,6 +143,7 @@ export function RaceRosterSelector({
   lockedRiderIds = [],
   submitLabel,
   showRoleGuide = false,
+  warnOnRaceLoad = true,
   tutorialIds,
 }: RaceRosterSelectorProps) {
   const initiallySelectedIds = useMemo(
@@ -322,7 +324,7 @@ export function RaceRosterSelector({
         </label>
       </div>
 
-      {visibleRiders.some(isSeasonRaceDaysOverloaded) ? (
+      {warnOnRaceLoad && visibleRiders.some(isSeasonRaceDaysOverloaded) ? (
         <p className="mt-3 flex items-start gap-1.5 text-[11px] font-bold leading-4 text-red-200">
           <span aria-hidden="true">⚠</span>
           {SEASON_RACE_DAYS_OVERLOAD_WARNING}
@@ -412,6 +414,8 @@ export function RaceRosterSelector({
                       <SeasonRaceDaysBadge
                         seasonRaceDays={rider.seasonRaceDays}
                         projectedSeasonRaceDays={rider.projectedSeasonRaceDays}
+                        hasEtapovore={rider.hasEtapovore}
+                        warnOnOverload={warnOnRaceLoad}
                         tone="dark"
                       />
                       <SquadStatusBadge

@@ -37,7 +37,7 @@ function createClient(): Client {
             && Number(row.bonus_end_game_day) >= Number(args?.p_min_game_day)),
       }));
     }
-    if (source === "get_registration_season_race_days" && fixture.projectionUnavailable) {
+    if (source === "get_registration_season_race_days_v2" && fixture.projectionUnavailable) {
       error = { message: "race-days projection not available" };
     }
     const result = () => {
@@ -46,6 +46,7 @@ function createClient(): Client {
     };
     const filter = (operator: string, key: string, value: unknown) => {
       fixture.filters.push({ source, operator, key, value });
+      if (key.includes(".")) return builder;
       rows = rows.filter((row) => operator === "eq" || operator === "is" ? row[key] === value
         : operator === "neq" ? row[key] !== value
           : operator === "in" ? (value as unknown[]).includes(row[key])
@@ -199,21 +200,21 @@ describe("race preparation context season window", () => {
       { rider_id: RIDER, country_iso_alpha2: "FR", current_form: 80 },
       { rider_id: "debutant", country_iso_alpha2: "BE", current_form: 75 },
     ];
-    fixture.rows.get_registration_season_race_days = [
-      { rider_id: RIDER, season_race_days: 29, projected_season_race_days: 34 },
-      { rider_id: "debutant", season_race_days: 0, projected_season_race_days: 2 },
+    fixture.rows.get_registration_season_race_days_v2 = [
+      { rider_id: RIDER, season_race_days: 29, projected_season_race_days: 34, has_etapovore: true },
+      { rider_id: "debutant", season_race_days: 0, projected_season_race_days: 2, has_etapovore: false },
     ];
     fixture.rows.rider_condition_states = [{ rider_id: RIDER, season_day_id: "day-28", morale: 71 }];
 
     const riders = await getCurrentTeamRaceRosterOptions(fixture.client as Client, "edition");
 
-    expect(riders.map(({ riderId, morale, seasonRaceDays, projectedSeasonRaceDays }) =>
-      ({ riderId, morale, seasonRaceDays, projectedSeasonRaceDays }))).toEqual([
-      { riderId: RIDER, morale: 71, seasonRaceDays: 29, projectedSeasonRaceDays: 34 },
-      { riderId: "debutant", morale: 60, seasonRaceDays: 0, projectedSeasonRaceDays: 2 },
+    expect(riders.map(({ riderId, morale, seasonRaceDays, projectedSeasonRaceDays, hasEtapovore }) =>
+      ({ riderId, morale, seasonRaceDays, projectedSeasonRaceDays, hasEtapovore }))).toEqual([
+      { riderId: RIDER, morale: 71, seasonRaceDays: 29, projectedSeasonRaceDays: 34, hasEtapovore: true },
+      { riderId: "debutant", morale: 60, seasonRaceDays: 0, projectedSeasonRaceDays: 2, hasEtapovore: false },
     ]);
-    expect(fixture.calls.filter(({ source }) => source === "get_registration_season_race_days")).toEqual([
-      { source: "get_registration_season_race_days", args: { p_season_id: "season", p_rider_ids: [RIDER, "debutant"] } },
+    expect(fixture.calls.filter(({ source }) => source === "get_registration_season_race_days_v2")).toEqual([
+      { source: "get_registration_season_race_days_v2", args: { p_season_id: "season", p_rider_ids: [RIDER, "debutant"] } },
     ]);
     expect(fixture.calls.some(({ source }) => source === "rider_season_ratings")).toBe(false);
   });
@@ -227,7 +228,7 @@ describe("race preparation context season window", () => {
     ];
     fixture.rows.rider_season_ratings = [
       { rider_id: RIDER, season_id: "previous-season", season_race_days: 45 },
-      { rider_id: RIDER, season_id: "season", season_race_days: 29 },
+      { rider_id: RIDER, season_id: "season", season_race_days: 29, riders: { rider_special_abilities: [{ ability_code: "etapovore" }] } },
       { rider_id: "debutant", season_id: "season", season_race_days: 0 },
       { rider_id: "other-team", season_id: "season", season_race_days: 18 },
     ];
@@ -242,10 +243,12 @@ describe("race preparation context season window", () => {
       { riderId: "debutant", morale: 60, seasonRaceDays: 0 },
     ]);
     expect(riders.every((rider) => rider.projectedSeasonRaceDays === undefined)).toBe(true);
+    expect(riders[0].hasEtapovore).toBe(true);
     expect(fixture.calls.filter(({ source }) => source === "rider_season_ratings")).toHaveLength(1);
     expect(fixture.filters.filter(({ source }) => source === "rider_season_ratings")).toEqual([
       { source: "rider_season_ratings", operator: "eq", key: "season_id", value: "season" },
       { source: "rider_season_ratings", operator: "in", key: "rider_id", value: [RIDER, "debutant"] },
+      { source: "rider_season_ratings", operator: "eq", key: "riders.rider_special_abilities.ability_code", value: "etapovore" },
     ]);
   });
 });

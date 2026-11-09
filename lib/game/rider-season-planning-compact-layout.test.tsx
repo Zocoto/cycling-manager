@@ -73,4 +73,15 @@ describe("planning compact de la fiche coureur", () => {
     expect(markup).not.toContain("D\u00e9tail du programme");
     expect(markup).not.toContain("1 \u00e9v\u00e9nement cette saison");
   });
+
+  it("affiche le bonus de moral pour un Étapovore au-delà de 30 JDC", () => {
+    const markup = renderToStaticMarkup(
+      <RiderSeasonPlanning
+        planning={{ ...planning, riders: [{ ...planning.riders[0], raceLoad: { raceDays: 31, projectedRaceDays: 35, warning: null, hasEtapovore: true } }] }}
+        jersey={FREE_AGENT_RIDER_JERSEY}
+      />,
+    );
+    expect(markup).toContain("Étapovore · +0,5 de moral par JDC au-delà de 30.");
+    expect(markup).not.toContain("Calendrier surchargé");
+  });
 });

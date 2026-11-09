@@ -63,6 +63,7 @@ describe("SpecialAbilityMedallion", () => {
     ["three_lungs", "Trois poumons", "#4F941D", "M11.8 10.5c-3.6"],
     ["cyclocrossman", "Cyclocrossman", "#8B4028", "M16 5.8v4"],
     ["metronome", "Métronome", "#C4B5FD", "M9 27h14L20 6"],
+    ["etapovore", "Étapovore", "#E28A36", "M24 20V6h6v6h-6"],
   ] as const)(
     "rend l’illustration et la teinte originales de %s",
     (code, name, color, iconPath) => {

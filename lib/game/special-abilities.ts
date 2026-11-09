@@ -13,6 +13,7 @@ export const RIDER_SPECIAL_ABILITIES = [
   "three_lungs",
   "cyclocrossman",
   "metronome",
+  "etapovore",
 ] as const;
 
 export type RiderSpecialAbility =
@@ -36,7 +37,8 @@ export type SpecialAbilityDefinition = {
     | "velodrome"
     | "lungs"
     | "cyclocross"
-    | "metronome";
+    | "metronome"
+    | "stage_course";
   tone:
     | "silver"
     | "gold"
@@ -51,7 +53,8 @@ export type SpecialAbilityDefinition = {
     | "cobalt"
     | "lime"
     | "earth_sky"
-    | "iridescent";
+    | "iridescent"
+    | "amber";
 };
 
 export const PISTARD_SHORT_TIME_TRIAL_MAX_KM = 12;
@@ -161,6 +164,13 @@ export const SPECIAL_ABILITY_CATALOG: SpecialAbilityDefinition[] = [
     effect: "Divise par deux les malus des mauvais jours de course sans réduire les bonus des bons jours.",
     icon: "metronome",
     tone: "iridescent",
+  },
+  {
+    code: "etapovore",
+    name: "Étapovore",
+    effect: "Remplace le malus habituel par +0,5 point de moral par jour de course, dès le 31e de la saison.",
+    icon: "stage_course",
+    tone: "amber",
   },
 ];
 

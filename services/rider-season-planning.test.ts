@@ -43,7 +43,10 @@ beforeEach(() => {
     });
     const query = {
       select: () => query,
-      eq: (key: string, value: unknown) => { rows = rows.filter((row) => row[key] === value); return query; },
+      eq: (key: string, value: unknown) => {
+        if (!key.includes(".")) rows = rows.filter((row) => row[key] === value);
+        return query;
+      },
       neq: (key: string, value: unknown) => { rows = rows.filter((row) => row[key] !== value); return query; },
       gt: (key: string, value: string) => { rows = rows.filter((row) => String(row[key]) > value); return query; },
       in: (key: string, values: unknown[]) => {
@@ -106,6 +109,14 @@ describe("planning des coureurs avec un grand calendrier", () => {
     tables.rider_season_ratings[0].season_race_days = 45;
     const planning = await getCurrentTeamRiderSeasonPlanning({ authUserId: "user" });
     expect(planning?.riders[0].raceLoad).toBeNull();
+  });
+
+  it("garde le total de JDC sans alerte pour un Étapovore", async () => {
+    tables.seasons[0].game_year = 5;
+    tables.rider_season_ratings[0].season_race_days = 31;
+    tables.riders[0].rider_special_abilities = [{ ability_code: "etapovore" }];
+    const planning = await getCurrentTeamRiderSeasonPlanning({ authUserId: "user" });
+    expect(planning?.riders[0].raceLoad).toEqual({ raceDays: 31, projectedRaceDays: 31, warning: null, hasEtapovore: true });
   });
 
   it("charge les dernières courses sans envoyer de filtre surdimensionné", async () => {

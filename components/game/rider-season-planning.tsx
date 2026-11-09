@@ -1,6 +1,6 @@
 import Link from "@/components/ui/app-link";
 import { RiderAvatar } from "@/components/game/rider-avatar";
-import { RACE_LOAD_FREE_DAYS } from "@/lib/game/rider-race-load";
+import { ETAPOVORE_RACE_LOAD_BONUS_LABEL, RACE_LOAD_FREE_DAYS } from "@/lib/game/rider-race-load";
 import {
   assignRiderPlanningEventLanes,
   countRiderPlannedDays,
@@ -108,7 +108,7 @@ export function RiderSeasonPlanning({
         </div>
         {planning.riders.some((rider) => rider.raceLoad) ? (
           <p className="mt-3 text-xs font-semibold text-[#D6DFD2]">
-            30 JDC sans malus, puis −1 de moral par JDC supplémentaire. Le compteur repart à zéro chaque saison.
+            30 JDC sans malus, puis −1 de moral par JDC supplémentaire hors capacité Étapovore. Le compteur repart à zéro chaque saison.
           </p>
         ) : null}
         <PlanningLegend />
@@ -160,6 +160,7 @@ function RiderRaceLoadSummary({ load }: { load: NonNullable<RiderPlanningEntry["
     <div className={`mt-1 text-[10px] font-bold leading-4 ${load.warning === "overloaded" ? "text-[#B84232]" : load.warning ? "text-[#986211]" : "text-[#60756E]"}`}>
       <p>{load.raceDays} / {RACE_LOAD_FREE_DAYS} JDC disputés</p>
       {load.projectedRaceDays > load.raceDays ? <p>Prévision : {load.projectedRaceDays} JDC</p> : null}
+      {load.hasEtapovore ? <p className="text-[#176951]">{ETAPOVORE_RACE_LOAD_BONUS_LABEL}</p> : null}
       {warning ? <p>{warning} · −1 de moral par JDC au-delà de 30.</p> : null}
     </div>
   );

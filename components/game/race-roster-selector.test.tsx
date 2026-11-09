@@ -88,12 +88,18 @@ describe("RaceRosterSelector", () => {
     const noPenalty = renderToStaticMarkup(
       <SeasonRaceDaysBadge seasonRaceDays={31} projectedSeasonRaceDays={32} warnOnOverload={false} />,
     );
+    const etapovore = renderToStaticMarkup(
+      <SeasonRaceDaysBadge seasonRaceDays={29} projectedSeasonRaceDays={32} hasEtapovore />,
+    );
 
     expect(atThreshold).not.toContain("bg-red-100");
     expect(overThreshold).toContain("bg-red-100");
     expect(overThreshold).toContain("Calendrier surchargé");
     expect(noPenalty).toContain(">32 JDC prév.</span>");
     expect(noPenalty).not.toContain("bg-red-100");
+    expect(etapovore).toContain("bg-emerald-100");
+    expect(etapovore).toContain("+0,5 de moral par JDC au-delà de 30.");
+    expect(etapovore).not.toContain("Surcharge prévue");
   });
 
   it("permet de modifier la sélection et les rôles existants dans le même formulaire", () => {

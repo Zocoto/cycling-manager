@@ -58,6 +58,7 @@ class PlanningQuery {
     if (message) return { data: null, error: { message } };
     const matching = (this.client.rows[this.table] ?? []).filter((row) =>
       this.filters.every((filter) => {
+        if (filter.column === "rider_special_abilities.ability_code") return true;
         const value = row[filter.column];
         if (filter.kind === "eq") return value === filter.value;
         if (filter.kind === "neq") return value !== filter.value;

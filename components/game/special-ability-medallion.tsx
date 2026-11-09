@@ -19,6 +19,7 @@ const UNLOCKED_TONES: Record<SpecialAbilityDefinition["tone"], string> = {
   lime: "border-[#A8D832] bg-[linear-gradient(145deg,#F0FF9B,#4F941D)] text-[#173A08] shadow-[#3B7413]/35",
   earth_sky: "border-[#E0713D] bg-[linear-gradient(145deg,#6EDDEB_0%,#F3B65F_52%,#8B4028_100%)] text-[#32180F] shadow-[#71321E]/35",
   iridescent: "border-[#8B7CF6] bg-[linear-gradient(135deg,#FBCFE8_0%,#C4B5FD_38%,#99F6E4_70%,#BFDBFE_100%)] text-[#25205C] shadow-[#6156C7]/30",
+  amber: "border-[#E6833C] bg-[linear-gradient(145deg,#FFE3A1,#E28A36)] text-[#4E220C] shadow-[#C45E23]/30",
 };
 
 export function SpecialAbilityMedallion({
@@ -97,6 +98,17 @@ export function SpecialAbilityMedallion({
 }
 
 function AbilityIcon({ icon }: { icon: SpecialAbilityDefinition["icon"] }) {
+  if (icon === "stage_course") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 32 32" className="h-7 w-7 fill-none stroke-current" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M5 23l5-6 4 3 5-8 5 8v5H5z" fill="currentColor" fillOpacity=".16" stroke="none" />
+        <path d="M5 23l5-6 4 3 5-8 5 8M5 26h22" />
+        <circle cx="5" cy="23" r="1.4" fill="currentColor" stroke="none" />
+        <path d="M24 20V6h6v6h-6" />
+        <path d="M24 6h3v3h-3zM27 9h3v3h-3z" fill="currentColor" stroke="none" />
+      </svg>
+    );
+  }
   if (icon === "velodrome") {
     return <svg aria-hidden="true" viewBox="0 0 32 32" className="h-7 w-7 fill-none stroke-current" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="16" cy="16" rx="12" ry="8" /><ellipse cx="16" cy="16" rx="7.5" ry="3.8" /><path d="M4.7 17.8c4.5-2.7 18.1-2.7 22.6 0M6.8 11.2c4.8 2.4 13.6 2.4 18.4 0" opacity=".7" /><path d="m18.8 9.8-4 6h3.5l-4.2 6.4" strokeWidth="2.4" /></svg>;
   }

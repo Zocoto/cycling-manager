@@ -14,11 +14,11 @@ import {
 } from "./special-abilities";
 
 describe("special abilities", () => {
-  it("décrit exactement les quatorze médaillons connus", () => {
+  it("décrit tous les médaillons connus", () => {
     expect(SPECIAL_ABILITY_CATALOG.map((ability) => ability.code)).toEqual(
       RIDER_SPECIAL_ABILITIES,
     );
-    expect(SPECIAL_ABILITY_CATALOG).toHaveLength(14);
+    expect(SPECIAL_ABILITY_CATALOG).toHaveLength(15);
     expect(
       SPECIAL_ABILITY_CATALOG.find((ability) => ability.code === "sandwich_man")
         ?.effect
@@ -65,6 +65,12 @@ describe("special abilities", () => {
       )
     ).toBe(true);
     expect(isRiderSpecialAbility("unknown_ability")).toBe(false);
+    expect(getSpecialAbilityDefinition("etapovore")).toMatchObject({
+      name: "Étapovore",
+      effect: expect.stringContaining("+0,5 point de moral"),
+      icon: "stage_course",
+      tone: "amber",
+    });
   });
 
   it("réserve le bonus Pistard aux chronos courts", () => {
