@@ -74,3 +74,59 @@ export function GlobalChatQuiz({ round, portraitUrl, onReply }: {
     </section>
   );
 }
+
+export function GlobalChatQuizQuestion({ round, portraitUrl, timeLabel }: {
+  round: GlobalChatQuizRound;
+  portraitUrl: string;
+  timeLabel?: string;
+}) {
+  const open = round.status === "open";
+  const answer = !open && round.answerName;
+
+  return (
+    <article
+      aria-label="Quizz’o Stratège"
+      data-global-chat-quiz-question={round.status}
+      className="flex w-fit max-w-full items-start gap-2.5 rounded-2xl border border-[#D9C2F3] bg-[#F3EBFC] px-3 py-2.5 text-[#3E2457] sm:gap-3"
+    >
+      <Image
+        src={portraitUrl}
+        alt={open ? "Portrait du coureur à deviner" : ""}
+        width={56}
+        height={56}
+        unoptimized
+        className="size-11 shrink-0 rounded-md border border-[#D9C2F3] bg-white object-cover sm:size-14"
+      />
+      <div className="min-w-0 break-words">
+        <div className="flex flex-wrap items-baseline gap-x-2">
+          <p className="text-[10px] font-black uppercase tracking-[0.1em] text-[#6B3C91]" data-i18n-skip>Quizz’o Stratège</p>
+          {timeLabel ? <time dateTime={round.startsAt} className="text-[10px] font-medium text-[#6D4A80]">{timeLabel}</time> : null}
+        </div>
+        <p className="mt-0.5 text-sm font-black leading-tight">Top ! Je suis, je suis…</p>
+        {open ? (
+          <p className="mt-0.5 text-[11px] font-semibold leading-tight">Écris son prénom et son nom dans le chat.</p>
+        ) : (
+          <div className="mt-1 space-y-0.5 text-[11px] leading-tight">
+            {round.status === "won" && round.winnerSportingDirectorId && round.winnerUsername ? (
+              <p>
+                <span>Oui ! Oui ! Oui !</span>{" "}
+                <Link href={getSportingDirectorProfileHref(round.winnerSportingDirectorId)} prefetch={false} className="font-black underline underline-offset-2 hover:text-[#6B3C91]">
+                  @{round.winnerUsername}
+                </Link>{", "}
+                <span>tu remportes un booster Cyclo-Stickers !</span>
+              </p>
+            ) : <p className="font-bold">Temps écoulé.</p>}
+            {answer ? (
+              <p>
+                <span>C’était</span>{" "}
+                {round.answerRiderId ? (
+                  <Link href={`/jeu/coureurs/${encodeURIComponent(round.answerRiderId)}`} prefetch={false} className="font-black underline underline-offset-2 hover:text-[#6B3C91]" data-i18n-skip>{answer}</Link>
+                ) : <strong data-i18n-skip>{answer}</strong>}.
+              </p>
+            ) : null}
+          </div>
+        )}
+      </div>
+    </article>
+  );
+}

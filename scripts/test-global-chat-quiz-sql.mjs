@@ -352,6 +352,60 @@ try {
   equal(await scalar('select bool_and(starts_at > private.quiz_fixture_scheduling_clock()) from private.global_chat_quiz_rounds'),
     true, 'late preparation draws future times only');
 
+  await runFixture('../supabase/migrations/20261110143000_load_global_chat_quiz_history.sql');
+  await db.exec('delete from public.global_chat_quiz_events');
+  const archivedId = account(6, 1);
+  const wonId = account(6, 2);
+  const openId = account(6, 3);
+  const futureId = account(6, 4);
+  await db.exec(`
+    insert into public.global_chat_quiz_events (
+      id, starts_at, ends_at, portrait_path, status, answer_name, answer_rider_id,
+      winner_name, winner_username, winner_sporting_director_id, winning_message_id
+    )
+    select id, starts_at, starts_at + interval '30 minutes', id::text || '.webp', status,
+      case when status <> 'open' then '${exact}' end,
+      case when status <> 'open' then '${target}'::uuid end,
+      case when status = 'won' then 'Joueur' end,
+      case when status = 'won' then 'joueur' end,
+      case when status = 'won' then '${account(1, 1)}'::uuid end,
+      case when status = 'won' then '${account(7, 1)}'::uuid end
+    from (values
+      ('${archivedId}'::uuid, date_trunc('day', now()) - interval '4 days', 'expired'),
+      ('${wonId}'::uuid, date_trunc('day', now()) - interval '3 days', 'won'),
+      ('${openId}'::uuid, now() - interval '5 minutes', 'open'),
+      ('${futureId}'::uuid, now() + interval '1 day', 'expired')
+    ) as fixture(id, starts_at, status);
+  `);
+  const history = (sql) => withRole('authenticated', 1, () => rows(sql));
+  const quizHistory = await history('select * from public.get_global_chat_quiz_history()');
+  equal(quizHistory.map(round => round.id), [openId, wonId, archivedId],
+    'history reads past published rounds in descending order and never shows a future question');
+  equal(quizHistory[0].answer_name, null, 'an open question does not disclose its answer');
+  equal(quizHistory[0].answer_rider_id, null, 'an open question does not disclose its rider ID');
+  equal(quizHistory[1].winner_username, 'joueur', 'a completed question retains its winner');
+  equal(quizHistory[2].answer_name, exact, 'an archived question retains its disclosed answer');
+  equal(await history(`select id from public.get_global_chat_quiz_history(
+    date_trunc('day', now()) - interval '4 days', date_trunc('day', now()) - interval '3 days'
+  )`), [{ id: archivedId }], 'the lower history bound is inclusive and the upper cursor exclusive');
+  equal(await history(`select id from public.global_chat_quiz_events where id = '${archivedId}'`), [],
+    'the raw Realtime table still hides archived rows');
+  equal(await withRole('authenticated', null, () => rows('select id from public.get_global_chat_quiz_history()')),
+    [], 'an authenticated role without an authenticated subject receives no rows');
+  await assert.rejects(() => withRole('anon', null, () => rows('select id from public.get_global_chat_quiz_history()')),
+    /permission denied for function/);
+  checks += 1;
+  await db.exec(`
+    with archived as (
+      select gen_random_uuid() as id, now() - day_number * interval '1 day' as starts_at
+      from generate_series(10, 75) as day_number
+    )
+    insert into public.global_chat_quiz_events (id, starts_at, ends_at, portrait_path, status, answer_name, answer_rider_id)
+    select id, starts_at, starts_at + interval '30 minutes', id::text || '.webp', 'expired', '${exact}', '${target}'
+    from archived;
+  `);
+  equal((await history('select id from public.get_global_chat_quiz_history()')).length, 60, 'each history read is bounded');
+
   console.log(JSON.stringify({ isolatedPostgresChecks: checks, productionAccess: false }));
 } finally {
   await db.close();

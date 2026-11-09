@@ -1,3 +1,5 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 import { isUuid } from "@/lib/game/direct-messages";
 
 export const GLOBAL_CHAT_QUIZ_RESULT_VISIBILITY_MS = 15 * 60_000;
@@ -59,4 +61,18 @@ export function mergeGlobalChatQuizRound(
   // A reconnect or an overlapping guess must not reopen a settled round.
   const progress = { open: 0, expired: 1, won: 2 };
   return progress[next.status] >= progress[current.status] ? next : current;
+}
+
+/** Read the published questions alongside a page of chat messages. */
+export async function loadGlobalChatQuizHistory(
+  supabase: Pick<SupabaseClient, "rpc">,
+  { from = null, before = null }: { from?: string | null; before?: string | null } = {},
+): Promise<GlobalChatQuizRound[]> {
+  const { data, error } = await supabase.rpc("get_global_chat_quiz_history", {
+    p_from: from,
+    p_before: before,
+  }).abortSignal(AbortSignal.timeout(5_000));
+  if (error) throw error;
+  if (!Array.isArray(data)) return [];
+  return data.map(readGlobalChatQuizRound).filter(round => round !== null).reverse();
 }

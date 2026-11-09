@@ -28,7 +28,7 @@ import { GameStaffBadge } from "@/components/game/game-staff-badge";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import { useGlobalChatReactions } from "@/components/game/use-global-chat-reactions";
 import { GlobalChatMessageReactions } from "@/components/game/global-chat-message-reactions";
-import { GlobalChatQuiz } from "@/components/game/global-chat-quiz";
+import { GlobalChatQuiz, GlobalChatQuizQuestion } from "@/components/game/global-chat-quiz";
 import { ChatTranslationSettings } from "@/components/game/chat-translation-settings";
 import { useChatAutoTranslation } from "@/components/game/use-chat-auto-translation";
 import {
@@ -71,6 +71,7 @@ import { notifyGlobalChatMessagesRead } from "@/lib/game/global-chat-read-sync";
 import { notifyCycloStickersBoostersChanged } from "@/lib/game/cyclo-stickers-booster-sync";
 import {
   GLOBAL_CHAT_QUIZ_PORTRAIT_BUCKET,
+  loadGlobalChatQuizHistory,
   mergeGlobalChatQuizRound,
   readGlobalChatQuizRound,
   type GlobalChatQuizRound,
@@ -166,12 +167,25 @@ export function GlobalGameChat({
   const [messages, setMessages] =
     useState<GlobalChatMessage[]>(initialMessages);
   const [quizRound, setQuizRound] = useState<GlobalChatQuizRound | null>(null);
+  const [quizHistory, setQuizHistory] = useState<GlobalChatQuizRound[]>([]);
+  const quizHistoryFrom = useRef(initialHasMore ? quizHistoryPageStart(initialMessages[0]) : undefined);
   const quizRevision = useRef(0);
   const syncedQuizWinId = useRef<string | null>(null);
+  const mergeQuizHistory = useCallback((rounds: GlobalChatQuizRound[]) => {
+    if (rounds.length === 0) return;
+    setQuizHistory((current) => {
+      const byId = new Map(current.map((round) => [round.id, round]));
+      for (const round of rounds) {
+        byId.set(round.id, mergeGlobalChatQuizRound(byId.get(round.id) ?? null, round));
+      }
+      return [...byId.values()];
+    });
+  }, []);
   const applyQuizRound = useCallback((round: GlobalChatQuizRound) => {
     quizRevision.current++;
     setQuizRound((current) => mergeGlobalChatQuizRound(current, round));
-  }, []);
+    mergeQuizHistory([round]);
+  }, [mergeQuizHistory]);
   const [historySearch, setHistorySearch] =
     useState<GlobalChatHistorySearch | null>(null);
   const [isSearchingHistory, setIsSearchingHistory] = useState(false);
@@ -416,9 +430,21 @@ export function GlobalGameChat({
   const collapsedHistoryMessageCount = shouldCollapseReadHistory
     ? compactHistoryStartIndex
     : 0;
-  const timelineMessages = shouldCollapseReadHistory
+  const timelineMessages = useMemo(() => shouldCollapseReadHistory
     ? filteredMessages.slice(compactHistoryStartIndex)
-    : filteredMessages;
+    : filteredMessages, [compactHistoryStartIndex, filteredMessages, shouldCollapseReadHistory]);
+  const showQuizQuestions = globalView === "all" && !searchQuery.trim();
+  const visibleHistoryStartsAt = shouldCollapseReadHistory && timelineMessages[0]
+    ? Date.parse(timelineMessages[0].createdAt)
+    : -Infinity;
+  const timelineEntries = useMemo(() => [
+    ...timelineMessages.map((message) => ({ kind: "message" as const, at: Date.parse(message.createdAt), message })),
+    ...(showQuizQuestions ? quizHistory
+      .filter((round) => Date.parse(round.endsAt) >= visibleHistoryStartsAt)
+      .map((round) => ({ kind: "quiz" as const, at: Date.parse(round.startsAt), round })) : []),
+  ].sort((left, right) => left.at - right.at || Number(right.kind === "quiz") - Number(left.kind === "quiz")),
+  [quizHistory, showQuizQuestions, timelineMessages, visibleHistoryStartsAt]);
+  const visibleQuizCount = timelineEntries.length - timelineMessages.length;
   const translationMessages = useMemo(() => timelineMessages.filter((message) => !isChatImageOnlyMessage(message) && !isChatGifOnlyMessage(message)), [timelineMessages]);
   const translationPreferences = useChatAutoTranslation({
     directorId: identity.sportingDirectorId, locale, enabled: translationEnabled,
@@ -667,6 +693,7 @@ export function GlobalGameChat({
     firstInitialUnreadMessageId,
     latestDisplayedMessageAt,
     latestDisplayedMessageId,
+    visibleQuizCount,
   ]);
 
   useLayoutEffect(() => {
@@ -677,7 +704,7 @@ export function GlobalGameChat({
     viewport.scrollTop =
       viewport.scrollHeight - previous.scrollHeight + previous.scrollTop;
     prependedScrollRef.current = null;
-  }, [oldestDisplayedMessageId]);
+  }, [oldestDisplayedMessageId, visibleQuizCount]);
 
   useEffect(() => {
     if (
@@ -734,6 +761,15 @@ export function GlobalGameChat({
   useEffect(() => {
     let disposed = false;
     let quizRead = 0;
+
+    async function refreshQuizHistory() {
+      try {
+        const rounds = await loadGlobalChatQuizHistory(supabase, { from: quizHistoryFrom.current });
+        if (!disposed) mergeQuizHistory(rounds);
+      } catch {
+        // A history read must not block ordinary chat or the active quiz.
+      }
+    }
 
     async function refreshQuiz() {
       const request = ++quizRead;
@@ -846,6 +882,7 @@ export function GlobalGameChat({
         if (status === "SUBSCRIBED" || (quizRead === 0 &&
           (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"))) {
           void refreshQuiz();
+          void refreshQuizHistory();
         }
         if (status !== "SUBSCRIBED") return;
 
@@ -869,7 +906,7 @@ export function GlobalGameChat({
       void channel.untrack();
       void supabase.removeChannel(channel);
     };
-  }, [applyQuizRound, identity, supabase]);
+  }, [applyQuizRound, identity, mergeQuizHistory, supabase]);
 
   const draftLimit = GLOBAL_CHAT_MESSAGE_MAX_LENGTH;
 
@@ -987,6 +1024,13 @@ export function GlobalGameChat({
         );
       }
 
+      const from = page.hasMore ? quizHistoryPageStart(page.messages[0]) : undefined;
+      const rounds = await loadGlobalChatQuizHistory(supabase, {
+        from,
+        before: olderCursor.createdAt,
+      }).catch(() => []);
+      quizHistoryFrom.current = from;
+
       const viewport = viewportRef.current;
       if (viewport) {
         prependedScrollRef.current = {
@@ -996,6 +1040,7 @@ export function GlobalGameChat({
       }
 
       setMessages((current) => prependUniqueMessages(current, page.messages));
+      mergeQuizHistory(rounds);
       setHasMore(page.hasMore);
       setOlderCursor(page.nextCursor);
     } catch (loadingError) {
@@ -1566,8 +1611,8 @@ export function GlobalGameChat({
             </div>
           ) : null}
 
-          {messages.length === 0 ? <EmptyChat /> : null}
-          {messages.length > 0 && filteredMessages.length === 0 ? (
+          {messages.length === 0 && visibleQuizCount === 0 ? <EmptyChat /> : null}
+          {messages.length > 0 && timelineEntries.length === 0 ? (
             <div className="mx-auto max-w-sm rounded-2xl border border-dashed border-[#315B3E]/18 bg-white px-5 py-8 text-center">
               <p className="text-sm font-black text-[#183F37]">
                 Aucun message dans cette vue
@@ -1578,7 +1623,19 @@ export function GlobalGameChat({
             </div>
           ) : null}
 
-          {timelineMessages.map((message) => {
+          {timelineEntries.map((entry) => {
+            if (entry.kind === "quiz") {
+              const { round } = entry;
+              return (
+                <GlobalChatQuizQuestion
+                  key={`quiz-${round.id}`}
+                  round={round}
+                  timeLabel={formatMessageTime(round.startsAt)}
+                  portraitUrl={supabase.storage.from(GLOBAL_CHAT_QUIZ_PORTRAIT_BUCKET).getPublicUrl(round.portraitPath).data.publicUrl}
+                />
+              );
+            }
+            const { message } = entry;
             const onlineAuthor = onlineDirectors.find(
               (director) =>
                 director.sportingDirectorId === message.sportingDirectorId,
@@ -3061,6 +3118,12 @@ function renderLinkedMessageText(
 
     return part.text;
   });
+}
+
+function quizHistoryPageStart(firstMessage?: GlobalChatMessage) {
+  if (!firstMessage) return undefined;
+  // Include the question if this page begins with messages from within its round.
+  return new Date(Date.parse(firstMessage.createdAt) - 30 * 60_000).toISOString();
 }
 
 function formatMessageTime(value: string) {
