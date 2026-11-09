@@ -39,6 +39,8 @@ type BreakawayEpisode = {
 
 const IMPORTANT_JUNCTION_PATTERN =
   /fusionnent|recoll(?:e|ent)|rejoint(?: la tête| le groupe)|réintègre|rattrap(?:e|ent)/iu;
+const CHASER_CAUGHT_PATTERN = /est repris par le peloton et se replace dans les roues/iu;
+const PLANNED_ATTACK_PATTERN = /déclench(?:e|ent) l’attaque préparée/iu;
 const LATE_ATTACK_PATTERN =
   /place une attaque|attaque dans le final|accélération|impose son rythme|prolonge son attaque|offensive décisive/iu;
 
@@ -122,6 +124,7 @@ export function buildRaceCourseJournal({
     }
   }
 
+  const lateAttackThresholdKm = totalDistanceKm * 0.68;
   const junctions = simulation.timeline.flatMap((snapshot) =>
     (snapshot.commentary ?? [])
       .filter(
@@ -131,7 +134,18 @@ export function buildRaceCourseJournal({
       )
       .map((message) => ({ snapshot, message })),
   );
-  for (const { snapshot, message } of selectEvenly(junctions, 4)) {
+  const lateCatches = simulation.timeline.flatMap((snapshot) =>
+    snapshot.completedDistanceKm < lateAttackThresholdKm
+      ? []
+      : (snapshot.commentary ?? [])
+          .filter((message) => CHASER_CAUGHT_PATTERN.test(message))
+          .map((message) => ({ snapshot, message })),
+  );
+  const selectedCatches = selectEvenly(lateCatches, 4);
+  for (const { snapshot, message } of [
+    ...selectedCatches,
+    ...selectEvenly(junctions, 4 - selectedCatches.length),
+  ]) {
     push({
       kind: "junction",
       distanceKm: snapshot.completedDistanceKm,
@@ -141,19 +155,25 @@ export function buildRaceCourseJournal({
     });
   }
 
-  const lateAttackThresholdKm = totalDistanceKm * 0.68;
-  const lateAttacks = simulation.timeline.flatMap((snapshot) =>
+  const lateAttacks = simulation.timeline.flatMap((snapshot, index, timeline) =>
     snapshot.completedDistanceKm < lateAttackThresholdKm
       ? []
       : (snapshot.commentary ?? [])
           .filter(Boolean)
-          .filter((message) => LATE_ATTACK_PATTERN.test(message))
-          .map((message) => ({ snapshot, message })),
+          .filter((message) =>
+            PLANNED_ATTACK_PATTERN.test(message) || LATE_ATTACK_PATTERN.test(message),
+          )
+          .map((message) => ({
+            distanceKm: PLANNED_ATTACK_PATTERN.test(message)
+              ? (timeline[index - 1]?.completedDistanceKm ?? 0)
+              : snapshot.completedDistanceKm,
+            message,
+          })),
   );
-  for (const { snapshot, message } of selectEvenly(lateAttacks, 5)) {
+  for (const { distanceKm, message } of selectEvenly(lateAttacks, 5)) {
     push({
       kind: "attack",
-      distanceKm: snapshot.completedDistanceKm,
+      distanceKm,
       title: "Offensive dans le final",
       detail: polishCommentary(message),
       priority: 91,
@@ -449,8 +469,9 @@ function polishCommentary(value: string) {
 }
 
 function selectEvenly<T>(values: readonly T[], maximumCount: number) {
+  if (maximumCount <= 0) return [];
   if (values.length <= maximumCount) return [...values];
-  if (maximumCount <= 1) return [values.at(-1)!];
+  if (maximumCount === 1) return [values.at(-1)!];
   const selectedIndexes = new Set<number>();
   for (let index = 0; index < maximumCount; index += 1) {
     selectedIndexes.add(
@@ -463,7 +484,10 @@ function selectEvenly<T>(values: readonly T[], maximumCount: number) {
 function deduplicateCandidates(candidates: readonly JournalCandidate[]) {
   const seen = new Set<string>();
   return candidates.filter((candidate) => {
-    const key = `${candidate.kind}:${candidate.detail
+    const position = candidate.kind === "junction" && CHASER_CAUGHT_PATTERN.test(candidate.detail)
+      ? candidate.distanceKm
+      : "";
+    const key = `${candidate.kind}:${position}:${candidate.detail
       .toLocaleLowerCase("fr-FR")
       .replace(/\s+/gu, " ")}`;
     if (seen.has(key)) return false;

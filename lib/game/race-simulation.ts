@@ -3416,6 +3416,10 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
           completedDistanceKm: visualCompletedDistanceKm,
           breakawayGapSeconds:
             visualTickGapSeconds[tickIndex] ?? breakawayGapSeconds,
+          chaseTiming: {
+            startGaps: chaserGapsAtSegmentStart,
+            progress: (visualCompletedDistanceKm - completedDistanceKm) / segment.distanceKm,
+          },
           incidents: [],
           abandonments: [],
           commentary: [],
@@ -3518,6 +3522,10 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
             completedDistanceKm: attackVisualDistanceKm,
             breakawayGapSeconds:
               visualTickGapSeconds[tickIndex] ?? breakawayGapSeconds,
+            chaseTiming: {
+              startGaps: chaserGapsAtSegmentStart,
+              progress: (attackVisualDistanceKm - completedDistanceKm) / segment.distanceKm,
+            },
             incidents: [],
             abandonments: [],
             commentary: [],
@@ -7418,14 +7426,46 @@ export function resolveExistingChasers({
   const pelotonTime = average(peloton.map((state) => state.elapsedTimeSeconds));
 
   for (const state of getStatesInGroup(states, "chase")) {
-    if (state.groupSinceSegment >= segmentIndex) continue;
+    const startGap = chaserGapsAtSegmentStart.get(state.rider.id);
+    const justLaunched = state.groupSinceSegment >= segmentIndex;
+    // A scheduled attack at the start rode this sector. A dynamic attack
+    // launched after the sector times were applied has yet to ride one.
+    if (justLaunched && startGap === undefined) continue;
 
-    const bridgeScore =
-      state.rider.ratings.breakaway * 0.42 +
-      getExplosiveAccelerationRating(state.rider) * 0.34 +
-      state.energy * 0.24 +
-      (hasSpecialAbility(state.rider, "chase_potato") ? 11 : 0) +
-      random() * 10;
+    const bridgeScore = justLaunched
+      ? 0
+      : state.rider.ratings.breakaway * 0.42 +
+        getExplosiveAccelerationRating(state.rider) * 0.34 +
+        state.energy * 0.24 +
+        (hasSpecialAbility(state.rider, "chase_potato") ? 11 : 0) +
+        random() * 10;
+
+    // Contact takes precedence over a bridge roll. If the field overtook the
+    // rider in this sector, the solo pace after contact must not create a gap.
+    const gapToPelotonSeconds = state.elapsedTimeSeconds - pelotonTime;
+    if (peloton.length > 0 && gapToPelotonSeconds >= -SAME_TIME_MAX_GAP_SECONDS) {
+      state.groupSinceSegment = segmentIndex;
+      const caughtFromAhead =
+        (startGap ?? Number.POSITIVE_INFINITY) <= SAME_TIME_MAX_GAP_SECONDS;
+      if (gapToPelotonSeconds > SAME_TIME_MAX_GAP_SECONDS && !caughtFromAhead) {
+        state.group = "dropped";
+        state.lostTimeSeconds = gapToPelotonSeconds;
+      } else {
+        state.group = "peloton";
+        state.elapsedTimeSeconds = pelotonTime;
+        state.lostTimeSeconds = 0;
+        const catchCommentary = `${state.rider.name} est repris par le peloton et se replace dans les roues.`;
+        if (commentary.length < 4) {
+          commentary.push(catchCommentary);
+        } else if (justLaunched) {
+          const attackIndex = commentary.findIndex((message) =>
+            message.includes(state.rider.name) && /attaque/iu.test(message),
+          );
+          commentary.splice(Math.min(attackIndex < 0 ? 3 : attackIndex + 1, 3), 0, catchCommentary);
+        }
+      }
+      continue;
+    }
 
     if (
       breakawayGapSeconds > 0 &&
@@ -7438,31 +7478,6 @@ export function resolveExistingChasers({
       commentary.push(
         `${state.rider.name} se rapproche de l’échappée, mais reste dans un groupe intercalé.`,
       );
-    } else {
-      // A failed bridge does not decide whether the peloton has caught or
-      // dropped this rider. Preserve the actual clocks instead of imposing
-      // a random 10–22 second loss. A rider overtaken during this sector can
-      // shelter in the peloton: solo sector pace must not manufacture a gap
-      // after the catch. Normal terrain/energy selection runs below.
-      if (peloton.length === 0) continue;
-      const gapToPelotonSeconds = state.elapsedTimeSeconds - pelotonTime;
-      if (gapToPelotonSeconds < -SAME_TIME_MAX_GAP_SECONDS) continue;
-
-      state.groupSinceSegment = segmentIndex;
-      const caughtFromAhead =
-        (chaserGapsAtSegmentStart.get(state.rider.id) ?? Number.POSITIVE_INFINITY) <=
-        SAME_TIME_MAX_GAP_SECONDS;
-      if (gapToPelotonSeconds > SAME_TIME_MAX_GAP_SECONDS && !caughtFromAhead) {
-        state.group = "dropped";
-        state.lostTimeSeconds = gapToPelotonSeconds;
-      } else {
-        state.group = "peloton";
-        state.elapsedTimeSeconds = pelotonTime;
-        state.lostTimeSeconds = 0;
-        if (commentary.length < 4) {
-          commentary.push(`${state.rider.name} est repris par le peloton et se replace dans les roues.`);
-        }
-      }
     }
   }
 }
@@ -10789,6 +10804,7 @@ function buildRoadSnapshot({
   segmentNumber,
   completedDistanceKm,
   breakawayGapSeconds,
+  chaseTiming,
   incidents,
   abandonments,
   commentary,
@@ -10797,6 +10813,7 @@ function buildRoadSnapshot({
   segmentNumber: number;
   completedDistanceKm: number;
   breakawayGapSeconds: number;
+  chaseTiming?: { startGaps: ReadonlyMap<string, number>; progress: number };
   incidents: RaceIncident[];
   abandonments: RaceAbandonment[];
   commentary: string[];
@@ -10844,9 +10861,27 @@ function buildRoadSnapshot({
   const fieldReferenceTimeSeconds = average(
     fieldReferenceStates.map((state) => state.elapsedTimeSeconds),
   );
+  const chaseGroups = splitElapsedRiderGroups(chase, SAME_TIME_MAX_GAP_SECONDS)
+    .map((riders) => ({
+      riders,
+      gapToField: fieldReferenceStates.length > 0
+        ? average(riders.map((state) => {
+            const endGap = state.elapsedTimeSeconds - fieldReferenceTimeSeconds;
+            const startGap = chaseTiming?.startGaps.get(state.rider.id);
+            if (!chaseTiming || startGap === undefined || !Number.isFinite(startGap)) {
+              return endGap;
+            }
+            // The solo-pace forecast after contact is not a physical deficit.
+            const visualEndGap = startGap <= SAME_TIME_MAX_GAP_SECONDS
+              ? Math.min(endGap, 0)
+              : endGap;
+            return startGap + (visualEndGap - startGap) * clamp(chaseTiming.progress, 0, 1);
+          }))
+        : null,
+    }));
   const fieldGapToLeaderSeconds = hasBreakaway
     ? Math.max(0, breakawayGapSeconds)
-    : 0;
+    : Math.max(0, ...chaseGroups.map(({ gapToField }) => -(gapToField ?? 0)));
 
   if (hasBreakaway) {
     groups.push(toGroupSnapshot("breakaway", "Échappée", breakaway, 0));
@@ -10868,13 +10903,16 @@ function buildRoadSnapshot({
     );
   }
 
-  if (chase.length > 0 && hasBreakaway) {
+  for (const { riders, gapToField } of chaseGroups) {
+    const gapToLeader = gapToField === null
+      ? average(riders.map((state) => state.lostTimeSeconds))
+      : fieldGapToLeaderSeconds + gapToField;
     groups.push(
       toGroupSnapshot(
         "chase",
         "Chasse-patate",
-        chase,
-        Math.round(Math.max(6, breakawayGapSeconds * 0.58)),
+        riders,
+        Math.round(Math.max(0, gapToLeader)),
       ),
     );
   }
@@ -10885,7 +10923,7 @@ function buildRoadSnapshot({
         "peloton",
         "Peloton",
         projectedPeloton,
-        hasBreakaway ? Math.max(0, Math.round(breakawayGapSeconds)) : 0,
+        Math.round(fieldGapToLeaderSeconds),
       ),
     );
   }
@@ -10966,19 +11004,6 @@ function buildRoadSnapshot({
         ),
       );
     });
-  }
-
-  if (chase.length > 0 && !hasBreakaway) {
-    groups.push(
-      toGroupSnapshot(
-        "chase",
-        "Groupe de chasse",
-        chase,
-        Math.round(
-          Math.max(5, average(chase.map((state) => state.lostTimeSeconds))),
-        ),
-      ),
-    );
   }
 
   if (secondaryBreakaway.length > 0 && !hasBreakaway) {
