@@ -69,7 +69,7 @@ describe("RaceRosterSelector", () => {
     expect(markup).toContain(">32 JDC prév.</span>");
     expect(markup).toContain('title="Jours de course projetés · 32 (24 disputés, 8 à venir)"');
     expect(markup).toContain("Surcharge prévue");
-    expect(markup).toContain("Au-delà de 30 JDC, chaque jour de course supplémentaire coûte 1 point de moral.");
+    expect(markup).toContain("Au-delà de 30 JDC, le malus est de 1 point de moral par jour supplémentaire pour les coureurs sans le talent Étapovore.");
     expect(markup).toContain("Lieutenant");
     expect(markup).toContain("MON 78 · VAL 76 · PLA 69");
     expect(markup).toContain("CLM 66 · PAV 63 · SPR 61 · BAR 73");

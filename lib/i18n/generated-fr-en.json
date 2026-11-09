@@ -18899,6 +18899,8 @@
   "30 JDC sans malus, puis −1 de moral par JDC supplémentaire. Le compteur repart à zéro chaque saison.": "30 race days without a penalty, then −1 morale per additional race day. The counter resets each season.",
   "30 JDC sans malus, puis −1 de moral par JDC supplémentaire hors capacité Étapovore. Le compteur repart à zéro chaque saison.": "30 race days without a penalty, then −1 morale per additional race day for riders without Stage Eater. The counter resets each season.",
   "Étapovore · +0,5 de moral par JDC au-delà de 30.": "Stage Eater · +0.5 morale per race day beyond 30.",
+  "Au-delà de {{0}} JDC, le malus est de 1 point de moral par jour supplémentaire pour les coureurs sans le talent Étapovore.": "Beyond {{0}} race days, riders without Stage Eater lose 1 morale point per additional race day.",
+  "JDC, le malus est de 1 point de moral par jour supplémentaire pour les coureurs sans le talent Étapovore.": "race days, riders without Stage Eater lose 1 morale point per additional race day.",
   "Calendrier surchargé": "Overloaded schedule",
   "JDC": "race days",
   "JDC disputés": "race days ridden",

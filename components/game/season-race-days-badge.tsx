@@ -6,7 +6,7 @@ type SeasonRaceDaysCounts = {
   hasEtapovore?: boolean;
 };
 
-export const SEASON_RACE_DAYS_OVERLOAD_WARNING = `Au-delà de ${RACE_LOAD_FREE_DAYS} JDC, chaque jour de course supplémentaire coûte 1 point de moral.`;
+export const SEASON_RACE_DAYS_OVERLOAD_WARNING = `Au-delà de ${RACE_LOAD_FREE_DAYS} JDC, le malus est de 1 point de moral par jour supplémentaire pour les coureurs sans le talent Étapovore.`;
 
 export function isSeasonRaceDaysOverloaded({
   seasonRaceDays,

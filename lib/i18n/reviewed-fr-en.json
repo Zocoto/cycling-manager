@@ -3052,6 +3052,8 @@
   "Au-delà de": "Beyond",
   "Au-delà de {{0}} JDC, chaque jour de course supplémentaire coûte 1 point de moral.": "Beyond {{0}} race days, each additional race day costs 1 morale point.",
   "JDC, chaque jour de course supplémentaire coûte 1 point de moral.": "race days, each additional race day costs 1 morale point.",
+  "Au-delà de {{0}} JDC, le malus est de 1 point de moral par jour supplémentaire pour les coureurs sans le talent Étapovore.": "Beyond {{0}} race days, riders without Stage Eater lose 1 morale point per additional race day.",
+  "JDC, le malus est de 1 point de moral par jour supplémentaire pour les coureurs sans le talent Étapovore.": "race days, riders without Stage Eater lose 1 morale point per additional race day.",
   "Jours de course disputés cette saison ·": "Race days ridden this season ·",
   "Jours de course disputés cette saison · {{0}}": "Race days ridden this season · {{0}}",
   "Jours de course projetés ·": "Projected race days ·",
