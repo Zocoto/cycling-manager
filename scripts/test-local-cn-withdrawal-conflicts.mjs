@@ -19,13 +19,15 @@ function functionSource(sql, name) {
 }
 await db.exec(`
   create role anon; create role authenticated; create role service_role;
-  create schema auth;
+  create schema auth; create schema private;
   create function auth.uid() returns uuid language sql as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
   create table seasons(id uuid primary key,status text);
   create table team_seasons(id uuid primary key,team_id uuid,season_id uuid,status text);
   create table sporting_directors(id uuid primary key,auth_user_id uuid,status text);
   create table team_manager_assignments(sporting_director_id uuid,team_id uuid,role text,status text);
   create table riders(id uuid primary key,country_id uuid,status text);
+  create table youth_academy_riders(id uuid primary key,country_id uuid,status text);
+  create table academy_competition_rider_links(rider_id uuid,academy_rider_id uuid,season_id uuid);
   create table rider_contracts(rider_id uuid,team_id uuid,status text);
   create table races(id uuid primary key,country_id uuid,competition_type text);
   create table race_editions(id uuid primary key,race_id uuid,season_id uuid,status text,display_name text);
@@ -184,5 +186,78 @@ await db.query("select set_config('request.jwt.claim.sub','',false)");
 await assert.rejects(db.query("select withdraw_current_team_national_championship_rider($1,$2)", [id(30), id(10)]), /connecté/);
 assert.equal((await db.query("select has_function_privilege('anon','withdraw_current_team_national_championship_rider(uuid,uuid)','execute') as allowed")).rows[0].allowed, false);
 assert.equal((await db.query("select has_function_privilege('authenticated','withdraw_current_team_national_championship_rider(uuid,uuid)','execute') as allowed")).rows[0].allowed, true);
+
+await db.exec("alter table stages add column status text not null default 'planned'");
+const nationalityMigration = await source("20261109111000_reconcile_national_championship_rider_nationality.sql");
+await db.exec(nationalityMigration);
+await db.exec(nationalityMigration);
+await db.exec(`
+  insert into riders values ('${id(14)}','${id(51)}','active');
+  insert into rider_contracts values ('${id(14)}','${id(4)}','active');
+  insert into test_country_rankings values ('${id(14)}','${id(51)}','${id(3)}',1,100);
+  insert into races values ('${id(23)}','${id(51)}','national_road'),('${id(24)}','${id(51)}','national_time_trial');
+  insert into race_editions values
+    ('${id(37)}','${id(23)}','${id(1)}','registration_open','New country road'),
+    ('${id(38)}','${id(24)}','${id(1)}','registration_open','New country TT');
+  insert into season_days values ('${id(43)}','${id(1)}',10,current_date+10);
+  insert into stages values
+    ('${id(37)}',1,'${id(43)}','late',now()+interval '10 days','planned'),
+    ('${id(38)}',1,'${id(43)}','early',now()+interval '10 days','planned');
+  insert into national_championship_rider_withdrawals values ('${id(37)}','${id(14)}','${id(3)}',now());
+`);
+const started = await registration(36, 3);
+const newCountryTT = await registration(38, 3);
+await roster(ownRoad, 14); await roster(freeTT, 14, "selected");
+await roster(formerRoad, 11);
+await roster(historical, 14); await roster(started, 14); await roster(otherDay, 14);
+await roster(newCountryTT, 14); await preference(37, 14, false);
+
+async function reconcileNationality(oldCountry, newCountry) {
+  return (await db.query("select private.reconcile_rider_cn_nationality($1,$2,$3,now()) as count", [id(14), id(oldCountry), id(newCountry)])).rows[0].count;
+}
+assert.equal(await reconcileNationality(50, 50), 0);
+assert.equal(await reconcileNationality(50, 51), 2);
+assert.equal(await reconcileNationality(50, 51), 0);
+assert.equal(await status(ownRoad, 14), "withdrawn");
+assert.equal(await status(freeTT, 14), "withdrawn");
+assert.equal(await status(formerRoad, 11), "confirmed");
+assert.equal(await status(historical, 14), "confirmed");
+assert.equal(await status(started, 14), "confirmed");
+assert.equal(await status(otherDay, 14), "confirmed");
+assert.equal(await status(newCountryTT, 14), "confirmed");
+await syncGlobal();
+assert.deepEqual(await active(37, 14), []); // A new-country opt-out stays authoritative.
+assert.deepEqual(await active(38, 14), [{ team_season_id: id(3) }]);
+assert.equal((await db.query("select count(*)::integer as count from national_championship_rider_withdrawals where race_edition_id=$1 and rider_id=$2", [id(37), id(14)])).rows[0].count, 1);
+for (const role of ["anon", "authenticated", "service_role"]) {
+  assert.equal((await db.query("select has_function_privilege($1,'private.reconcile_rider_cn_nationality(uuid,uuid,uuid,timestamptz)','execute') as allowed", [role])).rows[0].allowed, false);
+}
+
+// Freeze the mocked candidate ranking before the country change, as a reader
+// can observe when a concurrent naturalization has just committed.
+await db.query("update test_country_rankings set country_id=$1 where rider_id=$2", [id(50), id(14)]);
+await roster(ordinaryLate, 14);
+await db.exec(`
+  insert into riders values ('${id(15)}','${id(50)}','academy');
+  insert into youth_academy_riders values ('${id(16)}','${id(51)}','recruited');
+  insert into academy_competition_rider_links values ('${id(15)}','${id(16)}','${id(1)}');
+  insert into test_country_rankings values ('${id(15)}','${id(50)}','${id(3)}',4,70);
+`);
+for (const sync of [syncTeam, syncGlobal]) {
+  await sync();
+  assert.deepEqual(await active(30, 14), []);
+  assert.deepEqual(await active(31, 14), []);
+  assert.deepEqual(await active(30, 15), []);
+  assert.deepEqual(await active(31, 15), []);
+  assert.equal(await status(ordinaryLate, 14), "confirmed");
+  assert.deepEqual(await active(31, 10), [{ team_season_id: id(3) }]);
+}
+await db.query("update riders set country_id=$1 where id=$2", [id(51), id(15)]);
+await db.query("update test_country_rankings set country_id=$1 where rider_id in($2,$3)", [id(51), id(14), id(15)]);
+await syncTeam();
+assert.deepEqual(await active(37, 14), []);
+assert.deepEqual(await active(38, 14), [{ team_season_id: id(3) }]);
+assert.deepEqual(await active(37, 15), [{ team_season_id: id(3) }]);
+
 await db.close();
-console.log("Isolated PostgreSQL: stale free/former-team CN entries reproduced and repaired; grid/individual withdrawal, reselection, scheduling, real roster writes, history and permissions verified.");
+console.log("Isolated PostgreSQL: CN withdrawals, nationality changes, stale candidate guards, academy proxies, new-country opt-outs, history and permissions verified.");
