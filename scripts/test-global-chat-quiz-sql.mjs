@@ -93,6 +93,23 @@ try {
     /global_chat_quiz_rounds_duration_check/
   );
   checks += 1;
+
+  const previousRounds = await rows('select to_jsonb(round) as round from private.global_chat_quiz_rounds round order by paris_day');
+  await runFixture('../supabase/migrations/20261109100000_schedule_three_daily_global_chat_quiz_rounds.sql');
+  equal(await rows("select to_jsonb(round) - 'daily_slot' as round from private.global_chat_quiz_rounds round order by paris_day"),
+    previousRounds, 'three-round migration preserves the original round data');
+  equal(await rows('select * from public.global_chat_quiz_events'), legacyEvent, 'three-round migration preserves published results');
+
+  // The scheduling clock is controlled only in this isolated database so the
+  // test can exercise morning preparation and late catch-up at any host hour.
+  await db.exec(`create function private.quiz_fixture_scheduling_clock() returns timestamptz
+    language sql stable as $$select current_setting('quiz_fixture.scheduling_clock')::timestamptz$$`);
+  const setScheduleTime = (time) => scalar(`select set_config('quiz_fixture.scheduling_clock',
+    (((now() at time zone 'Europe/Paris')::date + $1::time) at time zone 'Europe/Paris')::text, false)`, [time]);
+  await setScheduleTime('04:00');
+  const prepareDefinition = await scalar("select pg_get_functiondef('public.prepare_global_chat_quiz_round(date)'::regprocedure)");
+  await db.exec(prepareDefinition.replaceAll('clock_timestamp()', 'private.quiz_fixture_scheduling_clock()'));
+
   await db.exec('delete from public.global_chat_quiz_events; delete from private.global_chat_quiz_rounds;');
 
   equal(await scalar('select enabled from private.global_chat_quiz_settings'), false, 'starts disabled');
@@ -139,7 +156,7 @@ try {
   equal(await complete('other.webp'), false, 'unexpected paths cannot be completed');
   equal(await complete(path), true, 'stored asset completes portrait');
   equal(await complete(path), true, 'completing the same asset twice is safe');
-  equal((await prepare()).portraitReady, true, 'retry can skip image rendering');
+  equal(await prepare(), null, 'a ready portrait is skipped when no other riders can be drawn');
   await db.exec('select public.process_global_chat_quiz()');
   equal(await eventCount(), 0, 'ready future round stays private');
 
@@ -247,6 +264,93 @@ try {
   await post(13, exact);
   equal((await publicState()).status, 'won', 'published album can reward a subsequent season');
   equal(await scalar("select collection_season_id from public.cyclo_stickers_boosters where source_reference = $1", [rolloverRound.id]), rolloverRound.collection_season_id, 'rollover reward lands in the matching album inventory');
+
+  await db.exec(`
+    delete from public.global_chat_quiz_events;
+    delete from private.global_chat_quiz_rounds;
+    insert into public.riders values
+      ('${account(4, 5)}', 'Lise', 'Marin', 'active', 'france', 5),
+      ('${account(4, 6)}', 'Victor', 'Garnier', 'active', 'france', 6);
+    insert into public.rider_contracts
+    select id, '${account(3, 1)}', 'active' from public.riders where id in ('${account(4, 5)}', '${account(4, 6)}');
+    insert into public.rider_season_ratings
+    select id, '50000000-0000-4000-8000-000000000006', 24 from public.riders where id in ('${account(4, 5)}', '${account(4, 6)}');
+  `);
+
+  const first = await prepare();
+  const dailyRounds = await rows(`select id, rider_id, daily_slot, answer_name,
+    extract(epoch from ends_at - starts_at)::int as duration,
+    extract(minute from starts_at at time zone 'Europe/Paris')::int as local_minute,
+    ((starts_at at time zone 'Europe/Paris')::time >= (array[time '12:00', time '15:00', time '18:00'])[daily_slot]
+      and (ends_at at time zone 'Europe/Paris')::time <= (array[time '15:00', time '18:00', time '22:00'])[daily_slot]) as fits_window,
+    coalesce(lag(ends_at) over (order by starts_at) <= starts_at, true) as separated
+    from private.global_chat_quiz_rounds order by starts_at`);
+  equal(dailyRounds.map(row => row.daily_slot), [1, 2, 3], 'one round in each of the three local windows');
+  equal(dailyRounds.every(row => row.duration === 1800 && row.local_minute % 15 === 0 && row.fits_window && row.separated),
+    true, 'all three starts are aligned, last thirty minutes, and never overlap');
+  equal(new Set(dailyRounds.map(row => row.rider_id)).size, 3, 'three distinct riders on the same day');
+  equal(first.id, dailyRounds[0].id, 'prepares the earliest portrait first');
+  equal(await prepare(), first, 'a preparation retry retains the same round');
+  equal(await eventCount(), 0, 'preparing three portraits exposes no future round');
+
+  await db.exec(`update private.global_chat_quiz_rounds set
+    starts_at = now() + (daily_slot * interval '1 hour'),
+    ends_at = now() + (daily_slot * interval '1 hour') + interval '30 minutes'`);
+  for (const scheduled of dailyRounds) {
+    equal((await prepare()).id, scheduled.id, 'scalar preparation advances to the next unready round');
+    const portrait = `${scheduled.id}.webp`;
+    await db.query("insert into storage.objects values ('global-chat-quiz-portraits', $1)", [portrait]);
+    equal(await withRole('service_role', null, () => scalar(
+      'select public.complete_global_chat_quiz_portrait($1, $2)', [scheduled.id, portrait]
+    )), true, 'each round completes its own immutable portrait');
+  }
+  equal(await prepare(), null, 'all three ready portraits stop preparation');
+  equal(await scalar('select count(*)::int from private.global_chat_quiz_rounds'), 3, 'retries do not add a fourth round');
+
+  const packsBeforeDailyRounds = await packs();
+  for (const scheduled of dailyRounds) {
+    await db.query(`update private.global_chat_quiz_rounds
+      set starts_at = now() - interval '1 minute', ends_at = now() + interval '29 minutes' where id = $1`, [scheduled.id]);
+    await db.exec('select public.process_global_chat_quiz()');
+    equal(await scalar("select count(*)::int from public.global_chat_quiz_events where status = 'open'"), 1,
+      'only one round is open at a time');
+    const message = await post(14, scheduled.answer_name);
+    equal(await scalar('select status from public.global_chat_quiz_events where id = $1', [scheduled.id]), 'won',
+      'the winner is recorded independently for each round');
+    await db.query("update public.global_chat_messages set created_at = now() - interval '3 minutes' where id = $1", [message]);
+  }
+  equal(await packs(), packsBeforeDailyRounds + 3, 'one booster per round for the same winner on the same day');
+
+  await db.exec(`
+    delete from public.global_chat_quiz_events;
+    delete from private.global_chat_quiz_rounds;
+    with today as (select (now() at time zone 'Europe/Paris')::date as day)
+    insert into private.global_chat_quiz_rounds (
+      paris_day, starts_at, ends_at, collection_season_id, rider_id, age,
+      answer_name, answer_key, reverse_answer_key, portrait_ready
+    )
+    select day, (day + time '14:45') at time zone 'Europe/Paris',
+      (day + time '15:15') at time zone 'Europe/Paris',
+      '50000000-0000-4000-8000-000000000005', '${target}', 29,
+      'Émile D’Arcy', 'emile d''arcy', 'd''arcy emile', true from today;
+  `);
+  const legacyToday = await rows('select to_jsonb(round) as round from private.global_chat_quiz_rounds round');
+  const afternoon = await prepare();
+  equal(await rows('select to_jsonb(round) as round from private.global_chat_quiz_rounds round where daily_slot is null'), legacyToday,
+    'the previously prepared legacy portrait and times remain intact');
+  equal(await rows('select daily_slot from private.global_chat_quiz_rounds order by starts_at'),
+    [{ daily_slot: null }, { daily_slot: 2 }, { daily_slot: 3 }], 'legacy round takes the first slot and is counted in the daily total');
+  equal(await scalar(`select starts_at >= ((paris_day + time '15:15') at time zone 'Europe/Paris')
+    from private.global_chat_quiz_rounds where id = $1`, [afternoon.id]), true,
+    'the next window skips times overlapping the legacy round');
+
+  await db.exec('delete from private.global_chat_quiz_rounds');
+  await setScheduleTime('16:00');
+  await prepare();
+  equal(await rows('select daily_slot from private.global_chat_quiz_rounds order by starts_at'),
+    [{ daily_slot: 2 }, { daily_slot: 3 }], 'late preparation skips the past window');
+  equal(await scalar('select bool_and(starts_at > private.quiz_fixture_scheduling_clock()) from private.global_chat_quiz_rounds'),
+    true, 'late preparation draws future times only');
 
   console.log(JSON.stringify({ isolatedPostgresChecks: checks, productionAccess: false }));
 } finally {

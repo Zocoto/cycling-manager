@@ -22,14 +22,21 @@ const round = {
   portraitReady: false,
 };
 
+function queueRounds(...rounds: (typeof round)[]) {
+  mocks.rpc.mockImplementation((name: string) => ({
+    abortSignal: async () => ({
+      data: name === "prepare_global_chat_quiz_round" ? rounds.shift() ?? null : true,
+      error: null,
+    }),
+  }));
+}
+
 beforeEach(() => {
   vi.resetAllMocks();
   vi.stubEnv("VERCEL_ENV", "production");
   mocks.authorize.mockReturnValue(true);
-  mocks.portrait.mockResolvedValue(`${round.id}.webp`);
-  mocks.rpc.mockImplementation((name: string) => ({
-    abortSignal: async () => ({ data: name === "prepare_global_chat_quiz_round" ? round : true, error: null }),
-  }));
+  mocks.portrait.mockImplementation(async (_admin, input: typeof round) => `${input.id}.webp`);
+  queueRounds(round);
 });
 afterEach(() => vi.unstubAllEnvs());
 
@@ -41,7 +48,21 @@ describe("daily chat quiz portrait preparation", () => {
     expect(mocks.rpc.mock.calls).toEqual([
       ["prepare_global_chat_quiz_round"],
       ["complete_global_chat_quiz_portrait", { p_round_id: round.id, p_portrait_path: `${round.id}.webp` }],
+      ["prepare_global_chat_quiz_round"],
     ]);
+  });
+
+  it("prepares up to three different portraits in a single scheduled run", async () => {
+    const rounds = [round, ...["cccccccc", "dddddddd", "eeeeeeee"].map(prefix => ({
+      ...round, id: `${prefix}-aaaa-4aaa-8aaa-aaaaaaaaaaaa`,
+    }))];
+    queueRounds(...rounds);
+    expect(await (await GET(request)).json()).toEqual({ status: "prepared" });
+    expect(mocks.portrait.mock.calls.map(([, input]) => input.id)).toEqual(rounds.slice(0, 3).map(input => input.id));
+    expect(mocks.rpc.mock.calls).toEqual(rounds.slice(0, 3).flatMap(input => [
+      ["prepare_global_chat_quiz_round"],
+      ["complete_global_chat_quiz_portrait", { p_round_id: input.id, p_portrait_path: `${input.id}.webp` }],
+    ]));
   });
 
   it("skips the renderer for a prepared round and for a disabled event", async () => {
