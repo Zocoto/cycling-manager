@@ -102,7 +102,7 @@ export function buildOfficialStageRaceStandings(
 }
 
 export const OFFICIAL_RACE_ENGINE_VERSION =
-  "2026.11-chase-continuity-v57";
+  "2026.11-continuous-climb-rating-v58";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;

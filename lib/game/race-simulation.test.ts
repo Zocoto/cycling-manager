@@ -62,6 +62,7 @@ import {
   selectStageAttackPlan,
   shouldPreserveFinalRoadGroupTimes,
   simulateRaceStage,
+  simulateRaceStageResultsOnly,
   splitElapsedRiderGroups,
   spreadRoadGroupTransitionsAcrossFrames,
   type RiderSimulationInput,
@@ -617,6 +618,98 @@ describe("arrivée au sommet et continuité chronologique", () => {
       strongerResult.elapsedTimeSeconds,
     );
     expect(weakerResult.gapToWinnerSeconds).toBeGreaterThanOrEqual(1);
+  });
+
+  it("distingue un col continu de montées séparées par des descentes", () => {
+    const stamina = { endurance: 75, resistance: 72, recovery: 68 };
+    const riders = [
+      ...Array.from({ length: 4 }, (_, index) =>
+        createSelectionTestRider(`climber-${index}`, {
+          ...stamina,
+          mountain: 90,
+          hills: 45,
+        }),
+      ),
+      ...Array.from({ length: 4 }, (_, index) =>
+        createSelectionTestRider(`puncher-${index}`, {
+          ...stamina,
+          mountain: 74,
+          hills: 96,
+        }),
+      ),
+    ];
+    const segment = (
+      segmentNumber: number,
+      distanceKm: number,
+      terrain: RaceStageSegment["terrain"],
+      averageGradientPct: number,
+    ): RaceStageSegment => ({
+      segmentNumber,
+      distanceKm,
+      terrain,
+      averageGradientPct,
+      surface: "asphalt",
+      prime: null,
+    });
+    const approach = [segment(1, 45, "flat", 0), segment(2, 30, "flat", 0)];
+    const base = {
+      id: "continuous-climb-selection",
+      name: "Montée de référence",
+      stageType: "road" as const,
+      profileType: "mountain" as const,
+      isStageRace: true,
+      seed: 11,
+      riders,
+    };
+    const continuous = simulateRaceStage({
+      ...base,
+      segments: [
+        ...approach,
+        segment(3, 10, "climb", 6.5),
+        segment(4, 10, "climb", 6.7),
+        segment(5, 10, "climb", 6),
+        segment(6, 5, "descent", -5),
+        segment(7, 5, "descent", -5),
+        segment(8, 15, "flat", 0),
+      ],
+    });
+    const interrupted = simulateRaceStage({
+      ...base,
+      segments: [
+        ...approach,
+        segment(3, 10, "climb", 6.5),
+        segment(4, 5, "descent", -5),
+        segment(5, 10, "climb", 6.7),
+        segment(6, 5, "descent", -5),
+        segment(7, 10, "climb", 6),
+        segment(8, 15, "flat", 0),
+      ],
+    });
+    const firstGroupRiderIds = (simulation: ReturnType<typeof simulateRaceStage>) =>
+      simulation.timeline.find((snapshot) => snapshot.segmentNumber === 3)!
+        .groups[0].riderIds;
+
+    expect(firstGroupRiderIds(continuous)).toContain("climber-0");
+    expect(firstGroupRiderIds(interrupted)).not.toContain("climber-0");
+    expect(firstGroupRiderIds(interrupted)).toContain("puncher-0");
+
+    // The results-only engine has no incidents or tactics per segment, so an
+    // equal-gradient climb can be compared without changing those mechanics.
+    const singleClimb = simulateRaceStageResultsOnly({
+      ...base,
+      segments: [...approach, segment(3, 30, "climb", 6.5)],
+    });
+    const splitClimb = simulateRaceStageResultsOnly({
+      ...base,
+      segments: [
+        ...approach,
+        segment(3, 10, "climb", 6.5),
+        segment(4, 10, "climb", 6.5),
+        segment(5, 10, "climb", 6.5),
+      ],
+    });
+
+    expect(splitClimb.results).toEqual(singleClimb.results);
   });
 
   it("additionne les tronçons d'une longue ascension et écarte les non-grimpeurs", () => {

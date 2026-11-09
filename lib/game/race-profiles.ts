@@ -214,13 +214,15 @@ export function resolveRaceProfileType(
 }
 
 type ClimbBlock = {
+  startIndex: number;
   finishIndex: number;
   distanceKm: number;
   averageGradientPct: number;
 };
 
-function getClimbBlocks(segments: RaceStageSegment[]): ClimbBlock[] {
+export function getClimbBlocks(segments: RaceStageSegment[]): ClimbBlock[] {
   const climbs: ClimbBlock[] = [];
+  let startIndex = 0;
   let distanceKm = 0;
   let weightedGradient = 0;
 
@@ -228,6 +230,9 @@ function getClimbBlocks(segments: RaceStageSegment[]): ClimbBlock[] {
     const segment = segments[index];
 
     if (segment.terrain === "climb") {
+      if (index === 0 || segments[index - 1].terrain !== "climb") {
+        startIndex = index;
+      }
       distanceKm += segment.distanceKm;
       weightedGradient += segment.distanceKm * segment.averageGradientPct;
     }
@@ -238,6 +243,7 @@ function getClimbBlocks(segments: RaceStageSegment[]): ClimbBlock[] {
       (!nextSegment || nextSegment.terrain !== "climb")
     ) {
       climbs.push({
+        startIndex,
         finishIndex: index,
         distanceKm: round(distanceKm, 2),
         averageGradientPct: round(weightedGradient / distanceKm, 2),

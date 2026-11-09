@@ -1,4 +1,4 @@
-import type { RaceSegmentPrime, RaceStageSegment } from "./race-profiles";
+import { getClimbBlocks, type RaceSegmentPrime, type RaceStageSegment } from "./race-profiles";
 import { isUrbanCobbles, normalizeUrbanCobblesSegments } from "./urban-cobbles";
 import { PERFORMANCE_PREPARATION_FACILITIES, type PerformancePreparationType } from "./performance-preparation";
 import type { NationalJerseyDraft } from "./national-jersey-preview";
@@ -1184,6 +1184,31 @@ export function simulateRaceStageResultsOnly(
   };
 }
 
+type TerrainRatingSegment = RaceStageSegment & {
+  terrainRatingClimbLengthKm?: number;
+};
+
+function withContinuousClimbLengths(segments: RaceStageSegment[]): TerrainRatingSegment[] {
+  const ratedSegments: TerrainRatingSegment[] = [...segments];
+  for (const climb of getClimbBlocks(segments)) {
+    if (climb.startIndex === climb.finishIndex) continue;
+
+    // Fade in the extra length from 4.5% to 5.5% average gradient.
+    const continuousLengthShare = clamp(climb.averageGradientPct - 4.5, 0, 1);
+    if (continuousLengthShare === 0) continue;
+
+    for (let index = climb.startIndex; index <= climb.finishIndex; index++) {
+      const segment = segments[index];
+      ratedSegments[index] = {
+        ...segment,
+        terrainRatingClimbLengthKm: segment.distanceKm +
+          (climb.distanceKm - segment.distanceKm) * continuousLengthShare,
+      };
+    }
+  }
+  return ratedSegments;
+}
+
 function normalizeStageSimulationInput(
   input: StageSimulationInput,
 ): StageSimulationInput {
@@ -1223,11 +1248,11 @@ function normalizeStageSimulationInput(
     : undefined;
   const eligibleInput = {
     ...input,
-    segments: normalizeUrbanCobblesSegments({
+    segments: withContinuousClimbLengths(normalizeUrbanCobblesSegments({
       stageType: input.stageType,
       profileType: input.profileType,
       segments: input.segments,
-    }),
+    })),
     weather,
     ...(eligibleTeamStrategies
       ? { teamStrategies: eligibleTeamStrategies }
@@ -11816,16 +11841,17 @@ function getPelotonChaseCapacity(
 
 function getTerrainRating(
   rider: RiderSimulationInput,
-  segment: RaceStageSegment,
+  segment: TerrainRatingSegment,
 ) {
   let rating: number;
 
   if (segment.terrain === "climb") {
     const gradient = Math.abs(segment.averageGradientPct);
+    const climbLengthKm = segment.terrainRatingClimbLengthKm ?? segment.distanceKm;
     const mountainWeight = clamp(
       0.18 +
         Math.max(0, gradient - 3) * 0.07 +
-        Math.max(0, segment.distanceKm - 5) * 0.025,
+        Math.max(0, climbLengthKm - 5) * 0.025,
       0.18,
       0.82,
     );
