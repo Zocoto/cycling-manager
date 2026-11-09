@@ -26,6 +26,6 @@ describe("raccourci gala du bureau du DS", () => {
   it("place le raccourci dans le bureau avant les cartes de gestion", () => {
     const source = readFileSync(join(process.cwd(), "app/jeu/page.tsx"), "utf8");
     expect(source).toContain("<DashboardGalaShortcut now={Date.now()} />");
-    expect(source.indexOf("<DashboardGalaShortcut now={Date.now()} />")).toBeLessThan(source.indexOf("<DashboardReferralInvite />"));
+    expect(source.indexOf("<DashboardGalaShortcut now={Date.now()} />")).toBeLessThan(source.indexOf("<DashboardReferralInvite "));
   });
 });

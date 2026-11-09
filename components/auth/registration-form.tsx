@@ -38,12 +38,14 @@ type RegistrationFormProps = {
   referralCode?: string;
   referrerName?: string;
   marketingAttribution?: MarketingAttribution;
+  welcomeCoachOfferExpiresAt?: number;
 };
 
 export function RegistrationForm({
   referralCode,
   referrerName,
   marketingAttribution = {},
+  welcomeCoachOfferExpiresAt,
 }: RegistrationFormProps) {
   const [state, formAction, pending] = useActionState(
     registerAccount,
@@ -62,6 +64,17 @@ export function RegistrationForm({
   const [dismissedFields, setDismissedFields] = useState<RegistrationField[]>([]);
 
   const registrationSucceeded = state.status === "success";
+  const [welcomeCoachOfferExpired, setWelcomeCoachOfferExpired] = useState(false);
+
+  useEffect(() => {
+    if (welcomeCoachOfferExpiresAt === undefined) return;
+
+    const timeout = window.setTimeout(
+      () => setWelcomeCoachOfferExpired(true),
+      Math.max(0, welcomeCoachOfferExpiresAt - Date.now()),
+    );
+    return () => window.clearTimeout(timeout);
+  }, [welcomeCoachOfferExpiresAt]);
 
   useEffect(() => {
     try {
@@ -365,6 +378,12 @@ export function RegistrationForm({
             .
           </span>
         </label>
+
+        {welcomeCoachOfferExpiresAt !== undefined && !welcomeCoachOfferExpired ? (
+          <p className="text-center text-xs font-semibold leading-5 text-[#FFE6A0]">
+            Un membre du staff offert à la création de votre équipe pour tout nouveau compte créé avant le 14 novembre à 12 h 44, heure de Paris.
+          </p>
+        ) : null}
 
         <button
           type="submit"

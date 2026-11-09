@@ -5,57 +5,86 @@ import Link from "@/components/ui/app-link";
 
 const DISMISSED_STORAGE_KEY =
   "cyclostratege:referral-invite:saison2-ambassadors-2026-08";
+const REFERRAL_PATH = "/jeu/parrainage";
 
-export function DashboardReferralInvite() {
+export function DashboardReferralInvite({
+  inviteUrl,
+  showBoosters,
+}: {
+  inviteUrl: string | null;
+  showBoosters: boolean;
+}) {
   const [dismissed, setDismissed] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
-      setDismissed(
-        window.localStorage.getItem(DISMISSED_STORAGE_KEY) === "true",
-      );
+      try {
+        setDismissed(window.localStorage.getItem(DISMISSED_STORAGE_KEY) === "true");
+      } catch {
+        // Local storage may be unavailable in private browsing.
+      }
     });
 
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
   function dismiss() {
-    window.localStorage.setItem(DISMISSED_STORAGE_KEY, "true");
     setDismissed(true);
+    try {
+      window.localStorage.setItem(DISMISSED_STORAGE_KEY, "true");
+    } catch {
+      // The tile still closes for this visit.
+    }
+  }
+
+  async function copyInvite() {
+    if (!inviteUrl) return;
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      setCopied(true);
+    } catch {
+      window.location.assign(REFERRAL_PATH);
+    }
   }
 
   if (dismissed) return null;
 
+  const actionClassName = "inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-[#F2C94C] px-4 text-sm font-extrabold text-[#071A17] transition hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white";
+
   return (
-    <aside className="relative mt-6 overflow-hidden rounded-2xl border border-[#D6A600]/35 bg-[linear-gradient(100deg,#0B302B_0%,#124B40_67%,#176951_100%)] p-5 text-white shadow-[0_16px_42px_rgba(19,60,46,0.17)] sm:p-6">
-      <div aria-hidden="true" className="absolute -right-9 -top-14 h-40 w-40 rounded-full border-[28px] border-white/5" />
+    <aside className="relative mt-4 rounded-2xl border border-[#D6A600]/35 bg-[linear-gradient(100deg,#0B302B_0%,#124B40_67%,#176951_100%)] p-3 text-white sm:px-4">
       <button
         type="button"
         onClick={dismiss}
         aria-label="Masquer la proposition de parrainage"
-        className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full text-[#D6DFD2] transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
+        className="absolute right-2 top-2 grid h-9 w-9 place-items-center rounded-full text-[#D6DFD2] transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] sm:top-1/2 sm:-translate-y-1/2"
       >
         <CloseIcon />
       </button>
 
-      <div className="relative flex flex-col gap-5 pr-9 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-4">
-          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#F2C94C] text-[#071A17] shadow-lg">
+      <div className="flex flex-col gap-2 pr-10 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#F2C94C] text-[#071A17]">
             <ReferralIcon />
           </span>
           <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#9BE0BC]">Saison 2 · Appel aux ambassadeurs</p>
-            <h2 className="mt-1 text-xl font-black">Le peloton a besoin de renfort : invitez un ami</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-[#D6DFD2]">Partagez votre lien personnel avec un amateur de cyclisme ou de jeux de gestion. Chaque inscription confirmée vous rapproche de primes majeures, de la tenue « Le Parrain » et du fedora exclusif du Don.</p>
+            <h2 className="text-sm font-black">Invitez un ami dans le peloton</h2>
+            {showBoosters ? (
+              <p className="mt-0.5 text-sm font-semibold text-[#D6DFD2]">2 boosters Cyclo-Stickers par filleul confirmé</p>
+            ) : null}
           </div>
         </div>
 
-        <Link
-          href="/jeu/parrainage"
-          className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-[#F2C94C] px-5 text-sm font-extrabold text-[#071A17] transition hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-        >
-          Partager mon lien
-        </Link>
+        {inviteUrl ? (
+          <button type="button" onClick={() => void copyInvite()} className={actionClassName}>
+            <span aria-live="polite">{copied ? "Lien copié !" : "Copier mon lien"}</span>
+          </button>
+        ) : (
+          <Link href={REFERRAL_PATH} prefetch={false} className={actionClassName}>
+            Voir mon lien
+          </Link>
+        )}
       </div>
     </aside>
   );

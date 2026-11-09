@@ -28,6 +28,9 @@ import { SportingDirectorReputation } from "../../components/game/sporting-direc
 import { TeamJerseyPreview } from "../../components/game/team-jersey-preview";
 import { TeamDivisionBadge } from "../../components/game/team-division-badge";
 import { DEFAULT_AMATEUR_JERSEY } from "../../lib/amateur-team";
+import { appConfig } from "@/lib/app-config";
+import { getPublicSiteUrl } from "@/lib/auth/public-site-url";
+import { buildReferralInviteUrl } from "@/lib/game/referrals";
 import {
   GAMEPLAY_RULES,
   getSponsoringUnlockProgress,
@@ -570,6 +573,11 @@ export default async function GamePage() {
 
   const dashboardFastSummary = await fastSummaryPromise;
   const raceRosterAlertCount = dashboardFastSummary?.raceRosterAlertCount ?? 0;
+  const referralCode = dashboardSportingDirector?.referral_profile?.referral_code;
+  const referralInviteUrl = referralCode
+    ? buildReferralInviteUrl(getPublicSiteUrl() ?? appConfig.siteUrl, referralCode)
+    : null;
+  const showReferralBoosters = Number(dashboardFastSummary?.seasonName.match(/\d+/)?.[0]) === 5;
 
   const sportingDirector = dashboardSportingDirector;
 
@@ -700,7 +708,7 @@ export default async function GamePage() {
           <DashboardGalaShortcut now={Date.now()} />
           <Suspense fallback={null}><DashboardDraftShortcut summaryPromise={fastSummaryPromise} /></Suspense>
           <Suspense fallback={null}><DashboardSeasonFourGalaEvents userId={user.id} /></Suspense>
-          <DashboardReferralInvite />
+          <DashboardReferralInvite inviteUrl={referralInviteUrl} showBoosters={showReferralBoosters} />
 
           {!sportingDirector ? <ProfileErrorMessage /> : null}
 

@@ -24,10 +24,10 @@ export type DashboardDirectorCountry = {
 type CountryRelation = DashboardDirectorCountry & { is_active: boolean };
 type ProfileRow = DashboardDirectorProfile & {
   country: CountryRelation | CountryRelation[] | null;
+  referral_profile: { referral_code: string } | null;
 };
 
-/** The office needs one country, not the complete country directory. The
- * authenticated profile and its optional country share one indexed read. */
+/** Read the director, country and private referral code in one bounded lookup. */
 export async function getDashboardDirectorProfile(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   authUserId: string,
@@ -35,7 +35,8 @@ export async function getDashboardDirectorProfile(
   const result = await supabase.from("sporting_directors")
     .select(`id, username, display_name, country_id, avatar_key, avatar_frame_key,
       reputation_points, experience_points, is_email_visible, created_at,
-      country:countries!sporting_directors_country_id_fkey(id, name, iso_alpha2, is_active)`)
+      country:countries!sporting_directors_country_id_fkey(id, name, iso_alpha2, is_active),
+      referral_profile:referral_profiles!referral_profiles_sporting_director_id_fkey(referral_code)`)
     .eq("auth_user_id", authUserId)
     .maybeSingle<ProfileRow>();
   const embedded = result.data?.country;

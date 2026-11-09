@@ -30,6 +30,10 @@ const benefits = [
   "Faites grandir votre équipe saison après saison.",
 ] as const;
 
+// Verified production window for welcome_s5_november_2026, at millisecond precision.
+const welcomeCoachOfferStartsAt = Date.parse("2026-11-04T12:44:34.116+01:00");
+const welcomeCoachOfferEndsAt = Date.parse("2026-11-14T12:44:34.116+01:00");
+
 export default async function RegistrationPage({
   searchParams,
 }: {
@@ -49,6 +53,12 @@ export default async function RegistrationPage({
   const invitation = referralCode
     ? await getPublicReferralInvitation(supabase, referralCode)
     : null;
+  // eslint-disable-next-line react-hooks/purity -- Request-time clock for the server-rendered offer expiry.
+  const now = Date.now();
+  const welcomeCoachOfferExpiresAt =
+    now >= welcomeCoachOfferStartsAt && now < welcomeCoachOfferEndsAt
+      ? welcomeCoachOfferEndsAt
+      : undefined;
 
   return (
     <section className="relative isolate overflow-hidden bg-[#EAF5F3]">
@@ -139,6 +149,7 @@ export default async function RegistrationPage({
                 referralCode={invitation?.code}
                 referrerName={invitation?.referrerName}
                 marketingAttribution={marketingAttribution}
+                welcomeCoachOfferExpiresAt={welcomeCoachOfferExpiresAt}
               />
             </div>
 
