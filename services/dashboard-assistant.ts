@@ -14,6 +14,7 @@ import type {
 import { getPendingInfrastructureOrientations } from "@/lib/game/dashboard-assistant";
 import { INFRASTRUCTURE_SPECIALIZATION_UNLOCK_LEVEL } from "@/lib/game/infrastructure-specializations";
 import { parseDashboardConstructionContext } from "@/lib/game/dashboard-construction-alert";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getDashboardHalloweenEdition } from "@/services/dashboard-halloween";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -83,12 +84,58 @@ async function readAssistantCore(supabase: SupabaseServerClient, signal: AbortSi
     .abortSignal(signal).maybeSingle<DashboardAssistantSummaryRow>();
 }
 
-export function getCurrentDashboardAssistantSummaries(supabase: SupabaseServerClient) {
+async function hasManagedInCompletedSeason(authUserId: string, signal: AbortSignal) {
+  try {
+    const result = await createSupabaseAdminClient()
+      .from("team_manager_assignments")
+      .select("id, director:sporting_directors!inner(auth_user_id), start_season:seasons!team_manager_assignments_start_season_id_fkey!inner(status)")
+      .eq("director.auth_user_id", authUserId)
+      .eq("start_season.status", "completed")
+      .eq("role", "general_manager")
+      .in("status", ["active", "completed", "terminated"])
+      .limit(1)
+      .abortSignal(signal)
+      .maybeSingle<{ id: string }>();
+    if (!result.error) return result.data !== null;
+    console.warn("dashboard_manager_experience_unavailable", { code: result.error.code });
+  } catch {
+    console.warn("dashboard_manager_experience_unavailable");
+  }
+  return false;
+}
+
+export function getCurrentDashboardAssistantSummaries(
+  supabase: SupabaseServerClient,
+  authUserId: string,
+) {
   const signal = AbortSignal.timeout(3000);
   const core = readAssistantCore(supabase, signal);
+  let previousSeason: Promise<boolean> | undefined;
+
+  async function loadSummary(enrich: boolean) {
+    const snapshot = await getCurrentDashboardAssistantSummary(supabase, { core, signal, enrich });
+    if (!snapshot || !(
+      snapshot.developmentTeamSetupRequired ||
+      snapshot.developmentRaceRegistrationReminderCount > 0 ||
+      snapshot.federationEquipmentSelectionRequired
+    )) {
+      return snapshot;
+    }
+
+    previousSeason ??= hasManagedInCompletedSeason(authUserId, signal);
+    if (await previousSeason) return snapshot;
+
+    return {
+      ...snapshot,
+      developmentTeamSetupRequired: false,
+      developmentRaceRegistrationReminderCount: 0,
+      federationEquipmentSelectionRequired: false,
+    };
+  }
+
   return {
-    initial: getCurrentDashboardAssistantSummary(supabase, { core, signal, enrich: false }),
-    complete: getCurrentDashboardAssistantSummary(supabase, { core, signal }),
+    initial: loadSummary(false),
+    complete: loadSummary(true),
   };
 }
 

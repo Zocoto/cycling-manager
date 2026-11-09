@@ -1,16 +1,23 @@
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
+import { buildDashboardAssistantLines } from "@/lib/game/dashboard-assistant";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getCurrentDashboardAssistantSummary, getCurrentDashboardAssistantSummaries } from "./dashboard-assistant";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getDashboardHalloweenEdition } from "./dashboard-halloween";
 
 vi.mock("./dashboard-halloween", () => ({ getDashboardHalloweenEdition: vi.fn().mockResolvedValue(null) }));
+vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: vi.fn() }));
 
-function client(payload: unknown) {
+const authUserId = "00000000-0000-4000-8000-000000000001";
+
+function client(payload: unknown, federationEquipment = false) {
   const result = { data: null, error: null };
   const rpc = vi.fn((name: string) => {
     const response = name === "get_current_dashboard_assistant_summary"
       ? { data: { game_date: "2026-10-11", journal_items: payload }, error: null }
+      : name === "get_current_federation_equipment_alert" && federationEquipment
+        ? { data: { selection_required: true, country_code: "BE" }, error: null }
       : result;
     const query = Object.assign(Promise.resolve(response), { maybeSingle: vi.fn().mockResolvedValue(response), abortSignal: vi.fn() });
     query.abortSignal.mockReturnValue(query);
@@ -29,11 +36,53 @@ function client(payload: unknown) {
   return { rpc, from, supabase: { rpc, from } as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>> };
 }
 
+describe("first-season dashboard alerts", () => {
+  it.each([false, true])("shows advanced alerts only with a completed season of experience (%s)", async (experienced) => {
+    const mock = client({
+      developmentTeamSetup: { required: true, currentDayNumber: 3 },
+      developmentRaceRegistrationReminder: {
+        count: 1,
+        nextName: "Course junior",
+        nextEditionId: "00000000-0000-4000-8000-000000000002",
+      },
+      equipmentPartnerSignatureAvailable: true,
+    }, true);
+    const query = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      abortSignal: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: experienced ? { id: "past-assignment" } : null, error: null }),
+    };
+    const from = vi.fn().mockReturnValue(query);
+    vi.mocked(createSupabaseAdminClient).mockReturnValueOnce({ from } as unknown as ReturnType<typeof createSupabaseAdminClient>);
+
+    const { initial, complete } = getCurrentDashboardAssistantSummaries(mock.supabase, authUserId);
+    for (const [snapshot, enriched] of [[await initial, false], [await complete, true]] as const) {
+      const { alerts } = buildDashboardAssistantLines({ snapshot: snapshot!, rewardCount: 0, cashBalance: null });
+      const ids = alerts.map(({ id }) => id);
+      expect(ids.includes("development-team-setup")).toBe(experienced);
+      expect(ids.includes("development-race-registration-reminder")).toBe(experienced);
+      expect(ids.includes("federation-equipment-selection")).toBe(experienced && enriched);
+      expect(ids).toContain("equipment-partner-signature");
+    }
+    expect(from).toHaveBeenCalledExactlyOnceWith("team_manager_assignments");
+    expect(query.eq.mock.calls).toEqual([
+      ["director.auth_user_id", authUserId],
+      ["start_season.status", "completed"],
+      ["role", "general_manager"],
+    ]);
+    expect(query.in).toHaveBeenCalledExactlyOnceWith("status", ["active", "completed", "terminated"]);
+    expect(query.limit).toHaveBeenCalledExactlyOnceWith(1);
+  });
+});
+
 describe("dashboard physiotherapist payload", () => {
   it("includes actual camp gains in both summaries without adding any request", async () => {
     const formCampReport = { dayNumber: 25, riderCount: 2, totalFormGain: 15 };
     const mock = client({ formCampReport, items: [] });
-    const summaries = getCurrentDashboardAssistantSummaries(mock.supabase);
+    const summaries = getCurrentDashboardAssistantSummaries(mock.supabase, authUserId);
     expect(await summaries.initial).toMatchObject({ formCampReport });
     expect(await summaries.complete).toMatchObject({ formCampReport });
     expect(mock.rpc).toHaveBeenCalledTimes(7);
@@ -44,7 +93,7 @@ describe("dashboard physiotherapist payload", () => {
   it("loads an eligible federation vote from the existing first dashboard response", async () => {
     const closesAt = "2026-11-10T18:00:00+00:00";
     const mock = client({ federationVoteReminder: { countryCode: "be", closesAt }, items: [] });
-    const summaries = getCurrentDashboardAssistantSummaries(mock.supabase);
+    const summaries = getCurrentDashboardAssistantSummaries(mock.supabase, authUserId);
     const federationVoteReminder = { countryCode: "BE", closesAt };
     expect(await summaries.initial).toMatchObject({ federationVoteReminder });
     expect(await summaries.complete).toMatchObject({ federationVoteReminder });
@@ -93,7 +142,7 @@ describe("dashboard physiotherapist payload", () => {
 
   it("exposes empty-roster recovery in the first summary without another request", async () => {
     const mock = client({ emptyRosterRecoveryAvailable: true, items: [] });
-    const summaries = getCurrentDashboardAssistantSummaries(mock.supabase);
+    const summaries = getCurrentDashboardAssistantSummaries(mock.supabase, authUserId);
     expect(await summaries.initial).toMatchObject({ emptyRosterRecoveryAvailable: true });
     expect(await summaries.complete).toMatchObject({ emptyRosterRecoveryAvailable: true });
     expect(mock.rpc).toHaveBeenCalledTimes(7);
@@ -108,7 +157,7 @@ describe("dashboard physiotherapist payload", () => {
   it("includes the shared Halloween deadline only in the enriched assistant", async () => {
     vi.mocked(getDashboardHalloweenEdition).mockResolvedValueOnce({ id: "halloween-2026", shopEndsAt: "2026-11-05T23:00:00Z" });
     const mock = client({ items: [] });
-    const summaries = getCurrentDashboardAssistantSummaries(mock.supabase);
+    const summaries = getCurrentDashboardAssistantSummaries(mock.supabase, authUserId);
     expect(await summaries.initial).toMatchObject({ halloweenShopEndsAt: null });
     expect(await summaries.complete).toMatchObject({ halloweenShopEndsAt: "2026-11-05T23:00:00Z" });
     expect(mock.rpc).toHaveBeenCalledTimes(7);
@@ -140,7 +189,7 @@ describe("dashboard physiotherapist payload", () => {
       query.abortSignal.mockReturnValue(query);
       return query;
     });
-    const summaries = getCurrentDashboardAssistantSummaries(mock.supabase);
+    const summaries = getCurrentDashboardAssistantSummaries(mock.supabase, authUserId);
     try {
       expect(await summaries.initial).toMatchObject({ availablePhysiotherapistSlotCount: 4 });
       expect(mock.rpc.mock.calls.filter(call => call[0] === "get_current_dashboard_assistant_summary")).toHaveLength(1);

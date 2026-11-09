@@ -435,7 +435,7 @@ export default async function GamePage() {
       )
     : Promise.resolve([]);
   const assistantSummaries = DASHBOARD_ASSISTANT_ENABLED
-    ? getCurrentDashboardAssistantSummaries(supabase)
+    ? getCurrentDashboardAssistantSummaries(supabase, user.id)
     : { initial: Promise.resolve(null), complete: Promise.resolve(null) };
   const initialDashboardAssistantPromise = loadDashboardValue(
     assistantSummaries.initial, null,
