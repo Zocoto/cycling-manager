@@ -66,6 +66,7 @@ export type NewcomerJourney = {
 export type DashboardAssistantSnapshot = {
   formCampReport?: DashboardFormCampReportSummary | null;
   federationVoteReminder?: DashboardFederationVoteReminder | null;
+  nationalChampionshipRouteReminder?: DashboardNationalChampionshipRouteReminder | null;
   halloweenShopEndsAt?: string | null;
   naturalizationAlerts?: DashboardNaturalizationAlert[];
   emptyRosterRecoveryAvailable?: boolean;
@@ -142,6 +143,12 @@ export type DashboardFederationVoteReminder = {
   closesAt: string;
 };
 
+export type DashboardNationalChampionshipRouteReminder = {
+  countryCode: string;
+  closesAt: string;
+  targetGameYear: number;
+};
+
 export type DashboardInfrastructureOrientation = {
   infrastructureCode: string;
   buildingName: string;
@@ -193,6 +200,7 @@ const ALERT_PRIORITY = [
   "race-roster-alerts",
   "negative-cash",
   "federation-vote-reminder",
+  "national-championship-route-reminder",
   "halloween-shop-closing",
   "development-race-registration-reminder",
   "development-team-setup",
@@ -511,6 +519,20 @@ export function buildDashboardAssistantLines({
       title: "Vote fédéral ouvert",
       detail: `Élection du président · clôture ${deadline}.`,
       href: `/jeu/federations/${federationVote.countryCode.toLowerCase()}?onglet=governance#election-federale`,
+    });
+  }
+
+  const routeReminder = snapshot.nationalChampionshipRouteReminder;
+  const routeClosesAt = routeReminder ? Date.parse(routeReminder.closesAt) : NaN;
+  if (routeReminder && routeClosesAt > now.getTime()) {
+    const deadline = FEDERATION_VOTE_DEADLINE_FORMAT.format(routeClosesAt - 60_000);
+    alerts.push({
+      id: "national-championship-route-reminder",
+      tone: "alert",
+      metric: "CN",
+      title: "Profil du championnat national à choisir",
+      detail: `Saison ${routeReminder.targetGameYear} · choix jusqu’au ${deadline}.`,
+      href: `/jeu/federations/${routeReminder.countryCode.toLowerCase()}?onglet=races#championnat-national`,
     });
   }
 

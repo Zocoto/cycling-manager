@@ -29,6 +29,8 @@ import {
 
 describe("race profile labels", () => {
   it("identifies hybrid road profiles while preserving unrelated sporting domains", () => {
+    expect(getRaceProfileLabel({profileType:"flat",profileVariant:"flat_hilly"})).toBe("Plaine / Vallonné");
+    expect(getRaceProfileLabel({profileType:"time_trial",profileVariant:"flat_hilly"})).toBe("Contre-la-montre");
     expect(getRaceProfileLabel({profileType:"hilly",profileVariant:"hilly_cobbles"})).toBe("Pavé / Vallonné");
     expect(getRaceProfileLabel({profileType:"cobbles",profileVariant:"hilly_cobbles"})).toBe("Pavé / Vallonné");
     expect(getRaceProfileLabel({profileType:"hilly"})).toBe("Vallonné");

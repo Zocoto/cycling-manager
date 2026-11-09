@@ -234,6 +234,22 @@ describe("dashboard DS assistant", () => {
     const after = buildDashboardAssistantLines({ ...options, now: new Date(closesAt) });
     expect(after.alerts.some(line => line.id === "federation-vote-reminder")).toBe(false);
   });
+
+  it("links the CN reminder to the route picker until the end of J28 in Paris", () => {
+    const closesAt = "2026-12-04T00:00:00+01:00";
+    const options = {
+      snapshot: { ...snapshot, nationalChampionshipRouteReminder: { countryCode: "FR", closesAt, targetGameYear: 6 } },
+      rewardCount: 0,
+      cashBalance: 0,
+    };
+    const before = buildDashboardAssistantLines({ ...options, now: new Date("2026-12-03T22:59:59Z") });
+    expect(before.alerts.find(line => line.id === "national-championship-route-reminder")).toMatchObject({
+      detail: expect.stringContaining("23:59"),
+      href: "/jeu/federations/fr?onglet=races#championnat-national",
+    });
+    const after = buildDashboardAssistantLines({ ...options, now: new Date(closesAt) });
+    expect(after.alerts.some(line => line.id === "national-championship-route-reminder")).toBe(false);
+  });
   it.each([
     [1, 1, "coureur sans kiné", "1 place disponible"],
     [8, 3, "coureurs sans kiné", "3 places disponibles"],

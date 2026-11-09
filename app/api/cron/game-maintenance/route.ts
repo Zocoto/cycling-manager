@@ -12,6 +12,7 @@ const MAINTENANCE_TASKS = [
   "sync_junior_pro_national_fallback",
   "settle_due_lightweight_junior_national_championships",
   "settle_due_development_races",
+  "settle_due_national_federation_race_votes",
   "settle_due_season_rollovers",
   "refresh_due_rider_favorite_races",
   "settle_due_rider_morale",
@@ -29,7 +30,6 @@ const MAINTENANCE_TASKS = [
   "settle_due_national_federation_infrastructure_projects",
   "settle_due_national_federation_school_plans",
   "settle_due_national_federation_hosting_returns",
-  "settle_due_national_federation_race_votes",
   "settle_due_national_federation_race_maintenance",
   "purge_expired_director_messages",
 ] as const;

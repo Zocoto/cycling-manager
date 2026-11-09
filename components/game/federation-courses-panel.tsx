@@ -3,20 +3,21 @@
 import { useActionState } from "react";
 
 import {
-  submitFederationHostingCandidacyAction,
+  manageFederationHostingCandidacyAction,
 } from "@/app/jeu/federations/governance-actions";
 import { FederationRaceCreationPanel } from "@/components/game/federation-race-creation-panel";
+import { NationalChampionshipRoutePanel } from "@/components/game/national-championship-route-panel";
 import Link from "@/components/ui/app-link";
 import { initialFederationGovernanceActionState } from "@/lib/game/federation-action-states";
 import { getFederationHostingEvent } from "@/lib/game/federation-hosting";
+import type { NationalChampionshipRouteChoice } from "@/lib/game/national-championship-road-route";
 import {
   RACE_PROFILE_LABELS,
   type RaceProfileType,
 } from "@/lib/game/race-calendar";
-import type { FederationCoursesState } from "@/services/federation-courses";
+import type { FederationCoursesState, FederationHostingReport } from "@/services/federation-courses";
 import type { FederationRaceCreationState } from "@/services/federation-race-creation";
 
-const numberFormatter = new Intl.NumberFormat("fr-FR");
 const moneyFormatter = new Intl.NumberFormat("fr-FR", {
   style: "currency",
   currency: "EUR",
@@ -41,49 +42,55 @@ export function FederationCoursesPanel({
   gameYear,
   state,
   raceCreationState,
+  nationalChampionshipRouteChoice = null,
 }: {
   countryCode: string;
   gameYear: number;
   state: FederationCoursesState;
   raceCreationState: FederationRaceCreationState | null;
+  nationalChampionshipRouteChoice?: NationalChampionshipRouteChoice | null;
 }) {
   const [actionState, action, pending] = useActionState(
-    submitFederationHostingCandidacyAction,
+    manageFederationHostingCandidacyAction,
     initialFederationGovernanceActionState,
   );
-  const isQuadriennialTarget = state.hosting.targetGameYear % 4 === 0;
+  const availableBalance = state.hosting.balance === null
+    ? null
+    : Math.max(0, state.hosting.balance - state.hosting.reservedAmount);
 
   return (
     <div className="space-y-7">
-      <RenownPanel state={state} />
-      <CountryRacePortfolio state={state} />
+      <nav aria-label="Gestion des courses" className="flex flex-wrap gap-2 text-sm font-bold">
+        <a href="#accueil-international" className="rounded-xl bg-white px-4 py-2">Accueil international</a>
+        {nationalChampionshipRouteChoice ? <a href="#championnat-national" className="rounded-xl bg-white px-4 py-2">Championnat national</a> : null}
+        {raceCreationState ? <a href="#creation-course" className="rounded-xl bg-white px-4 py-2">Créer une course</a> : null}
+        <a href="#courses-du-pays" className="rounded-xl bg-white px-4 py-2">Courses du pays</a>
+      </nav>
 
-      <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]">
+      <section id="accueil-international" className="scroll-mt-24 overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]">
         <div className="grid gap-5 bg-[var(--federation-primary)] p-6 text-white sm:p-8 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--federation-accent)]">
               Accueil international · Saison {state.hosting.targetGameYear}
             </p>
             <h2 className="mt-2 text-3xl font-black sm:text-4xl">
-              {isQuadriennialTarget
-                ? "Six candidatures : CM et CC pros/juniors, JQ pros et Nations Cup juniors"
-                : "Six candidatures : CM, CC et Nations Cup pros et juniors"}
+              Candidater à l’accueil d’une compétition
             </h2>
             <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#D6E9E2]">
-              Dépôt jusqu’à J{state.hosting.applicationCloseDay}, attribution
-              automatique à J{state.hosting.decisionDay}. L’ancienneté depuis
+              Dépôt jusqu’à la fin de J{state.hosting.applicationCloseDay}, attribution
+              automatique à partir de J{state.hosting.decisionDay}, dès que le calendrier est prêt. L’ancienneté depuis
               le dernier accueil pèse 60 %, le classement UCI 25 % et la
               renommée historique 15 %.
             </p>
           </div>
           <div className="rounded-2xl border border-white/15 bg-white/10 px-5 py-4 text-right">
             <p className="text-[10px] font-black uppercase tracking-[0.13em] text-[#B8DDCF]">
-              Trésorerie / garanties
+              Trésorerie disponible
             </p>
             <p className="mt-1 text-xl font-black">
-              {state.hosting.balance == null
+              {availableBalance === null
                 ? "Non active"
-                : moneyFormatter.format(state.hosting.balance)}
+                : moneyFormatter.format(availableBalance)}
             </p>
             <p className="mt-1 text-xs font-bold text-[#B8DDCF]">
               {moneyFormatter.format(state.hosting.reservedAmount)} garantis
@@ -93,11 +100,9 @@ export function FederationCoursesPanel({
 
         <div className="space-y-6 p-6 sm:p-8">
           <div className="rounded-2xl border border-[#D5AC18]/30 bg-[#FFF9DE] px-5 py-4 text-sm font-bold leading-6 text-[#66520D]">
-            Le coût affiché est garanti au dépôt mais débité uniquement si le
-            pays est retenu. Après la compétition, les recettes dépendent de
-            l’affluence réelle, elle-même liée au taux de participation et à la
-            renommée du pays hôte. Le prestige annoncé est crédité à la clôture
-            de l’événement.
+            Le dépôt réserve le coût affiché. Le pays retenu paie à l’attribution.
+            Les recettes dépendent des départs effectifs, des places ouvertes et
+            de la renommée du pays hôte. Les estimations couvrent une participation de 50 à 95 %.
           </div>
 
           {actionState.message ? (
@@ -140,24 +145,32 @@ export function FederationCoursesPanel({
 
                 <dl className="mt-5 grid grid-cols-2 gap-3 text-sm">
                   <HostingMetric label="Coût si retenu" value={moneyFormatter.format(opportunity.hostingCost)} />
-                  <HostingMetric label="Affluence estimée" value={numberFormatter.format(opportunity.projectedAttendance)} />
-                  <HostingMetric label="Recettes estimées" value={moneyFormatter.format(opportunity.projectedGrossRevenue)} />
+                  <HostingMetric label="Recettes estimées" value={formatMoneyRange(opportunity.projectedGrossRevenue)} />
                   <HostingMetric
                     label="Solde estimé"
-                    value={moneyFormatter.format(opportunity.projectedNetReturn)}
-                    negative={opportunity.projectedNetReturn < 0}
+                    value={formatMoneyRange(opportunity.projectedNetReturn)}
+                    negative={opportunity.projectedNetReturn[1] < 0}
                   />
                 </dl>
 
                 <div className="mt-5 flex-1 rounded-xl border border-[#315B3E]/10 bg-white p-4 text-sm font-bold text-[#536B63]">
                   {opportunity.selectedHostName
                     ? `Pays hôte désigné : ${opportunity.selectedHostName}.`
-                    : opportunity.candidacy
+                    : opportunity.candidacy?.status === "pending"
                       ? `Candidature déposée · score ${opportunity.candidacy.selectionScore}/1000.`
                       : opportunity.unavailableReason ?? "La fédération peut déposer sa candidature."}
                 </div>
 
-                {!opportunity.candidacy && !opportunity.selectedHostName ? (
+                {opportunity.canWithdraw && opportunity.candidacy ? (
+                  <form action={action} className="mt-4">
+                    <input type="hidden" name="intent" value="withdraw" />
+                    <input type="hidden" name="countryCode" value={countryCode} />
+                    <input type="hidden" name="candidacyId" value={opportunity.candidacy.id} />
+                    <button type="submit" disabled={pending} className="min-h-11 w-full rounded-xl border border-[#315B3E]/25 bg-white px-4 text-sm font-black disabled:opacity-50">
+                      Retirer la candidature
+                    </button>
+                  </form>
+                ) : !opportunity.selectedHostName && (!opportunity.candidacy || opportunity.candidacy.status === "withdrawn") ? (
                   <form action={action} className="mt-4">
                     <input type="hidden" name="countryCode" value={countryCode} />
                     <input type="hidden" name="eventType" value={opportunity.eventType} />
@@ -175,9 +188,11 @@ export function FederationCoursesPanel({
           </div>
 
           <CandidacyRanking state={state} />
+          {state.hosting.reports.length ? <HostingReports reports={state.hosting.reports} /> : null}
         </div>
       </section>
 
+      <NationalChampionshipRoutePanel choice={nationalChampionshipRouteChoice} />
       {raceCreationState ? (
         <FederationRaceCreationPanel
           countryCode={countryCode}
@@ -185,7 +200,47 @@ export function FederationCoursesPanel({
           state={raceCreationState}
         />
       ) : null}
+      <div id="courses-du-pays" className="space-y-7 scroll-mt-24">
+        <CountryRacePortfolio state={state} />
+        <RenownPanel state={state} />
+      </div>
     </div>
+  );
+}
+
+function formatMoneyRange(range: [number, number]) {
+  return range.map((amount) => moneyFormatter.format(amount)).join(" – ");
+}
+
+function HostingReports({ reports }: { reports: FederationHostingReport[] }) {
+  return (
+    <section className="space-y-3">
+      <h3 className="text-lg font-black text-[#183F37]">Bilan des accueils</h3>
+      {reports.map((report) => (
+        <article key={`${report.gameYear}-${report.eventType}`} className="rounded-xl border border-[#315B3E]/14 bg-[#F8FBF9] p-4">
+          <h4 className="font-black text-[#183F37]">{getFederationHostingEvent(report.eventType).label} · S{report.gameYear}</h4>
+          {report.status === "scheduled" ? (
+            <p className="mt-1 text-sm text-[#536B63]">Accueil prévu · {moneyFormatter.format(report.hostingCost)}</p>
+          ) : (
+            <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
+              <HostingMetric label="Coût d’accueil" value={moneyFormatter.format(report.hostingCost)} />
+              {report.grossRevenue === null ? null : <HostingMetric label="Recettes" value={moneyFormatter.format(report.grossRevenue)} />}
+              {report.refund ? <HostingMetric label="Remboursement" value={moneyFormatter.format(report.refund)} /> : null}
+              {report.netReturn === null ? null : <HostingMetric label="Résultat net" value={moneyFormatter.format(report.netReturn)} negative={report.netReturn < 0} />}
+              {report.participationRate === null ? null : (
+                <HostingMetric label="Participation réelle" value={
+                  report.placeCount
+                    ? `${report.starterCount ?? 0}/${report.placeCount} · ${Math.round(report.participationRate * 100)} %`
+                    : `${Math.round(report.participationRate * 100)} %`
+                } />
+              )}
+              {report.scheduledEditionCount === null ? null : <HostingMetric label="Épreuves courues" value={`${report.completedEditionCount ?? 0}/${report.scheduledEditionCount}`} />}
+              <HostingMetric label="Prestige d’organisation" value={`+${report.prestigeGain}`} />
+            </dl>
+          )}
+        </article>
+      ))}
+    </section>
   );
 }
 

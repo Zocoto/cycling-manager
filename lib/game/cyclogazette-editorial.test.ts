@@ -35,10 +35,12 @@ describe("bouclage éditorial de La Cyclogazette", () => {
     expect(editorialService).toContain('.from("rider_injuries")');
   });
 
-  it("clôture les votes fédéraux avant le bouclage du soir", () => {
-    expect(publicationService).toContain(
+  it("publie les courses déjà homologuées sans clôturer les votes", () => {
+    expect(publicationService).not.toContain(
       '"settle_due_national_federation_race_votes"',
     );
+    expect(editorialService).toContain('.eq("gazette_day_number", context.dayNumber)');
+    expect(editorialService).toContain('.in("status", ["scheduled", "active"])');
     expect(editorialService).toContain('kind: "federation_race"');
   });
 

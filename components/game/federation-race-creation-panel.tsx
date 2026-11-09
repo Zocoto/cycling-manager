@@ -107,17 +107,17 @@ export function FederationRaceCreationPanel({
       ? state.score.continentalThreshold
       : state.score.threshold;
   const cost = getFederationRaceCost({ categoryCode, stageCount: stages.length });
-  const scheduleAvailable = isScheduleAvailable(
-    state.calendar,
-    startDay,
-    startSlot,
-    stages.length,
+  const scheduleAvailable = startDay >= 2 && (
+    state.calendarStatus === "pending" || isScheduleAvailable(state.calendar, startDay, startSlot, stages.length)
   );
   const canAfford = Boolean(
     editableProject &&
-      state.accountBalance >= editableProject.cost.creationMoney &&
+      state.availableBalance >= editableProject.cost.creationMoney &&
       state.viewerReputation >= editableProject.cost.creationReputation,
   );
+  const savedScheduleAvailable = Boolean(editableProject && isScheduleAvailable(
+    state.calendar, editableProject.startDay, editableProject.startSlot, editableProject.stages.length,
+  ));
 
   const setFormat = (format: FederationRaceFormat) => {
     setRaceFormat(format);
@@ -130,7 +130,7 @@ export function FederationRaceCreationPanel({
   };
 
   return (
-    <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]">
+    <section id="creation-course" className="scroll-mt-24 overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]">
       <div className="grid gap-6 bg-[linear-gradient(135deg,var(--federation-primary,#102F2A)_0%,var(--federation-secondary,#176951)_100%)] p-6 text-white sm:p-8 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-[#9BE0BC]">
@@ -171,6 +171,16 @@ export function FederationRaceCreationPanel({
 
       <div className="space-y-6 p-6 sm:p-8">
         <ScoreBreakdown state={state} gameYear={gameYear} />
+        {state.viewerIsPresident && state.voteDeadline ? (
+          <p className="rounded-xl bg-[#F1F7F4] px-4 py-3 text-sm font-bold text-[#345951]">
+            Ouverture du vote jusqu’au {formatDateTime(state.voteDeadline)} (J27, heure de Paris).
+          </p>
+        ) : null}
+        {state.project?.status === "rejected" && state.project.decisionError === "schedule_unavailable" ? (
+          <p role="status" className="rounded-xl bg-[#FFF9DE] px-4 py-3 text-sm font-bold text-[#65571C]">
+            Le projet a été approuvé, mais son créneau ou sa saison cible n’est plus disponible. La réservation a été remboursée.
+          </p>
+        ) : null}
 
         {state.project?.status === "voting" ? (
           <VotingProject
@@ -251,6 +261,7 @@ export function FederationRaceCreationPanel({
             <NextSeasonCalendar
               gameYear={state.targetGameYear}
               calendar={state.calendar}
+              calendarStatus={state.calendarStatus}
               startDay={startDay}
               startSlot={startSlot}
               stageCount={stages.length}
@@ -259,7 +270,7 @@ export function FederationRaceCreationPanel({
 
             <CostSummary
               cost={cost}
-              accountBalance={state.accountBalance}
+              availableBalance={state.availableBalance}
               reputation={state.viewerReputation}
             />
 
@@ -280,7 +291,7 @@ export function FederationRaceCreationPanel({
                 <input
                   className={fieldClassName}
                   type="number"
-                  min={1}
+                  min={2}
                   max={28}
                   value={startDay}
                   onChange={(event) => setStartDay(Number(event.target.value))}
@@ -389,6 +400,7 @@ export function FederationRaceCreationPanel({
               countryCode={countryCode}
               project={editableProject}
               canAfford={canAfford}
+              scheduleAvailable={savedScheduleAvailable}
               action={submitAction}
               actionState={submitState}
               pending={submitPending}
@@ -420,6 +432,7 @@ export function FederationRaceCreationPanel({
 function NextSeasonCalendar({
   gameYear,
   calendar,
+  calendarStatus,
   startDay,
   startSlot,
   stageCount,
@@ -427,6 +440,7 @@ function NextSeasonCalendar({
 }: {
   gameYear: number;
   calendar: FederationRaceCalendarDay[];
+  calendarStatus: FederationRaceCreationState["calendarStatus"];
   startDay: number;
   startSlot: FederationRaceDaySlot;
   stageCount: number;
@@ -444,25 +458,26 @@ function NextSeasonCalendar({
           </h3>
         </div>
         <p className="text-xs font-bold text-[#60756E]">
-          CN · CC · CM · JQ · NC interdits · 2 courses maximum par vague
+          J1 et journées de championnats réservées · 2 courses maximum par vague
         </p>
       </div>
-      {calendar.length ? (
+      {calendarStatus === "ready" ? (
         <div className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-7 lg:grid-cols-14">
           {calendar.map((day) => {
             const slot = day[startSlot];
             const selected = day.dayNumber === startDay;
+            const available = isScheduleAvailable(calendar, day.dayNumber, startSlot, stageCount);
             return (
               <button
                 key={day.dayNumber}
                 type="button"
                 onClick={() => onSelectDay(day.dayNumber)}
-                disabled={slot.unavailable}
+                disabled={!available}
                 title={day.forbiddenLabel ?? slot.labels.join(" · ")}
                 className={`min-h-16 rounded-xl border px-2 py-2 text-left transition ${
                   selected
                     ? "border-[var(--federation-primary,#123F36)] bg-[var(--federation-primary,#123F36)] text-white"
-                    : slot.unavailable
+                    : !available
                       ? "cursor-not-allowed border-[#C8D0CD] bg-[#E8ECEA] text-[#7D8985]"
                       : "border-[#315B3E]/12 bg-white text-[#183F37] hover:border-[var(--federation-secondary,#278B70)]"
                 }`}
@@ -472,7 +487,7 @@ function NextSeasonCalendar({
                   {day.forbiddenLabel ??
                     (slot.existingRaceCount
                       ? `${slot.existingRaceCount} course${slot.existingRaceCount > 1 ? "s" : ""}`
-                      : "Libre")}
+                      : slot.unavailable ? "Réservé" : "Libre")}
                 </span>
               </button>
             );
@@ -480,10 +495,12 @@ function NextSeasonCalendar({
         </div>
       ) : (
         <p className="mt-4 rounded-xl bg-white px-4 py-3 text-sm font-bold text-[#60756E]">
-          Le calendrier S{gameYear} est en cours de préparation. Le serveur vérifiera le créneau au moment de l’enregistrement.
+          {calendarStatus === "pending"
+            ? `Le calendrier S${gameYear} est en cours de préparation. Le serveur vérifiera le créneau au moment de l’enregistrement.`
+            : "La disponibilité des créneaux est momentanément inaccessible. Réessayez dans quelques instants."}
         </p>
       )}
-      {!isScheduleAvailable(calendar, startDay, startSlot, stageCount) ? (
+      {calendarStatus === "ready" && !isScheduleAvailable(calendar, startDay, startSlot, stageCount) ? (
         <p role="alert" className="mt-3 text-sm font-black text-[#A23D30]">
           Au moins une étape tombe sur une journée protégée ou une vague déjà complète.
         </p>
@@ -494,18 +511,18 @@ function NextSeasonCalendar({
 
 function CostSummary({
   cost,
-  accountBalance,
+  availableBalance,
   reputation,
 }: {
   cost: ReturnType<typeof getFederationRaceCost>;
-  accountBalance: number;
+  availableBalance: number;
   reputation: number;
 }) {
   return (
     <section className="grid gap-3 sm:grid-cols-3">
-      <CostCard label="Création ponctuelle" value={formatMoney(cost.creationMoney)} detail={`Solde fédéral : ${formatMoney(accountBalance)}`} insufficient={accountBalance < cost.creationMoney} />
-      <CostCard label="Engagement du président" value={`${cost.creationReputation} réputation`} detail={`Disponible : ${formatNumber(reputation)}`} insufficient={reputation < cost.creationReputation} />
-      <CostCard label="Maintenance annuelle" value={formatMoney(cost.annualMaintenance)} detail="Débitée dès la saison suivant l’ouverture" />
+      <CostCard label="Création ponctuelle" value={formatMoney(cost.creationMoney)} detail={`Solde fédéral libre · ${formatMoney(availableBalance)}`} insufficient={availableBalance < cost.creationMoney} />
+      <CostCard label="Réputation minimale du président" value={formatNumber(cost.creationReputation)} detail={`Réputation actuelle · ${formatNumber(reputation)}`} insufficient={reputation < cost.creationReputation} />
+      <CostCard label="Maintenance annuelle" value={formatMoney(cost.annualMaintenance)} detail="Débitée à partir de la deuxième édition" />
     </section>
   );
 }
@@ -524,6 +541,7 @@ function DraftSubmission({
   countryCode,
   project,
   canAfford,
+  scheduleAvailable,
   action,
   actionState,
   pending,
@@ -531,6 +549,7 @@ function DraftSubmission({
   countryCode: string;
   project: NonNullable<FederationRaceCreationState["project"]>;
   canAfford: boolean;
+  scheduleAvailable: boolean;
   action: (payload: FormData) => void;
   actionState: { status: "idle" | "success" | "error"; message: string };
   pending: boolean;
@@ -538,17 +557,20 @@ function DraftSubmission({
   return (
     <section className="rounded-2xl border border-[#D5AC18]/30 bg-[#FFF9DE] p-5">
       <p className="text-[10px] font-black uppercase tracking-[0.13em] text-[#806700]">
-        {project.status === "rejected" ? "Projet refusé · brouillon rouvert" : "Brouillon enregistré"}
+        {project.decisionError === "schedule_unavailable" ? "Créneau à revoir" : project.status === "rejected" ? "Projet refusé · brouillon rouvert" : "Brouillon enregistré"}
       </p>
       <h3 className="mt-1 text-lg font-black text-[#3F360D]">Dernière validation avant consultation</h3>
       <p className="mt-2 text-sm font-semibold leading-6 text-[#65571C]">
-        La soumission réserve {formatMoney(project.cost.creationMoney)} et {project.cost.creationReputation} points de réputation, puis ouvre un vote de 24 h. Ces ressources sont intégralement rendues si le projet est refusé.
+        Le vote de 24 h réserve {formatMoney(project.cost.creationMoney)} pour le brouillon enregistré. Cette somme est rendue en cas de refus ou si la programmation devient impossible. La réputation sert de seuil d’accès.
+      </p>
+      <p className="mt-1 text-sm font-semibold leading-6 text-[#65571C]">
+        Maintenance prévue à partir de la deuxième édition · {formatMoney(project.cost.annualMaintenance)} par saison.
       </p>
       <form action={action} className="mt-4 flex flex-wrap items-center gap-3">
         <input type="hidden" name="countryCode" value={countryCode} />
         <input type="hidden" name="projectId" value={project.id} />
-        <button type="submit" disabled={pending || !canAfford} className="min-h-11 rounded-xl bg-[#806700] px-5 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-[#A9A280]">
-          {pending ? "Ouverture du vote…" : canAfford ? "Soumettre au vote pendant 24 h" : "Ressources insuffisantes"}
+        <button type="submit" disabled={pending || !canAfford || !scheduleAvailable} className="min-h-11 rounded-xl bg-[#806700] px-5 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-[#A9A280]">
+          {pending ? "Ouverture du vote…" : !scheduleAvailable ? "Créneau du brouillon indisponible" : canAfford ? "Soumettre au vote pendant 24 h" : "Ressources insuffisantes"}
         </button>
         <span className="text-xs font-bold text-[#65571C]">Le président vote automatiquement pour.</span>
       </form>
@@ -665,6 +687,7 @@ function LockedCreationNotice({
     },
     { label: "Président élu connecté", complete: state.viewerIsPresident },
     { label: "Bureau d’organisation niveau 1", complete: state.officeLevel >= 1 },
+    { label: "Période de dépôt ouverte", complete: state.voteWindowOpen },
     {
       label: `Indice au moins égal à ${state.score.threshold}`,
       complete: state.score.eligible,
@@ -1097,7 +1120,7 @@ function isScheduleAvailable(
   startSlot: FederationRaceDaySlot,
   stageCount: number,
 ): boolean {
-  if (!calendar.length) return true;
+  if (!calendar.length || startDay < 2 || stageCount < 1) return false;
   return Array.from({ length: stageCount }, (_, stageIndex) =>
     getFederationRaceScheduledSlot({ startDay, startSlot, stageIndex }),
   ).every((schedule) => {

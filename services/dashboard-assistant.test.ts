@@ -52,6 +52,14 @@ describe("dashboard physiotherapist payload", () => {
     expect(mock.rpc.mock.calls.filter(call => call[0] === "get_current_dashboard_assistant_summary")).toHaveLength(1);
   });
 
+  it("reads the CN reminder with the existing dashboard summary", async () => {
+    const closesAt = "2026-12-04T00:00:00+01:00";
+    const mock = client({ nationalChampionshipRouteReminder: { countryCode: "fr", closesAt, targetGameYear: 6 } });
+    const summary = await getCurrentDashboardAssistantSummary(mock.supabase, { enrich: false });
+    expect(summary?.nationalChampionshipRouteReminder).toEqual({ countryCode: "FR", closesAt, targetGameYear: 6 });
+    expect(mock.rpc).toHaveBeenCalledTimes(1);
+  });
+
   it.each([null, [], {}, { federationVoteReminder: null },
     { federationVoteReminder: { countryCode: "../be", closesAt: "2026-11-10T18:00:00Z" } },
     { federationVoteReminder: { countryCode: "BE", closesAt: "invalid" } },

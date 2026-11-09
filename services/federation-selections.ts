@@ -62,9 +62,10 @@ type SlotRow = {
 };
 type HostingAwardRow = {
   event_type: FederationHostingEventType;
+  continent_code: string | null;
   country_id: string;
 };
-type HostCountryRow = { id: string; iso_alpha2: string; name: string };
+type HostCountryRow = { id: string; iso_alpha2: string; name: string; continent_code: string | null };
 
 export async function getFederationSelectionState({
   countryId,
@@ -122,7 +123,7 @@ export async function getFederationSelectionState({
         .maybeSingle<PreferenceRow>(),
       admin
         .from("national_federation_hosting_awards")
-        .select("event_type, country_id")
+        .select("event_type, continent_code, country_id")
         .eq("target_game_year", gameYear)
         .in("status", ["scheduled", "settled"])
         .returns<HostingAwardRow[]>(),
@@ -171,8 +172,8 @@ export async function getFederationSelectionState({
       hostCountryIds.length
         ? admin
             .from("countries")
-            .select("id, iso_alpha2, name")
-            .in("id", hostCountryIds)
+            .select("id, iso_alpha2, name, continent_code")
+            .in("id", [...new Set([...hostCountryIds, countryId])])
             .returns<HostCountryRow[]>()
         : Promise.resolve({ data: [] as HostCountryRow[], error: null }),
     ]);
@@ -205,8 +206,10 @@ export async function getFederationSelectionState({
     const countryById = new Map(
       (hostCountriesResult.data ?? []).map((country) => [country.id, country]),
     );
+    const federationContinent = countryById.get(countryId)?.continent_code;
     const competitionHosts = Object.fromEntries(
       (hostsResult.data ?? []).flatMap((host) => {
+        if (host.continent_code && host.continent_code !== federationContinent) return [];
         const country = countryById.get(host.country_id);
         return country
           ? [

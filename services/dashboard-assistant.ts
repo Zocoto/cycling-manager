@@ -3,6 +3,7 @@ import "server-only";
 import type {
   DashboardAssistantSnapshot,
   DashboardFederationVoteReminder,
+  DashboardNationalChampionshipRouteReminder,
   DashboardFormCampReportSummary,
   DashboardNaturalizationAlert,
   DashboardJournalItem,
@@ -209,6 +210,7 @@ export async function getCurrentDashboardAssistantSummary(
     halloweenShopEndsAt: halloweenEdition?.shopEndsAt ?? null,
     naturalizationAlerts: assistantPayload.naturalizationAlerts,
     federationVoteReminder: assistantPayload.federationVoteReminder,
+    nationalChampionshipRouteReminder: assistantPayload.nationalChampionshipRouteReminder,
     emptyRosterRecoveryAvailable: assistantPayload.emptyRosterRecoveryAvailable,
     gameDate: row.game_date,
     minimumForm: row.minimum_form,
@@ -392,6 +394,7 @@ function clampInteger(value: unknown, minimum: number, maximum: number) {
 function normalizeAssistantPayload(value: unknown): {
   formCampReport: DashboardFormCampReportSummary | null;
   federationVoteReminder: DashboardFederationVoteReminder | null;
+  nationalChampionshipRouteReminder: DashboardNationalChampionshipRouteReminder | null;
   naturalizationAlerts: DashboardNaturalizationAlert[];
   emptyRosterRecoveryAvailable: boolean;
   riderRecruitmentMatchCount: number;
@@ -419,6 +422,7 @@ function normalizeAssistantPayload(value: unknown): {
     return {
       formCampReport: null,
       federationVoteReminder: null,
+      nationalChampionshipRouteReminder: null,
       naturalizationAlerts: [],
       emptyRosterRecoveryAvailable: false,
       riderRecruitmentMatchCount: 0,
@@ -448,6 +452,7 @@ function normalizeAssistantPayload(value: unknown): {
     return {
       formCampReport: null,
       federationVoteReminder: null,
+      nationalChampionshipRouteReminder: null,
       naturalizationAlerts: [],
       emptyRosterRecoveryAvailable: false,
       riderRecruitmentMatchCount: 0,
@@ -502,6 +507,7 @@ function normalizeAssistantPayload(value: unknown): {
   return {
     formCampReport: normalizeFormCampReportSummary(payload.formCampReport),
     federationVoteReminder: normalizeFederationVoteReminder(payload.federationVoteReminder),
+    nationalChampionshipRouteReminder: normalizeNationalChampionshipRouteReminder(payload.nationalChampionshipRouteReminder),
     naturalizationAlerts: normalizeNaturalizationAlerts(payload.naturalizationAlerts),
     emptyRosterRecoveryAvailable: payload.emptyRosterRecoveryAvailable === true,
     riderRecruitmentMatchCount: normalizeCount(
@@ -595,6 +601,15 @@ function normalizeFederationVoteReminder(value: unknown): DashboardFederationVot
   const closesAt = normalizeOptionalString(reminder.closesAt);
   return countryCode && closesAt && Number.isFinite(Date.parse(closesAt))
     ? { countryCode, closesAt }
+    : null;
+}
+
+function normalizeNationalChampionshipRouteReminder(value: unknown): DashboardNationalChampionshipRouteReminder | null {
+  const timing = normalizeFederationVoteReminder(value);
+  if (!timing) return null;
+  const { targetGameYear } = value as Record<string, unknown>;
+  return typeof targetGameYear === "number" && Number.isSafeInteger(targetGameYear) && targetGameYear > 1
+    ? { ...timing, targetGameYear }
     : null;
 }
 

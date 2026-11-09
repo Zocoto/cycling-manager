@@ -32,6 +32,7 @@ import { getFederationSponsorCoverage } from "@/services/federation-sponsors";
 import { getFederationTreasuryState } from "@/services/federation-treasury";
 import { getFederationTeamJerseyArtworks } from "@/services/federation-team-jerseys";
 import { getNationalFederationJersey } from "@/services/national-federation-jerseys";
+import { getNationalChampionshipRouteChoice } from "@/services/national-championship-route-choice";
 import {
   getCurrentTeamFederationCountryCode,
   getNationalFederationSnapshot,
@@ -130,6 +131,7 @@ export default async function FederationPage({
     internationalResults,
     governanceOverview,
     coursesState,
+    nationalChampionshipRouteChoice,
     selectionState,
     treasuryState,
     infrastructureState,
@@ -190,6 +192,9 @@ export default async function FederationPage({
             ? snapshot.viewer.teamId
             : null,
         })
+      : Promise.resolve(null),
+    selectedTab === "races"
+      ? getNationalChampionshipRouteChoice(supabase, country.country_code)
       : Promise.resolve(null),
     selectedTab === "selections"
       ? getFederationSelectionState({
@@ -409,6 +414,7 @@ export default async function FederationPage({
           internationalResults={internationalResults}
           governanceOverview={governanceOverview}
           coursesState={coursesState}
+          nationalChampionshipRouteChoice={nationalChampionshipRouteChoice}
           raceCreationState={federationRaceCreationState}
           selectionState={selectionState}
           treasuryState={treasuryState}

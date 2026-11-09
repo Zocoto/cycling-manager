@@ -43,6 +43,7 @@ import type { FederationEquipmentState } from "@/services/federation-equipment";
 import type { RacePreparationWorkspaceEdition } from "@/components/game/race-preparation-workspace";
 import type { FederationObjectiveMetrics } from "@/services/federation-objectives";
 import type { FederationCoursesState } from "@/services/federation-courses";
+import type { NationalChampionshipRouteChoice } from "@/lib/game/national-championship-road-route";
 import type { FederationRaceCreationState } from "@/services/federation-race-creation";
 import type { FederationGovernanceOverview } from "@/services/federation-governance";
 import type {
@@ -77,6 +78,7 @@ type NationalFederationViewProps = {
   internationalResults: FederationInternationalResults | null;
   governanceOverview: FederationGovernanceOverview | null;
   coursesState?: FederationCoursesState | null;
+  nationalChampionshipRouteChoice?: NationalChampionshipRouteChoice | null;
   raceCreationState?: FederationRaceCreationState | null;
   selectionState: FederationSelectionState | null;
   treasuryState: FederationTreasuryState | null;
@@ -165,6 +167,7 @@ export function NationalFederationView({
   internationalResults,
   governanceOverview,
   coursesState = null,
+  nationalChampionshipRouteChoice = null,
   raceCreationState = null,
   selectionState,
   treasuryState,
@@ -356,6 +359,7 @@ export function NationalFederationView({
               countryCode={country.code}
               gameYear={snapshot.season.gameYear}
               state={coursesState}
+              nationalChampionshipRouteChoice={nationalChampionshipRouteChoice}
               raceCreationState={raceCreationState}
             />
           ) : (

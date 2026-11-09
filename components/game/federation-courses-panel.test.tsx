@@ -61,6 +61,7 @@ const state: FederationCoursesState = {
     balance: 4_000_000,
     reservedAmount: 0,
     candidacies: [],
+    reports: [],
     opportunities: [
       {
         eventType: "quadrennial_games_pro",
@@ -70,28 +71,12 @@ const state: FederationCoursesState = {
         shortLabel: "JQ Pro",
         hostingCost: 2_400_000,
         prestigeGain: 45,
-        projectedAttendance: 180_000,
-        projectedGrossRevenue: 3_060_000,
-        projectedNetReturn: 660_000,
+        projectedGrossRevenue: [2_500_000, 3_060_000],
+        projectedNetReturn: [100_000, 660_000],
         candidacy: null,
         selectedHostName: null,
         canApply: true,
-        unavailableReason: null,
-      },
-      {
-        eventType: "nations_cup_junior",
-        riderCategory: "junior",
-        eventKey: "nations_cup_junior",
-        label: "Nations Cup juniors",
-        shortLabel: "NC Junior",
-        hostingCost: 550_000,
-        prestigeGain: 12,
-        projectedAttendance: 72_000,
-        projectedGrossRevenue: 1_008_000,
-        projectedNetReturn: 58_000,
-        candidacy: null,
-        selectedHostName: null,
-        canApply: true,
+        canWithdraw: false,
         unavailableReason: null,
       },
     ],
@@ -120,10 +105,10 @@ describe("FederationCoursesPanel", () => {
     expect(markup).toContain("Classements UCI · 10 saisons");
     expect(markup).toContain("Prestige d’organisation · 5 saisons");
     expect(markup).toContain("jusqu’à 15");
-    expect(markup).toContain("Nations Cup juniors");
+    expect(markup).not.toContain("Nations Cup juniors");
     expect(markup).toContain("Jeux quadriennaux professionnels");
     expect(markup).not.toContain("Nations Cup professionnelle");
-    expect(markup).toContain("Six candidatures");
+    expect(markup).toContain("Candidater à l’accueil d’une compétition");
     expect(markup).toContain("Coût si retenu");
     expect(markup).toContain("Déposer la candidature");
     expect(markup).toContain('name="eventType"');

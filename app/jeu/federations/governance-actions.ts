@@ -122,7 +122,7 @@ const raceBlueprintSchema = z
   .object({
     raceFormat: z.enum(["one_day", "stage_race"]),
     categoryCode: z.enum(["continental", "national", "regional"]),
-    startDay: z.number().int().min(1).max(28),
+    startDay: z.number().int().min(2, "La J1 est réservée à la préparation de la saison.").max(28),
     startSlot: z.enum(["early", "late"]),
     stages: z.array(raceStageSchema).min(1).max(8),
   })
@@ -442,25 +442,20 @@ async function runFederationRaceProjectAction({
   return { status: "success", message: pendingMessage };
 }
 
-export async function submitFederationHostingCandidacyAction(
+export async function manageFederationHostingCandidacyAction(
   _previousState: FederationGovernanceActionState,
   formData: FormData,
 ): Promise<FederationGovernanceActionState> {
   const countryCode = countryCodeSchema.safeParse(formData.get("countryCode"));
+  const withdraw = formData.get("intent") === "withdraw";
+  if (withdraw) return withdrawFederationHostingCandidacyAction(_previousState, formData);
   const eventType = hostingEventTypeSchema.safeParse(formData.get("eventType"));
   if (!countryCode.success || !eventType.success) {
     return { status: "error", message: "Cette candidature d’accueil est invalide." };
   }
 
+  // The RPC verifies the session and the current elected mandate.
   const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-    error: authenticationError,
-  } = await supabase.auth.getUser();
-  if (authenticationError || !user) {
-    return { status: "error", message: "Votre session a expiré." };
-  }
-
   const result = await supabase.rpc(
     "submit_national_federation_hosting_candidacy",
     {
@@ -486,4 +481,28 @@ export async function submitFederationHostingCandidacyAction(
     message:
       "La candidature est publique. Le coût ne sera débité que si le pays est retenu.",
   };
+}
+
+async function withdrawFederationHostingCandidacyAction(
+  _previousState: FederationGovernanceActionState,
+  formData: FormData,
+): Promise<FederationGovernanceActionState> {
+  const countryCode = countryCodeSchema.safeParse(formData.get("countryCode"));
+  const candidacyId = candidateIdSchema.safeParse(formData.get("candidacyId"));
+  if (!countryCode.success || !candidacyId.success) {
+    return { status: "error", message: "Cette candidature d’accueil est invalide." };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const result = await supabase.rpc("withdraw_national_federation_hosting_candidacy", {
+    p_country_code: countryCode.data,
+    p_candidacy_id: candidacyId.data,
+  });
+  if (result.error) {
+    return { status: "error", message: result.error.message || "Le retrait de la candidature a échoué." };
+  }
+
+  revalidatePath(`/jeu/federations/${countryCode.data.toLowerCase()}`);
+  refresh();
+  return { status: "success", message: "La candidature est retirée. La garantie est de nouveau disponible." };
 }

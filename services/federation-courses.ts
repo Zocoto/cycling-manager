@@ -5,6 +5,8 @@ import {
   calculateFederationRaceReturn,
   FEDERATION_HOSTING_APPLICATION_CLOSE_DAY,
   FEDERATION_HOSTING_DECISION_DAY,
+  FEDERATION_HOSTING_PARTICIPATION_SCENARIOS,
+  getFederationHostingCost,
   getFederationHostingEvent,
   getFederationHostingEventsForGameYear,
   getFederationRenownLabel,
@@ -99,13 +101,29 @@ export type FederationHostingOpportunity = {
   shortLabel: string;
   hostingCost: number;
   prestigeGain: number;
-  projectedAttendance: number;
-  projectedGrossRevenue: number;
-  projectedNetReturn: number;
+  projectedGrossRevenue: [number, number];
+  projectedNetReturn: [number, number];
   candidacy: FederationHostingCandidacy | null;
   selectedHostName: string | null;
   canApply: boolean;
+  canWithdraw: boolean;
   unavailableReason: string | null;
+};
+
+export type FederationHostingReport = {
+  gameYear: number;
+  eventType: FederationHostingEventType;
+  status: "scheduled" | "settled" | "cancelled";
+  hostingCost: number;
+  grossRevenue: number | null;
+  refund: number | null;
+  netReturn: number | null;
+  participationRate: number | null;
+  completedEditionCount: number | null;
+  scheduledEditionCount: number | null;
+  starterCount: number | null;
+  placeCount: number | null;
+  prestigeGain: number;
 };
 
 export type FederationCoursesState = {
@@ -121,6 +139,7 @@ export type FederationCoursesState = {
     reservedAmount: number;
     opportunities: FederationHostingOpportunity[];
     candidacies: FederationHostingCandidacy[];
+    reports: FederationHostingReport[];
   };
 };
 
@@ -186,8 +205,24 @@ type CandidacyRow = {
 };
 type CountryRow = { id: string; iso_alpha2: string; name: string };
 type FederationCountryMetaRow = { continent_code: string | null };
-type AwardRow = { event_key: string; country_id: string; status: string };
-type AccountRow = { balance: number | string };
+type AwardRow = {
+  event_key: string;
+  event_type: FederationHostingEventType;
+  target_game_year: number;
+  country_id: string;
+  status: FederationHostingReport["status"];
+  hosting_cost: number | string;
+  prestige_gain: number;
+  actual_gross_revenue: number | string | null;
+  actual_refund: number | string | null;
+  actual_net_return: number | string | null;
+  actual_participation_rate: number | string | null;
+  completed_edition_count: number | null;
+  scheduled_edition_count: number | null;
+  actual_starter_count: number | null;
+  actual_place_count: number | null;
+};
+type AccountRow = { balance: number | string; reserved_amount: number | string };
 type InfrastructureRow = { level: number };
 type InfrastructureSpecializationRow = {
   active_specialization_code: string;
@@ -252,6 +287,7 @@ export async function getFederationCoursesState({
       reservedAmount: 0,
       opportunities: [],
       candidacies: [],
+      reports: [],
     },
   };
 
@@ -271,14 +307,13 @@ export async function getFederationCoursesState({
           .eq("status", "active")
           .order("name")
           .returns<RaceRow[]>(),
-        admin.rpc("refresh_national_federation_renown", {
+        admin.rpc("get_national_federation_course_renown", {
           p_country_id: countryId,
         }),
         admin
-          .from("national_federation_accounts")
-          .select("balance")
-          .eq("country_id", countryId)
-          .eq("season_id", seasonId)
+          .rpc("get_national_federation_hosting_budget", {
+            p_country_id: countryId, p_season_id: seasonId,
+          })
           .maybeSingle<AccountRow>(),
         admin
           .from("national_federation_infrastructures")
@@ -307,6 +342,7 @@ export async function getFederationCoursesState({
           .eq("country_id", countryId)
           .lte("start_game_year", gameYear)
           .gte("end_game_year", gameYear)
+          .eq("governance_mode", "elected")
           .maybeSingle<TermRow>(),
       ]);
 
@@ -323,6 +359,9 @@ export async function getFederationCoursesState({
       if (result.error) throw result.error;
     }
     const continentCode = countryResult.data?.continent_code ?? null;
+    const relevantEventKeys = hostingEvents.map((event) =>
+      getHostingEventKey(event.type, continentCode),
+    );
 
     const races = racesResult.data ?? [];
     const raceIds = races.map((race) => race.id);
@@ -368,15 +407,15 @@ export async function getFederationCoursesState({
             "id, country_id, target_game_year, event_type, event_key, hosting_cost, last_hosted_game_year, uci_rank, renown_score, recency_points, ranking_points, renown_points, specialization_bonus_points, selection_score, status, created_at",
           )
           .eq("target_game_year", targetGameYear)
-          .neq("event_type", "nations_cup_junior")
+          .in("event_key", relevantEventKeys)
           .order("selection_score", { ascending: false })
           .order("created_at", { ascending: true })
           .returns<CandidacyRow[]>(),
         admin
           .from("national_federation_hosting_awards")
-          .select("event_key, country_id, status")
-          .eq("target_game_year", targetGameYear)
-          .in("status", ["scheduled", "settled"])
+          .select("event_key, event_type, target_game_year, country_id, status, hosting_cost, prestige_gain, actual_gross_revenue, actual_refund, actual_net_return, actual_participation_rate, completed_edition_count, scheduled_edition_count, actual_starter_count, actual_place_count")
+          .or(`and(target_game_year.eq.${targetGameYear},event_key.in.(${relevantEventKeys.join(",")})),and(target_game_year.gte.${Math.max(1, gameYear - 4)},target_game_year.lte.${gameYear},country_id.eq.${countryId},event_type.neq.nations_cup_junior)`)
+          .order("target_game_year", { ascending: false })
           .returns<AwardRow[]>(),
         loadRacePastWinners(admin, raceIds),
       ]);
@@ -574,42 +613,55 @@ export async function getFederationCoursesState({
       viewerDirectorId && viewerDirectorId === termResult.data?.president_director_id,
     );
     const balance = accountResult.data ? Number(accountResult.data.balance) : null;
-    const reservedAmount = candidacies
-      .filter((candidate) => candidate.countryId === countryId && candidate.status === "pending")
-      .reduce((total, candidate) => total + candidate.hostingCost, 0);
-    const relevantEventKeys = new Set(
-      hostingEvents.map((event) =>
-        getHostingEventKey(event.type, continentCode),
-      ),
-    );
-    const relevantCandidacies = candidacies.filter((candidate) =>
-      relevantEventKeys.has(candidate.eventKey),
-    );
+    const reservedAmount = Number(accountResult.data?.reserved_amount ?? 0);
     const awardByEventKey = new Map(
-      (awardsResult.data ?? []).map((award) => [award.event_key, award]),
+      (awardsResult.data ?? [])
+        .filter((award) => award.target_game_year === targetGameYear)
+        .map((award) => [award.event_key, award]),
     );
+    const reports = (awardsResult.data ?? [])
+      .filter((award) => award.target_game_year <= gameYear && award.country_id === countryId)
+      .map((award): FederationHostingReport => ({
+        gameYear: award.target_game_year,
+        eventType: award.event_type,
+        status: award.status,
+        hostingCost: Number(award.hosting_cost),
+        grossRevenue: award.actual_gross_revenue === null ? null : Number(award.actual_gross_revenue),
+        refund: award.actual_refund === null ? null : Number(award.actual_refund),
+        netReturn: award.actual_net_return === null ? null : Number(award.actual_net_return),
+        participationRate: award.actual_participation_rate === null ? null : Number(award.actual_participation_rate),
+        completedEditionCount: award.completed_edition_count,
+        scheduledEditionCount: award.scheduled_edition_count,
+        starterCount: award.actual_starter_count,
+        placeCount: award.actual_place_count,
+        prestigeGain: award.status === "cancelled" ? 0 : award.prestige_gain,
+      }));
     const opportunities = hostingEvents.map(
       (event): FederationHostingOpportunity => {
         const eventKey = getHostingEventKey(event.type, continentCode);
         const candidacy =
-          relevantCandidacies.find(
+          candidacies.find(
             (candidate) => candidate.countryId === countryId && candidate.eventKey === eventKey,
           ) ?? null;
         const award = awardByEventKey.get(eventKey);
         const selectedCountry = award ? countryById.get(award.country_id) : null;
-        const discountedHostingCost = Math.round(
-          event.hostingCost *
-            (1 - officeEffects.hostingCostReductionPercentage / 100),
+        const discountedHostingCost = getFederationHostingCost(
+          event.hostingCost, officeEffects.hostingCostReductionPercentage,
         );
-        const hostingCost = candidacy?.hostingCost ?? discountedHostingCost;
-        const projection = calculateFederationHostingAttendance({
+        const hostingCost = candidacy && candidacy.status !== "withdrawn"
+          ? candidacy.hostingCost
+          : discountedHostingCost;
+        const projection = (participationRate: number) => calculateFederationHostingAttendance({
           eventType: event.type,
-          participationRate: 0.85,
+          participationRate,
           renown: renown.score,
           hostingCost,
           revenueBonusPercentage:
             officeEffects.internationalHostingRevenueBonusPercentage,
         });
+        const [lowRate, highRate] = FEDERATION_HOSTING_PARTICIPATION_SCENARIOS;
+        const low = projection(lowRate);
+        const high = projection(highRate);
         const unavailableReason = getUnavailableReason({
           gameYear,
           currentDayNumber,
@@ -630,12 +682,13 @@ export async function getFederationCoursesState({
           shortLabel: event.shortLabel,
           hostingCost,
           prestigeGain: event.prestigeGain,
-          projectedAttendance: projection.attendance,
-          projectedGrossRevenue: projection.grossRevenue,
-          projectedNetReturn: projection.netReturn,
+          projectedGrossRevenue: [low.grossRevenue, high.grossRevenue],
+          projectedNetReturn: [low.netReturn, high.netReturn],
           candidacy,
           selectedHostName: selectedCountry?.name ?? null,
           canApply: unavailableReason == null,
+          canWithdraw: viewerIsPresident && currentDayNumber <= FEDERATION_HOSTING_APPLICATION_CLOSE_DAY &&
+            candidacy?.status === "pending",
           unavailableReason,
         };
       },
@@ -653,7 +706,8 @@ export async function getFederationCoursesState({
         balance,
         reservedAmount,
         opportunities,
-        candidacies: relevantCandidacies,
+        candidacies,
+        reports,
       },
     };
   } catch (error) {
@@ -845,17 +899,18 @@ function getUnavailableReason({
   eventType: FederationHostingEventType;
 }): string | null {
   if (gameYear < 3) return "Ouverture des candidatures en Saison 3.";
-  if (officeLevel < 3)
-    return "Bureau d’organisation niveau 3 requis.";
   if (currentDayNumber > FEDERATION_HOSTING_APPLICATION_CLOSE_DAY)
     return `Dépôts clos depuis la J${FEDERATION_HOSTING_APPLICATION_CLOSE_DAY}.`;
   if (!viewerIsPresident) return "Action réservée au président élu.";
+  const junior = getFederationHostingEvent(eventType).riderCategory === "junior";
+  if (officeLevel < (junior ? 1 : 3))
+    return junior ? "Bureau d’organisation niveau 1 requis." : "Bureau d’organisation niveau 3 requis.";
   if (eventType.startsWith("continental_championship") && !hasContinent)
     return "Le continent de la fédération doit être renseigné.";
-  if (candidacy) return "Candidature déjà déposée pour cette édition.";
+  if (candidacy && candidacy.status !== "withdrawn") return "Candidature déjà déposée pour cette édition.";
+  if (reservedAmount > 0) return "Retirez la candidature en cours avant d’en déposer une autre.";
   if (balance == null) return "La trésorerie fédérale n’est pas encore active.";
-  if (balance - reservedAmount < eventCost)
-    return "Trésorerie disponible insuffisante après les garanties en cours.";
+  if (balance < eventCost) return "Trésorerie disponible insuffisante pour garantir cet accueil.";
   return null;
 }
 

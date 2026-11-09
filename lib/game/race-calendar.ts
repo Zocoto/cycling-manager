@@ -109,7 +109,7 @@ export type RaceProfileType =
   "flat" | "sprint" | "hilly" | "mountain" | "cobbles" | "time_trial" | "mixed";
 
 /** Display annotation only: never a simulation profile or equipment domain. */
-export type RaceProfileVariant = "sprint_cobbles" | "selective_cobbles" | "hilly_cobbles";
+export type RaceProfileVariant = "sprint_cobbles" | "selective_cobbles" | "hilly_cobbles" | "flat_hilly";
 
 export type RegistrationPolicy = "open" | "criteria_pending" | "closed";
 
@@ -652,6 +652,9 @@ export function getRaceProfileLabel(stage: {
   profileType: RaceProfileType;
   profileVariant?: RaceProfileVariant | null;
 }) {
+  if (stage.profileVariant === "flat_hilly" && stage.profileType === "flat") {
+    return "Plaine / Vallonné";
+  }
   if (
     stage.profileVariant === "hilly_cobbles" &&
     (stage.profileType === "hilly" || stage.profileType === "cobbles")

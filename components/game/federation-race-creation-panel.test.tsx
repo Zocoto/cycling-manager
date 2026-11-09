@@ -26,9 +26,12 @@ const eligibleState: FederationRaceCreationState = {
   canCancel: true,
   project: null,
   managedRaces: [],
-  accountBalance: 2_000_000,
+  availableBalance: 2_000_000,
   viewerReputation: 250,
+  voteDeadline: "2026-09-09T10:00:00.000Z",
+  voteWindowOpen: true,
   targetGameYear: 5,
+  calendarStatus: "pending",
   calendar: [],
 };
 
@@ -56,6 +59,11 @@ describe("FederationRaceCreationPanel", () => {
     expect(markup).toContain("Pente");
     expect(markup).toContain("Calendrier territorial · Saison 5");
     expect(markup).toContain("Maintenance annuelle");
+    expect(markup).toContain("Réputation minimale du président");
+    expect(markup).toContain("Solde fédéral libre");
+    expect(markup).toContain("Débitée à partir de la deuxième édition");
+    expect(markup).toContain('min="2"');
+    expect(markup).toContain("J27, heure de Paris");
   });
 
   it("replaces the form with the public next-season summary after homologation", () => {
@@ -78,6 +86,7 @@ describe("FederationRaceCreationPanel", () => {
             status: "scheduled",
             submittedAt: "2026-09-04T10:00:00.000Z",
             voteClosesAt: null,
+            decisionError: null,
             approvedAt: "2026-09-05T10:00:00.000Z",
             cost: {
               creationMoney: 900_000,

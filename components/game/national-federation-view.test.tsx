@@ -244,10 +244,13 @@ describe("NationalFederationView", () => {
           canCancel: false,
           project: null,
           managedRaces: [],
-          accountBalance: 0,
+          availableBalance: 0,
           viewerReputation: 0,
           targetGameYear: 4,
           calendar: [],
+          voteDeadline: null,
+          voteWindowOpen: false,
+          calendarStatus: "pending",
         }}
         selectionState={null}
         treasuryState={null}

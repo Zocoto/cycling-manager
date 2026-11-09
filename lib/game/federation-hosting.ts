@@ -1,5 +1,6 @@
 export const FEDERATION_HOSTING_APPLICATION_CLOSE_DAY = 20;
 export const FEDERATION_HOSTING_DECISION_DAY = 21;
+export const FEDERATION_HOSTING_PARTICIPATION_SCENARIOS = [0.5, 0.95] as const;
 
 export const FEDERATION_HOSTING_EVENTS = [
   {
@@ -49,7 +50,7 @@ export const FEDERATION_HOSTING_EVENTS = [
     shortLabel: "CM Junior",
     hostingCost: 1_200_000,
     baseAttendance: 90_000,
-    revenuePerAttendee: 13,
+    revenuePerAttendee: 15,
     prestigeGain: 25,
   },
   {
@@ -59,7 +60,7 @@ export const FEDERATION_HOSTING_EVENTS = [
     shortLabel: "CC Junior",
     hostingCost: 700_000,
     baseAttendance: 50_000,
-    revenuePerAttendee: 12,
+    revenuePerAttendee: 16,
     prestigeGain: 15,
   },
   {
@@ -97,6 +98,10 @@ export function getFederationHostingEvent(
   type: FederationHostingEventType,
 ) {
   return FEDERATION_HOSTING_EVENTS.find((event) => event.type === type)!;
+}
+
+export function getFederationHostingCost(catalogCost: number, discountPercentage: number) {
+  return Math.round((catalogCost * (1 - discountPercentage / 100)) / 5_000) * 5_000;
 }
 
 export function getFederationHostingEventsForGameYear(gameYear: number) {
