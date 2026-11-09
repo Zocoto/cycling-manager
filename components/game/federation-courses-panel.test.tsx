@@ -113,4 +113,44 @@ describe("FederationCoursesPanel", () => {
     expect(markup).toContain("Déposer la candidature");
     expect(markup).toContain('name="eventType"');
   });
+
+  it("groups races from local to elite, with counts and stage profiles", () => {
+    const [tour] = state.portfolio;
+    const markup = renderToStaticMarkup(
+      <FederationCoursesPanel
+        countryCode="FR"
+        gameYear={3}
+        state={{
+          ...state,
+          portfolio: [
+            { ...tour, id: "elite", categoryCode: "elite", categoryName: "Élite" },
+            {
+              ...tour,
+              id: "local-1",
+              categoryCode: "local",
+              categoryName: "Locale",
+              profiles: [
+                { type: "flat", variant: "flat_hilly", count: 2 },
+                { type: "flat", count: 3 },
+              ],
+            },
+            { ...tour, id: "other", categoryCode: null, categoryName: null, profiles: [] },
+            tour,
+            { ...tour, id: "local-2", categoryCode: "local", categoryName: "Locale" },
+          ],
+        }}
+        raceCreationState={null}
+      />,
+    );
+
+    const categorySummaries = [...markup.matchAll(/<summary[^>]*>(.*?)<\/summary>/g)]
+      .map(([, content]) => content.replace(/<[^>]*>/g, ""))
+      .filter((content) => /\d courses?⌄$/.test(content));
+
+    expect(categorySummaries).toEqual(["Locale2 courses⌄", "Continental1 course⌄", "Élite1 course⌄", "Hors calendrier1 course⌄"]);
+    expect(markup).not.toMatch(/<details[^>]*\bopen(?:=""|\s|>)/);
+    expect(markup).toContain("Plaine / Vallonné ×2");
+    expect(markup).toContain("Plaine ×3");
+    expect(markup).toContain("Profil détaillé à venir.");
+  });
 });

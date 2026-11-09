@@ -12,10 +12,14 @@ import { initialFederationGovernanceActionState } from "@/lib/game/federation-ac
 import { getFederationHostingEvent } from "@/lib/game/federation-hosting";
 import type { NationalChampionshipRouteChoice } from "@/lib/game/national-championship-road-route";
 import {
-  RACE_PROFILE_LABELS,
+  getRaceProfileLabel,
+  isRaceCategoryCode,
+  RACE_CATEGORY_CODES,
+  RACE_CATEGORY_STYLE,
+  type RaceCategoryCode,
   type RaceProfileType,
 } from "@/lib/game/race-calendar";
-import type { FederationCoursesState, FederationHostingReport } from "@/services/federation-courses";
+import type { FederationCountryRace, FederationCoursesState, FederationHostingReport } from "@/services/federation-courses";
 import type { FederationRaceCreationState } from "@/services/federation-race-creation";
 
 const moneyFormatter = new Intl.NumberFormat("fr-FR", {
@@ -24,18 +28,16 @@ const moneyFormatter = new Intl.NumberFormat("fr-FR", {
   maximumFractionDigits: 0,
 });
 
-const PROFILE_VISUALS: Record<
-  RaceProfileType,
-  { color: string; height: string; symbol: string }
-> = {
-  flat: { color: "#59AFC9", height: "h-3", symbol: "▬" },
-  sprint: { color: "#4FB59B", height: "h-4", symbol: "➜" },
-  hilly: { color: "#E2A23A", height: "h-7", symbol: "∿" },
-  mountain: { color: "#C94D4D", height: "h-11", symbol: "▲" },
-  cobbles: { color: "#7D6A58", height: "h-6", symbol: "▦" },
-  time_trial: { color: "#6658A8", height: "h-5", symbol: "◴" },
-  mixed: { color: "#D36F3A", height: "h-8", symbol: "◆" },
+const PROFILE_COLORS: Record<RaceProfileType, string> = {
+  flat: "#59AFC9",
+  sprint: "#4FB59B",
+  hilly: "#E2A23A",
+  mountain: "#C94D4D",
+  cobbles: "#7D6A58",
+  time_trial: "#6658A8",
+  mixed: "#D36F3A",
 };
+const PORTFOLIO_CATEGORY_ORDER = [...[...RACE_CATEGORY_CODES].reverse(), null];
 
 export function FederationCoursesPanel({
   countryCode,
@@ -78,9 +80,12 @@ export function FederationCoursesPanel({
             </h2>
             <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#D6E9E2]">
               Dépôt jusqu’à la fin de J{state.hosting.applicationCloseDay}, attribution
-              automatique à partir de J{state.hosting.decisionDay}, dès que le calendrier est prêt. L’ancienneté depuis
-              le dernier accueil pèse 60 %, le classement UCI 25 % et la
-              renommée historique 15 %.
+              automatique à partir de J{state.hosting.decisionDay}, dès que le calendrier est prêt.
+            </p>
+            <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#D6E9E2]">
+              Toute fédération peut candidater, même sans Bureau d’organisation.
+              Le score privilégie le temps écoulé depuis le dernier accueil international (60 %).
+              Le classement UCI (20 %), la renommée (15 %) et le niveau du Bureau (5 %) complètent le barème.
             </p>
           </div>
           <div className="rounded-2xl border border-white/15 bg-white/10 px-5 py-4 text-right">
@@ -294,6 +299,16 @@ function RenownPanel({ state }: { state: FederationCoursesState }) {
 }
 
 function CountryRacePortfolio({ state }: { state: FederationCoursesState }) {
+  const racesByCategory = new Map<RaceCategoryCode | null, FederationCountryRace[]>();
+  for (const race of state.portfolio) {
+    const category = race.categoryCode && isRaceCategoryCode(race.categoryCode)
+      ? race.categoryCode
+      : null;
+    const races = racesByCategory.get(category);
+    if (races) races.push(race);
+    else racesByCategory.set(category, [race]);
+  }
+
   return (
     <section className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.07)] sm:p-8">
       <div>
@@ -302,95 +317,41 @@ function CountryRacePortfolio({ state }: { state: FederationCoursesState }) {
         </p>
         <h2 className="mt-2 text-3xl font-black text-[#183F37]">Courses du pays</h2>
         <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#60756E]">
-          Catégorie, remplissage des équipes et des compositions, puis retour
-          financier et prestige associés à chaque épreuve de la saison.
+          Dépliez une catégorie pour consulter les profils et les statistiques de ses courses.
         </p>
       </div>
 
       {state.portfolio.length ? (
-        <div className="mt-6 grid gap-4 xl:grid-cols-2">
-          {state.portfolio.map((race) => (
-            <article key={race.id} className="rounded-2xl border border-[#315B3E]/14 bg-[#F8FBF9] p-5">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <div className="flex flex-wrap gap-2">
-                    <span className="rounded-full bg-[var(--federation-primary)] px-3 py-1 text-[10px] font-black uppercase text-white">
-                      {race.categoryName ?? "Hors calendrier"}
-                      {race.prestigeRank ? ` · rang ${race.prestigeRank}` : ""}
-                    </span>
-                    <span className="rounded-full bg-[#E5F4ED] px-3 py-1 text-[10px] font-black uppercase text-[var(--federation-secondary)]">
-                      {race.format === "one_day" ? "Classique" : "Tour"}
-                    </span>
-                  </div>
-                  <h3 className="mt-3 text-xl font-black text-[#183F37]">{race.name}</h3>
-                </div>
-                <Link href={`/jeu/courses/${race.slug}`} className="text-xs font-black text-[var(--federation-secondary)] hover:underline">
-                  Voir la course →
-                </Link>
-              </div>
+        <div className="mt-5 space-y-2">
+          {PORTFOLIO_CATEGORY_ORDER.map((category) => {
+            const races = racesByCategory.get(category);
+            if (!races?.length) return null;
+            const style = category ? RACE_CATEGORY_STYLE[category] : null;
 
-              <RaceProfileRibbon profiles={race.profiles} />
-
-              <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                <ParticipationGauge
-                  label="Participation équipes"
-                  percentage={race.teamParticipationPercentage}
-                  detail={`${race.acceptedTeamCount}/${race.fieldLimit ?? "—"} acceptées · ${race.pendingTeamCount} en attente`}
-                />
-                <ParticipationGauge
-                  label="Compositions remplies"
-                  percentage={race.riderFillPercentage}
-                  detail={`${race.activeRiderCount} coureurs · ${race.withdrawnTeamCount} retraits · ${race.rejectedTeamCount} refus`}
-                />
-              </div>
-
-              <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white px-4 py-3">
-                <p className="text-xs font-bold text-[#60756E]">
-                  {race.returnStatus === "earned" ? "Contribution consolidée au budget S+1" : "Contribution projetée au budget S+1"} · {race.completedStageCount}/{race.totalStageCount} étapes terminées · {race.creditedStageCount} jour{race.creditedStageCount > 1 ? "s" : ""} rémunéré{race.creditedStageCount > 1 ? "s" : ""}
-                </p>
-                <p className="text-sm font-black text-[var(--federation-secondary)]">
-                  {moneyFormatter.format(race.moneyGain)}
-                  {race.gainKind === "mixed" ? ` + ${race.prestigeGain} prestige d’orga.` : " · gain financier"}
-                </p>
-              </div>
-
-              {race.gainKind === "mixed" ? (
-                <p className="mt-2 text-[11px] font-bold text-[#789087]">
-                  Crédité dans la renommée fédérale une fois l’épreuve terminée.
-                </p>
-              ) : null}
-
-              <div className="mt-4 border-t border-[#315B3E]/10 pt-4">
-                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--federation-secondary)]">
-                  Derniers vainqueurs
-                </p>
-                {race.pastWinners.length ? (
-                  <ol className="mt-3 grid gap-2 sm:grid-cols-3">
-                    {race.pastWinners.map((winner) => (
-                      <li
-                        key={`${winner.gameYear}-${winner.riderName}`}
-                        className="rounded-xl border border-[#315B3E]/10 bg-white p-3"
-                      >
-                        <p className="text-[10px] font-black uppercase tracking-wide text-[var(--federation-secondary)]">
-                          Saison {winner.gameYear}
-                        </p>
-                        <p className="mt-1 text-sm font-black text-[#183F37]">
-                          {winner.riderName}
-                        </p>
-                        <p className="mt-1 truncate text-[10px] font-bold text-[#789087]">
-                          {winner.teamName ?? "Équipe non renseignée"}
-                        </p>
-                      </li>
-                    ))}
-                  </ol>
-                ) : (
-                  <p className="mt-2 text-xs font-bold text-[#789087]">
-                    Le premier vainqueur apparaîtra dès qu’une édition sera terminée.
-                  </p>
-                )}
-              </div>
-            </article>
-          ))}
+            return (
+              <details key={category ?? "unscheduled"} className="group rounded-xl border border-[#315B3E]/14 bg-[#F8FBF9]">
+                <summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 rounded-xl px-4 py-2.5 marker:hidden transition hover:bg-[#E8F7F1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#278B70] [&::-webkit-details-marker]:hidden">
+                  {style ? (
+                    <span
+                      aria-hidden="true"
+                      className="h-3 w-3 shrink-0 rounded-full border"
+                      style={{ backgroundColor: style.background, borderColor: style.border }}
+                    />
+                  ) : null}
+                  <span className="flex-1 text-sm font-black text-[#183F37]">
+                    {style ? races[0].categoryName ?? style.label : "Hors calendrier"}
+                  </span>
+                  <span className="whitespace-nowrap rounded-full bg-white px-2.5 py-1 text-xs font-bold text-[#536B63]">
+                    {`${races.length} course${races.length === 1 ? "" : "s"}`}
+                  </span>
+                  <span aria-hidden="true" className="text-[#536B63] transition-transform group-open:rotate-180">⌄</span>
+                </summary>
+                <ul className="divide-y divide-[#315B3E]/10 border-t border-[#315B3E]/10 px-4">
+                  {races.map((race) => <CountryRaceRow key={race.id} race={race} />)}
+                </ul>
+              </details>
+            );
+          })}
         </div>
       ) : (
         <p className="mt-6 rounded-2xl bg-[#F1F5F3] p-5 text-sm font-bold text-[#60756E]">
@@ -401,52 +362,106 @@ function CountryRacePortfolio({ state }: { state: FederationCoursesState }) {
   );
 }
 
-function RaceProfileRibbon({
-  profiles,
-}: {
-  profiles: FederationCoursesState["portfolio"][number]["profiles"];
-}) {
+function CountryRaceRow({ race }: { race: FederationCountryRace }) {
+  return (
+    <li className="py-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-black text-[#183F37]">{race.name}</h3>
+        <span className="rounded-full bg-[#E5F4ED] px-2 py-0.5 text-[10px] font-black uppercase text-[var(--federation-secondary)]">
+          {race.format === "one_day" ? "Classique" : "Tour"}
+        </span>
+      </div>
+      <RaceProfileTags profiles={race.profiles} />
+      <div className="mt-2.5">
+        <Link href={`/jeu/courses/${race.slug}`} className="text-xs font-black text-[var(--federation-secondary)] hover:underline">
+          Voir la course →
+        </Link>
+      </div>
+      <details className="mt-2">
+        <summary className="cursor-pointer text-xs font-bold leading-6 text-[#536B63]">
+          Statistiques de la course
+        </summary>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <ParticipationGauge
+            label="Participation équipes"
+            percentage={race.teamParticipationPercentage}
+            detail={`${race.acceptedTeamCount}/${race.fieldLimit ?? "—"} acceptées · ${race.pendingTeamCount} en attente`}
+          />
+          <ParticipationGauge
+            label="Compositions remplies"
+            percentage={race.riderFillPercentage}
+            detail={`${race.activeRiderCount} coureurs · ${race.withdrawnTeamCount} retraits · ${race.rejectedTeamCount} refus`}
+          />
+        </div>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-white px-3 py-2">
+          <p className="text-xs font-bold text-[#60756E]">
+            {race.returnStatus === "earned" ? "Contribution consolidée au budget S+1" : "Contribution projetée au budget S+1"} · {race.completedStageCount}/{race.totalStageCount} étapes terminées · {race.creditedStageCount} jour{race.creditedStageCount > 1 ? "s" : ""} rémunéré{race.creditedStageCount > 1 ? "s" : ""}
+          </p>
+          <p className="text-sm font-black text-[var(--federation-secondary)]">
+            {moneyFormatter.format(race.moneyGain)}
+            {race.gainKind === "mixed" ? ` + ${race.prestigeGain} prestige d’orga.` : " · gain financier"}
+          </p>
+        </div>
+        {race.gainKind === "mixed" ? (
+          <p className="mt-2 text-[11px] font-bold text-[#789087]">
+            Crédité dans la renommée fédérale une fois l’épreuve terminée.
+          </p>
+        ) : null}
+        <div className="mt-3 border-t border-[#315B3E]/10 pt-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--federation-secondary)]">
+            Derniers vainqueurs
+          </p>
+          {race.pastWinners.length ? (
+            <ol className="mt-2 grid gap-2 sm:grid-cols-3">
+              {race.pastWinners.map((winner) => (
+                <li
+                  key={`${winner.gameYear}-${winner.riderName}`}
+                  className="rounded-xl border border-[#315B3E]/10 bg-white p-2.5"
+                >
+                  <p className="text-[10px] font-black uppercase tracking-wide text-[var(--federation-secondary)]">
+                    Saison {winner.gameYear}
+                  </p>
+                  <p className="mt-1 text-sm font-black text-[#183F37]">
+                    {winner.riderName}
+                  </p>
+                  <p className="mt-1 truncate text-[10px] font-bold text-[#789087]">
+                    {winner.teamName ?? "Équipe non renseignée"}
+                  </p>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="mt-2 text-xs font-bold text-[#789087]">
+              Le premier vainqueur apparaîtra dès qu’une édition sera terminée.
+            </p>
+          )}
+        </div>
+      </details>
+    </li>
+  );
+}
+
+function RaceProfileTags({ profiles }: { profiles: FederationCountryRace["profiles"] }) {
   if (!profiles.length) {
     return (
-      <p className="mt-5 rounded-xl border border-dashed border-[#315B3E]/16 bg-white px-4 py-3 text-xs font-bold text-[#789087]">
+      <p className="mt-1.5 text-xs font-bold text-[#60756E]">
         Profil détaillé à venir.
       </p>
     );
   }
 
   return (
-    <div className="mt-5 overflow-hidden rounded-xl border border-[#315B3E]/10 bg-white px-4 pb-3 pt-4">
-      <div className="flex h-12 items-end gap-1" aria-hidden="true">
-        {profiles.flatMap((profile) =>
-          Array.from({ length: profile.count }, (_, index) => {
-            const visual = PROFILE_VISUALS[profile.type];
-            return (
-              <span
-                key={`${profile.type}-${index}`}
-                className={`min-w-5 flex-1 rounded-t-lg ${visual.height}`}
-                style={{ backgroundColor: visual.color }}
-              />
-            );
-          }),
-        )}
-      </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {profiles.map((profile) => {
-          const visual = PROFILE_VISUALS[profile.type];
-          return (
-            <span
-              key={profile.type}
-              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-black text-white"
-              style={{ backgroundColor: visual.color }}
-            >
-              <span aria-hidden="true">{visual.symbol}</span>
-              {RACE_PROFILE_LABELS[profile.type]}
-              {profile.count > 1 ? ` ×${profile.count}` : ""}
-            </span>
-          );
-        })}
-      </div>
-    </div>
+    <ul aria-label="Profil de course" className="mt-1.5 flex flex-wrap gap-1.5">
+      {profiles.map(({ type, variant, count }) => {
+        const label = getRaceProfileLabel({ profileType: type, profileVariant: variant });
+        return (
+          <li key={label} className="inline-flex items-center gap-1.5 rounded-full border border-[#315B3E]/12 bg-white px-2 py-0.5 text-xs font-bold text-[#183F37]">
+            <span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ backgroundColor: PROFILE_COLORS[type] }} />
+            {label}{count > 1 ? ` ×${count}` : ""}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -466,7 +481,7 @@ function CandidacyRanking({ state }: { state: FederationCoursesState }) {
             <thead className="text-[10px] font-black uppercase tracking-[0.1em] text-[#60756E]">
               <tr>
                 <th className="px-3 py-2">Pays / épreuve</th>
-                <th className="px-3 py-2">Dernier accueil</th>
+                <th className="px-3 py-2">Dernier accueil international</th>
                 <th className="px-3 py-2">UCI</th>
                 <th className="px-3 py-2">Renommée</th>
                 <th className="px-3 py-2">Détail du score</th>
@@ -485,7 +500,7 @@ function CandidacyRanking({ state }: { state: FederationCoursesState }) {
                   <td className="px-3 py-3">#{candidate.uciRank}</td>
                   <td className="px-3 py-3">{candidate.renownScore}/1000</td>
                   <td className="px-3 py-3 text-xs text-[#60756E]">
-                    {candidate.recencyPoints} + {candidate.rankingPoints} + {candidate.renownPoints}
+                    {candidate.recencyPoints} + {candidate.rankingPoints} + {candidate.renownPoints} + {candidate.organizationPoints}
                     {candidate.specializationBonusPoints > 0
                       ? ` + ${candidate.specializationBonusPoints} orientation`
                       : ""}

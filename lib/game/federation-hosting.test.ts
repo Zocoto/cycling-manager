@@ -40,6 +40,7 @@ describe("federation hosting", () => {
       recencyPoints: 600,
       rankingPoints: 1,
       renownPoints: 0,
+      organizationPoints: 0,
       total: 601,
     });
     expect(
@@ -49,7 +50,14 @@ describe("federation hosting", () => {
         nationRank: 1,
         renown: 1_000,
       }).total,
-    ).toBe(400);
+    ).toBe(350);
+    expect(calculateFederationHostingSelectionScore({
+      targetGameYear: 12,
+      lastHostedGameYear: 11,
+      nationRank: 1,
+      renown: 1_000,
+      organizationOfficeLevel: 5,
+    }).total).toBe(400);
   });
 
   it("turns participation and renown into attendance and financial return", () => {

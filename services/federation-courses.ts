@@ -17,7 +17,7 @@ import {
   getRaceOrganizationOfficeEffects,
   isRaceOrganizationOfficeSpecializationCode,
 } from "@/lib/game/federation-infrastructure-effects";
-import type { RaceProfileType } from "@/lib/game/race-calendar";
+import { getRaceProfileLabel, type RaceProfileType, type RaceProfileVariant } from "@/lib/game/race-calendar";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
@@ -55,7 +55,7 @@ export type FederationCountryRace = {
   moneyGain: number;
   prestigeGain: number;
   gainKind: "money" | "mixed";
-  profiles: Array<{ type: RaceProfileType; count: number }>;
+  profiles: Array<{ type: RaceProfileType; variant?: RaceProfileVariant | null; count: number }>;
   pastWinners: FederationRacePastWinner[];
 };
 
@@ -88,6 +88,7 @@ export type FederationHostingCandidacy = {
   recencyPoints: number;
   rankingPoints: number;
   renownPoints: number;
+  organizationPoints: number;
   specializationBonusPoints: number;
   selectionScore: number;
   submittedAt: string;
@@ -176,6 +177,7 @@ type StageRow = {
   race_edition_id: string;
   status: string;
   profile_type: RaceProfileType;
+  profile_variant: RaceProfileVariant | null;
 };
 type RenownRow = {
   score: number;
@@ -198,6 +200,7 @@ type CandidacyRow = {
   recency_points: number;
   ranking_points: number;
   renown_points: number;
+  organization_points: number;
   specialization_bonus_points: number;
   selection_score: number;
   status: FederationHostingCandidacy["status"];
@@ -397,14 +400,14 @@ export async function getFederationCoursesState({
         editionIds.length
           ? admin
               .from("stages")
-              .select("race_edition_id, status, profile_type")
+              .select("race_edition_id, status, profile_type, profile_variant")
               .in("race_edition_id", editionIds)
               .returns<StageRow[]>()
           : Promise.resolve({ data: [] as StageRow[], error: null }),
         admin
           .from("national_federation_hosting_candidacies")
               .select(
-            "id, country_id, target_game_year, event_type, event_key, hosting_cost, last_hosted_game_year, uci_rank, renown_score, recency_points, ranking_points, renown_points, specialization_bonus_points, selection_score, status, created_at",
+            "id, country_id, target_game_year, event_type, event_key, hosting_cost, last_hosted_game_year, uci_rank, renown_score, recency_points, ranking_points, renown_points, organization_points, specialization_bonus_points, selection_score, status, created_at",
           )
           .eq("target_game_year", targetGameYear)
           .in("event_key", relevantEventKeys)
@@ -539,12 +542,12 @@ export async function getFederationCoursesState({
       });
       const fieldLimit = edition?.field_limit ?? null;
       const maximumRosterSize = category?.maximum_roster_size ?? 0;
-      const profileCounts = new Map<RaceProfileType, number>();
+      const profilesByLabel = new Map<string, FederationCountryRace["profiles"][number]>();
       for (const stage of raceStages) {
-        profileCounts.set(
-          stage.profile_type,
-          (profileCounts.get(stage.profile_type) ?? 0) + 1,
-        );
+        const label = getRaceProfileLabel({ profileType: stage.profile_type, profileVariant: stage.profile_variant });
+        const profile = profilesByLabel.get(label);
+        if (profile) profile.count += 1;
+        else profilesByLabel.set(label, { type: stage.profile_type, variant: stage.profile_variant, count: 1 });
       }
       return {
         id: race.id,
@@ -573,10 +576,7 @@ export async function getFederationCoursesState({
         moneyGain: raceReturn.money,
         prestigeGain: raceReturn.prestige,
         gainKind: raceReturn.kind,
-        profiles: [...profileCounts.entries()].map(([type, count]) => ({
-          type,
-          count,
-        })),
+        profiles: [...profilesByLabel.values()],
         pastWinners: pastWinnersByRaceId.get(race.id) ?? [],
       };
     });
@@ -603,6 +603,7 @@ export async function getFederationCoursesState({
         recencyPoints: row.recency_points,
         rankingPoints: row.ranking_points,
         renownPoints: row.renown_points,
+        organizationPoints: row.organization_points,
         specializationBonusPoints: row.specialization_bonus_points,
         selectionScore: row.selection_score,
         submittedAt: row.created_at,
@@ -669,7 +670,6 @@ export async function getFederationCoursesState({
           balance,
           reservedAmount,
           eventCost: hostingCost,
-          officeLevel,
           candidacy,
           hasContinent: Boolean(continentCode),
           eventType: event.type,
@@ -878,7 +878,6 @@ function parseRenown(value: unknown, gameYear: number): FederationRenownState {
 function getUnavailableReason({
   gameYear,
   currentDayNumber,
-  officeLevel,
   viewerIsPresident,
   balance,
   reservedAmount,
@@ -889,7 +888,6 @@ function getUnavailableReason({
 }: {
   gameYear: number;
   currentDayNumber: number;
-  officeLevel: number;
   viewerIsPresident: boolean;
   balance: number | null;
   reservedAmount: number;
@@ -902,9 +900,6 @@ function getUnavailableReason({
   if (currentDayNumber > FEDERATION_HOSTING_APPLICATION_CLOSE_DAY)
     return `Dépôts clos depuis la J${FEDERATION_HOSTING_APPLICATION_CLOSE_DAY}.`;
   if (!viewerIsPresident) return "Action réservée au président élu.";
-  const junior = getFederationHostingEvent(eventType).riderCategory === "junior";
-  if (officeLevel < (junior ? 1 : 3))
-    return junior ? "Bureau d’organisation niveau 1 requis." : "Bureau d’organisation niveau 3 requis.";
   if (eventType.startsWith("continental_championship") && !hasContinent)
     return "Le continent de la fédération doit être renseigné.";
   if (candidacy && candidacy.status !== "withdrawn") return "Candidature déjà déposée pour cette édition.";

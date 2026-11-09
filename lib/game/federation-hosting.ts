@@ -85,6 +85,7 @@ export type FederationHostingSelectionScore = {
   recencyPoints: number;
   rankingPoints: number;
   renownPoints: number;
+  organizationPoints: number;
   total: number;
 };
 
@@ -118,11 +119,13 @@ export function calculateFederationHostingSelectionScore({
   lastHostedGameYear,
   nationRank,
   renown,
+  organizationOfficeLevel = 0,
 }: {
   targetGameYear: number;
   lastHostedGameYear: number | null;
   nationRank: number | null;
   renown: number;
+  organizationOfficeLevel?: number;
 }): FederationHostingSelectionScore {
   const seasonsSinceHosting =
     lastHostedGameYear == null
@@ -130,15 +133,17 @@ export function calculateFederationHostingSelectionScore({
       : Math.max(0, targetGameYear - lastHostedGameYear - 1);
   const recencyPoints = Math.min(600, seasonsSinceHosting * 75);
   const normalizedRank = Math.max(1, Math.min(173, nationRank ?? 173));
-  const rankingPoints = Math.round(((174 - normalizedRank) / 173) * 250);
+  const rankingPoints = Math.round(((174 - normalizedRank) / 173) * 200);
   const renownPoints = Math.round(
     (Math.max(0, Math.min(1_000, renown)) / 1_000) * 150,
   );
+  const organizationPoints = Math.max(0, Math.min(5, Math.trunc(organizationOfficeLevel))) * 10;
   return {
     recencyPoints,
     rankingPoints,
     renownPoints,
-    total: recencyPoints + rankingPoints + renownPoints,
+    organizationPoints,
+    total: recencyPoints + rankingPoints + renownPoints + organizationPoints,
   };
 }
 

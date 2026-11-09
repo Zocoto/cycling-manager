@@ -47,7 +47,10 @@ try {
       $$;
     create function get_national_federation_race_organization_effects(uuid)
       returns table(office_level int, hosting_cost_reduction_percentage numeric, candidacy_score_bonus_percentage numeric)
-      language sql stable as $$ select current_setting('test.office_level')::int, 0::numeric, 0::numeric $$;
+      language sql stable as $$
+        select current_setting('test.office_level')::int, 0::numeric,
+          coalesce(nullif(current_setting('test.office_bonus', true), ''), '0')::numeric
+      $$;
     create function get_national_championship_country_rankings(uuid)
       returns table(country_id uuid, uci_points int) language sql stable as $$
         select id, 100 from public.countries
@@ -107,7 +110,88 @@ try {
   await db.exec("update national_federation_hosting_candidacies set status = 'selected' where status = 'pending'");
   await db.exec("update national_federation_accounts set balance = 0");
   assert.equal(Number(await scalar("select balance from national_federation_accounts")), 0);
-  console.log("Hosting reservations SQL passed: authority, deadline, affordability, withdrawal, retry and award debit.");
+
+  await db.exec(`
+    update season_days set calendar_date = (now() at time zone 'Europe/Paris')::date + 16;
+    update national_federation_accounts set balance = 4000000;
+  `);
+  assert.equal(await scalar(world), candidacy);
+  const legacyPending = (await db.query(
+    "select created_at, updated_at, hosting_cost, selection_score from national_federation_hosting_candidacies where id = $1",
+    [candidacy],
+  )).rows[0];
+  const legacySelected = (await db.query(
+    "select created_at, updated_at, hosting_cost, selection_score from national_federation_hosting_candidacies where id = $1",
+    [next],
+  )).rows[0];
+  assert.equal(legacyPending.selection_score, 925);
+
+  const [oldSeason, otherCountry, hostedRace, standardRace] = [6, 7, 8, 9].map(id);
+  await db.exec(`
+    insert into countries values ('${otherCountry}', 'FR', 'europe', true);
+    insert into seasons values ('${oldSeason}', 'completed', 4, 28);
+    insert into races values
+      ('${hostedRace}', '${otherCountry}', 'nations_cup', null),
+      ('${standardRace}', '${country}', 'standard', null);
+    insert into race_editions(id, race_id, season_id, status, host_country_id) values
+      ('${id(10)}', '${hostedRace}', '${oldSeason}', 'completed', '${country}'),
+      ('${id(11)}', '${standardRace}', '${season}', 'completed', '${country}'),
+      ('${id(12)}', '${hostedRace}', '${season}', 'cancelled', '${country}');
+    set test.office_level = '2';
+  `);
+  await db.exec(await migrate("20261110140000_open_federation_hosting_and_score_organization.sql"));
+
+  const score = async (id) => (await db.query(
+    `select last_hosted_game_year, recency_points, ranking_points, renown_points, organization_points,
+      specialization_bonus_points, selection_score
+      from national_federation_hosting_candidacies where id = $1`,
+    [id],
+  )).rows[0];
+  assert.deepEqual(await score(candidacy), {
+    last_hosted_game_year: 4,
+    recency_points: 75,
+    ranking_points: 200,
+    renown_points: 75,
+    organization_points: 20,
+    specialization_bonus_points: 0,
+    selection_score: 370,
+  });
+  const rescoredPending = (await db.query(
+    "select created_at, updated_at, hosting_cost from national_federation_hosting_candidacies where id = $1",
+    [candidacy],
+  )).rows[0];
+  assert.deepEqual(rescoredPending, {
+    created_at: legacyPending.created_at,
+    updated_at: legacyPending.updated_at,
+    hosting_cost: legacyPending.hosting_cost,
+  });
+  assert.deepEqual((await db.query(
+    "select created_at, updated_at, hosting_cost, selection_score from national_federation_hosting_candidacies where id = $1",
+    [next],
+  )).rows[0], legacySelected);
+  assert.equal(Number(await scalar(`select reserved_amount from get_national_federation_hosting_budget('${country}', '${season}')`)), 1_200_000);
+
+  await scalar(withdraw);
+  await db.exec("set test.office_level = '0'");
+  assert.equal(await scalar(world), candidacy);
+  assert.equal((await score(candidacy)).organization_points, 0);
+  await scalar(withdraw);
+  const pro = "select submit_national_federation_hosting_candidacy('BE', 'world_championship_pro')";
+  await db.exec("update national_federation_accounts set balance = 3499999");
+  await assert.rejects(scalar(pro), /trésorerie disponible/);
+  await db.exec("update national_federation_accounts set balance = 4000000");
+  const proCandidacy = await scalar(pro);
+  assert.equal((await score(proCandidacy)).selection_score, 350);
+  assert.equal(await scalar(pro), proCandidacy);
+  await assert.rejects(db.exec("update national_federation_accounts set balance = 3499999"), /budget réservé/);
+  await scalar(`select withdraw_national_federation_hosting_candidacy('BE', '${proCandidacy}')`);
+  await db.exec("set test.office_level = '5'; set test.office_bonus = '8'");
+  assert.equal(await scalar(pro), proCandidacy);
+  const upgraded = await score(proCandidacy);
+  assert.equal(upgraded.organization_points, 50);
+  assert.equal(upgraded.specialization_bonus_points, 32);
+  assert.equal(upgraded.selection_score, 432);
+  console.log("Hosting reservations and scoring SQL passed: eligibility, treasury, rotation, office, pending migration and retries.");
 } catch (error) {
   console.error(error.message, error.where ?? "");
   process.exitCode = 1;

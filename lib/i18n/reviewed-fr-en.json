@@ -3603,5 +3603,12 @@
   "Réputation actuelle ·": "Current reputation ·",
   "Réputation actuelle · {{0}}": "Current reputation · {{0}}",
   "Solde fédéral libre ·": "Available federation balance ·",
-  "Solde fédéral libre · {{0}}": "Available federation balance · {{0}}"
+  "Solde fédéral libre · {{0}}": "Available federation balance · {{0}}",
+  ", dès que le calendrier est prêt.": ", when the calendar is ready.",
+  "+15 % sur les recettes nationales alimentant le budget fédéral suivant.": "+15% to national race revenue going into next season’s federation budget.",
+  "Dépliez une catégorie pour consulter les profils et les statistiques de ses courses.": "Expand a category to see its race profiles and statistics.",
+  "Dernier accueil international": "Last international event hosted",
+  "Les recettes nationales alimentent le budget de la saison suivante. Chaque niveau du Bureau ajoute 10 points au score d’une candidature internationale. Les remises d’accueil sont figées au dépôt.": "National race revenue goes into next season’s budget. Each Office level adds 10 points to an international hosting application. Hosting discounts are locked in when you apply.",
+  "Statistiques de la course": "Race statistics",
+  "Toute fédération peut candidater, même sans Bureau d’organisation. Le score privilégie le temps écoulé depuis le dernier accueil international (60 %). Le classement UCI (20 %), la renommée (15 %) et le niveau du Bureau (5 %) complètent le barème.": "Any federation can apply, even without a Race Organisation Office. Time since the last international event hosted accounts for 60% of the score, followed by UCI ranking (20%), renown (15%) and the Office level (5%)."
 }
