@@ -11,6 +11,9 @@ const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const read=name=>readFileSync(`supabase/migrations/${name}.sql`,'utf8').replaceAll('\r\n','\n');
 const table=(source,name)=>{const start=source.indexOf(`create table public.${name} (`);assert.ok(start>=0,name);return source.slice(start,source.indexOf('\n);',start)+4);};
 const migration=read('20261104170000_add_ten_day_welcome_coach_campaign');
+const correction=read('20261109150027_fix_welcome_coach_registration_country');
+const teamCore=read('20260714195812_create_team_core_tables');
+const mailbox=read('20260808165000_create_sporting_director_mailbox');
 const baseline=JSON.parse(readFileSync('scripts/fixtures/welcome-coach-core-baseline.json','utf8'));
 process.on('uncaughtException',error=>{console.error(error.message?.slice(0,1600),error.where??'');process.exitCode=1;});
 await db.exec(`create schema private;create schema auth;create role anon;create role authenticated;
@@ -19,14 +22,16 @@ await db.exec(`create schema private;create schema auth;create role anon;create 
  create table seasons(id uuid primary key,game_year int,status text);
  create table season_days(id uuid primary key default gen_random_uuid(),season_id uuid references seasons,day_number int);
  create table teams(id uuid primary key,home_country_id uuid references countries);
+ create table divisions(id uuid primary key);
  create table sporting_directors(id uuid primary key,auth_user_id uuid references auth.users on delete cascade,status text);
- create table team_seasons(id uuid primary key,team_id uuid references teams,season_id uuid references seasons,country_id uuid references countries,currency_code text,status text,cash_balance numeric default 10000,unique(team_id,season_id));
+ ${table(teamCore,'team_seasons')}
+ alter table team_seasons add cash_balance numeric(14,2) not null default 0;
  create table initial_career_generations(id uuid primary key,team_id uuid references teams,season_id uuid references seasons,sporting_director_id uuid references sporting_directors on delete cascade);
  create table riders(id uuid primary key,first_name text,last_name text);
  create table rider_contracts(rider_id uuid references riders,team_id uuid references teams,start_season_id uuid references seasons);
  create table alpha_bot_managers(sporting_director_id uuid references sporting_directors on delete cascade);
  create table team_finance_transactions(id uuid primary key default gen_random_uuid(),team_season_id uuid references team_seasons,season_day_id uuid references season_days,day_number int,amount numeric,category text,status text,description text,source_reference text,unique(team_season_id,source_reference));
- create table sporting_director_messages(id uuid primary key default gen_random_uuid(),sporting_director_id uuid references sporting_directors on delete cascade,season_id uuid references seasons,team_season_id uuid references team_seasons,message_type text,sender_name text,subject text,preview text,body text,action_href text,action_label text,source_reference text,is_important boolean,unique(sporting_director_id,source_reference));
+ ${table(mailbox,'sporting_director_messages')}
  insert into countries values('${id(1)}'),('${id(2)}');
  insert into seasons values('${id(4)}',4,'active'),('${id(5)}',5,'planned');
  insert into season_days(season_id,day_number)select id,n from seasons cross join generate_series(1,28)n;
@@ -52,7 +57,7 @@ async function account(at,{state='active',bot=false,first='Camille',scout=false,
  await db.query('insert into auth.users values($1,$2)',[a,at]);
  await db.query('insert into sporting_directors values($1,$2,$3)',[director,a,state]);
  await db.query('insert into teams values($1,$2)',[team,id(1)]);
- for(const y of [4,5])await db.query('insert into team_seasons(id,team_id,season_id,country_id,currency_code,status)values($1,$2,$3,$4,$5,$6)',[id(n+y),team,id(y),id(2),'EUR',y===4?'active':'planned']);
+ for(const y of [4,5])await db.query('insert into team_seasons(id,team_id,season_id,registration_country_id,display_name,status,cash_balance)values($1,$2,$3,$4,$5,$6,10000)',[id(n+y),team,id(y),id(2),`Test team ${n}`,y===4?'active':'planned']);
  await db.query('insert into riders values($1,$2,$3)',[id(n+6),first,'National']);
  await db.query('insert into rider_contracts values($1,$2,$3)',[id(n+6),team,id(year)]);
  if(bot)await db.query('insert into alpha_bot_managers values($1)',[director]);
@@ -71,6 +76,16 @@ check(await scalar("select extract(epoch from ends_at-starts_at)::int from priva
 check(await scalar('select count(*)::int from private.welcome_coach_grants'),0,'No existing careers awarded');
 const stamp=async delta=>scalar("select (starts_at+$1::interval)::text from private.welcome_coach_campaigns",[delta]);
 const start=await stamp('0 seconds'),inside=await stamp('1 second');
+const missed=await account(inside);
+check(await scalar('select count(*)::int from initial_career_generations where id=$1',[missed.generation]),1,'The original failure preserved the career');
+check(await scalar('select count(*)::int from private.welcome_coach_grants where auth_user_id=$1',[missed.a]),0,'The original failure skipped the welcome grant');
+await assert.rejects(() => scalar('select private.grant_welcome_coach($1)',[missed.generation]),{code:'42703'});
+checks++;
+
+await db.exec(correction);
+check(await scalar('select count(*)::int from private.welcome_coach_grants'),0,'The correction does not backfill careers');
+check(await scalar('select private.grant_welcome_coach($1)',[missed.generation]),true,'A skipped career can be retried explicitly');
+check(await scalar('select private.grant_welcome_coach($1)',[missed.generation]),false,'A recovered grant cannot be repeated');
 const eligible=await account(start,{scout:true});
 const gift=(await rows(`select g.*,m.role,m.level,m.country_id,m.trainer_specialty,c.salary_per_season,c.salary_waived_season_id,c.signing_fee,c.status from private.welcome_coach_grants g join staff_members m on m.id=g.staff_member_id join staff_contracts c on c.id=g.staff_contract_id where g.auth_user_id=$1`,[eligible.a]))[0];
 check(gift.role,'trainer');check(gift.level,3);check(gift.country_id,id(2),'Team nationality, not manager/home nationality');
@@ -118,6 +133,7 @@ for(const role of ['anon','authenticated']){
 }
 const count=await scalar('select count(*)::int from private.welcome_coach_grants');
 await db.exec(migration);
+await db.exec(correction);
 check((await rows('select starts_at::text start,ends_at::text finish from private.welcome_coach_campaigns'))[0],campaign,'Reapplication preserves exact window');
 check(await scalar('select count(*)::int from private.welcome_coach_grants'),count,'Reapplication grants nothing again');
 check(await scalar('select private.grant_welcome_coach($1)',[old.generation]),false,'Old accounts remain excluded');
