@@ -66,6 +66,7 @@ it("keeps archived quiz questions, revealing the answer only after settlement", 
     renderToStaticMarkup(<GlobalChatQuizQuestion round={{ ...round, status }} portraitUrl={portraitUrl} timeLabel="18:00" />);
 
   const open = renderQuestion("open");
+  expect(open).toMatch(/<article[^>]*><img[^>]*src="\/images\/chat\/quizz-o-stratege\.svg"[^>]*\/><div[^>]*rounded-tl-sm/);
   expect(open).toContain("Top ! Je suis, je suis…");
   expect(open).toContain(portraitUrl);
   expect(open).toMatch(/<time[^>]*>18:00<\/time>/);
