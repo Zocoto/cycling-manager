@@ -41,6 +41,27 @@ describe("dashboard physiotherapist payload", () => {
     expect(mock.from).toHaveBeenCalledTimes(2);
   });
 
+  it("loads an eligible federation vote from the existing first dashboard response", async () => {
+    const closesAt = "2026-11-10T18:00:00+00:00";
+    const mock = client({ federationVoteReminder: { countryCode: "be", closesAt }, items: [] });
+    const summaries = getCurrentDashboardAssistantSummaries(mock.supabase);
+    const federationVoteReminder = { countryCode: "BE", closesAt };
+    expect(await summaries.initial).toMatchObject({ federationVoteReminder });
+    expect(await summaries.complete).toMatchObject({ federationVoteReminder });
+    expect(mock.rpc).toHaveBeenCalledTimes(7);
+    expect(mock.rpc.mock.calls.filter(call => call[0] === "get_current_dashboard_assistant_summary")).toHaveLength(1);
+  });
+
+  it.each([null, [], {}, { federationVoteReminder: null },
+    { federationVoteReminder: { countryCode: "../be", closesAt: "2026-11-10T18:00:00Z" } },
+    { federationVoteReminder: { countryCode: "BE", closesAt: "invalid" } },
+  ])("does not show an election from absent, legacy or malformed payloads (%j)", async payload => {
+    const mock = client(payload);
+    const summary = await getCurrentDashboardAssistantSummary(mock.supabase, { enrich: false });
+    expect(summary).toMatchObject({ federationVoteReminder: null });
+    expect(mock.rpc).toHaveBeenCalledTimes(1);
+  });
+
   it.each([null, [], {}, { formCampReport: "invalid" },
     { formCampReport: { dayNumber: 0, riderCount: 1, totalFormGain: 5 } },
     { formCampReport: { dayNumber: 29, riderCount: 1, totalFormGain: 5 } },

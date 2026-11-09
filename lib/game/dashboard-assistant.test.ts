@@ -217,6 +217,23 @@ describe("dashboard DS assistant", () => {
     expect(buildDashboardAssistantLines({ ...options, now: new Date("2026-10-19T12:00:00Z") }).alerts[0].id).toBe("negative-cash");
     expect(buildDashboardAssistantLines({ ...options, now: new Date("2026-10-19T19:00:00Z") }).alerts[0].id).toBe("negative-cash");
   });
+  it("links an open federation vote to its panel and hides the alert at the Paris deadline", () => {
+    const closesAt = "2026-11-10T18:00:00Z";
+    const options = {
+      snapshot: { ...snapshot, federationVoteReminder: { countryCode: "BE", closesAt } },
+      rewardCount: 0,
+      cashBalance: 0,
+    };
+    const before = buildDashboardAssistantLines({ ...options, now: new Date("2026-11-10T17:59:59Z") });
+    expect(before.alerts.slice(0, 5).find(line => line.id === "federation-vote-reminder")).toMatchObject({
+      tone: "alert",
+      title: "Vote fédéral ouvert",
+      detail: expect.stringContaining("19:00"),
+      href: "/jeu/federations/be?onglet=governance#election-federale",
+    });
+    const after = buildDashboardAssistantLines({ ...options, now: new Date(closesAt) });
+    expect(after.alerts.some(line => line.id === "federation-vote-reminder")).toBe(false);
+  });
   it.each([
     [1, 1, "coureur sans kiné", "1 place disponible"],
     [8, 3, "coureurs sans kiné", "3 places disponibles"],

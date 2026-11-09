@@ -266,6 +266,7 @@ export async function voteFederationPresidentAction(
   }
 
   revalidatePath(`/jeu/federations/${countryCode.data.toLowerCase()}`);
+  revalidatePath("/jeu");
   return {
     status: "success",
     message:

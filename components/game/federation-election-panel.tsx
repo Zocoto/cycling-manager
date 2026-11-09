@@ -47,7 +47,7 @@ export function FederationElectionPanel({
   const hasAppointedPresident = overview.phase === "automatic" && Boolean(overview.presidentName);
 
   return (
-    <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]">
+    <section id="election-federale" className="scroll-mt-24 overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]">
       <div className="grid gap-6 bg-[var(--federation-primary)] p-6 text-white sm:p-8 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--federation-accent)]">

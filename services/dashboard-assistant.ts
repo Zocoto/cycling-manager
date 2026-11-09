@@ -2,6 +2,7 @@ import "server-only";
 
 import type {
   DashboardAssistantSnapshot,
+  DashboardFederationVoteReminder,
   DashboardFormCampReportSummary,
   DashboardNaturalizationAlert,
   DashboardJournalItem,
@@ -207,6 +208,7 @@ export async function getCurrentDashboardAssistantSummary(
     formCampReport: assistantPayload.formCampReport,
     halloweenShopEndsAt: halloweenEdition?.shopEndsAt ?? null,
     naturalizationAlerts: assistantPayload.naturalizationAlerts,
+    federationVoteReminder: assistantPayload.federationVoteReminder,
     emptyRosterRecoveryAvailable: assistantPayload.emptyRosterRecoveryAvailable,
     gameDate: row.game_date,
     minimumForm: row.minimum_form,
@@ -389,6 +391,7 @@ function clampInteger(value: unknown, minimum: number, maximum: number) {
 
 function normalizeAssistantPayload(value: unknown): {
   formCampReport: DashboardFormCampReportSummary | null;
+  federationVoteReminder: DashboardFederationVoteReminder | null;
   naturalizationAlerts: DashboardNaturalizationAlert[];
   emptyRosterRecoveryAvailable: boolean;
   riderRecruitmentMatchCount: number;
@@ -415,6 +418,7 @@ function normalizeAssistantPayload(value: unknown): {
   if (Array.isArray(value)) {
     return {
       formCampReport: null,
+      federationVoteReminder: null,
       naturalizationAlerts: [],
       emptyRosterRecoveryAvailable: false,
       riderRecruitmentMatchCount: 0,
@@ -443,6 +447,7 @@ function normalizeAssistantPayload(value: unknown): {
   if (!value || typeof value !== "object") {
     return {
       formCampReport: null,
+      federationVoteReminder: null,
       naturalizationAlerts: [],
       emptyRosterRecoveryAvailable: false,
       riderRecruitmentMatchCount: 0,
@@ -496,6 +501,7 @@ function normalizeAssistantPayload(value: unknown): {
       : {};
   return {
     formCampReport: normalizeFormCampReportSummary(payload.formCampReport),
+    federationVoteReminder: normalizeFederationVoteReminder(payload.federationVoteReminder),
     naturalizationAlerts: normalizeNaturalizationAlerts(payload.naturalizationAlerts),
     emptyRosterRecoveryAvailable: payload.emptyRosterRecoveryAvailable === true,
     riderRecruitmentMatchCount: normalizeCount(
@@ -580,6 +586,16 @@ function normalizeOptionalString(value: unknown): string | null {
 function normalizeCountryCode(value: unknown): string | null {
   const countryCode = normalizeOptionalString(value)?.toUpperCase() ?? null;
   return countryCode && /^[A-Z]{2}$/.test(countryCode) ? countryCode : null;
+}
+
+function normalizeFederationVoteReminder(value: unknown): DashboardFederationVoteReminder | null {
+  if (!value || typeof value !== "object") return null;
+  const reminder = value as Record<string, unknown>;
+  const countryCode = normalizeCountryCode(reminder.countryCode);
+  const closesAt = normalizeOptionalString(reminder.closesAt);
+  return countryCode && closesAt && Number.isFinite(Date.parse(closesAt))
+    ? { countryCode, closesAt }
+    : null;
 }
 
 function normalizeUuid(value: unknown): string | null {

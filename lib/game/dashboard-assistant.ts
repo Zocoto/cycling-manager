@@ -65,6 +65,7 @@ export type NewcomerJourney = {
 
 export type DashboardAssistantSnapshot = {
   formCampReport?: DashboardFormCampReportSummary | null;
+  federationVoteReminder?: DashboardFederationVoteReminder | null;
   halloweenShopEndsAt?: string | null;
   naturalizationAlerts?: DashboardNaturalizationAlert[];
   emptyRosterRecoveryAvailable?: boolean;
@@ -136,6 +137,11 @@ export type DashboardFormCampReportSummary = {
   totalFormGain: number;
 };
 
+export type DashboardFederationVoteReminder = {
+  countryCode: string;
+  closesAt: string;
+};
+
 export type DashboardInfrastructureOrientation = {
   infrastructureCode: string;
   buildingName: string;
@@ -186,6 +192,7 @@ const ALERT_PRIORITY = [
   "empty-roster-recovery",
   "race-roster-alerts",
   "negative-cash",
+  "federation-vote-reminder",
   "halloween-shop-closing",
   "development-race-registration-reminder",
   "development-team-setup",
@@ -218,6 +225,14 @@ const ALERT_PRIORITY = [
   "youth-alerts",
   "naturalization",
 ] as const;
+
+const FEDERATION_VOTE_DEADLINE_FORMAT = new Intl.DateTimeFormat("en-GB", {
+  day: "2-digit",
+  month: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "Europe/Paris",
+});
 
 export function buildDashboardAssistantLines({
   snapshot,
@@ -482,6 +497,20 @@ export function buildDashboardAssistantLines({
       ),
       detail: `${nextSelection} · échéance ${deadline}.`,
       href: `/jeu/federations/${snapshot.federationSelectionReminderCountryCode.toLowerCase()}?onglet=selections`,
+    });
+  }
+
+  const federationVote = snapshot.federationVoteReminder;
+  const voteClosesAt = federationVote ? Date.parse(federationVote.closesAt) : NaN;
+  if (federationVote && voteClosesAt > now.getTime()) {
+    const deadline = FEDERATION_VOTE_DEADLINE_FORMAT.format(voteClosesAt);
+    alerts.push({
+      id: "federation-vote-reminder",
+      tone: "alert",
+      metric: "Vote",
+      title: "Vote fédéral ouvert",
+      detail: `Élection du président · clôture ${deadline}.`,
+      href: `/jeu/federations/${federationVote.countryCode.toLowerCase()}?onglet=governance#election-federale`,
     });
   }
 
