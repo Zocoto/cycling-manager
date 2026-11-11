@@ -1532,7 +1532,8 @@ function SponsoringSection() {
             "Cadre, roue avant et roue arrière propres au partenaire",
             `À ${formatGuideNumber(REPUTATION_FEATURE_THRESHOLDS.equipmentPartnerExtra)} points, dépense définitive de 200 points pour un quatrième équipement`,
             "L’équipement exclusif n’est pas revendable",
-            "Les pièces du partenaire sont retirées à la fin du contrat",
+            "La dotation est liée à la durée du contrat",
+            "À l’échéance, vous pouvez signer de nouveau avec la même marque",
           ]}
         />
       </div>

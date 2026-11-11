@@ -165,7 +165,7 @@ export default async function EquipmentPartnerPage({
           <RuleCard
             eyebrow="Engagement"
             title="Deux saisons fermes"
-            body="Le contrat est irrévocable et dure deux saisons. Changez de marque à son terme ; un ancien partenaire redevient disponible après un contrat avec une autre marque."
+            body="Le contrat est irrévocable pendant deux saisons. À son terme, vous pouvez signer un nouveau contrat avec la même marque."
           />
           <RuleCard
             eyebrow="Signature technique"
@@ -180,9 +180,9 @@ export default async function EquipmentPartnerPage({
               overview={overview}
               supplier={activeSupplier}
             />
-          ) : (
+          ) : !overview.activeContract ? (
             <ContractSelectionSection overview={overview} />
-          )}
+          ) : null}
         </div>
 
         {overview.contractHistory.some(
@@ -208,9 +208,6 @@ export default async function EquipmentPartnerPage({
                     </p>
                     <p className="mt-1 text-xs font-semibold text-[#60756E]">
                       {contract.startSeasonName} → {contract.endSeasonName}
-                    </p>
-                    <p className="mt-3 text-xs font-bold leading-5 text-[#936A21]">
-                      L’accès à la dotation de cette marque a été retiré.
                     </p>
                   </div>
                 ))}
@@ -266,10 +263,6 @@ function ContractSelectionSection({
     );
   }
 
-  const availableSuppliers = overview.suppliers.filter(
-    (supplier) => !supplier.isPreviousPartner,
-  );
-
   return (
     <section className="mt-7">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -282,9 +275,9 @@ function ContractSelectionSection({
           </h2>
         </div>
         <span className="rounded-full bg-white px-4 py-2 text-xs font-black text-[#176951] shadow-sm">
-          {availableSuppliers.length} partenaire
-          {availableSuppliers.length > 1 ? "s" : ""} disponible
-          {availableSuppliers.length > 1 ? "s" : ""}
+          {overview.suppliers.length} partenaire
+          {overview.suppliers.length > 1 ? "s" : ""} disponible
+          {overview.suppliers.length > 1 ? "s" : ""}
         </span>
       </div>
 
@@ -307,13 +300,7 @@ function SupplierContractCard({
   );
 
   return (
-    <article
-      className={
-        supplier.isPreviousPartner
-          ? "overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-[#F0F3F0] opacity-75"
-          : "overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.09)]"
-      }
-    >
+    <article className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.09)]">
       <div
         className="flex min-h-36 items-center gap-5 p-6"
         style={{
@@ -372,20 +359,13 @@ function SupplierContractCard({
         <form action={signEquipmentPartnerAction} className="mt-5">
           <input type="hidden" name="supplierKey" value={supplier.key} />
           <EquipmentPartnerSubmitButton
-            label={
-              supplier.isPreviousPartner
-                ? "Dernier partenaire : alternance requise"
-                : `Signer avec ${supplier.name}`
-            }
+            label={`Signer avec ${supplier.name}`}
             pendingLabel="Signature…"
-            disabled={supplier.isPreviousPartner}
           />
         </form>
-        {!supplier.isPreviousPartner ? (
-          <p className="mt-3 text-[11px] font-bold text-[#936A21]">
-            Signature définitive : aucune rupture ni prolongation possible.
-          </p>
-        ) : null}
+        <p className="mt-3 text-[11px] font-bold text-[#936A21]">
+          La signature vous engage pour deux saisons fermes.
+        </p>
       </div>
     </article>
   );

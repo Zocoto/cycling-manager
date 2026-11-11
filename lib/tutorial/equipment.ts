@@ -79,7 +79,7 @@ export const equipmentTutorialDefinition = {
       targetId: "equipment-partner-rules",
       title: "Un engagement technique de deux saisons",
       content:
-        "Le contrat ne coûte rien, mais il est irrévocable, dure deux saisons et ne peut pas être prolongé immédiatement avec la même marque. Après deux saisons avec un autre équipementier, vous pouvez revenir à un ancien partenaire. Toute la dotation du partenaire est retirée à son terme.\n\nLa rubrique équipementier ne comporte plus de R&D ni d’offres aléatoires : les recherches se mènent uniquement dans votre propre laboratoire sur les pièces de votre stock.",
+        "Le contrat est gratuit et vous engage pour deux saisons fermes. À l’échéance, vous pouvez choisir de nouveau le même équipementier. La dotation est liée au contrat actif.\n\nLes recherches se mènent dans votre Labo R&D, sur les pièces de votre stock.",
       placement: "bottom",
       highlightPadding: 8,
     },
@@ -89,7 +89,7 @@ export const equipmentTutorialDefinition = {
       targetId: "equipment-partner-workflow",
       title: "Le contenu s’adapte à votre situation",
       content:
-        "Avant 200 points de réputation, cette zone affiche votre progression vers le déblocage. Une fois le seuil atteint, elle compare la philosophie et les points forts des partenaires encore disponibles. Après signature, elle regroupe toute la dotation. Le Labo R&D dispose de son propre onglet dans la rubrique Matériel.\n\nUne marque déjà utilisée ne pourra pas être choisie une seconde fois.",
+        "Avant 200 points de réputation, cette zone affiche votre progression vers le déblocage. Une fois le seuil atteint, elle compare la philosophie et les points forts des partenaires disponibles. Après signature, elle regroupe toute la dotation. Le Labo R&D dispose de son propre onglet dans la rubrique Matériel.",
       placement: "top",
       highlightPadding: 8,
     },

@@ -553,12 +553,12 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       "equipment-partner-rules": {
         title: "A two-season technical commitment",
         content:
-          "The contract is free but irreversible, lasts two seasons and cannot be renewed with the same brand. The whole allocation is removed at expiry.\n\nR&D is handled only in your own laboratory using stock items.",
+          "The contract is free and commits your team for two full seasons. When it expires, you can choose the same supplier again. Access to supplier equipment depends on an active contract.\n\nResearch takes place in your R&D Lab using items from your inventory.",
       },
       "equipment-partner-workflow": {
         title: "Content adapts to your situation",
         content:
-          "Below 200 reputation, this area shows unlock progress. Once reached, it compares available partners. After signing, it lists the allocation; the R&D Lab has its own Equipment tab.\n\nA brand already used cannot be selected again.",
+          "Below 200 reputation points, this area shows your progress toward unlocking supplier contracts. Once you reach the threshold, you can compare available suppliers. After signing, this area lists the equipment they provide. The R&D Lab has its own tab in Equipment.",
       },
       "equipment-inventory-overview": {
         title: "All your equipment is in inventory",
