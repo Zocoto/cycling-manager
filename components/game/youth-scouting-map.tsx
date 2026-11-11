@@ -11,6 +11,7 @@ import {
 import {
   YOUTH_SCOUTING_DURATION_OPTIONS,
   YOUTH_SCOUTING_LAST_SEASON_DAY,
+  getYouthScoutingCompletionDay,
   getYouthScoutingDurationOptionsForDay,
 } from "@/lib/game/youth-scouting-duration";
 import { getScoutingSupervisionPercentageForReport } from "@/lib/game/scouting-supervision";
@@ -78,14 +79,19 @@ export function YouthScoutingMap({
   const durationDays = availableDurationOptions.includes(selectedDurationDays)
     ? selectedDurationDays
     : (availableDurationOptions[0] ?? null);
-  const completionDayNumber = currentDayNumber + (durationDays ?? 0);
-  const plannedSupervisionPercentage =
+  const completionDayNumber =
     durationDays === null
+      ? null
+      : getYouthScoutingCompletionDay(currentDayNumber, durationDays);
+  const plannedSupervisionPercentage =
+    completionDayNumber === null
       ? 0
       : getScoutingSupervisionPercentageForReport(
           scoutingSupervision.effects,
           completionDayNumber,
         );
+  const supervisionExpiresBeforeReport =
+    scoutingSupervision.currentPercentage > 0 && plannedSupervisionPercentage === 0;
   const dialogMessage =
     manualDialogMessage ??
     (errorMessage && errorMessage !== dismissedErrorMessage
@@ -304,18 +310,19 @@ export function YouthScoutingMap({
             <p role="alert" className="rounded-xl border border-[#D6A600]/30 bg-[#FFF9DB] px-3 py-2.5 text-xs font-bold leading-5 text-[#715700]">
               {availableDurationOptions.length
                 ? `La saison est au J${currentDayNumber} : ${unavailableDurationOptions.length === 1 ? `la durée de ${unavailableDurationOptions[0]} jours dépasserait` : `les durées de ${unavailableDurationOptions.join(", ")} jours dépasseraient`} le J${YOUTH_SCOUTING_LAST_SEASON_DAY} et ${unavailableDurationOptions.length === 1 ? "a été désactivée" : "ont été désactivées"}.`
-                : `La saison est au J${currentDayNumber} : il ne reste plus assez de temps pour une mission de 3 jours avant le J${YOUTH_SCOUTING_LAST_SEASON_DAY}.`}
+                : `La saison est au J${currentDayNumber} : il ne reste plus assez de temps pour terminer une mission de 3 jours d’ici au J${YOUTH_SCOUTING_LAST_SEASON_DAY}.`}
             </p>
           ) : null}
-          {durationDays !== null && plannedSupervisionPercentage > 0 ? (
-            <p className="rounded-xl border border-[#42B99A]/25 bg-[#EAF5F3] px-3 py-2.5 text-xs font-bold leading-5 text-[#176951]">
-              Rapport prévu au J{completionDayNumber} · bonus de supervision
-              confirmé : +{plannedSupervisionPercentage} %.
-            </p>
-          ) : durationDays !== null && scoutingSupervision.currentPercentage > 0 ? (
-            <p className="rounded-xl border border-[#D6A600]/25 bg-[#FFF9DB] px-3 py-2.5 text-xs font-bold leading-5 text-[#715700]">
-              Le bonus actif aujourd’hui aura expiré avant le rapport du J
-              {completionDayNumber}.
+          {completionDayNumber !== null ? (
+            <p className={`rounded-xl border px-3 py-2.5 text-xs font-bold leading-5 ${supervisionExpiresBeforeReport ? "border-[#D6A600]/25 bg-[#FFF9DB] text-[#715700]" : "border-[#42B99A]/25 bg-[#EAF5F3] text-[#176951]"}`}>
+              Rapport prévu au J{completionDayNumber}
+              {plannedSupervisionPercentage > 0 ? (
+                <> · bonus de supervision confirmé : +{plannedSupervisionPercentage} %.</>
+              ) : supervisionExpiresBeforeReport ? (
+                <>. Le bonus actif aujourd’hui aura expiré avant le rapport.</>
+              ) : (
+                "."
+              )}
             </p>
           ) : null}
           <MissionSubmitButton

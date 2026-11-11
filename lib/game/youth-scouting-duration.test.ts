@@ -4,6 +4,7 @@ import {
   YOUTH_SCOUTING_DURATION_OPTIONS,
   YOUTH_SCOUTING_MAX_DURATION_DAYS,
   YOUTH_SCOUTING_MIN_DURATION_DAYS,
+  getYouthScoutingCompletionDay,
   getYouthScoutingDurationOptionsForDay,
   isValidYouthScoutingDuration,
 } from "./youth-scouting-duration";
@@ -24,10 +25,15 @@ describe("youth scouting duration", () => {
     expect(isValidYouthScoutingDuration(3.5)).toBe(false);
   });
 
+  it("compte le jour de départ dans la durée de la mission", () => {
+    expect(getYouthScoutingCompletionDay(1, 7)).toBe(7);
+    expect(getYouthScoutingCompletionDay(26, 3)).toBe(28);
+  });
+
   it("retire les durées qui dépasseraient le dernier jour de la saison", () => {
-    expect(getYouthScoutingDurationOptionsForDay(21)).toEqual([3, 4, 5, 6, 7]);
-    expect(getYouthScoutingDurationOptionsForDay(22)).toEqual([3, 4, 5, 6]);
-    expect(getYouthScoutingDurationOptionsForDay(25)).toEqual([3]);
-    expect(getYouthScoutingDurationOptionsForDay(26)).toEqual([]);
+    expect(getYouthScoutingDurationOptionsForDay(22)).toEqual([3, 4, 5, 6, 7]);
+    expect(getYouthScoutingDurationOptionsForDay(23)).toEqual([3, 4, 5, 6]);
+    expect(getYouthScoutingDurationOptionsForDay(26)).toEqual([3]);
+    expect(getYouthScoutingDurationOptionsForDay(27)).toEqual([]);
   });
 });

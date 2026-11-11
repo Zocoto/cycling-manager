@@ -38,24 +38,24 @@ function renderMission(currentDayNumber: number, percentage = 10) {
 }
 
 describe("scouting map report bonus preview", () => {
-  // The real form initially selects a three-day mission. Starting on J5
-  // therefore reaches the same J8 report boundary as a seven-day J1 mission.
+  // The form initially selects three days, including the dispatch day.
   it("confirms the bonus on a report delivered after the seventh active day", () => {
-    const markup = renderMission(5);
+    const markup = renderMission(6);
     expect(markup).toContain("Rapport prévu au J8");
     expect(markup).toContain("bonus de supervision confirmé : +10 %.");
     expect(markup).not.toContain("aura expiré");
   });
 
   it("warns when the report falls beyond the final covered report day", () => {
-    const markup = renderMission(6);
-    expect(markup).toContain("aura expiré avant le rapport du J9");
+    const markup = renderMission(7);
+    expect(markup).toContain("Rapport prévu au J9");
+    expect(markup).toContain("aura expiré avant le rapport");
     expect(markup).not.toContain("bonus de supervision confirmé");
   });
 
   it("continues to show the real +20 percent bonus for earlier reports", () => {
     const markup = renderMission(1, 20);
-    expect(markup).toContain("Rapport prévu au J4");
+    expect(markup).toContain("Rapport prévu au J3");
     expect(markup).toContain("bonus de supervision confirmé : +20 %.");
   });
 
@@ -64,5 +64,9 @@ describe("scouting map report bonus preview", () => {
     expect(markup).not.toContain("Supervision renforcée");
     expect(markup).not.toContain("bonus de supervision confirmé");
     expect(markup).not.toContain("aura expiré");
+  });
+
+  it("previews the return day without a supervision bonus", () => {
+    expect(renderMission(26)).toContain("Rapport prévu au J28.");
   });
 });

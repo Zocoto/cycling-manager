@@ -1,4 +1,8 @@
 {
+  "Rapport prévu au J": "Report due on D",
+  ": il ne reste plus assez de temps pour terminer une mission de 3 jours d’ici au J": ": there is no longer enough time to complete a 3-day mission by D",
+  ". Le bonus actif aujourd’hui aura expiré avant le rapport.": ". The current bonus will expire before the report.",
+  "La saison est au J{{0}} : il ne reste plus assez de temps pour terminer une mission de 3 jours d’ici au J{{1}}.": "The season is on D{{0}}. There is no longer enough time to complete a 3-day mission by D{{1}}.",
   "{{0}} · niveau {{1}} · {{2}}": "{{0}} · level {{1}} · {{2}}",
   "{{0}} membres du staff peuvent être formés à l’Académie des métiers.": "{{0}} staff members can train at the Staff Academy.",
   "Construction fédérale possible": "Federation construction available",

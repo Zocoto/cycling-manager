@@ -20,6 +20,13 @@ export function isValidYouthScoutingDuration(durationDays: number) {
   );
 }
 
+export function getYouthScoutingCompletionDay(
+  startDayNumber: number,
+  durationDays: number,
+) {
+  return startDayNumber + durationDays - 1;
+}
+
 export function getYouthScoutingDurationOptionsForDay(
   currentDayNumber: number,
 ) {
@@ -27,6 +34,7 @@ export function getYouthScoutingDurationOptionsForDay(
 
   return YOUTH_SCOUTING_DURATION_OPTIONS.filter(
     (durationDays) =>
-      currentDayNumber + durationDays <= YOUTH_SCOUTING_LAST_SEASON_DAY,
+      getYouthScoutingCompletionDay(currentDayNumber, durationDays) <=
+      YOUTH_SCOUTING_LAST_SEASON_DAY,
   );
 }

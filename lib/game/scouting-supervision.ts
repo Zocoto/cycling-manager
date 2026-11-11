@@ -40,7 +40,7 @@ export function getScoutingSupervisionPercentageForDay(
   );
 }
 
-/** A report is delivered the day after the mission's last day of work. */
+/** Supervision applies if active on the report day or the day before. */
 export function getScoutingSupervisionReportWindow(reportDayNumber: number): {
   startsOnOrBeforeDayNumber: number;
   endsOnOrAfterDayNumber: number;

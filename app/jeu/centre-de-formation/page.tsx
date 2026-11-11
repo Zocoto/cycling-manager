@@ -1716,7 +1716,7 @@ function ActiveMissionCard({
     100,
     Math.max(
       4,
-      ((currentDay - mission.startDayNumber) / mission.durationDays) * 100,
+      ((currentDay - mission.startDayNumber + 1) / mission.durationDays) * 100,
     ),
   );
   return (

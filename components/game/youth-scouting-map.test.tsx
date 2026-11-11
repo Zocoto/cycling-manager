@@ -139,7 +139,7 @@ describe("YouthScoutingMap", () => {
             activeMissionId: null,
           },
         ]}
-        currentDayNumber={22}
+        currentDayNumber={23}
         errorMessage="Mission non lancée : la durée choisie dépasse le J28."
         scoutingSupervision={{
           currentPercentage: 0,
@@ -161,7 +161,7 @@ describe("YouthScoutingMap", () => {
     );
   });
 
-  it("explique pourquoi aucune mission ne peut partir après le J25", () => {
+  it("explique pourquoi aucune mission ne peut partir après le J26", () => {
     const markup = renderToStaticMarkup(
       <YouthScoutingMap
         countries={[
@@ -194,7 +194,7 @@ describe("YouthScoutingMap", () => {
             activeMissionId: null,
           },
         ]}
-        currentDayNumber={26}
+        currentDayNumber={27}
         scoutingSupervision={{
           currentPercentage: 0,
           stableThroughDayNumber: null,
@@ -206,7 +206,7 @@ describe("YouthScoutingMap", () => {
 
     expect(markup).toContain("Aucune durée disponible");
     expect(markup).toContain(
-      "il ne reste plus assez de temps pour une mission de 3 jours avant le J28",
+      "il ne reste plus assez de temps pour terminer une mission de 3 jours d’ici au J28",
     );
     expect(markup).toContain("Pourquoi le scouting est indisponible ?");
   });
