@@ -165,6 +165,72 @@ describe("breakaway initiative respects support roles", () => {
     expect(plan.initialAttackIds.has("helper-0")).toBe(true);
   });
 
+  it("reserves the targeted morning escape and automatic counters for the named rider", () => {
+    const riders = field(5, (candidate) => ({
+      ...candidate,
+      specialAbilities: ["chase_potato", "panache"],
+    }));
+    const strategy = teamStrategy({
+      objective: "general_classification",
+      breakawayPolicy: "target",
+      breakawayRiderId: "helper-0",
+    });
+    const plan = selectStageAttackPlan(riders, demo.segments, () => 0, undefined, [strategy]);
+
+    expect(plan.initialAttackIds).toContain("helper-0");
+    expect(plan.eligibleUnplannedAttackIds).toContain("helper-0");
+    for (const id of ["helper-1", "helper-2", "helper-3", "helper-4"]) {
+      expect(plan.initialAttackIds).not.toContain(id);
+      expect(plan.eligibleUnplannedAttackIds).not.toContain(id);
+    }
+  });
+
+  it.each(["leader", "leader_sprinter"] as const)(
+    "keeps a %s in the peloton for automatic attacks and preserves an explicit early order",
+    (role) => {
+      const riders = field().map((candidate) => candidate.id === "leader"
+        ? { ...candidate, role, specialAbility: "panache" as const }
+        : candidate);
+      const attackOrder = {
+        riderId: "leader",
+        segmentNumber: demo.segments[0].segmentNumber,
+        intensity: "measured" as const,
+        condition: "always" as const,
+      };
+      const strategy = teamStrategy({
+        breakawayPolicy: "target",
+        breakawayRiderId: "leader",
+        attackOrders: [attackOrder],
+      });
+      const plan = selectStageAttackPlan(riders, demo.segments, () => 0, undefined, [strategy]);
+
+      expect(plan.initialAttackIds).not.toContain("leader");
+      expect(plan.delayedAttackIds).not.toContain("leader");
+      expect(plan.eligibleUnplannedAttackIds).not.toContain("leader");
+      expect(plan.strategyAttackOrders).toEqual([{ ...attackOrder, teamId: "target" }]);
+    },
+  );
+
+  it("reserves a named breakaway candidate for their prepared attack segment", () => {
+    const attackOrder = {
+      riderId: "helper-0",
+      segmentNumber: demo.segments.at(-2)!.segmentNumber,
+      intensity: "strong" as const,
+      condition: "always" as const,
+    };
+    const strategy = teamStrategy({
+      breakawayPolicy: "target",
+      breakawayRiderId: "helper-0",
+      attackOrders: [attackOrder],
+    });
+    const plan = selectStageAttackPlan(field(), demo.segments, () => 0, undefined, [strategy]);
+
+    expect(plan.initialAttackIds).not.toContain("helper-0");
+    expect(plan.delayedAttackIds).not.toContain("helper-0");
+    expect(plan.eligibleUnplannedAttackIds).not.toContain("helper-0");
+    expect(plan.strategyAttackOrders).toEqual([{ ...attackOrder, teamId: "target" }]);
+  });
+
   it("does not silently convert a stage-win objective into a domestique breakaway duty", () => {
     const riders = assignRaceObjectiveDuties({
       ...demo, riders: field(), teamStrategies: [teamStrategy({ objective: "stage_win" })],

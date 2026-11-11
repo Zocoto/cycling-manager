@@ -2559,16 +2559,21 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     const breakaway = getStatesInGroup(states, "breakaway");
     const secondaryBreakaway = getStatesInGroup(states, "breakaway_2");
     const chase = getStatesInGroup(states, "chase");
-    const chaserPelotonTimeAtSegmentStart = chase.length > 0 && peloton.length > 0
+    const pelotonTimeAtSegmentStart = (chase.length > 0 || secondaryBreakaway.length > 0) && peloton.length > 0
       ? average(peloton.map((state) => state.elapsedTimeSeconds))
       : null;
     const chaserGapsAtSegmentStart = new Map(
       chase.map((state) => [
         state.rider.id,
-        chaserPelotonTimeAtSegmentStart === null
+        pelotonTimeAtSegmentStart === null
           ? Number.POSITIVE_INFINITY
-          : state.elapsedTimeSeconds - chaserPelotonTimeAtSegmentStart,
+          : state.elapsedTimeSeconds - pelotonTimeAtSegmentStart,
       ]),
+    );
+    const secondaryBreakawayAheadAtSegmentStart = new Set(
+      secondaryBreakaway.filter((state) => pelotonTimeAtSegmentStart !== null &&
+        state.elapsedTimeSeconds <= pelotonTimeAtSegmentStart + SAME_TIME_MAX_GAP_SECONDS)
+        .map((state) => state.rider.id),
     );
     const delayed = getStatesInGroup(states, "delayed");
     const dropped = getStatesInGroup(states, "dropped");
@@ -3785,7 +3790,9 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     reconcileDetachedRoadGroupsWithPeloton(
       states,
       segmentIndex,
-      breakawayGapSeconds,
+      segment,
+      secondaryBreakawayAheadAtSegmentStart,
+      incidents,
     );
 
     if (segment.prime) {
@@ -4723,11 +4730,20 @@ export function selectStageAttackPlan(
   );
   const generalClassificationProtectedRiderIds =
     getGeneralClassificationProtectedRiderIds(generalClassification, riders);
-  const plannedAttackerIds = new Set(
-    teamStrategies.flatMap((teamStrategy) =>
-      teamStrategy.attackOrders.map((order) => order.riderId),
-    ),
+  const riderById = new Map(riders.map((rider) => [rider.id, rider]));
+  const availableSegmentNumbers = new Set(
+    segments.map((segment) => segment.segmentNumber),
   );
+  const strategyAttackOrders = teamStrategies.flatMap((teamStrategy) =>
+    teamStrategy.attackOrders
+      .filter(
+        (order) =>
+          riderById.get(order.riderId)?.teamId === teamStrategy.teamId &&
+          availableSegmentNumbers.has(order.segmentNumber),
+      )
+      .map((order) => ({ ...order, teamId: teamStrategy.teamId })),
+  );
+  const plannedAttackerIds = new Set(strategyAttackOrders.map((order) => order.riderId));
   const fieldAverage = average(
     riders.map((rider) => getStageSuitability(rider, segments)),
   );
@@ -4741,17 +4757,14 @@ export function selectStageAttackPlan(
       const teamStrategy = strategiesByTeamId.get(rider.teamId);
       return (
         !generalClassificationProtectedRiderIds.has(rider.id) &&
-        !isRaceLeaderRole(rider.role) &&
-        !isRaceSprinterRole(rider.role) &&
-        !isRaceProtectedRiderRole(rider.role) &&
+        !isRaceProtectionRole(rider.role) &&
         (!rider.raceDuty || rider.raceDuty === "breakaway_candidate") &&
         (rider.role !== "leadout" || rider.raceDuty === "breakaway_candidate") &&
         (!strategy.protectedRiderIds.has(rider.id) ||
           rider.raceDuty === "breakaway_candidate") &&
         (teamStrategy?.breakawayPolicy !== "avoid" ||
           rider.raceDuty === "breakaway_candidate") &&
-        (!plannedAttackerIds.has(rider.id) ||
-          rider.raceDuty === "breakaway_candidate")
+        !plannedAttackerIds.has(rider.id)
       );
     })
     .map((rider) => {
@@ -4820,8 +4833,18 @@ export function selectStageAttackPlan(
   const rankedCandidates = rankedEligibleCandidates.filter(({ rider }) =>
     !isSpontaneousDomestique(rider) || approvedDomestiqueIds.has(rider.id),
   );
-  const eligibleUnplannedAttackIds = new Set(rankedCandidates.map(({ rider }) => rider.id));
-  const candidates = rankedCandidates.filter(({ rider, score }) => {
+  // The named rider carries the team's breakaway instruction. Late reserves
+  // still use the wider pool.
+  const breakawayCandidates = rankedCandidates.filter(({ rider }) => {
+    const teamStrategy = strategiesByTeamId.get(rider.teamId);
+    return (
+      teamStrategy?.breakawayPolicy !== "target" ||
+      !teamStrategy.breakawayRiderId ||
+      teamStrategy.breakawayRiderId === rider.id
+    );
+  });
+  const eligibleUnplannedAttackIds = new Set(breakawayCandidates.map(({ rider }) => rider.id));
+  const candidates = breakawayCandidates.filter(({ rider, score }) => {
     const stageStrength = getStageSuitability(rider, segments) - fieldAverage;
     return (
       rider.raceDuty === "breakaway_candidate" ||
@@ -4936,20 +4959,6 @@ export function selectStageAttackPlan(
     delayedAttackIds.add(rider.id);
     delayedTeams.add(rider.teamId);
   }
-
-  const riderById = new Map(riders.map((rider) => [rider.id, rider]));
-  const availableSegmentNumbers = new Set(
-    segments.map((segment) => segment.segmentNumber),
-  );
-  const strategyAttackOrders = teamStrategies.flatMap((teamStrategy) =>
-    teamStrategy.attackOrders
-      .filter(
-        (order) =>
-          riderById.get(order.riderId)?.teamId === teamStrategy.teamId &&
-          availableSegmentNumbers.has(order.segmentNumber),
-      )
-      .map((order) => ({ ...order, teamId: teamStrategy.teamId })),
-  );
 
   return {
     initialAttackIds,
@@ -8614,10 +8623,12 @@ function promoteSecondaryBreakawayWhenNeeded(
  * jamais l'inverse. Toute transition (attaque avortée, incident, soutien ou
  * grupetto) repasse ici avant la publication du snapshot officiel.
  */
-function reconcileDetachedRoadGroupsWithPeloton(
+export function reconcileDetachedRoadGroupsWithPeloton(
   states: Map<string, RiderState>,
   segmentIndex: number,
-  breakawayGapSeconds: number,
+  segment: RaceStageSegment,
+  secondaryBreakawayAheadAtSegmentStart: ReadonlySet<string>,
+  incidents: RaceIncident[],
 ) {
   const peloton = getStatesInGroup(states, "peloton");
   if (peloton.length === 0) return;
@@ -8625,29 +8636,27 @@ function reconcileDetachedRoadGroupsWithPeloton(
     peloton.map((state) => state.elapsedTimeSeconds),
   );
 
-  // Un coureur lâché de l'échappée est repris dès que son retard sur la tête
-  // atteint l'avance du peloton. Sans cette jonction immédiate, il conservait
-  // encore pendant un segment un statut d'échappé exactement à la position du
-  // peloton, ce qui créait une superposition aussi bien logique que graphique.
-  if (breakawayGapSeconds > 0) {
-    for (const state of getStatesInGroup(states, "breakaway_2")) {
-      if (
-        state.lostTimeSeconds <
-        breakawayGapSeconds - SAME_TIME_MAX_GAP_SECONDS
-      ) {
-        continue;
-      }
+  // An intercalated group can cross the peloton's clock during a long sector.
+  // Once caught on nonselective terrain, a rider able to follow shares its pace.
+  for (const state of getStatesInGroup(states, "breakaway_2")) {
+    const gapSeconds = state.elapsedTimeSeconds - pelotonTimeSeconds;
+    if (gapSeconds < -SAME_TIME_MAX_GAP_SECONDS) continue;
 
-      const gapSeconds = state.elapsedTimeSeconds - pelotonTimeSeconds;
-      state.group =
-        gapSeconds > SAME_TIME_MAX_GAP_SECONDS ? "dropped" : "peloton";
-      state.groupSinceSegment = segmentIndex;
-      if (state.group === "peloton") {
-        state.elapsedTimeSeconds = pelotonTimeSeconds;
-        state.lostTimeSeconds = 0;
-      } else {
-        state.lostTimeSeconds = Math.max(0, gapSeconds);
-      }
+    const canRejoinAfterCatch =
+      secondaryBreakawayAheadAtSegmentStart.has(state.rider.id) &&
+      segment.terrain !== "climb" &&
+      segment.surface !== "cobbles" &&
+      state.energy >= ABSOLUTE_EXHAUSTION_ENERGY &&
+      !incidents.some((incident) => incident.riderIds.includes(state.rider.id));
+    state.group = gapSeconds <= SAME_TIME_MAX_GAP_SECONDS || canRejoinAfterCatch
+      ? "peloton"
+      : "dropped";
+    state.groupSinceSegment = segmentIndex;
+    if (state.group === "peloton") {
+      state.elapsedTimeSeconds = pelotonTimeSeconds;
+      state.lostTimeSeconds = 0;
+    } else {
+      state.lostTimeSeconds = gapSeconds;
     }
   }
 

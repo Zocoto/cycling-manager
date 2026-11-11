@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { buildRaceCourseJournal } from "./race-course-journal";
 import { createDemoSimulationInput } from "./race-simulation-demo";
-import { resolveExistingChasers, simulateRaceStage } from "./race-simulation";
+import { reconcileDetachedRoadGroupsWithPeloton, resolveExistingChasers, simulateRaceStage, type RaceIncident } from "./race-simulation";
 import { DEFAULT_RACE_TEAM_STRATEGY } from "./race-strategy";
 
 type States = Parameters<typeof resolveExistingChasers>[0]["states"];
@@ -153,5 +153,38 @@ describe("chronologie affichée d’une chasse après une attaque programmée", 
     const measuredGap = field.elapsedTimeSeconds! - chaser.elapsedTimeSeconds!;
     const displayedGap = field.gapToLeaderSeconds - chaser.gapToLeaderSeconds;
     expect(Math.abs(displayedGap - measuredGap)).toBeLessThanOrEqual(1);
+  });
+});
+
+describe("reprise d’une échappée secondaire", () => {
+  it("regroupe le coureur dès que son chrono croise celui du peloton", () => {
+    const peloton = state("field", "peloton", 5_553);
+    const intercalated = state("intercalated", "breakaway_2", 5_564, 71);
+    intercalated.lostTimeSeconds = 26; // The relative clock still places him ahead.
+    const states = new Map([["intercalated", intercalated], ["field", peloton]]);
+    const segment = createDemoSimulationInput("sprint-littoral", "secondary-catch").segments[0];
+
+    reconcileDetachedRoadGroupsWithPeloton(states, 3, segment, new Set(["intercalated"]), []);
+
+    expect(intercalated).toMatchObject({
+      group: "peloton", elapsedTimeSeconds: 5_553, energy: 71, lostTimeSeconds: 0,
+    });
+  });
+
+  it.each([
+    { name: "retard déjà acquis", startAhead: false, energy: 57, incident: false },
+    { name: "crevaison", startAhead: true, energy: 57, incident: true },
+    { name: "épuisement", startAhead: true, energy: 2, incident: false },
+  ])("préserve un retard réel ($name)", ({ startAhead, energy, incident }) => {
+    const rider = state("intercalated", "breakaway_2", 8_586, energy);
+    const states = new Map([["intercalated", rider], ["field", state("field", "peloton", 8_173)]]);
+    const segment = createDemoSimulationInput("sprint-littoral", "secondary-catch").segments[0];
+    const incidents: RaceIncident[] = incident ? [{
+      id: "puncture", type: "puncture", riderIds: ["intercalated"], abandonedRiderIds: [], label: "Crevaison",
+    }] : [];
+
+    reconcileDetachedRoadGroupsWithPeloton(states, 4, segment, new Set(startAhead ? ["intercalated"] : []), incidents);
+
+    expect(rider).toMatchObject({ group: "dropped", elapsedTimeSeconds: 8_586, lostTimeSeconds: 413 });
   });
 });
