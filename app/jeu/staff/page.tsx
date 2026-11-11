@@ -229,7 +229,7 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
         ) : tab === "equipe" ? (
           <TeamStaff overview={overview} />
         ) : (
-          <section className="mt-7" data-tutorial-id="staff-academy-training">
+          <section id="staff-academy-training" className="mt-7" data-tutorial-id="staff-academy-training">
             <StaffAcademyCard
               academy={academy}
               mode="training"

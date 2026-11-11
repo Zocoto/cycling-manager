@@ -16,6 +16,7 @@ import {
   INFRASTRUCTURE_SPECIALIZATION_UNLOCK_LEVEL,
   TEAM_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS,
 } from "@/lib/game/infrastructure-specializations";
+import type { DashboardFederationConstructionOpportunity } from "@/services/dashboard-federation-construction";
 
 export const DASHBOARD_ASSISTANT_ENABLED = true;
 
@@ -67,6 +68,8 @@ export type DashboardAssistantSnapshot = {
   formCampReport?: DashboardFormCampReportSummary | null;
   federationVoteReminder?: DashboardFederationVoteReminder | null;
   nationalChampionshipRouteReminder?: DashboardNationalChampionshipRouteReminder | null;
+  federationConstructionOpportunity?: DashboardFederationConstructionOpportunity | null;
+  staffAcademyOpportunity?: { freeSlotCount: number; eligibleMemberCount: number } | null;
   halloweenShopEndsAt?: string | null;
   naturalizationAlerts?: DashboardNaturalizationAlert[];
   emptyRosterRecoveryAvailable?: boolean;
@@ -162,6 +165,7 @@ export type DashboardAssistantLine = {
   title: string;
   detail: string;
   href: string | null;
+  keepVisible?: boolean;
   naturalizationTarget?: Pick<DashboardNaturalizationAlert, "subjectType" | "subjectId" | "targetCountryId">;
 };
 
@@ -205,10 +209,12 @@ const ALERT_PRIORITY = [
   "development-race-registration-reminder",
   "development-team-setup",
   "infrastructure-construction",
+  "federation-infrastructure-construction",
   "infrastructure-orientation",
   "low-reputation-registrations",
   "untreated-injuries",
   "physiotherapist-assignments",
+  "staff-academy-training",
   "overweight-riders",
   "underweight-riders",
   "junior-manual-training",
@@ -389,6 +395,36 @@ export function buildDashboardAssistantLines({
       title: pluralize(riderCount, "coureur sans kiné", "coureurs sans kiné"),
       detail: `${slotCount} ${pluralize(slotCount, "place disponible", "places disponibles")} chez vos kinés. Affectez vos coureurs pour protéger leur forme.`,
       href: "/jeu/centre-de-soin?onglet=kines&filtre=sans-kine",
+      keepVisible: true,
+    });
+  }
+
+  const staffAcademy = snapshot.staffAcademyOpportunity;
+  if (staffAcademy && staffAcademy.freeSlotCount > 0 && staffAcademy.eligibleMemberCount > 0) {
+    const { freeSlotCount, eligibleMemberCount } = staffAcademy;
+    alerts.push({
+      id: "staff-academy-training",
+      tone: "alert",
+      metric: String(freeSlotCount),
+      title: "Formation du staff disponible",
+      detail: eligibleMemberCount === 1
+        ? "Un membre du staff peut être formé à l’Académie des métiers."
+        : `${eligibleMemberCount} membres du staff peuvent être formés à l’Académie des métiers.`,
+      href: "/jeu/staff?onglet=formations#staff-academy-training",
+    });
+  }
+
+  const federationConstruction = snapshot.federationConstructionOpportunity;
+  const federalProject = federationConstruction?.projects[0];
+  if (federationConstruction && federalProject) {
+    const count = federationConstruction.projects.length;
+    alerts.push({
+      id: "federation-infrastructure-construction",
+      tone: "alert",
+      metric: String(count),
+      title: pluralize(count, "Construction fédérale possible", "Constructions fédérales possibles"),
+      detail: `${federalProject.name} · niveau ${federalProject.targetLevel} · ${formatAssistantCurrency(federalProject.cost)}`,
+      href: `/jeu/federations/${federationConstruction.countryCode.toLowerCase()}?onglet=infrastructures`,
     });
   }
 

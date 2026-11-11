@@ -207,6 +207,15 @@ describe("dashboard physiotherapist payload", () => {
     expect(mock.from.mock.calls.map(call => call[0])).toEqual(["team_infrastructures", "team_infrastructure_specializations"]);
   });
 
+  it("loads actionable staff courses in both assistant summaries from the shared core request", async () => {
+    const staffAcademyOpportunity = { freeSlotCount: 2, eligibleMemberCount: 3 };
+    const mock = client({ staffAcademyOpportunity });
+    const { initial, complete } = getCurrentDashboardAssistantSummaries(mock.supabase, authUserId);
+    expect(await initial).toMatchObject({ staffAcademyOpportunity });
+    expect(await complete).toMatchObject({ staffAcademyOpportunity });
+    expect(mock.rpc.mock.calls.filter(([name]) => name === "get_current_dashboard_assistant_summary")).toHaveLength(1);
+  });
+
   it.each([null, [], {}, { physiotherapistOpportunity: null }, { physiotherapistOpportunity: "invalid" }])("defaults absent/legacy opportunity to zero (%j)", async payload => {
     expect(await getCurrentDashboardAssistantSummary(client(payload).supabase)).toMatchObject({
       availablePhysiotherapistSlotCount: 0, ridersWithoutPhysiotherapistCount: 0,

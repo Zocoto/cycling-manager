@@ -260,7 +260,7 @@ describe("dashboard DS assistant", () => {
       rewardCount: 0, cashBalance: 100_000,
     }).alerts;
     expect(alerts.filter(line => line.id === "physiotherapist-assignments")).toEqual([
-      expect.objectContaining({ tone: "alert", metric: String(riders), title, detail: expect.stringContaining(detail), href: "/jeu/centre-de-soin?onglet=kines&filtre=sans-kine" }),
+      expect.objectContaining({ tone: "alert", metric: String(riders), title, detail: expect.stringContaining(detail), href: "/jeu/centre-de-soin?onglet=kines&filtre=sans-kine", keepVisible: true }),
     ]);
     expect(alerts.findIndex(line => line.id === "untreated-injuries")).toBeLessThan(alerts.findIndex(line => line.id === "physiotherapist-assignments"));
   });
@@ -270,6 +270,44 @@ describe("dashboard DS assistant", () => {
       snapshot: { ...snapshot, ridersWithoutPhysiotherapistCount: riders, availablePhysiotherapistSlotCount: slots },
       rewardCount: 0, cashBalance: 100_000,
     }).alerts.some(line => line.id === "physiotherapist-assignments")).toBe(false);
+  });
+
+  it.each([[1, 2, true], [0, 2, false], [1, 0, false]])(
+    "links to an actionable staff course with %i seats and %i eligible staff",
+    (freeSlotCount, eligibleMemberCount, visible) => {
+      const { alerts } = buildDashboardAssistantLines({
+        snapshot: { ...snapshot, staffAcademyOpportunity: { freeSlotCount, eligibleMemberCount } },
+        rewardCount: 0, cashBalance: 100_000,
+      });
+      const alert = alerts.find(({ id }) => id === "staff-academy-training");
+      if (visible) {
+        expect(alert).toMatchObject({
+          metric: String(freeSlotCount),
+          detail: expect.stringContaining(String(eligibleMemberCount)),
+          href: "/jeu/staff?onglet=formations#staff-academy-training",
+        });
+      } else {
+        expect(alert).toBeUndefined();
+      }
+    },
+  );
+
+  it("links a funded federation construction to the president's infrastructure tab", () => {
+    const { alerts } = buildDashboardAssistantLines({
+      snapshot: {
+        ...snapshot,
+        federationConstructionOpportunity: {
+          countryCode: "BE",
+          projects: [{ code: "federal_medical_network", name: "Réseau médical fédéral", targetLevel: 2, cost: 140_000 }],
+        },
+      },
+      rewardCount: 0, cashBalance: 0,
+    });
+    expect(alerts.find(({ id }) => id === "federation-infrastructure-construction")).toMatchObject({
+      metric: "1",
+      detail: expect.stringContaining("Réseau médical fédéral · niveau 2"),
+      href: "/jeu/federations/be?onglet=infrastructures",
+    });
   });
 
   it("separates underweight from overweight with a direct nutrition link", () => {

@@ -301,10 +301,10 @@ function AssistantGroup({
   collapsibleAfter?: number;
 }) {
   const visibleLines = collapsibleAfter
-    ? lines.slice(0, collapsibleAfter)
+    ? lines.filter((line, index) => index < collapsibleAfter || line.keepVisible)
     : lines;
   const additionalLines = collapsibleAfter
-    ? lines.slice(collapsibleAfter)
+    ? lines.slice(collapsibleAfter).filter((line) => !line.keepVisible)
     : [];
 
   return (

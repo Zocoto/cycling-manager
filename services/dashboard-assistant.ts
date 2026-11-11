@@ -15,6 +15,8 @@ import { getPendingInfrastructureOrientations } from "@/lib/game/dashboard-assis
 import { INFRASTRUCTURE_SPECIALIZATION_UNLOCK_LEVEL } from "@/lib/game/infrastructure-specializations";
 import { parseDashboardConstructionContext } from "@/lib/game/dashboard-construction-alert";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import type { DashboardFastSummary } from "@/services/dashboard-fast-summary";
+import { getDashboardFederationConstructionOpportunity } from "@/services/dashboard-federation-construction";
 import { getDashboardHalloweenEdition } from "@/services/dashboard-halloween";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -107,9 +109,13 @@ async function hasManagedInCompletedSeason(authUserId: string, signal: AbortSign
 export function getCurrentDashboardAssistantSummaries(
   supabase: SupabaseServerClient,
   authUserId: string,
+  fastSummary?: Promise<DashboardFastSummary | null>,
 ) {
   const signal = AbortSignal.timeout(3000);
   const core = readAssistantCore(supabase, signal);
+  const federationConstruction = fastSummary?.then((summary) => summary
+    ? getDashboardFederationConstructionOpportunity(summary, signal)
+    : null);
   let previousSeason: Promise<boolean> | undefined;
 
   async function loadSummary(enrich: boolean) {
@@ -135,7 +141,10 @@ export function getCurrentDashboardAssistantSummaries(
 
   return {
     initial: loadSummary(false),
-    complete: loadSummary(true),
+    complete: Promise.all([loadSummary(true), federationConstruction])
+      .then(([snapshot, opportunity]) => snapshot && opportunity
+        ? { ...snapshot, federationConstructionOpportunity: opportunity }
+        : snapshot),
   };
 }
 
@@ -268,6 +277,7 @@ export async function getCurrentDashboardAssistantSummary(
     availableScoutCount: assistantPayload.availableScoutCount,
     availablePhysiotherapistSlotCount: assistantPayload.availablePhysiotherapistSlotCount,
     ridersWithoutPhysiotherapistCount: assistantPayload.ridersWithoutPhysiotherapistCount,
+    staffAcademyOpportunity: assistantPayload.staffAcademyOpportunity,
     availableRndEngineerCount: rndOpportunityResult.error
       ? 0
       : normalizeCount(rndOpportunityResult.data),
@@ -449,6 +459,7 @@ function normalizeAssistantPayload(value: unknown): {
   availableScoutCount: number;
   availablePhysiotherapistSlotCount: number;
   ridersWithoutPhysiotherapistCount: number;
+  staffAcademyOpportunity: DashboardAssistantSnapshot["staffAcademyOpportunity"];
   juniorManualTrainingDueCount: number;
   juniorManualTrainingSlot: "manual_am" | "manual_pm" | null;
   federationSelectionReminderCount: number;
@@ -477,6 +488,7 @@ function normalizeAssistantPayload(value: unknown): {
       availableScoutCount: 0,
       availablePhysiotherapistSlotCount: 0,
       ridersWithoutPhysiotherapistCount: 0,
+      staffAcademyOpportunity: null,
       juniorManualTrainingDueCount: 0,
       juniorManualTrainingSlot: null,
       federationSelectionReminderCount: 0,
@@ -507,6 +519,7 @@ function normalizeAssistantPayload(value: unknown): {
       availableScoutCount: 0,
       availablePhysiotherapistSlotCount: 0,
       ridersWithoutPhysiotherapistCount: 0,
+      staffAcademyOpportunity: null,
       juniorManualTrainingDueCount: 0,
       juniorManualTrainingSlot: null,
       federationSelectionReminderCount: 0,
@@ -566,6 +579,7 @@ function normalizeAssistantPayload(value: unknown): {
     availableScoutCount: normalizeCount(payload.availableScoutCount),
     availablePhysiotherapistSlotCount: normalizeCount(physiotherapistOpportunity.freeSlotCount),
     ridersWithoutPhysiotherapistCount: normalizeCount(physiotherapistOpportunity.unassignedRiderCount),
+    staffAcademyOpportunity: normalizeStaffAcademyOpportunity(payload.staffAcademyOpportunity),
     juniorManualTrainingDueCount: normalizeCount(
       payload.juniorManualTrainingDueCount,
     ),
@@ -608,6 +622,15 @@ function normalizeAssistantPayload(value: unknown): {
       developmentRaceRegistrationReminder.nextEditionId,
     ),
     journalItems: normalizeJournalItems(payload.items),
+  };
+}
+
+function normalizeStaffAcademyOpportunity(value: unknown): NonNullable<DashboardAssistantSnapshot["staffAcademyOpportunity"]> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const opportunity = value as Record<string, unknown>;
+  return {
+    freeSlotCount: normalizeCount(opportunity.freeSlotCount),
+    eligibleMemberCount: normalizeCount(opportunity.eligibleMemberCount),
   };
 }
 
