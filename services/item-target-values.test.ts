@@ -18,4 +18,15 @@ describe("item target passport metadata", () => {
     const rpc = vi.fn().mockResolvedValue({ error: { message: "Unavailable" }, data: null });
     await expect(getCurrentTeamItemTargetRiders({ rpc } as unknown as SupabaseClient)).rejects.toThrow("Unavailable");
   });
+
+  it("preserves zero morale and keeps missing values unset", async () => {
+    const rpc = vi.fn().mockResolvedValue({
+      error: null,
+      data: [0, "74", undefined].map((morale, index) => ({
+        id: `rider-${index}`, firstName: "Rider", lastName: String(index), morale,
+      })),
+    });
+    const riders = await getCurrentTeamItemTargetRiders({ rpc } as unknown as SupabaseClient);
+    expect(riders.map((rider) => rider.morale)).toEqual([0, 74, undefined]);
+  });
 });

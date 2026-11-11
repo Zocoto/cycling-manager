@@ -77,6 +77,19 @@ describe("DailyRewardTargetFields", () => {
     expect(markup).toContain("Erik Van Dijk · Forme 82/100");
   });
 
+  it("demande un coureur et affiche son moral pour un bonus de moral", () => {
+    const markup = renderToStaticMarkup(
+      <DailyRewardTargetFields
+        item={buildItem("morale_boost")}
+        riders={[{ ...rider, morale: 64 }]}
+        abilities={[]}
+      />
+    );
+
+    expect(markup).toContain("Erik Van Dijk · Moral 64/100");
+    expect(markup).toMatch(/name="riderId"[^>]*required=""/);
+  });
+
   it("demande la statistique avant d'activer la liste des coureurs", () => {
     const markup = renderToStaticMarkup(
       <DailyRewardTargetFields

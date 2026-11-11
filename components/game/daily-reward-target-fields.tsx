@@ -172,6 +172,7 @@ function getTargetContext(
   abilityCode: string
 ): ItemTargetValueContext | null {
   if (item.effectKind === "form_boost") return { kind: "form" };
+  if (item.effectKind === "morale_boost") return { kind: "morale" };
   if (item.effectKind === "rider_experience") {
     return { kind: "experience" };
   }

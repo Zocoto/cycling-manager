@@ -362,7 +362,9 @@ export default async function InventoryPage({
                 <InventoryItemCard
                   key={item.id}
                   item={item}
-                  riders={riders}
+                  riders={item.dailyReward?.effectKind === "morale_boost"
+                    ? dailyRewardOverview?.riders ?? []
+                    : riders}
                   equipmentByRiderAndSlot={equipmentByRiderAndSlot}
                   pendingEquipmentByRiderAndSlot={
                     pendingEquipmentByRiderAndSlot

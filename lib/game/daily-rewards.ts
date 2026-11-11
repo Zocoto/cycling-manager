@@ -17,6 +17,7 @@ export const DAILY_REWARD_CYCLE_LENGTH = 40;
 
 export type DailyRewardEffectKind =
   | "form_boost"
+  | "morale_boost"
   | "rider_experience"
   | "rating_boost"
   | "training_multiplier"
@@ -226,6 +227,7 @@ export function hasDailyRewardRatingTarget(
 export function requiresRiderTarget(kind: DailyRewardEffectKind) {
   return [
     "form_boost",
+    "morale_boost",
     "rider_experience",
     "rating_boost",
     "special_ability",
@@ -237,6 +239,7 @@ export function requiresRiderTarget(kind: DailyRewardEffectKind) {
 export function isStackableDailyReward(kind: DailyRewardEffectKind) {
   return [
     "form_boost",
+    "morale_boost",
     "rider_experience",
     "rating_boost",
     "scouting_boost",

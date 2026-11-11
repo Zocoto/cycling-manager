@@ -25,6 +25,7 @@ export type ItemTargetRider = {
   countryName: string | null;
   canNaturalizeWithPassport?: boolean;
   form: number;
+  morale?: number;
   experienceDays: number;
   potentialSteps: number;
   ratings: Record<ItemTargetRatingKey, number>;
@@ -45,6 +46,7 @@ export type ItemTargetRider = {
 
 export type ItemTargetValueContext =
   | { kind: "form" }
+  | { kind: "morale" }
   | { kind: "experience" }
   | { kind: "potential" }
   | { kind: "nationality" }
@@ -73,6 +75,9 @@ export function formatItemTargetValue(
   context: ItemTargetValueContext
 ) {
   if (context.kind === "form") return `Forme ${rider.form}/100`;
+  if (context.kind === "morale") {
+    return rider.morale === undefined ? "Moral indisponible" : `Moral ${rider.morale}/100`;
+  }
   if (context.kind === "experience") {
     return `Expérience ${rider.experienceDays.toLocaleString("fr-FR")} j`;
   }

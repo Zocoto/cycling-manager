@@ -93,6 +93,7 @@ function resolveIllustrationKind({
   if (effectKind === "form_boost" || iconKey === "nutrition" || iconKey === "form") {
     return "nutrition";
   }
+  if (effectKind === "morale_boost" || iconKey === "morale") return "ability";
   if (effectKind === "rider_experience" || iconKey === "experience") {
     return "experience";
   }

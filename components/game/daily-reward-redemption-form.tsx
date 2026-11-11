@@ -94,6 +94,11 @@ export function DailyRewardRedemptionForm({
         riders={targetRiders}
         abilities={abilities}
       />
+      {item.effectKind === "morale_boost" ? (
+        <p className="text-[11px] font-semibold leading-5 text-[#60756E]">
+          Le moral est plafonné à 100.
+        </p>
+      ) : null}
 
       {item.effectKind === "scouting_boost" &&
       scoutingSupervision.currentPercentage > 0 ? (

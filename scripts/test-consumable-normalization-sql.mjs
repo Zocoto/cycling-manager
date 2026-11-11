@@ -127,6 +127,119 @@ try {
  await scalar('select redeem_current_daily_rewards($1,1,$2,null,$3)',[id(109),id(32),'etapovore']);
  check(await scalar('select ability_code from rider_special_abilities where rider_id=$1',[id(32)]),'etapovore');
 
+ // Use the real persistent morale helper and the existing inventory RPCs.
+ const extract=(source,start,end)=>{
+  const first=source.indexOf(start), last=source.indexOf(end,first);
+  assert(first>=0&&last>first,start);
+  return source.slice(first,last+end.length);
+ };
+ const moraleSource=readFileSync('supabase/migrations/20260927233500_reapply_persistent_rider_morale.sql','utf8').replaceAll('\r','');
+ const targetSource=readFileSync('supabase/migrations/20260827110000_add_injury_care_items.sql','utf8').replaceAll('\r','');
+ const oldCatalogSource=readFileSync('supabase/migrations/20260930120000_add_scouting_visibility_consumable.sql','utf8').replaceAll('\r','');
+ await db.exec(`
+   alter table rider_contracts add column start_season_id uuid,add column end_season_id uuid;
+   update rider_contracts set start_season_id='${id(1)}',end_season_id='${id(2)}';
+   alter table riders add column first_name text not null default 'Test',add column last_name text not null default 'Coureur';
+   create table countries(id uuid primary key,name text);
+   insert into countries values('${id(99)}','France');
+   create table rider_injuries(id uuid primary key,rider_id uuid,status text,diagnosis_code text,expected_recovery_at timestamptz);
+   create table rider_condition_states(id uuid primary key default gen_random_uuid(),rider_id uuid,season_day_id uuid,
+     form numeric not null,fatigue int not null,morale numeric not null default 60,source text,updated_at timestamptz not null default now(),
+     unique(rider_id,season_day_id),check(morale between 0 and 100));
+   insert into season_days values('${id(4)}','${id(1)}',9);
+   insert into rider_condition_states(rider_id,season_day_id,form,fatigue,morale) values('${id(30)}','${id(4)}',81,12,83);
+   ${extract(oldCatalogSource,'alter table public.daily_reward_catalog\n  add constraint daily_reward_catalog_effect_allowed','  );')}
+   ${extract(moraleSource,'create table public.rider_morale_events (','\n);')}
+   ${extract(moraleSource,'create or replace function public.apply_rider_morale_event(','\n$$;').replace("'manual_adjustment'","'manual_adjustment', 'race_load', 'international_callup_refusal'")}
+   alter table public.rider_morale_events drop constraint rider_morale_events_source_allowed;
+   alter table public.rider_morale_events add constraint rider_morale_events_source_allowed
+     check (source_type in ('social_integration','team_tenure','stage_result','race_result','favorite_race',
+       'injury','training_overload','mixed_zone_interview','academy_promotion','manual_adjustment','race_load')
+       or source_type='international_callup_refusal') not valid;
+   revoke all on function public.apply_rider_morale_event(uuid,uuid,text,text,numeric,text,jsonb) from public,anon,authenticated;
+   revoke all on function public.redeem_current_daily_reward_without_high_performance_cap(uuid,uuid,text,text,uuid) from public,anon,authenticated;
+   ${extract(targetSource,'create or replace function public.get_current_team_item_target_values()','\n$$;')}
+ `);
+ const moraleMigration=readFileSync('supabase/migrations/20261111191000_add_rider_morale_consumables.sql','utf8');
+ await db.exec(moraleMigration);
+ const moraleKeys=['morale_boost_5','morale_boost_10'];
+ check(await rows('select reward_key,importance,effect_payload,is_active from daily_reward_catalog where reward_key=any($1) order by importance',[moraleKeys]),[
+  {reward_key:moraleKeys[0],importance:3,effect_payload:{amount:5,level:3},is_active:true},
+  {reward_key:moraleKeys[1],importance:5,effect_payload:{amount:10,level:5},is_active:true},
+ ]);
+ const condition=()=>rows("select form::float,fatigue,morale::float from rider_condition_states where rider_id=$1 and season_day_id=$2",[id(30),id(3)]);
+ const useMorale=(reward,quantity=1,rider=30)=>scalar('select redeem_current_daily_rewards($1,$2,$3)',[id(reward),quantity,id(rider)]);
+ const stockStatus=reward=>scalar('select status from daily_reward_inventory where id=$1',[id(reward)]);
+ const events=()=>rows("select requested_delta::float,applied_delta::float,morale_after::float from rider_morale_events where source_type='consumable' order by morale_before,applied_delta");
+ const currentTarget=async()=> (await scalar('select get_current_team_item_target_values()')).find(rider=>rider.id===id(30));
+ check((await currentTarget()).morale,83);
+ await daily(120,moraleKeys[0]);await daily(121,moraleKeys[0]);await daily(122,moraleKeys[1]);await daily(123,moraleKeys[1],5,20);
+ await denied('select redeem_current_daily_rewards($1,3,$2)',[id(120),id(30)]);
+ await assert.rejects(()=>useMorale(120,1,31));checks++;
+ await assert.rejects(()=>useMorale(123));checks++;
+ await db.query('update rider_contracts set start_season_id=$1 where rider_id=$2',[id(2),id(30)]);
+ await assert.rejects(()=>useMorale(120));checks++;
+ await db.query('update rider_contracts set start_season_id=$1 where rider_id=$2',[id(1),id(30)]);
+ await assert.rejects(()=>scalar('select redeem_current_daily_rewards($1,1,null)',[id(120)]));checks++;
+ check(await Promise.all([120,121,122,123].map(stockStatus)),['available','available','available','available']);
+ check(await condition(),[]);
+ check(await events(),[]);
+ const group=await useMorale(120,2);
+ check(group.quantityApplied,2);
+ check(await condition(),[{form:81,fatigue:12,morale:93}]);
+ check(await Promise.all([120,121,122,123].map(stockStatus)),['used','used','available','available']);
+ const capped=await useMorale(122);
+ check(capped.moraleAppliedDelta,7);
+ check(capped.moraleAfter,100);
+ check((await currentTarget()).morale,100);
+ check(await condition(),[{form:81,fatigue:12,morale:100}]);
+ check(await events(),[
+  {requested_delta:5,applied_delta:5,morale_after:88},
+  {requested_delta:5,applied_delta:5,morale_after:93},
+  {requested_delta:10,applied_delta:7,morale_after:100},
+ ]);
+ await assert.rejects(()=>useMorale(122));checks++;
+ check((await events()).length,3);
+ await daily(124,'energy-ration');
+ await useMorale(124);
+ check(await condition(),[{form:86,fatigue:12,morale:100}]);
+ check(await scalar("select has_function_privilege('authenticated','apply_rider_morale_event(uuid,uuid,text,text,numeric,text,jsonb)','execute')"),false);
+
+ const cycle=readFileSync('supabase/migrations/20260809141000_extend_daily_reward_cycle.sql','utf8').replaceAll('\r','');
+ const claim=readFileSync('supabase/migrations/20260829100000_preserve_daily_reward_cycle_after_absence.sql','utf8').replaceAll('\r','');
+ const persistence=readFileSync('supabase/migrations/20261106223000_persist_owned_inventory_rewards_across_seasons.sql','utf8').replaceAll('\r','');
+ await db.exec(`
+   create table daily_reward_claims(id uuid primary key,sporting_director_id uuid,team_season_id uuid,season_id uuid,
+     season_day_id uuid,streak_day int,importance int,reward_key text,unique(sporting_director_id,season_day_id));
+   create table daily_reward_streak_states(sporting_director_id uuid primary key,cycle_day int,
+     last_claimed_game_day_index int,last_claim_id uuid,updated_at timestamptz);
+   alter table daily_reward_inventory add column source_claim_id uuid references daily_reward_claims;
+   ${extract(cycle,'create or replace function public.get_daily_reward_importance(','\n$$;')}
+   ${extract(cycle,'create or replace function public.get_next_daily_reward_cycle_day(','\n$$;')}
+   ${extract(claim,'create or replace function public.claim_current_daily_reward(','\n$$;')}
+   ${extract(persistence,'create or replace function private.preserve_owned_inventory_reward_lifetime()','\n$$;')}
+   ${extract(persistence,'create trigger zzz_preserve_owned_inventory_reward_lifetime','for each row execute function private.preserve_owned_inventory_reward_lifetime();')}
+ `);
+ for (const [key,tier,cycleDay,day] of [[moraleKeys[0],3,7,11],[moraleKeys[1],5,25,12]]) {
+  const offeredDay=await scalar(`select seed from generate_series(200,399) as seed
+   where not exists (select 1 from season_days where id=('00000000-0000-4000-8000-'||lpad(seed::text,12,'0'))::uuid)
+   and (select reward_key from daily_reward_catalog where is_active and importance=$1
+   order by md5(reward_key||$2||('00000000-0000-4000-8000-'||lpad(seed::text,12,'0'))) limit 1)=$3
+   order by seed limit 1`,[tier,id(10),key]);
+  assert.ok(offeredDay,`Expected a winning daily offer for ${key}`);
+  await db.query('insert into season_days values($1,$2,$3)',[id(offeredDay),id(1),day]);
+  await db.query('update seasons set current_day_number=$1 where id=$2',[day,id(1)]);
+  await db.query(`insert into daily_reward_streak_states(sporting_director_id,cycle_day,last_claimed_game_day_index)
+    values($1,$2,$3) on conflict(sporting_director_id) do update set cycle_day=excluded.cycle_day`,
+    [id(10),cycleDay-1,4*28+day-1]);
+  const received=await scalar('select claim_current_daily_reward($1)',[key]);
+  check(received.importance,tier);
+  check(await rows('select reward_key,status,expires_after_game_year,source_claim_id from daily_reward_inventory where id=$1',[received.inventoryId]),[
+    {reward_key:key,status:'available',expires_after_game_year:2147483647,source_claim_id:received.claimId},
+  ]);
+  await denied('select claim_current_daily_reward($1)',[key]);
+ }
+
  await db.exec("select set_config('request.jwt.claim.sub','',false)");
  await assert.rejects(()=>consume('potential-notebook',1));checks++;
  await denied('select redeem_current_daily_rewards($1,1,$2,$3)',[id(106),id(30),'mountain']);

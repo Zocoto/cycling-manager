@@ -34,6 +34,7 @@ function normalizeItemTargetRider(value: unknown): ItemTargetRider[] {
   const rawRatings = readObject(row.ratings);
   const rawInjury = readObject(row.injury);
   const injuryId = readString(rawInjury.id);
+  const morale = readOptionalNumber(row.morale);
   const ratings = Object.fromEntries(
     ITEM_TARGET_RATING_KEYS.map((key) => [key, readRating(rawRatings[key])])
   ) as Record<ItemTargetRatingKey, number>;
@@ -47,6 +48,7 @@ function normalizeItemTargetRider(value: unknown): ItemTargetRider[] {
       countryName: readNullableString(row.countryName),
       canNaturalizeWithPassport: readBoolean(row.canNaturalizeWithPassport),
       form: row.weightKg !== undefined ? Math.max(0, Math.min(100, readOptionalNumber(row.form) ?? 75)) : readBoundedInteger(row.form, 75, 0, 100),
+      ...(morale !== null ? { morale: Math.max(0, Math.min(100, Math.round(morale))) } : {}),
       experienceDays: readBoundedInteger(
         row.experienceDays,
         0,

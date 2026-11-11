@@ -326,6 +326,7 @@ function Metric({
 
 function getGiftCategoryLabel(kind: DailyRewardInventoryItem["effectKind"]) {
   if (kind === "form_boost") return "Forme";
+  if (kind === "morale_boost") return "Moral";
   if (kind === "rider_experience") return "Expérience";
   if (kind === "rating_boost") return "Statistique permanente";
   if (kind === "training_multiplier") return "Entraînement";
