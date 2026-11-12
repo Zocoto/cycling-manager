@@ -7,6 +7,7 @@ import { SponsorProjectSlot } from "@/components/game/sponsor-project-slot";
 import {
   markYouthScoutingReportViewedAction,
   naturalizeYouthRiderAction,
+  recallYouthScoutingMissionAction,
 } from "@/app/jeu/centre-de-formation/actions";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { BonusBreakdownPopover } from "@/components/game/bonus-breakdown-popover";
@@ -30,6 +31,7 @@ import { StaffAdditionalSkills } from "@/components/game/staff-skills";
 import { TransferScoutingReportPanel } from "@/components/game/transfer-scouting-report";
 import { YouthTrainingMiniGame } from "@/components/game/youth-training-mini-game";
 import { YouthScoutingMap } from "@/components/game/youth-scouting-map";
+import { YouthScoutingRecallButton } from "@/components/game/youth-scouting-recall-button";
 import { YouthCandidateRecruitment } from "@/components/game/youth-candidate-recruitment";
 import { YouthPromotionForm } from "@/components/game/youth-promotion-form";
 import {
@@ -1740,11 +1742,17 @@ function ActiveMissionCard({
           style={{ width: `${progress}%` }}
         />
       </div>
-      <div className="mt-3">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
         <BonusBreakdownPopover
           breakdown={mission.scoutingQualityBonusBreakdown}
           label="Qualité globale"
         />
+        {currentDay < mission.completesDayNumber ? (
+          <form action={recallYouthScoutingMissionAction}>
+            <input type="hidden" name="missionId" value={mission.id} />
+            <YouthScoutingRecallButton />
+          </form>
+        ) : null}
       </div>
     </article>
   );

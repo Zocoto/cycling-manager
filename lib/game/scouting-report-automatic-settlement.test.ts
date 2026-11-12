@@ -35,8 +35,9 @@ describe("automatic scouting report settlement", () => {
       "mission.completes_day_number <= currentDayNumber",
     );
     expect(service).toContain(
-      "for (const mission of due) await completeMission(admin, mission);",
+      "if (await completeMission(admin, mission)) completedReports += 1;",
     );
+    expect(service).toContain('admin.rpc("complete_youth_scouting_report"');
   });
 
   it("runs from an authenticated cron outside exact key hours", () => {

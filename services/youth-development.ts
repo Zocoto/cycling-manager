@@ -511,8 +511,11 @@ export async function settleDueYouthScoutingMissions(): Promise<number> {
       mission.season_id !== activeSeason.id ||
       mission.completes_day_number <= currentDayNumber,
   );
-  for (const mission of due) await completeMission(admin, mission);
-  return due.length;
+  let completedReports = 0;
+  for (const mission of due) {
+    if (await completeMission(admin, mission)) completedReports += 1;
+  }
+  return completedReports;
 }
 
 export type YouthAutomaticTrainingSettlement = {
@@ -1846,7 +1849,6 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
       nationalityAffinity *
       federalStaffMultiplier;
     return {
-      mission_id: mission.id,
       report_slot: index + 1,
       country_id: country.id,
       first_name: identity.first_name,
@@ -1902,17 +1904,10 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
       ),
     };
   });
-  const insertion = await admin
-    .from("youth_scouting_candidates")
-    .upsert(candidates, {
-      onConflict: "mission_id,report_slot",
-      ignoreDuplicates: true,
-    });
-  assertQuery(insertion.error, "la génération du rapport de scouting");
-  const completion = await admin
-    .from("youth_scouting_missions")
-    .update({
-      status: "completed",
+  const completion = await admin.rpc("complete_youth_scouting_report", {
+    p_mission_id: mission.id,
+    p_candidates: candidates,
+    p_bonuses: {
       federation_detection_bonus_percentage:
         federalDetectionBonusPercentage,
       federal_staff_bonus_percentage: federalStaffBonusPercentage,
@@ -1928,12 +1923,10 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
         federalDetectionNetworkEffects.reportPrecisionBonusPercentage,
       federation_detection_spec_potential_bonus_percentage:
         federalDetectionNetworkEffects.potentialPrecisionBonusPercentage,
-      report_ready_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", mission.id)
-    .eq("status", "active");
+    },
+  });
   assertQuery(completion.error, "la finalisation du rapport de scouting");
+  return completion.data === true;
 }
 
 async function settleAcademyDailyOperations(

@@ -52,6 +52,23 @@ export async function startYouthScoutingAction(formData: FormData) {
   redirectWithMessage("scouting", "succes", "Le scout est en route. Son rapport sera disponible à la fin de la mission.");
 }
 
+export async function recallYouthScoutingMissionAction(formData: FormData) {
+  const missionId = readValue(formData, "missionId");
+  if (!isUuid(missionId)) {
+    redirectWithMessage("scouting", "erreur", "Cette mission ne peut plus être rappelée.");
+  }
+  const supabase = await authenticatedClient();
+  const result = await supabase.rpc("recall_current_team_youth_scouting", {
+    p_mission_id: missionId,
+  });
+  if (result.error) {
+    redirectWithMessage("scouting", "erreur", getInteractiveActionErrorMessage(result.error.message));
+  }
+  revalidatePath(CENTER_PATH);
+  revalidatePath("/jeu");
+  redirectWithMessage("scouting", "succes", "Le scout est de nouveau disponible. Aucun rapport n’a été généré.");
+}
+
 export async function markYouthScoutingReportViewedAction(formData: FormData) {
   const missionId = readValue(formData, "missionId");
   if (!isUuid(missionId)) redirectWithMessage("scouting", "erreur", "Le rapport transmis est invalide.");
