@@ -889,7 +889,7 @@ function PendingConfirmationPanel({
       <h2 className="mt-2 text-2xl font-black text-[#4A3A00]">
         {confirmations.length} disponibilité{confirmations.length > 1 ? "s" : ""} à confirmer
       </h2>
-      <p className="mt-3 text-xs font-semibold leading-5 text-[#806300]">Chaque convocation refusée retire 10 points de moral au coureur. Les refus de convocations distinctes se cumulent.</p>
+      <p className="mt-3 text-xs font-semibold leading-5 text-[#806300]">Chaque convocation refusée retire 5 points de moral au coureur. Les refus de convocations distinctes se cumulent.</p>
       <div className="mt-5 grid gap-3 lg:grid-cols-2">
         {confirmations.map((confirmation) => {
           const rider = riderById.get(confirmation.riderId);

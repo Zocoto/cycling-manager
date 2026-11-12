@@ -12,6 +12,7 @@ const baseline=JSON.parse(readFileSync(baselinePath,'utf8')).rows;
 const db=new PGlite();
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const migration='supabase/migrations/20261106170000_add_international_callup_refusal_morale.sql';
+const reduction='supabase/migrations/20261112120000_reduce_international_callup_refusal_morale.sql';
 const read=file=>readFileSync(file,'utf8').replaceAll('\r\n','\n');
 let checks=0,scenarios=0,currentCase='bootstrap';
 const check=(actual,expected,message)=>{assert.deepEqual(actual,expected,message);checks++;};
@@ -114,6 +115,16 @@ try{
       ('${id(6001)}','${id(5001)}','${id(700)}','${id(101)}','${id(1)}',1,100,70,'pending',true);`);
   const oldSources=await rows("select conname,pg_get_expr(conbin,conrelid) expression from pg_constraint where conname in ('rider_morale_events_source_allowed','youth_rider_morale_events_source_allowed') order by conname");
   const before=await snapshot();await db.exec(read(migration));check(await snapshot(),before,'Installation is prospective and never penalizes historical refusals');
+  await db.query(`select private.apply_international_callup_refusal_morale(
+    $1,null,$2,'Historical call-up refusal','{}'::jsonb)`,[id(701),id(2000)]);
+  const historical=await events(701);
+  check(historical.length,1);
+  check(Number(historical[0].requested_delta),-10);
+  check(Number(historical[0].applied_delta),-10);
+  check(await proMorale(701),50);
+  const beforeReduction=await snapshot();
+  await db.exec(read(reduction));
+  check(await snapshot(),beforeReduction,'The reduction leaves existing morale and refusal history untouched');
   const newSources=await rows("select conname,pg_get_expr(conbin,conrelid) expression from pg_constraint where conname in ('rider_morale_events_source_allowed','youth_rider_morale_events_source_allowed') order by conname");
   for(const previous of oldSources){const next=newSources.find(row=>row.conname===previous.conname);check(next.expression.includes(previous.expression),true,'New check expression contains the exact original source expression');}
   const access=await rows(`select
@@ -123,37 +134,43 @@ try{
     not has_function_privilege('authenticated','public.apply_youth_rider_morale_event(uuid,uuid,text,text,numeric,text,jsonb)','execute') youth_engine_protected`);
   check(Object.values(access[0]),[true,true,true,true],'The policy does not expose arbitrary morale writes');
 
-  await scenario('explicit federation refusal loses ten points and explains the event',async()=>{
-    check(await answer(),'declined');check(await proMorale(),50);const history=await events();check(history.length,1);
-    check(Number(history[0].requested_delta),-10);check(Number(history[0].applied_delta),-10);
+  await scenario('explicit federation refusal loses five points and explains the event',async()=>{
+    check(await answer(),'declined');check(await proMorale(),55);const history=await events();check(history.length,1);
+    check(Number(history[0].requested_delta),-5);check(Number(history[0].applied_delta),-5);
     check(history[0].source_reference,'international-callup:'+id(2000));check(history[0].description.length>0,true);
     check(await youthMorale(),60);
   });
-  await scenario('separate road and time-trial refusals stack',async()=>{await answer();await answer(3001);check(await proMorale(),40);check((await events()).length,2);});
-  await scenario('different international competitions stack',async()=>{await answer();await answer(3002);await answer(3005);check(await proMorale(),30);check((await events()).length,3);});
+  await scenario('separate road and time-trial refusals stack',async()=>{await answer();await answer(3001);check(await proMorale(),50);check((await events()).length,2);});
+  await scenario('different international competitions stack',async()=>{await answer();await answer(3002);await answer(3005);check(await proMorale(),45);check((await events()).length,3);});
   await scenario('repeated refusal is rejected without a second debit',async()=>{await answer();const saved=await snapshot();await reject('select respond_to_national_federation_preselection($1,false)',[id(3000)]);check(await snapshot(),saved);});
   await scenario('a recreated callup for the same edition does not double-charge',async()=>{
     await answer();await db.query("update national_federation_selection_members set response_status='pending',responded_at=null where id=$1",[id(3000)]);
-    await answer();check(await proMorale(),50);check((await events()).length,1);
+    await answer();check(await proMorale(),55);check((await events()).length,1);
   });
-  await scenario('legacy refusal uses the same permanent morale event',async()=>{await legacy();check(await proMorale(),50);check((await events()).length,1);});
-  await scenario('legacy and federation representations of one race debit only once',async()=>{await answer();await legacy();check(await proMorale(),50);check((await events()).length,1);});
+  await scenario('a pre-reduction refusal retains its historical debit when reissued',async()=>{
+    await db.query('update national_federation_selection_members set professional_rider_id=$1 where id=$2',[id(701),id(3000)]);
+    check(await answer(),'declined');
+    check(await proMorale(701),50);
+    check(await events(701),historical);
+  });
+  await scenario('legacy refusal uses the same permanent morale event',async()=>{await legacy();check(await proMorale(),55);check((await events()).length,1);});
+  await scenario('legacy and federation representations of one race debit only once',async()=>{await answer();await legacy();check(await proMorale(),55);check((await events()).length,1);});
   await scenario('bulk legacy refusal stacks distinct races',async()=>{
     const decisions=[6000,6001].map(n=>({candidateId:id(n),accept:false,acknowledgedConflicts:[]}));
     check(Number(await scalar('select respond_to_international_selections_with_conflict_ack($1::jsonb)',[JSON.stringify(decisions)])),2);
-    check(await proMorale(),40);check((await events()).length,2);
+    check(await proMorale(),50);check((await events()).length,2);
   });
   await scenario('junior refusal updates the academy and its own history',async()=>{
-    check(await answer(3003),'declined');check(await youthMorale(),50);check(await proMorale(),60);
+    check(await answer(3003),'declined');check(await youthMorale(),55);check(await proMorale(),60);
     const history=await rows("select * from youth_rider_morale_events where academy_rider_id=$1 and source_type='international_callup_refusal'",[id(800)]);
-    check(history.length,1);check(Number(history[0].applied_delta),-10);
-    await answer(3004);check(await youthMorale(),40);
+    check(history.length,1);check(Number(history[0].applied_delta),-5);
+    await answer(3004);check(await youthMorale(),50);
   });
-  await scenario('junior morale has the same zero floor',async()=>{await db.query('update youth_academy_riders set morale=4 where id=$1',[id(800)]);await answer(3003);check(await youthMorale(),0);const event=(await rows('select requested_delta,applied_delta from youth_rider_morale_events where academy_rider_id=$1',[id(800)]))[0];check(Number(event.requested_delta),-10);check(Number(event.applied_delta),-4);});
+  await scenario('junior morale has the same zero floor',async()=>{await db.query('update youth_academy_riders set morale=4 where id=$1',[id(800)]);await answer(3003);check(await youthMorale(),0);const event=(await rows('select requested_delta,applied_delta from youth_rider_morale_events where academy_rider_id=$1',[id(800)]))[0];check(Number(event.requested_delta),-5);check(Number(event.applied_delta),-4);});
   await scenario('acceptance never incurs a refusal penalty',async()=>{check(await answer(3000,true),'confirmed');check(await proMorale(),60);check((await events()).length,0);});
   await scenario('automatic expiration is not a manager refusal',async()=>{await db.exec("update national_federation_selection_members set response_status='declined',responded_at=now() where response_status='pending';update international_championship_rider_selections set response_status='declined',responded_at=now();");check(await proMorale(),60);check(await youthMorale(),60);check((await events()).length,0);});
   await scenario('invalidated injury callup is not a refusal',async()=>{await db.query("insert into rider_injuries values($1,'active','2030-10-01','2030-11-01')",[id(700)]);check(await answer(),'ineligible');check(await proMorale(),60);check((await events()).length,0);});
-  await scenario('morale floors at zero but retains the requested debit',async()=>{await db.query('update rider_condition_states set morale=5 where rider_id=$1',[id(700)]);await answer();check(await proMorale(),0);const history=await events();check(Number(history[0].requested_delta),-10);check(Number(history[0].applied_delta),-5);await answer(3001);check(await proMorale(),0);check((await events()).length,2);});
+  await scenario('morale floors at zero but retains the requested debit',async()=>{await db.query('update rider_condition_states set morale=3 where rider_id=$1',[id(700)]);await answer();check(await proMorale(),0);const history=await events();check(Number(history[0].requested_delta),-5);check(Number(history[0].applied_delta),-3);await answer(3001);check(await proMorale(),0);check((await events()).length,2);});
   await scenario('unauthorized director cannot refuse or debit morale',async()=>{await auth(12);const saved=await snapshot();await reject('select respond_to_national_federation_preselection($1,false)',[id(3000)]);check(await snapshot(),saved);await reject('select respond_to_international_championship_selection($1,false)',[id(6000)]);check(await snapshot(),saved);});
   await scenario('closed response window is atomic',async()=>{await db.exec("select set_config('test.closed','yes',true)");const saved=await snapshot();await reject('select respond_to_national_federation_preselection($1,false)',[id(3000)]);check(await snapshot(),saved);});
   await scenario('failure after explicit refusal rolls back its morale and history',async()=>{await db.exec("select set_config('test.sync_error','yes',true)");const saved=await snapshot();await reject('select respond_to_national_federation_preselection($1,false)',[id(3000)]);check(await snapshot(),saved);await reject('select respond_to_international_championship_selection($1,false)',[id(6000)]);check(await snapshot(),saved);});

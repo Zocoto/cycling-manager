@@ -37,7 +37,7 @@ export function FederationCallupCard({ callup }: { callup: FederationCallup }) {
             Après confirmation, le président ne pourra plus retirer ce coureur.
             {callup.rider_category === "professional" ? " La sélection est prioritaire sur tous les engagements et stages en conflit, y compris un tour verrouillé ou commencé." : " La participation sera inscrite dans la sélection nationale junior."}
           </p>
-          <p className="mt-3 text-xs font-semibold leading-5 text-[#60756E]">Chaque convocation refusée retire 10 points de moral au coureur. Les refus de convocations distinctes se cumulent.</p>
+          <p className="mt-3 text-xs font-semibold leading-5 text-[#60756E]">Chaque convocation refusée retire 5 points de moral au coureur. Les refus de convocations distinctes se cumulent.</p>
           <div className="mt-5 flex flex-wrap gap-3">
             {(["confirm", "decline"] as const).map((decision) => (
               <form key={decision} action={answerFederationCallupAction}>

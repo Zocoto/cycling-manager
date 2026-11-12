@@ -2,6 +2,8 @@
 
 An explicit club manager refusal now requests a persistent -10 morale event for
 the rider, including academy juniors and professional riders in junior events.
+Migration 20261112120000 reduces new refusal penalties to 5 points.
+Previously recorded penalties keep their original value.
 Distinct convocations accumulate; the existing morale engine clamps at zero.
 The event's description appears in the existing morale history/tooltip.
 
