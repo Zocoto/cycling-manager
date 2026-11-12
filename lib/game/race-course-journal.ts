@@ -39,7 +39,8 @@ const JUNCTION = /fusionnent|recoll(?:e|ent)|rejoin(?:t|nent)(?: la tête| le gr
 const CAUGHT = /\b(?:est|sont) repris\b|s[’']intègr(?:e|ent) au groupe retardé qui vient de les reprendre|ne (?:peut|peuvent) pas suivre le regroupement/iu;
 const GROUP_CAUGHT = /l[’']échappée est reprise/iu;
 const PLANNED_ATTACK = /déclench(?:e|ent) l[’']attaque préparée/iu;
-const ATTACK = /place une attaque|attaque dans le final|pass(?:e|ent) à l[’']attaque|contre[- ]attaqu|part seul en chasse-patate|tenter de rejoindre la tête|accélération|impose son rythme|prolonge son attaque|offensive décisive/iu;
+const ATTACK = /place une attaque|attaque dans le final|pass(?:e|ent) à l[’']attaque|contre[- ]attaqu|part seul en chasse-patate|tenter de rejoindre la tête|accélération|prolonge son attaque|offensive décisive/iu;
+const TEMPO = /impose son rythme/iu;
 const SELECTION = /lâche(?:nt)?\b|décroche(?:nt)?\b|ne tient pas|sont distancés|est distancé|cassure|perd(?:ent)? le contact/iu;
 const CHASE = /organisent la poursuite|prend(?:nent)? les relais|relancent la poursuite/iu;
 const INCIDENT_COMMENTARY = /crevaison|chute|bordure/iu;
@@ -127,6 +128,9 @@ export function buildRaceCourseJournal({ simulation }: { simulation: StageSimula
           push({ kind: "attack", distanceKm: planned ? previous?.completedDistanceKm ?? 0 : distanceKm, segmentNumber,
             title: planned ? "Attaque préparée" : "Offensive", detail, riderIds, priority: 94 });
         }
+      } else if (TEMPO.test(message)) {
+        push({ kind: "selection", distanceKm, segmentNumber, title: "Tempo", detail,
+          riderIds: findRiderIds(message), priority: 78 });
       } else if (JUNCTION.test(message)) {
         push({ kind: "junction", distanceKm, segmentNumber, title: "Jonction", detail,
           riderIds: findRiderIds(message), priority: 74 });
@@ -276,16 +280,17 @@ function getReprises(previous: RaceTimelineSnapshot, current: RaceTimelineSnapsh
         byPursuers.push(riderId);
       }
     }
-    const add = (title: string, ids: string[], detail: (names: string, plural: boolean) => string) => {
+    const add = (kind: "junction" | "selection", title: string, ids: string[], detail: (names: string, plural: boolean) => string) => {
       if (!ids.length) return;
-      reports.push({ kind: "junction", distanceKm: current.completedDistanceKm, segmentNumber: current.segmentNumber,
-        title, detail: detail(formatRiderNames(ids, riderById, 6), ids.length > 1), riderIds: ids, caughtRiderIds: ids, priority: 94 });
+      reports.push({ kind, distanceKm: current.completedDistanceKm, segmentNumber: current.segmentNumber,
+        title, detail: detail(formatRiderNames(ids, riderById, 6), ids.length > 1), riderIds: ids,
+        ...(kind === "junction" ? { caughtRiderIds: ids } : {}), priority: 94 });
     };
-    add(detached.type === "breakaway" ? "Échappée reprise" : "Reprise par le peloton", byPeloton,
+    add("junction", detached.type === "breakaway" ? "Échappée reprise" : "Reprise par le peloton", byPeloton,
       (names, plural) => `${names} ${plural ? "sont repris" : "est repris"} par le peloton au pointage du tronçon.`);
-    add("Jonction des poursuivants", byPursuers,
+    add("junction", "Jonction des poursuivants", byPursuers,
       (names, plural) => `${names} ${plural ? "sont rejoints" : "est rejoint"} par leurs poursuivants au pointage du tronçon.`);
-    add("Dépassé par le peloton", passedByPeloton,
+    add("selection", "Dépassé par le peloton", passedByPeloton,
       (names, plural) => `Au pointage du tronçon, le peloton est passé devant ${names}, qui ${plural ? "restent distancés" : "reste distancé"}.`);
   }
   return reports;

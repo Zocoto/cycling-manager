@@ -92,6 +92,23 @@ describe("buildRaceCourseJournal", () => {
     expect(journal.at(-1)).toMatchObject({ kind: "finish", riderIds: [stageWinner.id] });
     expect(journal.some((entry) => entry.caughtRiderIds?.includes(gpmWinner.id))).toBe(false);
   });
+
+  it("distingue le tempo d’une attaque et un dépassement d’une jonction", () => {
+    const simulation = simulateRaceStage(createDemoSimulationInput("collines-ardennes", 7));
+    const [attacker, pursuer] = simulation.resolvedRiders;
+    const peloton = group("peloton", 0, pursuer.id);
+    simulation.timeline = [
+      snapshot(1, 10, [group("breakaway", 0, attacker.id), group("peloton", 20, pursuer.id)]),
+      snapshot(2, 20, [peloton, group("dropped", 9, attacker.id)], [`${pursuer.name} impose son rythme dans l’ascension.`]),
+      snapshot(3, 30, [peloton, group("dropped", 15, attacker.id)]),
+    ];
+    simulation.primes = [];
+
+    const journal = buildRaceCourseJournal({ simulation });
+    expect(journal.find((entry) => entry.title === "Tempo")).toMatchObject({ kind: "selection", riderIds: [pursuer.id] });
+    expect(journal.find((entry) => entry.title === "Dépassé par le peloton")).toMatchObject({ kind: "selection", riderIds: [attacker.id] });
+    expect(journal.some((entry) => entry.caughtRiderIds?.includes(attacker.id))).toBe(false);
+  });
 });
 
 function group(type: RaceGroupSnapshot["type"], gapToLeaderSeconds: number, ...riderIds: string[]): RaceGroupSnapshot {
