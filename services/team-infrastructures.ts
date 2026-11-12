@@ -166,6 +166,7 @@ export type TeamInfrastructureOverview = {
   >;
   dataRoomLevel: number;
   dataRoomNextLevel: ReturnType<typeof getTeamInfrastructureLevelDefinition>;
+  architectCount: number;
   architects: InfrastructureArchitect[];
   activeProjects: InfrastructureProject[];
   activeProject: InfrastructureProject | null;
@@ -605,6 +606,7 @@ export async function getTeamInfrastructureOverview(
       TEAM_INFRASTRUCTURE_DEFINITIONS.recruitment_data_room.code,
       dataRoomLevel + 1,
     ),
+    architectCount: memberById.size,
     architects,
     activeProjects,
     activeProject: activeProjects[0] ?? null,

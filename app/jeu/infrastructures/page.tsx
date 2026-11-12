@@ -86,6 +86,7 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
     ]);
   if (!overview || !academy) redirect("/jeu");
 
+  const federationArchitectCount = overview.architectCount - overview.architects.length;
   const managerProgress = Math.min(
     100,
     (overview.directorLevel / INFRASTRUCTURE_MAX_MANAGER_REQUIREMENT) * 100,
@@ -151,7 +152,12 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
                 />
                 <HeroMetric
                   label="Architectes"
-                  value={String(overview.architects.length)}
+                  value={String(overview.architectCount)}
+                  detail={
+                    federationArchitectCount > 0
+                      ? `${federationArchitectCount} en mission fédérale`
+                      : undefined
+                  }
                 />
                 <HeroMetric
                   label="Chantier"
@@ -571,13 +577,22 @@ function TabLink({
   );
 }
 
-function HeroMetric({ label, value }: { label: string; value: string }) {
+function HeroMetric({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string;
+  detail?: string;
+}) {
   return (
     <div className="rounded-xl border border-white/15 bg-white/10 px-4 py-3">
       <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[#9BE0BC]">
         {label}
       </p>
       <p className="mt-1 text-sm font-black text-white">{value}</p>
+      {detail ? <p className="mt-1 text-xs text-[#D6DFD2]">{detail}</p> : null}
     </div>
   );
 }

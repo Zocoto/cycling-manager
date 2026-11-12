@@ -16,6 +16,11 @@ const teamInfrastructureService = readFileSync(
   "utf8",
 ).replace(/\r\n/g, "\n");
 
+const teamInfrastructurePage = readFileSync(
+  resolve(process.cwd(), "app/jeu/infrastructures/page.tsx"),
+  "utf8",
+).replace(/\r\n/g, "\n");
+
 describe("federation architect assignment hotfix", () => {
   it("resolves the affiliation from the construction country", () => {
     expect(migration).toContain(
@@ -62,5 +67,14 @@ describe("federation architect assignment hotfix", () => {
     expect(teamInfrastructureService).toContain(
       "federallyBusyContractIds.has(contract.id)",
     );
+  });
+
+  it("counts federally assigned architects in the club summary", () => {
+    expect(teamInfrastructureService).toContain("architectCount: memberById.size");
+    expect(teamInfrastructurePage).toContain("value={String(overview.architectCount)}");
+    expect(teamInfrastructurePage).toMatch(
+      /overview\.architectCount\s*-\s*overview\.architects\.length/,
+    );
+    expect(teamInfrastructurePage).toContain("en mission fédérale");
   });
 });
