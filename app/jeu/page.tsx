@@ -477,15 +477,21 @@ export default async function GamePage() {
   );
 
   const rosterPromise = loadDashboardValue(
-    supabase.rpc("get_current_team_roster").then((result) => {
-      if (result.error) {
-        throw new Error(
-          `Impossible de récupérer l’effectif pour le bureau du Directeur Sportif : ${result.error.message}`,
-        );
-      }
+    supabase
+      .rpc("get_current_team_roster")
+      .select([
+        "rider_id", "first_name", "last_name", "avatar_profile_key", "avatar_seed", "age", ...dashboardRatingKeys,
+      ].join(","))
+      .overrideTypes<DashboardRider[], { merge: false }>()
+      .then((result) => {
+        if (result.error) {
+          throw new Error(
+            `Impossible de récupérer l’effectif pour le bureau du Directeur Sportif : ${result.error.message}`,
+          );
+        }
 
-      return (result.data ?? []) as DashboardRider[];
-    }),
+        return result.data ?? [];
+      }),
     [] as DashboardRider[],
     "Impossible de récupérer l’effectif pour le bureau du Directeur Sportif :",
   );
@@ -529,8 +535,11 @@ export default async function GamePage() {
   // Replaces the former two-read summary, rather than adding another loader.
   const sponsorProjectPromise = sponsorIdentityPromise.then(({ identity }) =>
     identity ? getTeamSponsorProject(identity.teamId) : null);
+  const featuredRidersPromise = rosterPromise.then((riders) => [...riders]
+    .sort((left, right) => getDashboardRiderAverage(right) - getDashboardRiderAverage(left))
+    .slice(0, 11));
   const activeChampionshipTitlesPromise = loadDashboardValue(
-    rosterPromise.then((riders) =>
+    featuredRidersPromise.then((riders) =>
       getActiveChampionshipTitlesForRiders(
         supabase,
         riders.map((rider) => rider.rider_id),
@@ -845,7 +854,7 @@ export default async function GamePage() {
                 }
               >
                 <TeamRosterCardDeferred
-                  rosterPromise={rosterPromise}
+                  featuredRidersPromise={featuredRidersPromise}
                   activeChampionshipTitlesPromise={
                     activeChampionshipTitlesPromise
                   }
@@ -1042,29 +1051,22 @@ function DashboardEligibleRacesSkeleton() {
 }
 
 async function TeamRosterCardDeferred({
-  rosterPromise,
+  featuredRidersPromise,
   activeChampionshipTitlesPromise,
   status,
   description,
   jersey,
 }: {
-  rosterPromise: Promise<DashboardRider[]>;
+  featuredRidersPromise: Promise<DashboardRider[]>;
   activeChampionshipTitlesPromise: Promise<ActiveChampionshipTitlesForRiders>;
   status: string;
   description: string;
   jersey: RiderJerseyAppearance;
 }) {
-  const [riders, activeChampionshipTitles] = await Promise.all([
-    rosterPromise,
+  const [featuredRiders, activeChampionshipTitles] = await Promise.all([
+    featuredRidersPromise,
     activeChampionshipTitlesPromise,
   ]);
-  const featuredRiders = [...riders]
-    .sort(
-      (left, right) =>
-        getDashboardRiderAverage(right) - getDashboardRiderAverage(left),
-    )
-    .slice(0, 11);
-
   return (
     <TeamRosterCard
       status={status}

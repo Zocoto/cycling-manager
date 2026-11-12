@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getDashboardHalloweenEdition } from "./dashboard-halloween";
 
 const { query, from } = vi.hoisted(() => {
@@ -9,9 +9,13 @@ vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({ fro
 
 describe("shared dashboard Halloween edition", () => {
   beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-20T12:00:00Z"));
+    from.mockClear();
     for (const name of ["select", "eq", "lte", "gt", "abortSignal"] as const) query[name].mockReturnValue(query);
     query.maybeSingle.mockReset();
   });
+  afterEach(() => vi.useRealTimers());
   it("reads just the active edition and shop deadline, with a bounded timeout", async () => {
     query.maybeSingle.mockResolvedValue({ data: { id: "halloween-2026", shop_ends_at: "2026-11-05T23:00:00Z" }, error: null });
     expect(await getDashboardHalloweenEdition()).toEqual({ id: "halloween-2026", shopEndsAt: "2026-11-05T23:00:00Z" });
@@ -26,5 +30,10 @@ describe("shared dashboard Halloween edition", () => {
   it("does not fail the dashboard when the optional event query fails", async () => {
     query.maybeSingle.mockRejectedValue(new Error("unavailable"));
     expect(await getDashboardHalloweenEdition()).toBeNull();
+  });
+  it("skips the database round trip as soon as the shop has closed", async () => {
+    vi.setSystemTime(new Date("2026-11-05T23:00:00Z"));
+    expect(await getDashboardHalloweenEdition()).toBeNull();
+    expect(from).not.toHaveBeenCalled();
   });
 });

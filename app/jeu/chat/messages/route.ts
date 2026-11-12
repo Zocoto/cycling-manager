@@ -8,12 +8,13 @@ import { getGlobalChatMessagePage } from "@/services/global-chat";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
+  const latest = url.searchParams.get("latest") === "1";
   const cursor: GlobalChatCursor = {
     createdAt: url.searchParams.get("beforeCreatedAt") ?? "",
     id: url.searchParams.get("beforeId") ?? "",
   };
 
-  if (!isGlobalChatCursor(cursor)) {
+  if (!latest && !isGlobalChatCursor(cursor)) {
     return Response.json(
       { error: "Le curseur de discussion est invalide." },
       { status: 400 },
@@ -34,9 +35,10 @@ export async function GET(request: Request) {
   }
 
   try {
-    const page = await getGlobalChatMessagePage(supabase, {
-      before: cursor,
-    });
+    const page = await getGlobalChatMessagePage(
+      supabase,
+      latest ? { limit: 50 } : { before: cursor },
+    );
 
     return Response.json(page, {
       headers: { "Cache-Control": "private, no-store" },

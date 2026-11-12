@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useRef,
   useState,
   useTransition,
 } from "react";
@@ -33,6 +34,11 @@ import type { LockedOfficialStageSimulation } from "@/lib/game/official-race-sim
 import type { StageRaceStandings } from "@/lib/game/race-simulation";
 import type { RaceWeather } from "@/lib/game/race-weather";
 import { useSynchronizedRaceClock } from "@/lib/game/use-synchronized-race-clock";
+import {
+  RACE_STAGE_RECOVERY_INTERVAL_MS,
+  watchRaceStageAvailability,
+  type RaceStageRefreshReason,
+} from "@/lib/game/watch-race-stage-availability";
 import type { RaceLiveMessage } from "@/services/race-live-chat";
 
 const RaceFavoritesPanel = dynamic(() =>
@@ -100,6 +106,7 @@ export function RaceStageExperience({
 }) {
   const now = useSynchronizedRaceClock(nowIso, 15_000);
   const state = getStageLiveState(entry.stage, now);
+  const serverStageStatus = getStageLiveState(entry.stage, new Date(nowIso)).status;
   const favoriteRiders = getFrozenRaceFavoriteRiders(
     entry.edition,
     lockedSimulations,
@@ -111,6 +118,12 @@ export function RaceStageExperience({
   const router = useRouter();
   const [isRefreshPending, startRefreshTransition] =
     useTransition();
+  const lastAvailabilityRefresh = useRef<{
+    stageId: string;
+    status: typeof state.status;
+    reason: RaceStageRefreshReason;
+    at: number;
+  } | null>(null);
   const [isReplayNavigationPending, setIsReplayNavigationPending] =
     useState(false);
   const resultAvailable = Boolean(
@@ -153,25 +166,31 @@ export function RaceStageExperience({
       return;
     }
 
-    function refreshWhenVisible() {
-      if (document.visibilityState !== "visible") return;
-      startRefreshTransition(() => router.refresh());
-    }
-
-    const refreshTimer = window.setInterval(
-      refreshWhenVisible,
-      waitingForSimulation ? 15_000 : 5_000,
-    );
-    document.addEventListener("visibilitychange", refreshWhenVisible);
-
-    return () => {
-      window.clearInterval(refreshTimer);
-      document.removeEventListener("visibilitychange", refreshWhenVisible);
-    };
+    const stageId = entry.stage.id;
+    return watchRaceStageAvailability({
+      stageId,
+      checkResults: waitingForResults,
+      // A finished replay payload is withheld until its results are available.
+      checkSimulation: waitingForSimulation && !waitingForResults,
+      refreshOnPhaseChange: state.status !== serverStageStatus,
+      intervalMs: waitingForSimulation ? 15_000 : 5_000,
+      refresh(reason) {
+        const previous = lastAvailabilityRefresh.current;
+        const at = Date.now();
+        if (previous?.stageId === stageId && previous.status === state.status &&
+            (previous.reason === reason || reason === "recovery") &&
+            at - previous.at < RACE_STAGE_RECOVERY_INTERVAL_MS) return;
+        lastAvailabilityRefresh.current = { stageId, status: state.status, reason, at };
+        startRefreshTransition(() => router.refresh());
+      },
+    });
   }, [
+    entry.stage.id,
     isRefreshPending,
     router,
+    serverStageStatus,
     simulationAvailable,
+    state.status,
     waitingForResults,
     waitingForSimulation,
   ]);

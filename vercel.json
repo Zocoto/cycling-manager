@@ -2,7 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "regions": ["cdg1"],
   "crons": [
-    { "path": "/api/cron/halloween", "schedule": "5,20,35,50 * * * *" },
     { "path": "/api/cron/global-chat-quiz", "schedule": "17 4 * * *" },
     { "path": "/api/cron/performance-maintenance", "schedule": "45 23 * * *" },
     { "path": "/api/cron/game-maintenance", "schedule": "5 23 * * *" },

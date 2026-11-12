@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DashboardHalloweenShortcut } from "./dashboard-halloween-shortcut";
 
 const { maybeSingle } = vi.hoisted(() => ({ maybeSingle: vi.fn() }));
@@ -20,8 +20,11 @@ vi.mock("@/lib/supabase/admin", () => ({
 
 describe("raccourci Halloween du bureau du DS", () => {
   beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-20T12:00:00Z"));
     maybeSingle.mockReset();
   });
+  afterEach(() => vi.useRealTimers());
 
   it("sépare le bandeau des raccourcis du haut sur tous les écrans", async () => {
     maybeSingle.mockResolvedValue({ data: { id: "halloween-2026", shop_ends_at: "2026-11-05T23:00:00Z" }, error: null });

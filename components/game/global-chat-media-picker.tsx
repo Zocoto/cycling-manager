@@ -24,12 +24,12 @@ const LEGACY_REACTION_POSITIONS: Partial<
 const CUSTOM_REACTION_SOURCES: Partial<
   Record<GlobalChatCyclingReactionKey, string>
 > = {
-  train: "/images/chat/reactions/team-train.gif",
-  late_attack: "/images/chat/reactions/tactical-attack.gif",
-  feed_zone: "/images/chat/reactions/feed-zone-chaos.gif",
-  puncture: "/images/chat/reactions/flat-tire-shrug.gif",
-  too_early: "/images/chat/reactions/early-celebration.gif",
-  snack_attack: "/images/chat/reactions/gel-spray.gif",
+  train: "/images/chat/reactions/team-train",
+  late_attack: "/images/chat/reactions/tactical-attack",
+  feed_zone: "/images/chat/reactions/feed-zone-chaos",
+  puncture: "/images/chat/reactions/flat-tire-shrug",
+  too_early: "/images/chat/reactions/early-celebration",
+  snack_attack: "/images/chat/reactions/gel-spray",
 };
 
 export function GlobalChatMediaPicker({ onEmojiSelect, onGifSelect, klipyAppKey = "", disabled = false }: {
@@ -83,11 +83,11 @@ export function CyclingReactionSticker({
       }
     >
       {customSource ? (
-        <span
-          aria-hidden="true"
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url('${customSource}')` }}
-        />
+        <picture className="absolute inset-0">
+          <source srcSet={`${customSource}.webp`} type="image/webp" />
+          {/* Direct assets preserve animation and let the browser select the supported format. */}
+          <img src={`${customSource}.gif`} alt="" loading="lazy" decoding="async" className="block h-full w-full object-cover" />
+        </picture>
       ) : (
         <span
           aria-hidden="true"

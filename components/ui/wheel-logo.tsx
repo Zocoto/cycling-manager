@@ -1,6 +1,7 @@
 import Image from "next/image";
 
 const LOGO_SRC = "/logo-cyclo-stratege.png";
+const LOGO_MASK_SRC = "/logo-cyclo-stratege-mask.png";
 
 export type WheelLogoColors = {
   primary: string;
@@ -55,8 +56,8 @@ export function WheelLogo({
         style={{
           background: `linear-gradient(90deg, ${colors.primary}, ${colors.accent}, ${colors.secondary})`,
           mixBlendMode: "color",
-          WebkitMaskImage: `url(${LOGO_SRC})`,
-          maskImage: `url(${LOGO_SRC})`,
+          WebkitMaskImage: `url(${LOGO_MASK_SRC})`,
+          maskImage: `url(${LOGO_MASK_SRC})`,
           WebkitMaskSize: "contain",
           maskSize: "contain",
           WebkitMaskRepeat: "no-repeat",

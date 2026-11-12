@@ -1388,14 +1388,17 @@ async function loadDirectTransferTradeCandidates({
 async function ensureTodayDailyMarket(
   admin: ReturnType<typeof createSupabaseAdminClient>,
 ) {
-  const marketDate = formatParisDate(new Date());
+  const now = new Date();
+  if (getParisHour(now) < 9) return 0;
+
+  const marketDate = formatParisDate(now);
   const { data: batch, error: batchError } = await admin
     .from("transfer_daily_batches")
     .select("id")
     .eq("market_date", marketDate)
     .maybeSingle<{ id: string }>();
   assertQuery(batchError, "la génération quotidienne");
-  if (batch || getParisHour(new Date()) < 9) return 0;
+  if (batch) return 0;
 
   const [countriesResult, profilesResult, nationalityWeights] =
     await Promise.all([

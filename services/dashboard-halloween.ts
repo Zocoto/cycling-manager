@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { HALLOWEEN_EDITION, HALLOWEEN_SHOP_END } from "@/lib/game/halloween-event";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 // Shared by the existing banner and the enriched assistant in the same render.
@@ -8,11 +9,14 @@ export const getDashboardHalloweenEdition = cache(async (): Promise<{
   id: string;
   shopEndsAt: string;
 } | null> => {
+  // The seasonal announcement is finished. Archived inventory has its own reader.
+  if (Date.now() >= Date.parse(HALLOWEEN_SHOP_END)) return null;
+
   try {
     const { data, error } = await createSupabaseAdminClient()
       .from("halloween_editions")
       .select("id,shop_ends_at")
-      .eq("id", "halloween-2026")
+      .eq("id", HALLOWEEN_EDITION)
       .eq("enabled", true)
       .lte("starts_at", "now")
       .gt("shop_ends_at", "now")

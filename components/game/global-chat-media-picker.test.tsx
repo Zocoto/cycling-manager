@@ -29,13 +29,15 @@ describe("global chat media picker", () => {
     expect(markup).toContain("Réaction cycliste : Attaque");
   });
 
-  it("renders the new humorous reactions from real looping GIF files", () => {
+  it("uses a lazy animated WebP with a GIF fallback for custom reactions", () => {
     const markup = renderToStaticMarkup(
       <CyclingReactionSticker reactionKey="too_early" />,
     );
 
     expect(markup).toContain('data-reaction="too_early"');
-    expect(markup).toContain("/images/chat/reactions/early-celebration.gif");
+    expect(markup).toContain('srcSet="/images/chat/reactions/early-celebration.webp" type="image/webp"');
+    expect(markup).toContain('src="/images/chat/reactions/early-celebration.gif"');
+    expect(markup).toContain('loading="lazy"');
     expect(markup).toContain("Réaction cycliste : Célébration trop tôt");
   });
 });

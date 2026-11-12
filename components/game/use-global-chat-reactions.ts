@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  useEffect,
+  useCallback,
   useRef,
   useState,
   useTransition,
@@ -14,7 +14,6 @@ import {
   isGlobalChatMessageReactionEmoji,
   type GlobalChatMessageReactionEmoji,
 } from "@/lib/game/global-chat";
-import type { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type {
   GlobalChatIdentity,
   GlobalChatMessage,
@@ -23,11 +22,9 @@ import type {
 } from "@/services/global-chat";
 
 export function useGlobalChatReactions({
-  supabase,
   identity,
   setMessages,
 }: {
-  supabase: ReturnType<typeof createSupabaseBrowserClient>;
   identity: GlobalChatIdentity;
   setMessages: Dispatch<SetStateAction<GlobalChatMessage[]>>;
 }) {
@@ -38,37 +35,15 @@ export function useGlobalChatReactions({
   const [reactionError, setReactionError] = useState<string | null>(null);
   const [isReactionPending, startReactionTransition] = useTransition();
 
-  useEffect(() => {
-    const channel = supabase
-      .channel("global-game-chat-reactions:v1")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "global_chat_message_reactions",
-        },
-        (payload: {
-          eventType: string;
-          new: Record<string, unknown>;
-          old: Record<string, unknown>;
-        }) => {
-          const row = readRealtimeReaction(
-            payload.eventType === "DELETE" ? payload.old : payload.new,
-          );
-          if (!row) return;
-
-          setMessages((current) =>
-            updateMessageReaction(current, row, payload.eventType !== "DELETE"),
-          );
-        },
-      )
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [setMessages, supabase]);
+  const applyRealtimeReaction = useCallback((payload: {
+    eventType: string;
+    new: Record<string, unknown>;
+    old: Record<string, unknown>;
+  }) => {
+    const active = payload.eventType !== "DELETE";
+    const row = readRealtimeReaction(active ? payload.new : payload.old);
+    if (row) setMessages((current) => updateMessageReaction(current, row, active));
+  }, [setMessages]);
 
   function toggleMessageReaction(
     messageId: string,
@@ -114,6 +89,7 @@ export function useGlobalChatReactions({
   }
 
   return {
+    applyRealtimeReaction,
     pendingReactionKey,
     isReactionPending,
     reactionError,

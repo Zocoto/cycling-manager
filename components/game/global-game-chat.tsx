@@ -9,6 +9,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   useTransition,
   type Dispatch,
   type SetStateAction,
@@ -29,6 +30,10 @@ import { SportingDirectorAvatar } from "@/components/game/sporting-director-avat
 import { useGlobalChatReactions } from "@/components/game/use-global-chat-reactions";
 import { GlobalChatMessageReactions } from "@/components/game/global-chat-message-reactions";
 import { GlobalChatQuiz, GlobalChatQuizQuestion } from "@/components/game/global-chat-quiz";
+import {
+  compareGlobalChatMessages,
+  mergeGlobalChatRecoveryPage,
+} from "@/components/game/global-chat-recovery";
 import { ChatTranslationSettings } from "@/components/game/chat-translation-settings";
 import { useChatAutoTranslation } from "@/components/game/use-chat-auto-translation";
 import {
@@ -130,6 +135,34 @@ const GLOBAL_CHAT_RECENT_CONTEXT_MESSAGE_COUNT = 6;
 const NO_GAME_STAFF_DIRECTOR_IDS: string[] = [];
 const GLOBAL_CHAT_HIDE_RACE_MESSAGES_STORAGE_PREFIX =
   "cyclostratege:chat:hide-race-messages";
+const GLOBAL_CHAT_DESKTOP_QUERY = "(min-width: 1024px)";
+const GLOBAL_CHAT_ROOKIE_REFRESH_INTERVAL_MS = 5 * 60_000;
+
+function isChatDocumentVisible() {
+  return document.visibilityState === "visible";
+}
+
+function subscribeToChatDocumentVisibility(listener: () => void) {
+  document.addEventListener("visibilitychange", listener);
+  return () => document.removeEventListener("visibilitychange", listener);
+}
+
+function subscribeToChatDesktop(listener: () => void) {
+  const query = window.matchMedia?.(GLOBAL_CHAT_DESKTOP_QUERY);
+  query?.addEventListener("change", listener);
+  return () => query?.removeEventListener("change", listener);
+}
+
+function isChatDesktop() {
+  return window.matchMedia?.(GLOBAL_CHAT_DESKTOP_QUERY).matches ?? false;
+}
+
+function readChatServerVisibility() {
+  return false;
+}
+
+type ChatMessagesUpdate = (messages: GlobalChatMessage[]) => GlobalChatMessage[];
+let pendingGlobalChatChannelRemoval: Promise<unknown> | null = null;
 
 type GlobalChatHistorySearch = {
   query: string;
@@ -163,9 +196,24 @@ export function GlobalGameChat({
 }) {
   const { locale } = useLocale();
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
+  const documentVisible = useSyncExternalStore(
+    subscribeToChatDocumentVisibility, isChatDocumentVisible, readChatServerVisibility,
+  );
+  const desktop = useSyncExternalStore(
+    subscribeToChatDesktop, isChatDesktop, readChatServerVisibility,
+  );
   const gameStaffIds = useMemo(() => new Set(gameStaffDirectorIds), [gameStaffDirectorIds]);
   const [messages, setMessages] =
     useState<GlobalChatMessage[]>(initialMessages);
+  const messagesRef = useRef(messages);
+  useLayoutEffect(() => { messagesRef.current = messages; }, [messages]);
+  const recoveryNeeded = useRef(false);
+  const hasSubscribed = useRef(false);
+  const recoveryUpdates = useRef<ChatMessagesUpdate[] | null>(null);
+  const applyMessageUpdate = useCallback((update: ChatMessagesUpdate) => {
+    recoveryUpdates.current?.push(update);
+    setMessages(update);
+  }, []);
   const [quizRound, setQuizRound] = useState<GlobalChatQuizRound | null>(null);
   const [quizHistory, setQuizHistory] = useState<GlobalChatQuizRound[]>([]);
   const quizHistoryFrom = useRef(initialHasMore ? quizHistoryPageStart(initialMessages[0]) : undefined);
@@ -195,7 +243,8 @@ export function GlobalGameChat({
   const updateReactionMessages = useCallback<
     Dispatch<SetStateAction<GlobalChatMessage[]>>
   >((update) => {
-    setMessages(update);
+    if (typeof update === "function") applyMessageUpdate(update);
+    else setMessages(update);
     setHistorySearch((current) =>
       current
         ? {
@@ -207,14 +256,14 @@ export function GlobalGameChat({
           }
         : current,
     );
-  }, []);
+  }, [applyMessageUpdate]);
   const {
+    applyRealtimeReaction,
     pendingReactionKey,
     isReactionPending,
     reactionError,
     toggleMessageReaction,
   } = useGlobalChatReactions({
-    supabase,
     identity,
     setMessages: updateReactionMessages,
   });
@@ -247,6 +296,10 @@ export function GlobalGameChat({
   );
   const [hasOpenedFederation, setHasOpenedFederation] = useState(false);
   const [showOnlineDirectors, setShowOnlineDirectors] = useState(false);
+  const shouldPollOnlineDirectors = activeMode === "global" || showOnlineDirectors;
+  const shouldRefreshOnlineRookies = showOnlineDirectors || (desktop && activeMode === "global");
+  const lastOnlineRefresh = useRef(Date.now());
+  const onlineRookieRefresh = useRef<{ key: string; at: number; rows: Record<string, unknown>[] } | null>(null);
   const [requestedDirectRecipientId, setRequestedDirectRecipientId] =
     useState<string | null>(initialDirectRecipientId);
   const [directUnreadCount, setDirectUnreadCount] = useState(
@@ -572,6 +625,7 @@ export function GlobalGameChat({
 
   useEffect(() => {
     if (
+      activeMode !== "global" ||
       document.visibilityState !== "visible" ||
       !latestDisplayedMessageAt
     ) {
@@ -579,11 +633,12 @@ export function GlobalGameChat({
     }
 
     acknowledgeLatestMessages();
-  }, [acknowledgeLatestMessages, latestDisplayedMessageAt]);
+  }, [acknowledgeLatestMessages, activeMode, latestDisplayedMessageAt]);
 
   useEffect(() => {
     function markVisibleMessagesAsRead() {
       if (
+        activeMode === "global" &&
         document.visibilityState === "visible" &&
         latestDisplayedMessageAt
       ) {
@@ -601,65 +656,84 @@ export function GlobalGameChat({
         markVisibleMessagesAsRead,
       );
     };
-  }, [acknowledgeLatestMessages, latestDisplayedMessageAt]);
+  }, [acknowledgeLatestMessages, activeMode, latestDisplayedMessageAt]);
 
   useEffect(() => {
-    let active = true;
+    if (!documentVisible || !shouldPollOnlineDirectors) return;
+
+    const controller = new AbortController();
     let requestInFlight = false;
 
     async function refreshOnlineDirectors() {
       if (
-        !active ||
         requestInFlight ||
-        document.visibilityState !== "visible"
+        !isChatDocumentVisible() ||
+        Date.now() - lastOnlineRefresh.current < GLOBAL_CHAT_ONLINE_REFRESH_INTERVAL_MS
       ) {
         return;
       }
 
       requestInFlight = true;
-      const result = await supabase.rpc("get_online_global_chat_directors_v2");
-      requestInFlight = false;
+      const requestedAt = Date.now();
+      try {
+        const result = await supabase.rpc("get_online_global_chat_directors_v2")
+          .abortSignal(controller.signal);
+        if (controller.signal.aborted || !isChatDocumentVisible() || result.error) return;
 
-      if (!active || result.error) return;
-      const directors = mapGlobalChatOnlineDirectorRows(
-        (result.data as Record<string, unknown>[] | null) ?? [],
-      );
-      const rookieResult = await supabase.rpc("get_global_chat_rookie_status", {
-        p_sporting_director_ids: directors.map(
-          (director) => director.sportingDirectorId,
-        ),
-      });
-      if (!active) return;
-      setRecentOnlineDirectors(
-        rookieResult.error
-          ? directors
-          : applyGlobalChatRookieStatuses(
-              directors,
-              (rookieResult.data as Record<string, unknown>[] | null) ?? [],
-            ),
-      );
-    }
-
-    function refreshWhenVisible() {
-      if (document.visibilityState === "visible") {
-        void refreshOnlineDirectors();
+        lastOnlineRefresh.current = requestedAt;
+        const directors = mapGlobalChatOnlineDirectorRows(
+          (result.data as Record<string, unknown>[] | null) ?? [],
+        );
+        const directorIds = directors.map((director) => director.sportingDirectorId);
+        const key = directorIds.slice().sort().join(",");
+        const lastRookieRefresh = onlineRookieRefresh.current;
+        if (lastRookieRefresh?.key === key &&
+          requestedAt - lastRookieRefresh.at < GLOBAL_CHAT_ROOKIE_REFRESH_INTERVAL_MS) {
+          const activeRookies = lastRookieRefresh.rows.filter((row) =>
+            typeof row.badge_expires_at === "string" && Date.parse(row.badge_expires_at) > requestedAt,
+          );
+          setRecentOnlineDirectors(applyGlobalChatRookieStatuses(directors, activeRookies));
+          return;
+        }
+        if (shouldRefreshOnlineRookies && directorIds.length > 0) {
+          const rookieResult = await supabase.rpc("get_global_chat_rookie_status", {
+            p_sporting_director_ids: directorIds,
+          }).abortSignal(controller.signal);
+          if (controller.signal.aborted || !isChatDocumentVisible()) return;
+          if (!rookieResult.error) {
+            const rows = (rookieResult.data as Record<string, unknown>[] | null) ?? [];
+            onlineRookieRefresh.current = { key, at: requestedAt, rows };
+            setRecentOnlineDirectors(applyGlobalChatRookieStatuses(directors, rows));
+            return;
+          }
+        }
+        setRecentOnlineDirectors((previous) => {
+          const priorRookies = new Map(previous.map((director) => [
+            director.sportingDirectorId, director.rookieBadgeExpiresAt,
+          ]));
+          return directors.map((director) => {
+            const expiry = priorRookies.get(director.sportingDirectorId);
+            return expiry && Date.parse(expiry) > requestedAt
+              ? { ...director, rookieBadgeExpiresAt: expiry }
+              : director;
+          });
+        });
+      } finally {
+        requestInFlight = false;
       }
     }
 
-    const interval = window.setInterval(
-      () => void refreshOnlineDirectors(),
-      GLOBAL_CHAT_ONLINE_REFRESH_INTERVAL_MS,
-    );
-    window.addEventListener("focus", refreshWhenVisible);
-    document.addEventListener("visibilitychange", refreshWhenVisible);
+    const refresh = () => void refreshOnlineDirectors().catch(() => {});
+    refresh();
+    const interval = window.setInterval(refresh, GLOBAL_CHAT_ONLINE_REFRESH_INTERVAL_MS);
+    window.addEventListener("focus", refresh);
 
     return () => {
-      active = false;
+      controller.abort();
       window.clearInterval(interval);
-      window.removeEventListener("focus", refreshWhenVisible);
-      document.removeEventListener("visibilitychange", refreshWhenVisible);
+      window.removeEventListener("focus", refresh);
     };
-  }, [supabase]);
+  }, [documentVisible, shouldPollOnlineDirectors, shouldRefreshOnlineRookies, supabase]);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -759,13 +833,88 @@ export function GlobalGameChat({
   }, [identity.sportingDirectorId, quizRound]);
 
   useEffect(() => {
-    let disposed = false;
+    if (!documentVisible) {
+      if (!isChatDocumentVisible()) recoveryNeeded.current = true;
+      return;
+    }
+
+    const controller = new AbortController();
+    const canReceive = () => !controller.signal.aborted && isChatDocumentVisible();
     let quizRead = 0;
+
+    async function refreshLatestMessages() {
+      if (!canReceive() || recoveryUpdates.current) return;
+      const beforeRefresh = messagesRef.current.at(-1);
+      const updates: ChatMessagesUpdate[] = [];
+      recoveryUpdates.current = updates;
+      const request = new AbortController();
+      const abortRequest = () => request.abort();
+      controller.signal.addEventListener("abort", abortRequest, { once: true });
+      const timeout = window.setTimeout(abortRequest, 12_000);
+      try {
+        const response = await fetch("/jeu/chat/messages?latest=1", {
+          cache: "no-store",
+          headers: { Accept: "application/json" },
+          signal: request.signal,
+        });
+        if (!response.ok) return;
+        const page = (await response.json()) as GlobalChatMessagePage;
+        if (!canReceive()) return;
+
+        const current = messagesRef.current;
+        const knownIds = new Set(current.map((message) => message.id));
+        const knownText = new Map(current.map(({ id, message }) => [id, message]));
+        const editedIds = page.messages.flatMap(({ id, message }) =>
+          knownText.has(id) && knownText.get(id) !== message ? [id] : [],
+        );
+        if (editedIds.length > 0) {
+          setMessageTranslations((translations) => editedIds.reduce(omitMessageTranslation, translations));
+        }
+        const missed = page.messages.filter((message) =>
+          (!beforeRefresh || compareGlobalChatMessages(message, beforeRefresh) > 0) &&
+          !knownIds.has(message.id) &&
+          message.sportingDirectorId !== identity.sportingDirectorId &&
+          !(hideRaceMessagesRef.current && message.raceContext),
+        );
+        if (missed.length > 0) {
+          const mention = missed.slice().reverse().find((message) =>
+            globalChatMessageMentionsUsername(message.message, identity.username),
+          );
+          if (mention) setMentionAlert({ messageId: mention.id, authorDisplayName: mention.authorDisplayName });
+          if (activeModeRef.current !== "global") setHasUnreadGlobalWhilePrivate(true);
+          else if (!viewportNearBottomRef.current) {
+            setPendingLiveMessageCount((count) => count + missed.length);
+            setShowJumpToLatest(true);
+          }
+        }
+
+        if (mergeGlobalChatRecoveryPage(current, page).replacesPagination) {
+          setHasMore(page.hasMore);
+          setOlderCursor(page.nextCursor);
+        }
+        setMessages((messagesBeforeRefresh) =>
+          updates.reduce((rebased, update) => update(rebased),
+            mergeGlobalChatRecoveryPage(messagesBeforeRefresh, page).messages,
+          ).sort(compareGlobalChatMessages),
+        );
+        recoveryNeeded.current = false;
+      } catch {
+        // Keep the current feed readable and retry on focus or the next reconnect.
+      } finally {
+        window.clearTimeout(timeout);
+        controller.signal.removeEventListener("abort", abortRequest);
+        if (recoveryUpdates.current === updates) recoveryUpdates.current = null;
+      }
+    }
+
+    function retryRecoveryOnFocus() {
+      if (recoveryNeeded.current && hasSubscribed.current) void refreshLatestMessages();
+    }
 
     async function refreshQuizHistory() {
       try {
         const rounds = await loadGlobalChatQuizHistory(supabase, { from: quizHistoryFrom.current });
-        if (!disposed) mergeQuizHistory(rounds);
+        if (canReceive()) mergeQuizHistory(rounds);
       } catch {
         // A history read must not block ordinary chat or the active quiz.
       }
@@ -776,7 +925,7 @@ export function GlobalGameChat({
       const revision = quizRevision.current;
       try {
         const { data, error } = await supabase.rpc("get_global_chat_quiz");
-        if (disposed || request !== quizRead || error) return;
+        if (!canReceive() || request !== quizRead || error) return;
         const round = readGlobalChatQuizRound(data);
         if (round) applyQuizRound(round);
         else if (data === null && revision === quizRevision.current) setQuizRound(null);
@@ -785,7 +934,8 @@ export function GlobalGameChat({
       }
     }
 
-    const channel = supabase
+    function joinChannel() {
+      const channel = supabase
       .channel("global-game-chat:v1", {
         config: {
           presence: {
@@ -794,6 +944,7 @@ export function GlobalGameChat({
         },
       })
       .on("presence", { event: "sync" }, () => {
+        if (!canReceive()) return;
         setRealtimeOnlineDirectors(
           readOnlineDirectors(channel.presenceState(), identity),
         );
@@ -810,10 +961,11 @@ export function GlobalGameChat({
           new: Record<string, unknown>;
           old: Record<string, unknown>;
         }) => {
+          if (!canReceive()) return;
           if (payload.eventType === "DELETE") {
             const deletedId = payload.old.id;
             if (typeof deletedId === "string") {
-              setMessages((current) =>
+              applyMessageUpdate((current) =>
                 current.filter((message) => message.id !== deletedId),
               );
               setMessageTranslations((current) =>
@@ -864,19 +1016,27 @@ export function GlobalGameChat({
             setPendingLiveMessageCount((current) => current + 1);
             setShowJumpToLatest(true);
           }
-          setMessages((current) => upsertRealtimeMessage(current, message));
+          applyMessageUpdate((current) => upsertRealtimeMessage(current, message));
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "global_chat_message_reactions" },
+        (payload: Parameters<typeof applyRealtimeReaction>[0]) => {
+          if (canReceive()) applyRealtimeReaction(payload);
         },
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "global_chat_quiz_events" },
         ({ new: row }: { new: Record<string, unknown> }) => {
+          if (!canReceive()) return;
           const round = readGlobalChatQuizRound(row);
           if (round) applyQuizRound(round);
         },
       )
       .subscribe(async (status: string) => {
-        if (disposed) return;
+        if (!canReceive()) return;
         // Read once when the subscription starts (including a reconnect), or once
         // on initial failure so the user can still see the current quiz.
         if (status === "SUBSCRIBED" || (quizRead === 0 &&
@@ -884,7 +1044,16 @@ export function GlobalGameChat({
           void refreshQuiz();
           void refreshQuizHistory();
         }
-        if (status !== "SUBSCRIBED") return;
+        if (status !== "SUBSCRIBED") {
+          recoveryNeeded.current = true;
+          return;
+        }
+
+        if (hasSubscribed.current || recoveryNeeded.current) {
+          recoveryNeeded.current = true;
+          void refreshLatestMessages();
+        }
+        hasSubscribed.current = true;
 
         await channel.track({
           sportingDirectorId: identity.sportingDirectorId,
@@ -900,13 +1069,33 @@ export function GlobalGameChat({
           onlineAt: new Date().toISOString(),
         });
       });
+      return channel;
+    }
 
+    // Realtime returns the existing object for a topic until its leave completes.
+    // Keep the shared presence topic and wait before reopening after a quick tab switch.
+    let channel: ReturnType<typeof joinChannel> | null = null;
+    if (pendingGlobalChatChannelRemoval) {
+      void pendingGlobalChatChannelRemoval.then(() => {
+        if (canReceive()) channel = joinChannel();
+      });
+    } else {
+      channel = joinChannel();
+    }
+    window.addEventListener("focus", retryRecoveryOnFocus);
     return () => {
-      disposed = true;
-      void channel.untrack();
-      void supabase.removeChannel(channel);
+      controller.abort();
+      recoveryUpdates.current = null;
+      window.removeEventListener("focus", retryRecoveryOnFocus);
+      if (channel) {
+        const removal = supabase.removeChannel(channel).catch(() => {});
+        pendingGlobalChatChannelRemoval = removal;
+        void removal.then(() => {
+          if (pendingGlobalChatChannelRemoval === removal) pendingGlobalChatChannelRemoval = null;
+        });
+      }
     };
-  }, [applyQuizRound, identity, mergeQuizHistory, supabase]);
+  }, [applyMessageUpdate, applyQuizRound, applyRealtimeReaction, documentVisible, identity, mergeQuizHistory, supabase]);
 
   const draftLimit = GLOBAL_CHAT_MESSAGE_MAX_LENGTH;
 
@@ -1278,7 +1467,7 @@ export function GlobalGameChat({
           savedMessage = await postGlobalChatMessageAction(message, replyTo?.id ?? null, mentionedDirectorIds);
         }
         forceScrollToLatestRef.current = true;
-        setMessages((current) => appendUniqueMessage(current, savedMessage));
+        applyMessageUpdate((current) => appendUniqueMessage(current, savedMessage));
         setDraft("");
         imageDraft.clear();
         setGifDraft(null);
@@ -1331,7 +1520,7 @@ export function GlobalGameChat({
           editingMessageId,
           message,
         );
-        setMessages((current) =>
+        applyMessageUpdate((current) =>
           upsertRealtimeMessage(current, savedMessage),
         );
         setEditingMessageId(null);
