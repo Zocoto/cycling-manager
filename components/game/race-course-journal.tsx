@@ -17,6 +17,7 @@ const KIND_STYLES: Record<RaceCourseJournalEntryKind, { dot: string; fr: string;
   attack: { dot: "bg-[#B84B52]", fr: "Attaque", en: "Attack" },
   incident: { dot: "bg-[#7D5BB1]", fr: "Incident", en: "Incident" },
   selection: { dot: "bg-[#278B70]", fr: "Sélection", en: "Selection" },
+  prime: { dot: "bg-[#A57536]", fr: "Prime intermédiaire", en: "Intermediate prime" },
   finish: { dot: "bg-[#F2C94C]", fr: "Arrivée", en: "Finish" },
 };
 
@@ -75,27 +76,45 @@ export function RaceCourseJournal({ entries, teamReport = null, sponsorRaceBrief
             {next === "race" ? en ? "Whole race" : "Toute la course" : en ? "My team" : "Mon équipe"}
           </button>)}
         </div> : null}
-        {view === "team" && teamReport ? <><SponsorRaceBriefPanel brief={sponsorRaceBrief} final /><RaceTeamStageReport report={teamReport} /></> : <RaceJournalTimeline entries={entries} />}
+        {view === "team" && teamReport ? (
+          <><SponsorRaceBriefPanel brief={sponsorRaceBrief} final /><RaceTeamStageReport report={teamReport} /></>
+        ) : (
+          <RaceJournalTimeline entries={entries} teamRiderIds={teamReport?.riders.map(({ result }) => result.riderId)} />
+        )}
       </div> : null}
     </details>
   );
 }
 
-export function RaceJournalTimeline({ entries }: { entries: RaceCourseJournalEntry[] }) {
+export function RaceJournalTimeline({ entries, teamRiderIds = [] }: {
+  entries: RaceCourseJournalEntry[];
+  teamRiderIds?: readonly string[];
+}) {
   const { locale } = useLocale();
   const en = locale === "en";
   const number = new Intl.NumberFormat(en ? "en-GB" : "fr-FR", { maximumFractionDigits: 1 });
+  const teamRiders = new Set(teamRiderIds);
   return <ol className="relative ml-2 border-l border-[#315B3E]/15 py-2">
     {entries.map(entry => {
       const style = KIND_STYLES[entry.kind];
+      const concernsTeam = entry.riderIds?.some(id => teamRiders.has(id));
+      let checkpoint = `Km ${number.format(entry.distanceKm)}`;
+      if (entry.kind === "start" || entry.kind === "finish") checkpoint = en ? style.en : style.fr;
+      if (entry.distanceIsSegmentEnd) checkpoint = en ? "Final segment" : "Dernier tronçon";
       return <li key={entry.id} className="relative grid min-w-0 gap-1 py-2.5 pl-5 sm:grid-cols-[5.5rem_minmax(0,1fr)] sm:items-start sm:gap-3">
         <span aria-hidden="true" className={`absolute -left-[5px] top-[1.15rem] h-2.5 w-2.5 rounded-full ring-4 ring-[#F7FAF5] ${style.dot}`} />
         <span className="inline-flex w-fit rounded-full bg-[#0B302B]/[0.06] px-2.5 py-1 text-[10px] font-black text-[#48665F]">
-          {entry.kind === "start" || entry.kind === "finish" ? en ? style.en : style.fr : `Km ${number.format(entry.distanceKm)}`}
+          {checkpoint}
         </span>
         <p className="min-w-0 text-sm font-semibold leading-6 text-[#48665F] [overflow-wrap:anywhere]">
           <span className="font-black text-[#0B302B]">{entry.title}</span>{" "}
-          <span className="sr-only">{en ? style.en : style.fr}. </span>{entry.detail}
+          <span className="sr-only">{en ? style.en : style.fr}. </span>
+          {concernsTeam ? <strong className="font-bold text-[#0B302B]">{entry.detail}</strong> : entry.detail}
+          {entry.kind === "prime" && entry.distanceIsSegmentEnd ? (
+            <span className="block text-xs font-medium leading-5">
+              {en ? "Prime points are awarded separately from the finish standings." : "Les points de la prime sont attribués séparément du classement à l’arrivée."}
+            </span>
+          ) : null}
         </p>
       </li>;
     })}

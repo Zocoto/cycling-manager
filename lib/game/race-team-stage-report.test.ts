@@ -49,6 +49,28 @@ describe("team stage report", () => {
     expect(report.riders.every((rider) => rider.workKm === null && rider.relayKm === null)).toBe(true);
     expect(report.events.some((event) => event.title === "Protection")).toBe(false);
   });
+  it("raconte une reprise confirmée une seule fois et garde le retour des autres équipiers", () => {
+    const recorded = simulation();
+    const message = "Marc Petit est repris par le peloton et se replace dans les roues.";
+    recorded.timeline[2].commentary.push(message);
+    const report = buildTeamStageReport({
+      teamId: "own",
+      stageId: "stage",
+      results,
+      simulation: recorded,
+      courseJournal: [
+        { id: "own-catch", kind: "junction", distanceKm: 30, title: "Jonction", detail: message,
+          riderIds: ["helper", "other"], caughtRiderIds: ["helper"] },
+        { id: "rival-catch", kind: "junction", distanceKm: 30, title: "Jonction", detail: "Paul Autre est repris.",
+          riderIds: ["helper", "other"], caughtRiderIds: ["other"] },
+      ],
+    })!;
+
+    expect(report.events.filter((event) => event.distanceKm === 30)).toEqual([
+      { id: "catch-own-catch", title: "Reprise", detail: message, distanceKm: 30, riderIds: ["helper"] },
+      expect.objectContaining({ title: "Retour dans le peloton", riderIds: ["leader"] }),
+    ]);
+  });
   it("garde les résultats officiels lorsque le scénario manque ou concerne une autre étape", () => {
     const report = buildTeamStageReport({ teamId: "own", stageId: "other-stage", results, simulation: simulation() })!;
     expect(report.hasTimeline).toBe(false);

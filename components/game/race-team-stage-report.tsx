@@ -25,7 +25,7 @@ const ENGLISH_EVENT_TITLES: Record<string, string> = {
   "Protection": "Protection", "Aide au retour": "Chase support", "Travail en tête du peloton": "Work at the front of the peloton",
   "Lancement du sprint": "Sprint lead-out", "En échappée": "In the breakaway",
   "En contre-attaque / poursuite": "Counter-attack / chase", "Décrochage": "Dropped",
-  "Retour dans le peloton": "Back in the peloton", "Crevaison / avarie": "Puncture / mechanical",
+  "Retour dans le peloton": "Back in the peloton", "Reprise": "Caught", "Crevaison / avarie": "Puncture / mechanical",
   "Bordure": "Crosswind split", "Chute collective": "Mass crash", "Chute": "Crash", "Abandon sur chute": "DNF after a crash",
   "Attaque / accélération": "Attack / acceleration", "Soutien / retour": "Support / return", "Perte de contact": "Losing contact",
   "Fait de course": "Race event", "Passage au GPM": "Mountain prime", "Sprint intermédiaire": "Intermediate sprint",

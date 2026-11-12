@@ -44,6 +44,21 @@ describe("RaceCourseJournal", () => {
     expect(markup.indexOf("Échappée")).toBeLessThan(markup.indexOf("Victoire"));
   });
 
+  it("met en gras les faits de l’équipe grâce aux identifiants des coureurs", () => {
+    const entries = [
+      { id: "attack", kind: "attack" as const, distanceKm: 70, title: "Attaque", detail: "Camille attaque.", riderIds: ["own-rider"] },
+      { id: "catch", kind: "junction" as const, distanceKm: 90, title: "Reprise", detail: "Camille est repris.", riderIds: ["own-rider", "rival"] },
+      { id: "rival", kind: "prime" as const, distanceKm: 95, distanceIsSegmentEnd: true as const, title: "GPM", detail: "Un autre Camille remporte le GPM.", riderIds: ["rival"] },
+    ];
+    const markup = renderToStaticMarkup(<RaceJournalTimeline entries={entries} teamRiderIds={["own-rider"]} />);
+    expect(markup).toMatch(/<strong[^>]*>Camille attaque\.<\/strong>/);
+    expect(markup).toMatch(/<strong[^>]*>Camille est repris\.<\/strong>/);
+    expect(markup).not.toMatch(/<strong[^>]*>Un autre Camille/);
+    expect(markup).toContain("Dernier tronçon");
+    expect(markup).not.toContain("Km 95");
+    expect(markup).toContain("Les points de la prime sont attribués séparément du classement à l’arrivée.");
+  });
+
   it("absorbe le bilan sans exposer le nom ni les détails de l’équipe avant ouverture", () => {
     const { entries, report } = createRaceJournalFixture();
     const markup = renderToStaticMarkup(<RaceCourseJournal entries={entries} teamReport={report} />);

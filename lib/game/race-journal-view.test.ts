@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createRaceJournalFixture } from "@/test/race-journal-fixture";
 import { buildTeamJournalView, resolveRaceJournalView, TEAM_JOURNAL_MAX_EVENTS } from "./race-journal-view";
-import { RACE_COURSE_JOURNAL_MAX_ENTRIES } from "./race-course-journal";
 
 describe("journal presentation without gameplay changes", () => {
   it.each([
@@ -37,17 +36,17 @@ describe("journal presentation without gameplay changes", () => {
     expect(view.eventsByRider.has("foreign")).toBe(false);
     expect(view.eventsByRider.get("helper")).toHaveLength(3);
   });
-  it("bounds the overview but preserves every rider detail, including late incidents", () => {
+  it("bounds the overview and prioritizes late catches and incidents over generic commentary", () => {
     const {report} = createRaceJournalFixture();
     report.events = Array.from({length: 5_000}, (_, i) => ({id: `comment-${i}`, title: "Fait", detail: "Recorded event", riderIds: ["leader"], distanceKm: i / 100}));
     report.events.push({id: "abandon-late", title: "Abandon", detail: "Recorded abandonment", riderIds: ["injured"], distanceKm: 150});
+    report.events.push({id: "catch-late", title: "Reprise", detail: "Recorded catch", riderIds: ["leader"], distanceKm: 120});
     const start = performance.now();
     const view = buildTeamJournalView(report);
     expect(performance.now() - start).toBeLessThan(1_000);
-    expect(TEAM_JOURNAL_MAX_EVENTS).toBe(RACE_COURSE_JOURNAL_MAX_ENTRIES);
-    expect(view.overview).toHaveLength(26);
-    expect(view.overview.at(-1)?.id).toBe("abandon-late");
-    expect(view.eventsByRider.get("leader")).toHaveLength(5_000);
-    expect(view.eventCount).toBe(5_001);
+    expect(view.overview).toHaveLength(TEAM_JOURNAL_MAX_EVENTS);
+    expect(view.overview.slice(-2).map((event) => event.id)).toEqual(["catch-late", "abandon-late"]);
+    expect(view.eventsByRider.get("leader")).toHaveLength(5_001);
+    expect(view.eventCount).toBe(5_002);
   });
 });

@@ -222,6 +222,7 @@ export default async function RaceLivePage({
         stageId: stage.id,
         results: officialResults.stages.find((result) => result.stageId === stage.id)?.results ?? [],
         simulation: selectedLockedSimulation?.simulation,
+        courseJournal,
       })
     : null;
   const sponsorProject = teamStageReport && isSponsorRaceReportFinal(edition, officialResults, stage.id) && headerData.teamSponsorIdentity

@@ -25,7 +25,7 @@ export function buildTeamJournalView(report: TeamStageReport) {
   }
   const chronological = (a: TeamStageEvent, b: TeamStageEvent) => a.distanceKm - b.distanceKm || a.id.localeCompare(b.id);
   const priority = (event: TeamStageEvent) => event.id.startsWith("abandon-") ? 100
-    : event.id.startsWith("incident-") ? 90 : event.id.startsWith("prime-") ? 80
+    : event.id.startsWith("incident-") ? 90 : event.id.startsWith("catch-") ? 85 : event.id.startsWith("prime-") ? 80
       : event.id.startsWith("work-") ? 65 : 50;
   // Bound the overview, but keep every recorded own event in the rider details.
   const overview = events.length <= TEAM_JOURNAL_MAX_EVENTS ? [...events]

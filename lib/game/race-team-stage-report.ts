@@ -1,3 +1,4 @@
+import type { RaceCourseJournalEntry } from "./race-course-journal";
 import type { OfficialRiderResult } from "./race-results";
 import { RACE_ROLE_LABELS, type StageSimulationResult } from "./race-simulation";
 import type { RaceTeamWorkKind } from "./race-team-work";
@@ -32,11 +33,12 @@ const WORK_LABELS: Record<RaceTeamWorkKind, string> = {
 };
 
 /** Summarizes only the viewer's team, using the locked scenario and official finish. */
-export function buildTeamStageReport({ teamId, stageId, results, simulation }: {
+export function buildTeamStageReport({ teamId, stageId, results, simulation, courseJournal = [] }: {
   teamId: string | null;
   stageId: string;
   results: readonly OfficialRiderResult[];
   simulation?: StageSimulationResult | null;
+  courseJournal?: readonly RaceCourseJournalEntry[];
 }): TeamStageReport | null {
   if (!teamId) return null;
   const ownResults = results.filter((rider) => rider.teamId === teamId || rider.teamProfileId === teamId);
@@ -51,6 +53,25 @@ export function buildTeamStageReport({ teamId, stageId, results, simulation }: {
   const push = (event: TeamStageEvent) => {
     if (!seen.has(event.id)) { seen.add(event.id); events.push(event); }
   };
+  const catchesByKm = new Map<number, TeamStageEvent[]>();
+  if (recorded) {
+    for (const entry of courseJournal) {
+      if (entry.kind !== "junction") continue;
+      const riderIds = entry.caughtRiderIds?.filter((id) => ownIds.has(id));
+      if (!riderIds?.length) continue;
+      const catchEvent: TeamStageEvent = {
+        id: `catch-${entry.id}`,
+        distanceKm: entry.distanceKm,
+        title: "Reprise",
+        detail: entry.detail,
+        riderIds,
+      };
+      push(catchEvent);
+      const sameDistance = catchesByKm.get(entry.distanceKm);
+      if (sameDistance) sameDistance.push(catchEvent);
+      else catchesByKm.set(entry.distanceKm, [catchEvent]);
+    }
+  }
   const nameList = (ids: string[]) => ids.map((id) => names.get(id)).filter(Boolean).join(", ");
   const distances = new Map(ownResults.map((rider) => [rider.riderId, { breakaway: 0, relay: 0 }]));
   const frames = recorded?.visualTimeline?.length ? recorded.visualTimeline : recorded?.timeline ?? [];
@@ -76,6 +97,7 @@ export function buildTeamStageReport({ teamId, stageId, results, simulation }: {
   const previousGroups = new Map<string, string>();
   for (const snapshot of recorded?.timeline ?? []) {
     const km = snapshot.completedDistanceKm;
+    const catches = catchesByKm.get(km);
     // The last groups are reconciled with finish times, not a timed observation
     // of a rider losing the wheels. Never turn the finish gap into a drop event.
     const isFinish = snapshot === recorded?.timeline.at(-1);
@@ -88,7 +110,8 @@ export function buildTeamStageReport({ teamId, stageId, results, simulation }: {
             : group.type === "chase" ? "En contre-attaque / poursuite"
             : group.type === "dropped" ? "Décrochage"
             : group.type === "peloton" && previous && previous !== "time_trial" ? "Retour dans le peloton" : null;
-          if (label) push({ id: `group-${snapshot.segmentNumber}-${id}-${group.type}`, distanceKm: km,
+          const alreadyExplained = group.type === "peloton" && catches?.some((event) => event.riderIds.includes(id));
+          if (label && !alreadyExplained) push({ id: `group-${snapshot.segmentNumber}-${id}-${group.type}`, distanceKm: km,
             title: label, detail: `${names.get(id)}${group.gapToLeaderSeconds > 0 ? ` · ${Math.round(group.gapToLeaderSeconds)} s de retard sur la tête de course` : " · dans le groupe de tête"}.`, riderIds: [id] });
         }
         previousGroups.set(id, group.type);
@@ -111,6 +134,8 @@ export function buildTeamStageReport({ teamId, stageId, results, simulation }: {
     for (const message of snapshot.commentary ?? []) {
       const ids = [...names].filter(([, name]) => message.includes(name)).map(([id]) => id);
       if (!ids.length) continue;
+      if (catches?.some((event) => normalizedCommentary(event.detail) === normalizedCommentary(message)
+        && ids.every((id) => event.riderIds.includes(id)))) continue;
       const title = /attaqu|offensive|accélération/iu.test(message) ? "Attaque / accélération"
         : /attend|attendre|retour|recoll|réintègre/iu.test(message) ? "Soutien / retour"
         : /lâch|distanc|décroch|cassure|attardés|ne tient pas/iu.test(message) ? "Perte de contact"
@@ -152,4 +177,8 @@ export function buildTeamStageReport({ teamId, stageId, results, simulation }: {
       workKm: recorded?.teamWork !== undefined ? workByRider.get(result.riderId)! : null,
     })),
   };
+}
+
+function normalizedCommentary(message: string) {
+  return message.trim().replace(/[.!?…]+$/u, "");
 }
