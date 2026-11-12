@@ -89,7 +89,7 @@ export async function claimGameObjectiveAction(formData: FormData) {
 export async function claimDailyRewardAction(formData: FormData) {
   const rewardKey = readValue(formData, "rewardKey");
 
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(rewardKey)) {
+  if (!/^[a-z0-9]+(?:[-_][a-z0-9]+)*$/.test(rewardKey)) {
     redirectDailyRewardError(
       "/jeu/objectifs?onglet=quotidiennes",
       "Le cadeau sélectionné est invalide.",
