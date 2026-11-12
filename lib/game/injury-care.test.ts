@@ -10,6 +10,10 @@ describe("stock des objets de soin", () => {
   it("keeps a daily gift identifier when no generic stock remains", () => {
     expect(groupInjuryCareItems([{ ...item, inventoryId: "gift", quantity: 1 }])[0].inventoryId).toBe("gift");
   });
+  it("keeps different recovery times separate even when catalog keys match", () => {
+    const gift = { ...item, inventoryId: "gift", recoveryHours: 24, quantity: 1 };
+    expect(groupInjuryCareItems([item, gift])).toEqual([item, gift]);
+  });
   it("hides empty or malformed stocks and sorts by recovery time", () => {
     expect(groupInjuryCareItems([{ ...item, recoveryHours: 0 }, { ...item, quantity: 0 },
       { ...item, recoveryHours: 49 }, { ...item, recoveryHours: 1.5 }, item,

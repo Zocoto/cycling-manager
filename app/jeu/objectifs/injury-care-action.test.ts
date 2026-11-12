@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ getUser: vi.fn(), rpc: vi.fn(), revalidatePath: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createSupabaseServerClient: async () => ({ auth: { getUser: mocks.getUser }, rpc: mocks.rpc }) }));
+vi.mock("@/services/daily-reward-recruitment", () => ({ redeemCustomStaffRecruitmentReward: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock("next/navigation", () => ({ redirect: (url: string) => { throw new Error(`redirect:${url}`); } }));
 import { redeemDailyRewardAction } from "./actions";
 const inventoryId = "00000000-0000-4000-8000-000000000001", riderId = "00000000-0000-4000-8000-000000000002";
+const injuryId = "00000000-0000-4000-8000-000000000003";
 function data() {
   const form = new FormData();
   for (const [key, value] of Object.entries({ inventoryId, riderId, quantity: "1", effectKind: "injury_care", returnPath: "/jeu/centre-de-soin?onglet=blessures" })) form.set(key, value);
@@ -13,12 +15,51 @@ function data() {
 beforeEach(() => { vi.clearAllMocks(); mocks.getUser.mockResolvedValue({ data: { user: { id: "user" } }, error: null });
   mocks.rpc.mockResolvedValue({ data: { message: "12 h gagnées, 24 h de convalescence restantes." }, error: null }); });
 describe("utilisation d’un soin depuis le centre", () => {
-  it("uses the existing atomic RPC, refreshes both views and returns with the actual result", async () => {
+  it("preserves the single-use RPC for older care forms", async () => {
     await expect(redeemDailyRewardAction(data())).rejects.toThrow('redirect:/jeu/centre-de-soin?onglet=blessures&succes=');
     expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("redeem_injury_care_reward", { p_inventory_id: inventoryId, p_rider_id: riderId });
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/jeu/inventaire");
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/jeu/centre-de-soin");
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/jeu/effectif");
+  });
+  it.each([1, 3, 30])("applies %i care items to the selected injury in one call", async quantity => {
+    const form = data();
+    form.set("injuryId", injuryId);
+    form.set("quantity", String(quantity));
+
+    await expect(redeemDailyRewardAction(form)).rejects.toThrow(
+      "redirect:/jeu/centre-de-soin?onglet=blessures&succes=12+h+gagn%C3%A9es",
+    );
+    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("redeem_injury_care_rewards", {
+      p_inventory_id: inventoryId,
+      p_rider_id: riderId,
+      p_injury_id: injuryId,
+      p_quantity: quantity,
+    });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/jeu/centre-de-soin");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/jeu/inventaire");
+  });
+  it.each(["0", "1.5", "31"])("rejects an invalid bulk quantity %s", async quantity => {
+    const form = data();
+    form.set("injuryId", injuryId);
+    form.set("quantity", quantity);
+
+    await expect(redeemDailyRewardAction(form)).rejects.toThrow("erreur=");
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+  it("rejects bulk requests without a selected injury", async () => {
+    const form = data();
+    form.set("quantity", "2");
+
+    await expect(redeemDailyRewardAction(form)).rejects.toThrow("erreur=");
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+  it("rejects an invalid explicit injury instead of targeting another injury", async () => {
+    const form = data();
+    form.set("injuryId", "invalid");
+
+    await expect(redeemDailyRewardAction(form)).rejects.toThrow("erreur=");
+    expect(mocks.rpc).not.toHaveBeenCalled();
   });
   it("requires authentication", async () => {
     mocks.getUser.mockResolvedValueOnce({ data: { user: null }, error: null });
@@ -31,8 +72,12 @@ describe("utilisation d’un soin depuis le centre", () => {
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
   it("shows stock/compatibility/ownership refusals without a success notice", async () => {
+    const form = data();
+    form.set("injuryId", injuryId);
+    form.set("quantity", "3");
     mocks.rpc.mockResolvedValueOnce({ data: null, error: { message: "Cet objet de soin n’est plus disponible." } });
-    await expect(redeemDailyRewardAction(data())).rejects.toThrow('redirect:/jeu/centre-de-soin?onglet=blessures&erreur=');
+    await expect(redeemDailyRewardAction(form)).rejects.toThrow('redirect:/jeu/centre-de-soin?onglet=blessures&erreur=');
+    expect(mocks.rpc).toHaveBeenCalledTimes(1);
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
   });
   it.each(["https://evil.invalid", "/jeu/centre-de-soin?onglet=blessures&redirect=evil", "//evil.invalid"])('does not broaden the return allowlist: %s', async returnPath => {
@@ -42,5 +87,15 @@ describe("utilisation d’un soin depuis le centre", () => {
   it("preserves inventory navigation", async () => {
     const form = data(); form.set("returnPath", "/jeu/inventaire?categorie=injury_care");
     await expect(redeemDailyRewardAction(form)).rejects.toThrow('redirect:/jeu/inventaire?categorie=injury_care&succes=');
+    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("redeem_injury_care_reward", { p_inventory_id: inventoryId, p_rider_id: riderId });
+  });
+  it("rejects a bulk request submitted outside the care centre", async () => {
+    const form = data();
+    form.set("returnPath", "/jeu/inventaire?categorie=injury_care");
+    form.set("injuryId", injuryId);
+    form.set("quantity", "2");
+
+    await expect(redeemDailyRewardAction(form)).rejects.toThrow("redirect:/jeu/inventaire?categorie=injury_care&erreur=");
+    expect(mocks.rpc).not.toHaveBeenCalled();
   });
 });

@@ -13,6 +13,8 @@ import { isStaffRole } from "@/lib/game/staff";
 import { redeemCustomStaffRecruitmentReward } from "@/services/daily-reward-recruitment";
 import type { ClaimAlphaTesterTrophyState } from "@/app/jeu/objectifs/alpha-tester-trophy-state";
 
+const INJURY_CARE_RETURN_PATH = "/jeu/centre-de-soin?onglet=blessures";
+
 export async function markTrophyNotificationsSeenAction() {
   const supabase = await createSupabaseServerClient();
   const {
@@ -143,6 +145,8 @@ export async function redeemDailyRewardAction(formData: FormData) {
   );
   const staffContractId = readOptionalUuid(formData, "staffContractId");
   const returnPath = readDailyRewardReturnPath(formData);
+  const isInjuryCareForm = returnPath === INJURY_CARE_RETURN_PATH;
+  const injuryId = isInjuryCareForm ? readOptionalUuid(formData, "injuryId") : null;
 
   if (!isUuid(inventoryId) || quantity === null) {
     redirectDailyRewardError(returnPath, "Ce cadeau n’est plus disponible.");
@@ -193,11 +197,28 @@ export async function redeemDailyRewardAction(formData: FormData) {
     );
   }
 
-  if (effectKind === "injury_care" && riderId === null) {
-    redirectDailyRewardError(
-      returnPath,
-      "Sélectionnez un coureur présentant une blessure compatible.",
-    );
+  if (effectKind === "injury_care") {
+    if (
+      riderId === null ||
+      (isInjuryCareForm && formData.has("injuryId") && injuryId === null)
+    ) {
+      redirectDailyRewardError(
+        returnPath,
+        "Sélectionnez un coureur présentant une blessure compatible.",
+      );
+    }
+    if (quantity > 30) {
+      redirectDailyRewardError(
+        returnPath,
+        "Choisissez une quantité entière entre 1 et 30.",
+      );
+    }
+    if (quantity > 1 && injuryId === null) {
+      redirectDailyRewardError(
+        returnPath,
+        "Pour utiliser plusieurs soins, choisissez une blessure dans le centre de soins.",
+      );
+    }
   }
 
   const supabase = await createSupabaseServerClient();
@@ -255,10 +276,17 @@ export async function redeemDailyRewardAction(formData: FormData) {
     }
     resultData = result.data;
   } else if (effectKind === "injury_care") {
-    const result = await supabase.rpc("redeem_injury_care_reward", {
-      p_inventory_id: inventoryId,
-      p_rider_id: riderId,
-    });
+    const result = injuryId
+      ? await supabase.rpc("redeem_injury_care_rewards", {
+          p_inventory_id: inventoryId,
+          p_rider_id: riderId,
+          p_injury_id: injuryId,
+          p_quantity: quantity,
+        })
+      : await supabase.rpc("redeem_injury_care_reward", {
+          p_inventory_id: inventoryId,
+          p_rider_id: riderId,
+        });
     if (result.error) {
       redirectDailyRewardError(returnPath, result.error.message);
     }
@@ -319,7 +347,7 @@ function redirectDailyRewardError(
 
 function readDailyRewardReturnPath(formData: FormData) {
   const value = readValue(formData, "returnPath");
-  if (value === "/jeu/centre-de-soin?onglet=blessures" &&
+  if (value === INJURY_CARE_RETURN_PATH &&
     readValue(formData, "effectKind") === "injury_care") return value;
   return value.startsWith("/jeu/inventaire")
     ? sanitizeInventoryReturnPath(value)

@@ -7,20 +7,31 @@ import { redeemDailyRewardAction } from "@/app/jeu/objectifs/actions";
 import { HealthCenterSubmitButton } from "@/components/game/health-center-submit-button";
 import type { InjuryCareItem } from "@/lib/game/injury-care";
 
-export function InjuryCareItemForm({ riderId, riderName, diagnosisCode, items, loadError = false }: {
-  riderId: string; riderName: string; diagnosisCode: string;
+export function getMaxInjuryCareQuantity(item: InjuryCareItem | undefined, remainingHours: number) {
+  if (!item || item.quantity < 1 || remainingHours <= 0) return 0;
+  if (item.halloweenItem === "mummy-resurrection") return 1;
+  return Math.min(30, item.quantity, Math.ceil(remainingHours / item.recoveryHours));
+}
+
+export function InjuryCareItemForm({ riderId, riderName, injuryId, diagnosisCode, remainingHours, items, loadError = false }: {
+  riderId: string; riderName: string; injuryId: string; diagnosisCode: string; remainingHours: number;
   items: InjuryCareItem[]; loadError?: boolean;
 }) {
   const selectId = useId();
+  const quantityId = useId();
   const router = useRouter();
   const [notice, setNotice] = useState("");
   const [busy, startTransition] = useTransition();
   const lock = useRef(false);
   const retry = useRef<{ fingerprint: string; id: string } | null>(null);
   const [inventoryId, setInventoryId] = useState("");
+  const [quantity, setQuantity] = useState("1");
   const compatibleItems = diagnosisCode === "fatigue_exhaustion"
     ? items.filter(item => item.halloweenItem === "mummy-resurrection") : items;
   const selected = compatibleItems.find(item => item.inventoryId === inventoryId);
+  const maxQuantity = getMaxInjuryCareQuantity(selected, remainingHours);
+  const requestedQuantity = maxQuantity > 1 ? Number(quantity) : 1;
+  const canApply = Number.isSafeInteger(requestedQuantity) && requestedQuantity >= 1 && requestedQuantity <= maxQuantity;
   return (
     <section aria-label={`Objets de soin pour ${riderName}`} className="mt-5 min-w-0 rounded-2xl border border-[#42B99A]/25 bg-[#EAF5F0] p-4 sm:p-5">
       <h4 className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#176951]">Objets de soin</h4>
@@ -32,11 +43,14 @@ export function InjuryCareItemForm({ riderId, riderName, diagnosisCode, items, l
           : "Aucun objet de soin en stock."}</p>
       ) : (
         <form action={redeemDailyRewardAction} className="mt-3 space-y-3" onSubmit={event => {
+          if (!canApply || busy || lock.current) {
+            event.preventDefault();
+            return;
+          }
           if (!selected?.halloweenItem) return;
           event.preventDefault();
-          if (busy || lock.current) return;
           lock.current = true;
-          const payload = { item: selected.halloweenItem, quantity: 1, target: riderId };
+          const payload = { item: selected.halloweenItem, quantity: requestedQuantity, target: riderId };
           const fingerprint = JSON.stringify(payload);
           if (retry.current?.fingerprint !== fingerprint) retry.current = { fingerprint, id: crypto.randomUUID() };
           const requestId = retry.current.id;
@@ -46,6 +60,7 @@ export function InjuryCareItemForm({ riderId, riderName, diagnosisCode, items, l
               setNotice(String(result.message ?? "Le soin a été appliqué."));
               retry.current = null;
               setInventoryId("");
+              setQuantity("1");
               router.refresh();
             } catch (error) {
               setNotice(error instanceof Error ? error.message : "Le soin n’a pas pu être appliqué.");
@@ -53,17 +68,39 @@ export function InjuryCareItemForm({ riderId, riderName, diagnosisCode, items, l
           });
         }}>
           <input type="hidden" name="riderId" value={riderId} />
+          <input type="hidden" name="injuryId" value={injuryId} />
           <input type="hidden" name="effectKind" value="injury_care" />
-          <input type="hidden" name="quantity" value="1" />
           <input type="hidden" name="returnPath" value="/jeu/centre-de-soin?onglet=blessures" />
           <label htmlFor={selectId} className="block text-xs font-bold text-[#183F37]">Objet à utiliser pour {riderName}</label>
-          <select id={selectId} name="inventoryId" required disabled={busy} value={inventoryId} onChange={event => { setInventoryId(event.target.value); setNotice(""); }}
+          <select id={selectId} name="inventoryId" required disabled={busy} value={inventoryId} onChange={event => {
+            setInventoryId(event.target.value);
+            setQuantity("1");
+            setNotice("");
+          }}
             className="min-h-11 w-full min-w-0 rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-bold text-[#183F37]">
             <option value="">Choisir un objet de soin</option>
             {compatibleItems.map(item => <option key={item.inventoryId} value={item.inventoryId}>{item.name} · {item.fullRecovery ? "guérison immédiate" : `−${item.recoveryHours} h`} · ×{item.quantity}</option>)}
           </select>
-          <p className="text-xs font-semibold leading-5 text-[#60756E]">{selected?.fullRecovery ? "Guérit la blessure sans modifier la forme du coureur. " : selected ? `Jusqu’à ${selected.recoveryHours} h de convalescence en moins. ` : ""}Un exemplaire sera consommé et la date de reprise sera mise à jour.</p>
-          <HealthCenterSubmitButton pendingLabel="Application du soin…" disabled={!selected || busy} tone="green">{busy ? "Application du soin…" : "Appliquer le soin"}</HealthCenterSubmitButton>
+          {maxQuantity > 1 ? (
+            <label htmlFor={quantityId} className="block text-xs font-bold text-[#183F37]">
+              Quantité à utiliser
+              <input id={quantityId} type="number" inputMode="numeric" name="quantity" min={1} max={maxQuantity}
+                step={1} required disabled={busy} value={quantity} onChange={event => {
+                  setQuantity(event.target.value);
+                  setNotice("");
+                }}
+                className="mt-1.5 min-h-11 w-full min-w-0 rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-bold text-[#183F37]" />
+              <span className="mt-1 block font-semibold text-[#60756E]">{`Jusqu’à ${maxQuantity} doses utiles.`}</span>
+            </label>
+          ) : <input type="hidden" name="quantity" value="1" />}
+          {remainingHours <= 0 ? (
+            <p className="text-xs font-semibold leading-5 text-[#60756E]">La convalescence est terminée.</p>
+          ) : selected && canApply ? (
+            <p className="text-xs font-semibold leading-5 text-[#60756E]">{selected.fullRecovery
+              ? "Guérit la blessure sans modifier la forme du coureur."
+              : `Jusqu’à ${Math.min(remainingHours, requestedQuantity * selected.recoveryHours)} h de convalescence en moins.`}</p>
+          ) : null}
+          <HealthCenterSubmitButton pendingLabel="Application du soin…" disabled={!canApply || busy} tone="green">{busy ? "Application du soin…" : "Appliquer le soin"}</HealthCenterSubmitButton>
         </form>
       )}
       {notice ? <p role="status" className="mt-3 text-sm font-semibold leading-6 text-[#176951]">{notice}</p> : null}

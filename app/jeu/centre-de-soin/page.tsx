@@ -630,7 +630,8 @@ function InjuryCard({
             </>
           )}
           <InjuryCareItemForm riderId={rider.id} riderName={`${rider.firstName} ${rider.lastName}`}
-            diagnosisCode={rider.injury.diagnosisCode} items={careItems} loadError={careItemsError} />
+            injuryId={rider.injury.id} diagnosisCode={rider.injury.diagnosisCode} remainingHours={remaining.hours}
+            items={careItems} loadError={careItemsError} />
         </div>
       </div>
     </article>
