@@ -47,7 +47,7 @@ class FakeAdminClient {
     return Promise.resolve({ data: null, error: null });
   }
 
-  resolve(table: string, filters: QueryFilter[]) {
+  resolve(table: string, filters: QueryFilter[]): unknown {
     if (table === "seasons") {
       return [
         {
@@ -246,5 +246,77 @@ describe("données du Fan Club", () => {
     expect(
       historyFilters.every(({ values }) => values.length <= 100),
     ).toBe(true);
+  });
+
+  it("garde une course accessible après huit championnats nationaux", async () => {
+    const championships = Array.from({ length: 8 }, (_, index) => ({
+      id: `championship-${index}`,
+      name: `Championnat national ${index + 1}`,
+      day: 8,
+      status: "scheduled",
+    }));
+    const editions = [
+      { id: "enfer-des-dunes", name: "L’Enfer des Dunes", day: 9, status: "scheduled" },
+      ...championships,
+      { id: "finished", name: "Course terminée", day: 8, status: "completed" },
+      { id: "cancelled", name: "Course annulée", day: 8, status: "cancelled" },
+    ];
+    const admin = new FakeAdminClient();
+    const resolveDefault = admin.resolve.bind(admin);
+    vi.spyOn(admin, "resolve").mockImplementation((table, filters) => {
+      if (table === "race_registrations" && filters.some(
+        ({ column, value }) => column === "status" && value === "accepted",
+      )) {
+        return editions.map(({ id }) => ({
+          id: `registration-${id}`,
+          race_edition_id: id,
+          team_season_id: "00000000-0000-4000-8000-000000000003",
+        }));
+      }
+      if (table === "race_editions") {
+        return editions.map(({ id, name, status }) => ({
+          id,
+          race_id: id,
+          season_id: "00000000-0000-4000-8000-000000000002",
+          race_category_id: "category",
+          display_name: name,
+          status,
+          host_country_id: null,
+        }));
+      }
+      if (table === "stages") {
+        return editions.map(({ id, name, day }) => ({
+          id: `stage-${id}`,
+          race_edition_id: id,
+          season_day_id: `day-${day}`,
+          stage_number: 1,
+          name,
+          distance_km: 150,
+        }));
+      }
+      if (table === "season_days") {
+        return [
+          { id: "day-8", day_number: 8 },
+          { id: "day-9", day_number: 9 },
+        ];
+      }
+      return resolveDefault(table, filters);
+    });
+    mocks.createAdminClient.mockReturnValue(admin);
+
+    const result = await getFanClubLiveData({
+      supabase: createSupabaseClient() as never,
+      authUserId: "00000000-0000-4000-8000-000000000001",
+      headquartersLevel: 1,
+    });
+
+    expect(result?.races.map(({ id }) => id)).toEqual([
+      ...championships.map(({ id }) => id),
+      "enfer-des-dunes",
+    ]);
+    expect(result?.races.at(-1)).toMatchObject({
+      name: "L’Enfer des Dunes",
+      timing: "J+1",
+    });
   });
 });

@@ -982,7 +982,6 @@ function buildUpcomingRaces({
       } => race !== null,
     )
     .sort((left, right) => left.day - right.day)
-    .slice(0, 8)
     .map((race) => ({
       id: race.id,
       name: race.name,

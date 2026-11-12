@@ -421,9 +421,14 @@ function TravelPanel({
   feedback: string;
 }) {
   const [raceId, setRaceId] = useState(data.races[0]?.id ?? "");
+  const [raceSearch, setRaceSearch] = useState("");
   const [modelId, setModelId] = useState("regional");
   const [requestedCars, setRequestedCars] = useState(1);
-  const race = data.races.find((candidate) => candidate.id === raceId) ?? data.races[0];
+  const search = normalizeRaceSearch(raceSearch);
+  const visibleRaces = search
+    ? data.races.filter((candidate) => normalizeRaceSearch(candidate.name).includes(search))
+    : data.races;
+  const race = visibleRaces.find((candidate) => candidate.id === raceId) ?? visibleRaces[0];
   const model = FAN_CLUB_CAR_MODELS.find((candidate) => candidate.id === modelId) ?? FAN_CLUB_CAR_MODELS[0];
   const fleetLimit = FAN_CLUB_FLEET_CAPACITY_BY_HEADQUARTERS_LEVEL[headquartersLevel] ?? 2;
   const totalCars = Object.values(management.fleet).reduce((sum, value) => sum + value, 0);
@@ -521,12 +526,32 @@ function TravelPanel({
           />
           {data.races.length > 0 ? (
             <div className="mt-6 grid gap-5 md:grid-cols-2">
-              <SelectField
-                label="Épreuve ciblée"
-                value={race?.id ?? ""}
-                onChange={(value) => { setRaceId(value); setRequestedCars(1); }}
-                options={data.races.map((candidate) => ({ value: candidate.id, label: `${candidate.name} · ${candidate.timing}` }))}
-              />
+              <label className="block md:col-span-2">
+                <span className="text-sm font-black text-[var(--fan-ink)]">
+                  Rechercher une épreuve
+                </span>
+                <input
+                  type="search"
+                  value={raceSearch}
+                  onChange={(event) => {
+                    setRaceSearch(event.target.value);
+                    setRequestedCars(1);
+                  }}
+                  className="mt-2 min-h-12 w-full rounded-xl border border-[var(--fan-line)] bg-[var(--fan-surface)] px-4 text-sm font-bold text-[var(--fan-ink)] outline-none focus:border-[var(--fan-secondary)] focus:ring-2 focus:ring-[var(--fan-secondary)]"
+                />
+              </label>
+              {race ? (
+                <SelectField
+                  label="Épreuve ciblée"
+                  value={race.id}
+                  onChange={(value) => { setRaceId(value); setRequestedCars(1); }}
+                  options={visibleRaces.map((candidate) => ({ value: candidate.id, label: `${candidate.name} · ${candidate.timing}` }))}
+                />
+              ) : (
+                <p className="self-end text-sm font-bold text-[var(--fan-muted)]" role="status">
+                  Aucune épreuve trouvée
+                </p>
+              )}
               <SelectField
                 label="Modèle à envoyer"
                 value={model.id}
@@ -1102,6 +1127,15 @@ function StatusMessage({ message, dark = false }: { message: string; dark?: bool
 }
 function getTabId(tab: FanClubPilotTab): string { return `fan-club-tab-${tab}`; }
 function getPanelId(tab: FanClubPilotTab): string { return `fan-club-panel-${tab}`; }
+function normalizeRaceSearch(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .replace(/[’‘]/g, "'")
+    .toLowerCase()
+    .trim();
+}
+
 function formatTrend(value: number): string { return value > 0 ? `+${value}` : value < 0 ? `−${Math.abs(value)}` : "Stable"; }
 function formatRaceRating(value: number): string {
   return value.toLocaleString("fr-FR", {
