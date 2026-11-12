@@ -19,13 +19,13 @@ export type DashboardFederationConstructionOpportunity = {
 };
 
 type FederationConstructionRow = {
-  season: { game_year: number };
+  season: { game_year: number; current_day_number: number };
   country: {
     id: string;
     iso_alpha2: string;
     terms: Array<{ start_game_year: number; end_game_year: number }>;
     levels: Array<{ infrastructure_code: string; level: number }>;
-    projects: Array<{ infrastructure_code: string }>;
+    projects: Array<{ infrastructure_code: string; completes_game_day_index: number }>;
   };
 };
 
@@ -41,12 +41,12 @@ export async function getDashboardFederationConstructionOpportunity(
     const admin = createSupabaseAdminClient();
     const result = await admin.from("team_seasons")
       .select(`
-        season:seasons!inner(game_year),
+        season:seasons!inner(game_year,current_day_number),
         country:countries!registration_country_id!inner(
           id,iso_alpha2,
           terms:national_federation_terms!inner(start_game_year,end_game_year),
           levels:national_federation_infrastructures(infrastructure_code,level),
-          projects:national_federation_infrastructure_projects(infrastructure_code)
+          projects:national_federation_infrastructure_projects(infrastructure_code,completes_game_day_index)
         )
       `)
       .eq("id", teamSeasonId)
@@ -67,8 +67,13 @@ export async function getDashboardFederationConstructionOpportunity(
     }
     if (!result.data) return null;
 
-    const { country, season: { game_year: gameYear } } = result.data;
+    const { country, season: { game_year: gameYear, current_day_number: currentDayNumber } } = result.data;
     if (!country.terms.some((term) => term.start_game_year <= gameYear && term.end_game_year >= gameYear)) {
+      return null;
+    }
+
+    const currentGameDayIndex = gameYear * 28 + currentDayNumber - 1;
+    if (country.projects.some((project) => project.completes_game_day_index > currentGameDayIndex)) {
       return null;
     }
 
@@ -87,9 +92,9 @@ export async function getDashboardFederationConstructionOpportunity(
       Math.round(Number(budget.data.reserved_amount) * 100);
 
     const levels = new Map(country.levels.map((row) => [row.infrastructure_code, row.level]));
-    const activeProjects = new Set(country.projects.map((row) => row.infrastructure_code));
+    const projectsAwaitingSettlement = new Set(country.projects.map((row) => row.infrastructure_code));
     const projects = FEDERATION_INFRASTRUCTURE_DEFINITIONS.flatMap(({ code, name, levels: availableLevels }) => {
-      if (activeProjects.has(code)) return [];
+      if (projectsAwaitingSettlement.has(code)) return [];
       const nextLevel = availableLevels.find(({ level }) => level === (levels.get(code) ?? 0) + 1);
       if (!nextLevel) return [];
 

@@ -82,6 +82,7 @@ export function FederationInfrastructureCatalog({
   infrastructureState,
 }: FederationInfrastructureCatalogProps) {
   const activeProjects = infrastructureState?.activeProjects ?? [];
+  const constructionInProgress = activeProjects.some((project) => project.remainingDays > 0);
 
   return (
     <div className="space-y-6">
@@ -114,9 +115,10 @@ export function FederationInfrastructureCatalog({
 
       {!managementLocked ? (
         <aside className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#315B3E]/12 bg-white px-5 py-4">
-          <span className="text-sm font-bold text-[#60756E]">
-            Trésorerie fédérale disponible
-          </span>
+          <div>
+            <p className="text-sm font-bold text-[#60756E]">Trésorerie fédérale disponible</p>
+            <p className="mt-1 text-xs font-semibold text-[#60756E]">Un seul chantier à la fois par fédération.</p>
+          </div>
           <strong className="text-xl font-black text-[#183F37]">
             {infrastructureState?.balance == null
               ? "Initialisation en cours"
@@ -136,8 +138,9 @@ export function FederationInfrastructureCatalog({
               currency={currency}
               managementLocked={managementLocked}
               currentLevel={currentLevel}
+              constructionInProgress={constructionInProgress}
               activeProject={
-                infrastructureState?.activeProjects.find(
+                activeProjects.find(
                   (project) => project.code === definition.code,
                 ) ?? null
               }
@@ -601,6 +604,7 @@ function FederationInfrastructureCard({
   currency,
   managementLocked,
   currentLevel,
+  constructionInProgress,
   activeProject,
   infrastructureState,
 }: {
@@ -609,6 +613,7 @@ function FederationInfrastructureCard({
   currency: string;
   managementLocked: boolean;
   currentLevel: number;
+  constructionInProgress: boolean;
   activeProject: FederationInfrastructureProjectState | null;
   infrastructureState: FederationInfrastructureState | null;
 }) {
@@ -631,6 +636,15 @@ function FederationInfrastructureCard({
     : null;
   const balance = infrastructureState?.balance ?? 0;
   const insufficientFunds = Boolean(quote && balance < quote.cost);
+  const launchDisabledReason = !infrastructureState?.canLaunch
+    ? "Lancement réservé au président élu."
+    : constructionInProgress
+      ? "Un chantier est déjà en cours dans cette fédération."
+      : infrastructureState.balance == null
+        ? "La trésorerie S3 est en cours d’initialisation."
+        : insufficientFunds
+          ? "Trésorerie fédérale insuffisante."
+          : null;
   const specializationProposal = getInfrastructureSpecializationProposal(
     "federation",
     definition.code,
@@ -758,20 +772,8 @@ function FederationInfrastructureCard({
                 infrastructureCode={definition.code}
                 targetLevel={quoteLevel.level}
                 priority="balanced"
-                disabled={
-                  !infrastructureState?.canLaunch ||
-                  infrastructureState.balance == null ||
-                  insufficientFunds
-                }
-                disabledReason={
-                  !infrastructureState?.canLaunch
-                    ? "Lancement réservé au président élu."
-                    : infrastructureState.balance == null
-                      ? "La trésorerie S3 est en cours d’initialisation."
-                      : insufficientFunds
-                        ? "Trésorerie fédérale insuffisante."
-                        : null
-                }
+                disabled={launchDisabledReason !== null}
+                disabledReason={launchDisabledReason}
               />
             )}
           </aside>

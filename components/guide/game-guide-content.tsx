@@ -1702,6 +1702,7 @@ function StructuresSection() {
             "Chaque convocation d’un coureur sous contrat exige l’accord de son DS, quelle que soit sa nationalité ; réponse jusqu’à une heure avant les Jeux",
             "Trésorerie, solidarité, objectifs et projets nationaux",
             "Équipements, préparation, organisation de courses et bâtiments fédéraux",
+            "Un seul chantier à la fois par fédération.",
           ]}
         />
       </div>

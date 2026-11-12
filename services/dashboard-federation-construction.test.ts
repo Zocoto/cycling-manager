@@ -6,7 +6,7 @@ vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: vi.fn() }));
 
 const context = { teamSeasonId: "team-season", sportingDirectorId: "president", seasonId: "season" };
 const row = {
-  season: { game_year: 5 },
+  season: { game_year: 5, current_day_number: 8 },
   country: {
     id: "federation",
     iso_alpha2: "BE",
@@ -17,10 +17,10 @@ const row = {
       { infrastructure_code: "national_technical_laboratory", level: 1 },
     ],
     projects: [
-      { infrastructure_code: "federal_staff_institute" },
-      { infrastructure_code: "federal_medical_network" },
-      { infrastructure_code: "race_organization_office" },
-      { infrastructure_code: "home_advantage_program" },
+      { infrastructure_code: "federal_staff_institute", completes_game_day_index: 146 },
+      { infrastructure_code: "federal_medical_network", completes_game_day_index: 147 },
+      { infrastructure_code: "race_organization_office", completes_game_day_index: 147 },
+      { infrastructure_code: "home_advantage_program", completes_game_day_index: 146 },
     ],
   },
 };
@@ -48,7 +48,7 @@ function mockRead(data: typeof row | null, balance = "2000000.01", reservedAmoun
 }
 
 describe("dashboard federation construction", () => {
-  it("only returns the next level that the president can launch with the current balance", async () => {
+  it("shows affordable projects once all active projects are due, skipping levels awaiting settlement", async () => {
     const { client, query } = mockRead(row);
 
     expect(await getDashboardFederationConstructionOpportunity(context)).toEqual({
@@ -71,6 +71,23 @@ describe("dashboard federation construction", () => {
     expect(client.rpc).toHaveBeenCalledExactlyOnceWith("get_national_federation_hosting_budget", {
       p_country_id: "federation", p_season_id: "season",
     });
+  });
+
+  it("skips the budget read while any active project is still in progress", async () => {
+    const { client } = mockRead({
+      ...row,
+      country: {
+        ...row.country,
+        projects: [
+          ...row.country.projects,
+          { infrastructure_code: "national_technical_laboratory", completes_game_day_index: 148 },
+        ],
+      },
+    });
+
+    await expect(getDashboardFederationConstructionOpportunity(context)).resolves.toBeNull();
+    expect(client.from).toHaveBeenCalledExactlyOnceWith("team_seasons");
+    expect(client.rpc).not.toHaveBeenCalled();
   });
 
   it.each([
