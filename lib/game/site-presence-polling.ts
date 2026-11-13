@@ -1,8 +1,21 @@
-export type SitePresence = { total: number; visitors: number; players: { id: string; name: string }[] };
+export type SitePresencePlayer = { id: string; name: string };
+export type SitePresence = { total: number; visitors: number; players: SitePresencePlayer[] };
 export const SITE_PRESENCE_REFRESH_MS = 120_000;
 export const SITE_PRESENCE_SNAPSHOT_KEY = "cyclostratege:site-presence:snapshot:v1";
 const ATTEMPT_KEY = "cyclostratege:site-presence:last-attempt:v1";
 type PresenceStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
+
+export function includeChatPlayers(presence: SitePresence | null, chatPlayers: readonly SitePresencePlayer[]) {
+  if (!presence || chatPlayers.length === 0) return presence;
+
+  const playersById = new Map(presence.players.map(player => [player.id, player]));
+  for (const player of chatPlayers) {
+    // Use the same name as the chat when the cached site snapshot is older.
+    playersById.set(player.id, player);
+  }
+  const players = [...playersById.values()].sort((left, right) => left.name.localeCompare(right.name, "fr"));
+  return { players, visitors: presence.visitors, total: players.length + presence.visitors };
+}
 
 export function normalizeSitePresence(value: unknown): SitePresence | null {
   if (!value || typeof value !== "object") return null;

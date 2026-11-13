@@ -12,6 +12,7 @@ import {
   useSyncExternalStore,
   useTransition,
   type Dispatch,
+  type ReactNode,
   type SetStateAction,
 } from "react";
 
@@ -66,6 +67,7 @@ import {
 } from "@/lib/game/global-chat";
 import { canEditChatMessage } from "@/lib/game/chat-message-text";
 import { useLocale } from "@/components/i18n/locale-provider";
+import { SitePresenceChatPlayers } from "@/components/layout/site-presence";
 import {
   hasTranslatableChatText,
   getChatTranslationSourceKey,
@@ -170,6 +172,7 @@ type GlobalChatHistorySearch = {
 };
 
 export function GlobalGameChat({
+  header,
   identity,
   initialOnlineDirectors,
   initialMessages,
@@ -182,6 +185,7 @@ export function GlobalGameChat({
   klipyAppKey = "",
   gameStaffDirectorIds = NO_GAME_STAFF_DIRECTOR_IDS,
 }: {
+  header: ReactNode;
   identity: GlobalChatIdentity;
   initialOnlineDirectors: GlobalChatOnlineDirector[];
   initialMessages: GlobalChatMessage[];
@@ -287,6 +291,13 @@ export function GlobalGameChat({
         gameStaffDirectorIds,
       ),
     [identity, realtimeOnlineDirectors, recentOnlineDirectors, gameStaffDirectorIds],
+  );
+  const headerPlayers = useMemo(
+    () => onlineDirectors.map(({ sportingDirectorId, displayName }) => ({
+      id: sportingDirectorId,
+      name: displayName,
+    })),
+    [onlineDirectors],
   );
   const [activeMode, setActiveMode] = useState<ChatMode>(
     initialDirectRecipientId ? "direct" : "global",
@@ -1535,7 +1546,7 @@ export function GlobalGameChat({
     });
   }
 
-  return (
+  const chatHub = (
     <div
       data-chat-hub="true"
       className="flex h-[calc(100dvh-var(--game-mobile-navigation-clearance)-4rem)] min-h-0 flex-col overflow-hidden border-y border-[#1D5145]/20 bg-white shadow-[0_24px_70px_rgba(7,26,23,0.16)] sm:h-[clamp(30rem,72dvh,42rem)] sm:max-h-[calc(100dvh-8rem)] sm:rounded-[2rem] sm:border"
@@ -2117,6 +2128,18 @@ export function GlobalGameChat({
         <FederationMessagingPanel active={activeMode === "federation"} />
       ) : null}
     </div>
+  );
+
+  return (
+    <>
+      <SitePresenceChatPlayers players={headerPlayers}>{header}</SitePresenceChatPlayers>
+      <section
+        className="mx-auto max-w-[1500px] px-0 py-0 sm:px-6 sm:py-4"
+        data-chat-shell="true"
+      >
+        <div data-chat-page="true">{chatHub}</div>
+      </section>
+    </>
   );
 }
 

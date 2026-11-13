@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useLocale } from "@/components/i18n/locale-provider";
 import {
   claimSitePresenceRefresh,
+  includeChatPlayers,
   normalizeSitePresence,
   readSitePresenceSnapshot,
   releaseFailedSitePresenceRefresh,
@@ -12,10 +13,19 @@ import {
   SITE_PRESENCE_SNAPSHOT_KEY,
   storeSitePresenceSnapshot,
   type SitePresence,
+  type SitePresencePlayer,
 } from "@/lib/game/site-presence-polling";
 
 export type { SitePresence } from "@/lib/game/site-presence-polling";
 const PresenceContext = createContext<SitePresence | null>(null);
+const ChatPlayersContext = createContext<readonly SitePresencePlayer[]>([]);
+
+export function SitePresenceChatPlayers({
+  players,
+  children,
+}: { players: readonly SitePresencePlayer[]; children: ReactNode }) {
+  return <ChatPlayersContext.Provider value={players}>{children}</ChatPlayersContext.Provider>;
+}
 
 export function SitePresenceProvider({ children }: { children: ReactNode }) {
   const [presence, setPresence] = useState<SitePresence | null>(null);
@@ -96,7 +106,9 @@ export function SitePresenceProvider({ children }: { children: ReactNode }) {
 }
 
 export function SitePresenceIndicator({ compact = false }: { compact?: boolean }) {
-  const presence = useContext(PresenceContext);
+  const sitePresence = useContext(PresenceContext);
+  const chatPlayers = useContext(ChatPlayersContext);
+  const presence = includeChatPlayers(sitePresence, chatPlayers);
   const { locale } = useLocale();
   const en = locale === "en";
   const id = useId();

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { claimSitePresenceRefresh, normalizeSitePresence, readSitePresenceSnapshot, releaseFailedSitePresenceRefresh, SITE_PRESENCE_REFRESH_MS, SITE_PRESENCE_SNAPSHOT_KEY, storeSitePresenceSnapshot } from "./site-presence-polling";
+import { claimSitePresenceRefresh, includeChatPlayers, normalizeSitePresence, readSitePresenceSnapshot, releaseFailedSitePresenceRefresh, SITE_PRESENCE_REFRESH_MS, SITE_PRESENCE_SNAPSHOT_KEY, storeSitePresenceSnapshot } from "./site-presence-polling";
 
 function memoryStorage() {
   const values = new Map<string, string>();
@@ -8,6 +8,22 @@ function memoryStorage() {
 const DATA = { total: 2, visitors: 1, players: [{ id: "player", name: "Player" }] };
 
 describe("browser-wide public presence polling", () => {
+  it("counts all four chat players and the visitor when the header cache only has two players", () => {
+    const gouille = { id: "gouille", name: "Gouille" };
+    const ujik = { id: "ujik", name: "Ujik" };
+    const self = { id: "self", name: "Zocoto" };
+    const giorgos = { id: "giorgos", name: "Giorgos Gopoulos" };
+    const cached = { total: 3, visitors: 1, players: [gouille, ujik] };
+    const chatPlayers = [self, giorgos, gouille, ujik];
+    expect(includeChatPlayers(cached, chatPlayers)).toEqual({
+      total: 5, visitors: 1, players: [giorgos, gouille, ujik, self],
+    });
+    expect(cached).toEqual({ total: 3, visitors: 1, players: [gouille, ujik] });
+    expect(includeChatPlayers(cached, [self, gouille])).toEqual({
+      total: 4, visitors: 1, players: [gouille, ujik, self],
+    });
+  });
+
   it("bounds a continuously visible browser to 30 calls/hour across repeated mounts and tabs", () => {
     const storage = memoryStorage();
     let calls = 0;

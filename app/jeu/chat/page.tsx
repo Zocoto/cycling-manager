@@ -52,35 +52,29 @@ export default async function GlobalChatPage({
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
-      <GameHeader
-        simulatorEmail={user.email}
-        displayName={headerData.displayName}
-        sponsor={headerData.teamSponsorVisual}
-        maxWidth="wide"
-        chatIsOpen
-        compactMobile
-      />
-
-      <section
-        className="mx-auto max-w-[1500px] px-0 py-0 sm:px-6 sm:py-4"
-        data-chat-shell="true"
-      >
-        <div data-chat-page="true">
-          <GlobalGameChat
-            identity={chat.identity}
-            gameStaffDirectorIds={chat.gameStaffDirectorIds}
-            initialOnlineDirectors={chat.onlineDirectors}
-            initialMessages={chat.messages}
-            initialHasMore={chat.hasMore}
-            initialCursor={chat.nextCursor}
-            initialLastReadAt={chat.lastReadAt}
-            initialDirectRecipientId={initialDirectRecipientId}
-            initialDirectUnreadCount={directUnreadCount}
-            translationEnabled={isChatTranslationConfigured()}
-            klipyAppKey={process.env.NEXT_PUBLIC_KLIPY_APP_KEY ?? ""}
+      <GlobalGameChat
+        header={
+          <GameHeader
+            simulatorEmail={user.email}
+            displayName={headerData.displayName}
+            sponsor={headerData.teamSponsorVisual}
+            maxWidth="wide"
+            chatIsOpen
+            compactMobile
           />
-        </div>
-      </section>
+        }
+        identity={chat.identity}
+        gameStaffDirectorIds={chat.gameStaffDirectorIds}
+        initialOnlineDirectors={chat.onlineDirectors}
+        initialMessages={chat.messages}
+        initialHasMore={chat.hasMore}
+        initialCursor={chat.nextCursor}
+        initialLastReadAt={chat.lastReadAt}
+        initialDirectRecipientId={initialDirectRecipientId}
+        initialDirectUnreadCount={directUnreadCount}
+        translationEnabled={isChatTranslationConfigured()}
+        klipyAppKey={process.env.NEXT_PUBLIC_KLIPY_APP_KEY ?? ""}
+      />
     </main>
   );
 }

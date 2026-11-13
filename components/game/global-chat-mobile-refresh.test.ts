@@ -14,8 +14,8 @@ const header = readFileSync(
 
 describe("global chat mobile refresh", () => {
   it("uses the chat route as a mobile app-like full-height surface", () => {
-    expect(page).toContain('data-chat-shell="true"');
-    expect(page).toContain('data-chat-page="true"');
+    expect(chat).toContain('data-chat-shell="true"');
+    expect(chat).toContain('data-chat-page="true"');
     expect(chat).toContain('data-chat-hub="true"');
     expect(chat).toContain("--game-mobile-navigation-clearance");
     expect(page).toContain("compactMobile");
