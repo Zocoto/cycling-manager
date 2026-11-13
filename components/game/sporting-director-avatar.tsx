@@ -16,6 +16,7 @@ import {
   SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
   SPORTING_DIRECTOR_AVATARS,
   getAvatarBackground,
+  getAvatarFlagCountryCode,
   getAvatarEyeColor,
   getAvatarHairColor,
   getAvatarOutfit,
@@ -59,6 +60,7 @@ export function SportingDirectorAvatar({
   const eyes = getAvatarEyeColor(avatar.eyeColor);
   const outfit = getAvatarOutfit(avatar.outfit);
   const background = getAvatarBackground(avatar.background);
+  const flagCode = getAvatarFlagCountryCode(avatar.background);
 
   return (
     <span
@@ -77,12 +79,22 @@ export function SportingDirectorAvatar({
       <span className="relative z-10 flex h-full w-full overflow-hidden rounded-full border-2 border-white/80 shadow-md">
         <svg aria-hidden="true" viewBox="0 0 120 120" className="h-full w-full">
         <circle cx="60" cy="60" r="60" fill={background.color} />
-        <path
-          d="M-8 89C19 64 33 70 53 50C75 28 90 31 128 7V-5H-8Z"
-          fill={background.accent}
-          opacity="0.28"
-        />
-        <circle cx="99" cy="28" r="20" fill="#FFFFFF" opacity="0.15" />
+        {flagCode ? (
+          <image
+            data-avatar-national-flag={flagCode}
+            href={`/images/flags/4x3/${flagCode}.svg`}
+            width="120"
+            height="120"
+            preserveAspectRatio="xMidYMid slice"
+          />
+        ) : <>
+          <path
+            d="M-8 89C19 64 33 70 53 50C75 28 90 31 128 7V-5H-8Z"
+            fill={background.accent}
+            opacity="0.28"
+          />
+          <circle cx="99" cy="28" r="20" fill="#FFFFFF" opacity="0.15" />
+        </>}
         <HalloweenAvatarBackground arts={halloweenArts} />
 
         <g data-avatar-hair-back={avatar.hairStyle}>

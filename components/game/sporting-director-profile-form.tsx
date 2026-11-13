@@ -32,6 +32,7 @@ type SportingDirectorProfileFormProps = {
   inveteratePlayerOutfitUnlocked?: boolean;
   nightAuctionSkinUnlocked?: boolean;
   elPresidenteOutfitUnlocked?: boolean;
+  nationalFlagCountryCode?: string | null;
   unlockedCareerOutfits?: string[];
 };
 
@@ -62,6 +63,7 @@ export function SportingDirectorProfileForm({
   inveteratePlayerOutfitUnlocked = false,
   nightAuctionSkinUnlocked = false,
   elPresidenteOutfitUnlocked = false,
+  nationalFlagCountryCode = null,
   unlockedCareerOutfits = [],
 }: SportingDirectorProfileFormProps) {
   const [state, formAction, pending] = useActionState(
@@ -354,6 +356,11 @@ export function SportingDirectorProfileForm({
                   Ce portrait apparaîtra sur votre profil public, la fiche de
                   votre équipe, dans le chat et les classements.
                 </p>
+                {nationalFlagCountryCode ? (
+                  <p className="mt-2 text-xs font-bold leading-5 text-[#176951]">
+                    Votre drapeau national est disponible dans Style → Fonds.
+                  </p>
+                ) : null}
               </div>
             </div>
 
@@ -760,6 +767,7 @@ export function SportingDirectorProfileForm({
               }
               nightAuctionSkinUnlocked={nightAuctionSkinUnlocked}
               elPresidenteOutfitUnlocked={elPresidenteOutfitUnlocked}
+              nationalFlagCountryCode={nationalFlagCountryCode}
               unlockedCareerOutfits={unlockedCareerOutfits}
             />
           </div>
