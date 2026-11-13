@@ -16,6 +16,7 @@ import Link from "@/components/ui/app-link";
 import { DAILY_REWARD_CYCLE_LENGTH } from "@/lib/game/daily-rewards";
 import { buildObjectivesReturnPath } from "@/lib/game/filtered-page-paths";
 import { getAchievementTrophyForObjective } from "@/lib/game/achievement-trophies";
+import { PATRIOT_OBJECTIVE_KEY } from "@/lib/game/patriot-achievement";
 import { getProspectiveAchievement } from "@/lib/game/prospective-achievements";
 import {
   filterGameObjectives,
@@ -432,6 +433,7 @@ function ObjectiveCard({
       : /^journey_(community_days|private_contacts)_/.test(objective.key) ? { href: "/jeu/chat", label: "Ouvrir le chat et les MP" }
       : groupLinks[objective.group];
   const trophyReward = getAchievementTrophyForObjective(objective.key);
+  const nationalFlagReward = objective.key === PATRIOT_OBJECTIVE_KEY;
   const achievement = getProspectiveAchievement(objective.key);
   // Les dates de mise en service sont internes au suivi des succès.
   const description = achievement
@@ -553,6 +555,9 @@ function ObjectiveCard({
           {outfitReward ? (
             <RewardChip icon="★" label="Tenue d’avatar exclusive" rare />
           ) : null}
+          {nationalFlagReward ? (
+            <RewardChip icon="⚑" label="Fond d’avatar · Drapeau national" rare />
+          ) : null}
           {objective.reward.itemName ? (
             <RewardChip
               icon={getRewardItemIcon(objective.reward.itemKind)}
@@ -571,9 +576,16 @@ function ObjectiveCard({
             <ObjectiveClaimButton />
           </form>
         ) : claimed ? (
-          <p className="inline-flex min-h-11 items-center rounded-xl bg-[#DDF3E7] px-4 py-2 text-xs font-black text-[#176951]">
-            ✓ Récompense récupérée le {formatDate(objective.claimedAt!)}
-          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="inline-flex min-h-11 items-center rounded-xl bg-[#DDF3E7] px-4 py-2 text-xs font-black text-[#176951]">
+              ✓ Récompense récupérée le {formatDate(objective.claimedAt!)}
+            </p>
+            {nationalFlagReward ? (
+              <Link href="/jeu/directeur-sportif#distinction-avatar" className="inline-flex min-h-11 items-center text-xs font-black text-[#176951] underline underline-offset-4">
+                Personnaliser mon avatar
+              </Link>
+            ) : null}
+          </div>
         ) : groupLink ? (
           <Link
             href={groupLink.href}

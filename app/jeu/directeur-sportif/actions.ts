@@ -513,6 +513,11 @@ export async function updateSportingDirectorProfile(
     });
 
   if (updateError) {
+    const avatarError = updateError.code === "PFP01"
+      ? "Récupérez la récompense du succès Le Patriote pour utiliser ce fond."
+      : updateError.code === "PFP02" ? "Choisissez le drapeau de votre nationalité." : null;
+    if (avatarError) return { status: "error", message: avatarError, fieldErrors: { avatarKey: [avatarError] } };
+
     console.error(
       "Échec de la mise à jour du Directeur Sportif :",
       {

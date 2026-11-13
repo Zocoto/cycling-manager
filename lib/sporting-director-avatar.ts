@@ -274,6 +274,15 @@ export const AVATAR_BACKGROUNDS = [
 ] as const;
 
 type OptionKey<T extends readonly { key: string }[]> = T[number]["key"];
+type NationalFlagAvatarBackground = `flag-${string}`;
+
+export function getNationalFlagAvatarBackground(countryCode: string | null | undefined): NationalFlagAvatarBackground | null {
+  return countryCode && /^[a-z]{2}$/i.test(countryCode) ? `flag-${countryCode.toLowerCase()}` : null;
+}
+
+export function getAvatarFlagCountryCode(background: string | undefined): string | null {
+  return /^flag-([a-z]{2})$/.exec(background ?? "")?.[1] ?? null;
+}
 
 export type LegacySportingDirectorAvatarKey =
   (typeof SPORTING_DIRECTOR_AVATARS)[number]["key"];
@@ -293,7 +302,7 @@ export type SportingDirectorAvatarConfig = {
   facialHair: OptionKey<typeof AVATAR_FACIAL_HAIR_STYLES>;
   glasses: OptionKey<typeof AVATAR_GLASSES_STYLES>;
   outfit: OptionKey<typeof AVATAR_OUTFITS>;
-  background: OptionKey<typeof AVATAR_BACKGROUNDS>;
+  background: OptionKey<typeof AVATAR_BACKGROUNDS> | NationalFlagAvatarBackground;
 };
 
 const CUSTOM_AVATAR_PREFIX = "director_custom_v1:";
@@ -396,7 +405,7 @@ export function decodeCustomSportingDirectorAvatar(
   for (const [index, field] of avatarConfigFields.entries()) {
     const part = parts[index];
 
-    if (!part || !optionSets[field].has(part)) {
+    if (!part || (!optionSets[field].has(part) && !(field === "background" && getAvatarFlagCountryCode(part)))) {
       return null;
     }
 

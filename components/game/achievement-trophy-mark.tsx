@@ -68,6 +68,18 @@ function TrophySymbol({
     return <JourneyTrophySymbol variant={variant as JourneyTrophyVisualVariant | "first-pedals"} palette={palette} />;
   }
 
+  if (variant === "national-pennant") {
+    return (
+      <g data-achievement-symbol="national-pennant">
+        <path d="M44 39h92v54c0 22-20 36-46 44-26-8-46-22-46-44Z" fill={palette.accent} stroke={palette.primary} strokeWidth="4" />
+        <path d="M65 107V54m2 3c15-12 26 11 45-1v31c-19 12-30-11-45 1" stroke={palette.secondary} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M69 65c15-9 25 11 40 3v12c-15 8-25-12-40-3Z" fill={palette.primary} />
+        <path d="M76 114h27m-21 9h15" stroke={palette.primary} strokeWidth="3" strokeLinecap="round" />
+        <circle cx="65" cy="52" r="4" fill={palette.primary} />
+      </g>
+    );
+  }
+
   if (variant === "collector-album") {
     return <g data-achievement-symbol="collector-album">
       <path d="M37 36q27-13 53 2 26-15 53-2v88q-25-13-53 0-27-13-53 0Z" fill={palette.accent} stroke={palette.primary} strokeWidth="4" strokeLinejoin="round" />

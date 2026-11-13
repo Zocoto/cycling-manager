@@ -26,6 +26,7 @@ import {
   encodeSportingDirectorAvatar,
   getAvailableAvatarCheekStyles,
   getAvailableAvatarGlassesStyles,
+  getNationalFlagAvatarBackground,
   resolveSportingDirectorAvatar,
   type SportingDirectorAvatarConfig,
 } from "@/lib/sporting-director-avatar";
@@ -55,6 +56,7 @@ type SportingDirectorAvatarEditorProps = {
   inveteratePlayerOutfitUnlocked?: boolean;
   nightAuctionSkinUnlocked?: boolean;
   elPresidenteOutfitUnlocked?: boolean;
+  nationalFlagCountryCode?: string | null;
   unlockedCareerOutfits?: string[];
 };
 
@@ -89,6 +91,7 @@ export function SportingDirectorAvatarEditor({
   inveteratePlayerOutfitUnlocked = false,
   nightAuctionSkinUnlocked = false,
   elPresidenteOutfitUnlocked = false,
+  nationalFlagCountryCode = null,
   unlockedCareerOutfits = [],
 }: SportingDirectorAvatarEditorProps) {
   const initialConfig = resolveSportingDirectorAvatar(avatarKey);
@@ -99,6 +102,7 @@ export function SportingDirectorAvatarEditor({
   >(hasAlphaTesterTrophy ? frameKey : null);
   const [activeTab, setActiveTab] = useState<EditorTab>("face");
   const [styleCategory, setStyleCategory] = useState<AvatarStyleCategory>("outfit");
+  const nationalFlagBackground = getNationalFlagAvatarBackground(nationalFlagCountryCode);
   const initialHalloweenItems = selectedHalloweenItems.filter(id => ownedHalloweenItems.includes(id));
   const [halloweenItems, setHalloweenItems] = useState(initialHalloweenItems);
   const curse = halloweenAvatarArts(avatarKey).find(art => art === "vampire" || art === "mummy");
@@ -425,7 +429,19 @@ export function SportingDirectorAvatarEditor({
                   disabledKeys={disabledOutfitKeys}
                   swatches
                 /> : null}
-                {styleCategory === "background" ? <AvatarChoiceGroup title="Fond du portrait" field="background" value={config.background} options={AVATAR_BACKGROUNDS} onSelect={updateField} swatches /> : null}
+                {styleCategory === "background" ? (
+                  <AvatarChoiceGroup
+                    title="Fond du portrait"
+                    field="background"
+                    value={config.background}
+                    options={nationalFlagBackground ? [
+                      ...AVATAR_BACKGROUNDS,
+                      { key: nationalFlagBackground, label: "Drapeau national", flagCountryCode: nationalFlagCountryCode?.toLowerCase() },
+                    ] : AVATAR_BACKGROUNDS}
+                    onSelect={updateField}
+                    swatches
+                  />
+                ) : null}
                 {styleCategory !== "glasses" ? <HalloweenAvatarChoices category={styleCategory} owned={ownedHalloweenItems}
                   selected={halloweenItems} baseKey={encodeSportingDirectorAvatar(config)} curse={curse}
                   onToggle={id => setHalloweenItems(current => toggleHalloweenAvatarItem(current, id))} /> : null}
@@ -461,6 +477,7 @@ type ChoiceOption = {
   label: string;
   color?: string;
   jacket?: string;
+  flagCountryCode?: string;
 };
 
 type AvatarChoiceGroupProps<K extends keyof SportingDirectorAvatarConfig> = {
@@ -540,6 +557,12 @@ function AvatarChoiceGroup<K extends keyof SportingDirectorAvatarConfig>({
                   size="small"
                   label={`Aperçu : ${option.label}`}
                   className="ring-1 ring-[#315B3E]/10"
+                />
+              ) : option.flagCountryCode ? (
+                <span
+                  aria-hidden="true"
+                  className="h-6 w-6 shrink-0 rounded-full border-2 border-white bg-cover bg-center shadow-[0_0_0_1px_rgba(49,91,62,0.22)]"
+                  style={{ backgroundImage: `url(/images/flags/4x3/${option.flagCountryCode}.svg)` }}
                 />
               ) : swatches && swatchColor ? (
                 <span

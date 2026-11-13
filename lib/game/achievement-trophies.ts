@@ -1,4 +1,5 @@
 import type { TrophyPalette } from "@/lib/game/trophy-gallery";
+import { PATRIOT_OBJECTIVE_KEY, PATRIOT_TROPHY_KEY } from "./patriot-achievement";
 import { PROSPECTIVE_ACHIEVEMENTS, PROSPECTIVE_ACHIEVEMENT_KEYS, type ProspectiveAchievementKey } from "./prospective-achievements";
 
 export type JourneyTrophyVisualVariant = `journey-${ProspectiveAchievementKey}`;
@@ -58,6 +59,7 @@ export type AchievementTrophyVisualVariant =
   | "switchback"
   | "poker-chips"
   | "midnight-auction"
+  | "national-pennant"
   | "collector-album";
 
 export const INVETERATE_PLAYER_TROPHY_KEY = "joueur_inveter";
@@ -67,6 +69,17 @@ export const NEWCOMER_JOURNEY_TROPHY_KEY = "premiers_tours_de_roue";
 
 export const ACHIEVEMENT_TROPHY_DEFINITIONS = {
   ...prospectiveTrophies,
+  [PATRIOT_TROPHY_KEY]: {
+    objectiveKey: PATRIOT_OBJECTIVE_KEY,
+    title: "Le Patriote",
+    competitionName: "Objectif maître · Diversité",
+    seasonName: "Carrière",
+    inscription: "35 coureurs · Une même nation",
+    description: "Avoir au moins 35 coureurs professionnels sous contrat de la nationalité de votre équipe.",
+    href: "/jeu/objectifs?onglet=objectifs&groupe=diversity",
+    visualVariant: "national-pennant" satisfies AchievementTrophyVisualVariant,
+    palette: journeyPalette("#E7AC58", "#FFF2D2", "#284B57"),
+  },
   cyclo_stickers_s4: {
     objectiveKey: null,
     title: "Mémoire du peloton",

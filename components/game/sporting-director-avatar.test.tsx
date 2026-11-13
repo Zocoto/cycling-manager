@@ -8,7 +8,9 @@ import {
   DEFAULT_SPORTING_DIRECTOR_AVATAR,
   EL_PRESIDENTE_AVATAR_OUTFIT_KEY,
   EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY,
+  decodeCustomSportingDirectorAvatar,
   encodeSportingDirectorAvatar,
+  getNationalFlagAvatarBackground,
   HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY,
   INVETERATE_PLAYER_AVATAR_OUTFIT_KEY,
   NIGHT_AUCTION_AVATAR_CHEEK_KEY,
@@ -17,6 +19,21 @@ import {
 } from "@/lib/sporting-director-avatar";
 
 describe("SportingDirectorAvatar", () => {
+  it("renders a saved national flag behind the existing portrait and accessories", () => {
+    const background = getNationalFlagAvatarBackground("WS");
+    expect(background).toBe("flag-ws");
+    expect(getNationalFlagAvatarBackground("../ws")).toBeNull();
+    const key = encodeSportingDirectorAvatar({ ...DEFAULT_SPORTING_DIRECTOR_AVATAR, background: background! });
+    expect(decodeCustomSportingDirectorAvatar(key)?.background).toBe("flag-ws");
+    expect(decodeCustomSportingDirectorAvatar(key.replace("flag-ws", "flag-zzz"))).toBeNull();
+
+    const html = renderToStaticMarkup(<SportingDirectorAvatar avatarKey={`${key}~halloween~cap`} frameKey="alpha_tester" size="chat" />);
+    expect(html).toContain('data-avatar-national-flag="ws" href="/images/flags/4x3/ws.svg"');
+    expect(html.indexOf('data-avatar-national-flag="ws"')).toBeLessThan(html.indexOf("data-avatar-hair-back"));
+    expect(html).toContain('data-avatar-frame="alpha_tester"');
+    expect(html).toContain('data-halloween-avatar="cap"');
+  });
+
   it("gives the dashboard a large responsive portrait without changing other avatar sizes", () => {
     const dashboard = renderToStaticMarkup(
       <SportingDirectorAvatar

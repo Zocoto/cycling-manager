@@ -25,6 +25,7 @@ import {
   NIGHT_AUCTION_TROPHY_KEY,
 } from "@/lib/game/achievement-trophies";
 import type { CountryOption } from "../../../components/game/country-select";
+import { PATRIOT_TROPHY_KEY } from "@/lib/game/patriot-achievement";
 import { SportingDirectorProfileForm } from "../../../components/game/sporting-director-profile-form";
 import { SportingDirectorReputation } from "../../../components/game/sporting-director-reputation";
 import { TeamJerseyPreview } from "../../../components/game/team-jersey-preview";
@@ -210,6 +211,7 @@ export default async function SportingDirectorProfilePage() {
             "journey_shopkeeper",
             "journey_mentor",
             "journey_homegrown",
+            PATRIOT_TROPHY_KEY,
             "virage_cache",
             AMBULANCIER_TROPHY_KEY,
             EMERGENCY_DOCTOR_TROPHY_KEY,
@@ -439,6 +441,7 @@ export default async function SportingDirectorProfilePage() {
                     }
                     nightAuctionSkinUnlocked={hasNightAuctionTrophy}
                     elPresidenteOutfitUnlocked={hasElPresidenteTrophy}
+                    nationalFlagCountryCode={careerTrophyKeys.has(PATRIOT_TROPHY_KEY) ? selectedCountry?.isoAlpha2 : null}
                     unlockedCareerOutfits={[
                       ...(careerTrophyKeys.has("journey_shopkeeper") ? ["career-shopkeeper"] : []),
                       ...(careerTrophyKeys.has("journey_mentor") ? ["career-mentor"] : []),
