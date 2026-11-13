@@ -74,6 +74,7 @@ describe("RaceRosterSelector", () => {
     expect(markup).toContain("MON 78 · VAL 76 · PLA 69");
     expect(markup).toContain("CLM 66 · PAV 63 · SPR 61 · BAR 73");
     expect(markup).toContain("Trier par");
+    expect(markup).toContain("Jours de course disputés (JDC)");
     expect(markup).toContain("Baroudeur (BAR)");
     expect(markup).toContain("Masquer les coureurs déjà engagés");
     expect(markup).toContain("+ Soleil");
@@ -209,6 +210,25 @@ describe("RaceRosterSelector", () => {
         selectedRiderIds: new Set([conflictingRider.riderId]),
       }).map((option) => option.riderId),
     ).toEqual([conflictingRider.riderId, rider.riderId]);
+  });
+
+  it("trie les JDC disputés sans confondre zéro, projections et données manquantes", () => {
+    const options: RaceRosterOption[] = [
+      { ...rider, riderId: "unknown", seasonRaceDays: undefined, projectedSeasonRaceDays: 2 },
+      { ...rider, riderId: "ten", seasonRaceDays: 10 },
+      { ...rider, riderId: "zero", seasonRaceDays: 0, projectedSeasonRaceDays: 20 },
+      { ...rider, riderId: "another-zero", seasonRaceDays: 0 },
+    ];
+    const sortedIds = (sortDirection: "ascending" | "descending") =>
+      sortAndFilterRaceRosterOptions({
+        riders: options,
+        sortKey: "seasonRaceDays",
+        sortDirection,
+        hideConflicting: false,
+      }).map(({ riderId }) => riderId);
+
+    expect(sortedIds("ascending")).toEqual(["zero", "another-zero", "ten", "unknown"]);
+    expect(sortedIds("descending")).toEqual(["ten", "zero", "another-zero", "unknown"]);
   });
 
   it("borne l’affichage et distingue visuellement les niveaux de forme", () => {

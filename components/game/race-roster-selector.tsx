@@ -52,6 +52,7 @@ type RaceRosterSelectorProps = {
 export type RaceRosterSortKey =
   | "roster"
   | "form"
+  | "seasonRaceDays"
   | "mountain"
   | "hills"
   | "flat"
@@ -68,6 +69,7 @@ const RACE_ROSTER_SORT_OPTIONS: ReadonlyArray<{
 }> = [
   { value: "roster", label: "Ordre de l’effectif" },
   { value: "form", label: "Forme" },
+  { value: "seasonRaceDays", label: "Jours de course disputés (JDC)" },
   { value: "mountain", label: "Montagne (MON)" },
   { value: "hills", label: "Vallons (VAL)" },
   { value: "flat", label: "Plaine (PLA)" },
@@ -79,9 +81,10 @@ const RACE_ROSTER_SORT_OPTIONS: ReadonlyArray<{
 
 const RACE_ROSTER_SORT_ACCESSORS: Record<
   Exclude<RaceRosterSortKey, "roster">,
-  (rider: RaceRosterOption) => number
+  (rider: RaceRosterOption) => number | undefined
 > = {
   form: (rider) => rider.form,
+  seasonRaceDays: (rider) => rider.seasonRaceDays,
   mountain: (rider) => rider.mountain,
   hills: (rider) => rider.hills,
   flat: (rider) => rider.flat,
@@ -122,11 +125,12 @@ export function sortAndFilterRaceRosterOptions({
 
   return visibleRiders
     .sort((left, right) => {
-      const ratingDifference =
-        (getSortValue(left.rider) - getSortValue(right.rider)) *
-        directionMultiplier;
-
-      return ratingDifference || left.originalIndex - right.originalIndex;
+      const leftValue = getSortValue(left.rider);
+      const rightValue = getSortValue(right.rider);
+      if (leftValue == null && rightValue == null) return left.originalIndex - right.originalIndex;
+      if (leftValue == null) return 1;
+      if (rightValue == null) return -1;
+      return (leftValue - rightValue) * directionMultiplier || left.originalIndex - right.originalIndex;
     })
     .map(({ rider }) => rider);
 }
@@ -171,6 +175,8 @@ export function RaceRosterSelector({
   const [sortDirection, setSortDirection] =
     useState<RaceRosterSortDirection>("descending");
   const [hideConflicting, setHideConflicting] = useState(false);
+  const sortingByRaceDays = sortKey === "seasonRaceDays";
+  const ascending = sortDirection === "ascending";
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const conflictingRiderCount = useMemo(
     () =>
@@ -266,9 +272,12 @@ export function RaceRosterSelector({
           <select
             id="race-roster-sort"
             value={sortKey}
-            onChange={(event) =>
-              setSortKey(event.target.value as RaceRosterSortKey)
-            }
+            onChange={(event) => {
+              const nextKey = event.target.value as RaceRosterSortKey;
+              setSortKey(nextKey);
+              if (nextKey === "seasonRaceDays") setSortDirection("ascending");
+              else if (sortingByRaceDays) setSortDirection("descending");
+            }}
             className="min-w-0 flex-1 bg-transparent py-2 text-xs font-bold text-white outline-none"
           >
             {RACE_ROSTER_SORT_OPTIONS.map((option) => (
@@ -292,15 +301,19 @@ export function RaceRosterSelector({
             )
           }
           aria-label={
-            sortDirection === "descending"
-              ? "Afficher les notes les plus faibles d’abord"
-              : "Afficher les meilleures notes d’abord"
+            sortingByRaceDays
+              ? ascending
+                ? "Afficher les coureurs ayant le plus couru d’abord"
+                : "Afficher les coureurs ayant le moins couru d’abord"
+              : ascending
+                ? "Afficher les meilleures notes d’abord"
+                : "Afficher les notes les plus faibles d’abord"
           }
           className="min-h-10 rounded-lg border border-white/10 bg-white/5 px-3 text-[11px] font-black text-[#D6DFD2] transition hover:border-white/25 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {sortDirection === "descending"
-            ? "↓ Meilleurs d’abord"
-            : "↑ Plus faibles d’abord"}
+          {sortingByRaceDays
+            ? ascending ? "↑ Moins de JDC d’abord" : "↓ Plus de JDC d’abord"
+            : ascending ? "↑ Plus faibles d’abord" : "↓ Meilleurs d’abord"}
         </button>
 
         <label
@@ -411,6 +424,15 @@ export function RaceRosterSelector({
                       <span className="rounded-full border border-[#76A7E5]/40 bg-[#173A61] px-2 py-0.5 text-[10px] font-black text-[#B8D8FF]">
                         Moral {Math.round(rider.morale)}/100
                       </span>
+                      <SeasonRaceDaysBadge
+                        seasonRaceDays={
+                          sortingByRaceDays && rider.projectedSeasonRaceDays != null
+                            ? rider.seasonRaceDays
+                            : undefined
+                        }
+                        warnOnOverload={false}
+                        tone="dark"
+                      />
                       <SeasonRaceDaysBadge
                         seasonRaceDays={rider.seasonRaceDays}
                         projectedSeasonRaceDays={rider.projectedSeasonRaceDays}
