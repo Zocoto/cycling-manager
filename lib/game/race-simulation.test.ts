@@ -4045,6 +4045,67 @@ describe("simulateRaceStage", () => {
     ).toBe(true);
   });
 
+  it.each([
+    { seed: 9, winner: "climber", soloAttack: false },
+    { seed: 147, winner: "attacker", soloAttack: true },
+  ])("checks whether a weaker climber can sustain a late attack at the summit ($seed)", ({
+    seed, winner, soloAttack,
+  }) => {
+    const input = createDemoSimulationInput("haute-montagne", 1);
+    const segments = input.segments.map((segment, index, all): RaceStageSegment => {
+      const isClimb = index >= all.length - 4;
+      return {
+        ...segment,
+        terrain: isClimb ? "climb" : "flat",
+        averageGradientPct: isClimb ? 8 : 0,
+        surface: "asphalt",
+        prime: index === all.length - 1
+          ? { type: "mountain", category: "HC", pointsScale: [20, 15, 12, 10, 8, 6, 4, 2] }
+          : null,
+      };
+    });
+    const rider = (id: string, mountain: number, acceleration: number): RiderSimulationInput => ({
+      ...input.riders[0],
+      id,
+      name: id,
+      teamId: "team-" + id,
+      teamName: id,
+      age: 25,
+      form: 78,
+      role: "leader",
+      specialAbilities: [],
+      ratings: {
+        flat: 62, mountain, hills: 70, cobbles: 60, downhill: 64, sprint: 60,
+        acceleration, timeTrial: 66, prologue: 65, endurance: 72, resistance: 74,
+        recovery: 68, breakaway: 56,
+      },
+    });
+    const simulation = simulateRaceStage({
+      ...input,
+      seed,
+      segments,
+      riders: [
+        rider("attacker", 71, 90),
+        rider("climber", 80, 65),
+        rider("rival1", 69, 64),
+        rider("rival2", 68, 65),
+        rider("rival3", 65, 64),
+      ],
+    });
+
+    expect(simulation.timeline.some(snapshot => snapshot.commentary.some(text =>
+      text.startsWith("attacker, favori"),
+    ))).toBe(true);
+    expect(simulation.primes.at(-1)?.classification[0]?.riderId).toBe(winner);
+    expect(simulation.results[0]?.riderId).toBe(winner);
+    expect(simulation.timeline.at(-1)?.commentary.some(text =>
+      text.startsWith("attacker prolonge"),
+    )).toBe(soloAttack);
+    if (soloAttack) {
+      expect(simulation.results[1]?.gapToWinnerSeconds).toBeGreaterThan(0);
+    }
+  });
+
   it("laisse certaines échappées aller au bout sans rendre ce résultat systématique", () => {
     const outcomes = Array.from({ length: 100 }, (_, index) =>
       simulateRaceStage(

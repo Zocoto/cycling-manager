@@ -39,7 +39,9 @@ const JUNCTION = /fusionnent|recoll(?:e|ent)|rejoin(?:t|nent)(?: la tête| le gr
 const CAUGHT = /\b(?:est|sont) repris\b|s[’']intègr(?:e|ent) au groupe retardé qui vient de les reprendre|ne (?:peut|peuvent) pas suivre le regroupement/iu;
 const GROUP_CAUGHT = /l[’']échappée est reprise/iu;
 const PLANNED_ATTACK = /déclench(?:e|ent) l[’']attaque préparée/iu;
-const ATTACK = /place une attaque|attaque dans le final|pass(?:e|ent) à l[’']attaque|contre[- ]attaqu|part seul en chasse-patate|tenter de rejoindre la tête|accélération|prolonge son attaque|offensive décisive/iu;
+const ATTACK = /place une attaque|attaque dans le final|pass(?:e|ent) à l[’']attaque|contre[- ]attaqu|part seul en chasse-patate|tenter de rejoindre la tête|accélération|offensive décisive/iu;
+const FINISH_ATTACK = /prolonge son attaque jusqu[’']à la ligne/iu;
+const FINISH_EFFORT = /impose son rythme dans la longue ascension finale|déclenche la bataille des leaders dans la dernière ascension|accélère dans les derniers pavés vallonnés|profite de l[’']usure des secteurs pavés|se place au bon moment dans le final pavé roulant|place une accélération tranchante dans le final vallonné/iu;
 const TEMPO = /impose son rythme/iu;
 const SELECTION = /lâche(?:nt)?\b|décroche(?:nt)?\b|ne tient pas|sont distancés|est distancé|cassure|perd(?:ent)? le contact/iu;
 const CHASE = /organisent la poursuite|prend(?:nent)? les relais|relancent la poursuite/iu;
@@ -51,6 +53,8 @@ export function buildRaceCourseJournal({ simulation }: { simulation: StageSimula
   const findRiderIds = createRiderMentionFinder(simulation.resolvedRiders);
   const finalSnapshot = simulation.timeline.at(-1);
   const totalDistanceKm = finalSnapshot?.completedDistanceKm ?? 0;
+  const winner = simulation.results.find((result) => result.status === "finished" && result.rank === 1);
+  const runnerUp = simulation.results.find((result) => result.status === "finished" && result.rank === 2);
   const candidates: JournalCandidate[] = [];
   const push = (entry: JournalEvent) => {
     const sequence = candidates.length;
@@ -88,8 +92,29 @@ export function buildRaceCourseJournal({ simulation }: { simulation: StageSimula
     const previous = simulation.timeline[index - 1];
     const distanceKm = snapshot.completedDistanceKm;
     const segmentNumber = snapshot.segmentNumber;
+    const isFinish = snapshot === finalSnapshot;
     const recordedCatches = new Set<string>();
     let recordedBreakawayCatch: string | undefined;
+    const prime = previous?.segmentNumber !== segmentNumber ? primesBySegment.get(segmentNumber) : undefined;
+    const primeWinner = prime?.classification.find((rider) => rider.rank === 1);
+    let primeAdded = false;
+
+    function addPrime() {
+      if (primeAdded || !prime || !primeWinner) return;
+      primeAdded = true;
+      const mountain = prime.prime.type === "mountain";
+      const lastMountain = mountain && segmentNumber === lastMountainSegment;
+      const riderName = riderById.get(primeWinner.riderId)?.name ?? primeWinner.riderId;
+      const points = `${primeWinner.points} point${primeWinner.points === 1 ? "" : "s"}`;
+      const category = mountain && prime.prime.category ? ` (catégorie ${prime.prime.category})` : "";
+      const location = isFinish ? " sur le dernier tronçon" : "";
+      const prize = mountain ? "le prix du GPM" : "le sprint intermédiaire";
+      push({ kind: "prime", distanceKm, segmentNumber,
+        title: lastMountain ? "Dernier GPM" : mountain ? "Passage au GPM" : "Sprint intermédiaire",
+        detail: `${riderName} remporte ${prize}${category}${location} et marque ${points}.`,
+        riderIds: [primeWinner.riderId], priority: lastMountain ? 99 : 89,
+        ...(isFinish ? { distanceIsSegmentEnd: true } : {}) });
+    }
 
     for (const incident of snapshot.incidents ?? []) {
       const riderNames = formatRiderNames(incident.riderIds, riderById, 5);
@@ -108,10 +133,22 @@ export function buildRaceCourseJournal({ simulation }: { simulation: StageSimula
         continue;
       }
       if (PRIME_COMMENTARY.test(message)) {
-        if (!primesBySegment.has(segmentNumber)) {
+        if (primeWinner) {
+          addPrime();
+        } else if (!primesBySegment.has(segmentNumber)) {
           push({ kind: "prime", distanceKm, segmentNumber, title: "Prime intermédiaire",
             detail: polishCommentary(message), riderIds: findRiderIds(message), priority: 89,
-            ...(segmentNumber === finalSnapshot?.segmentNumber ? { distanceIsSegmentEnd: true } : {}) });
+            ...(isFinish ? { distanceIsSegmentEnd: true } : {}) });
+        }
+        continue;
+      }
+      // Older locks can lack the prime marker. Finish scoring runs after the segment's prime.
+      const finishAttack = isFinish && FINISH_ATTACK.test(message);
+      if (isFinish && (finishAttack || FINISH_EFFORT.test(message))) addPrime();
+      if (finishAttack) {
+        if (winner && runnerUp && runnerUp.gapToWinnerSeconds >= 1 && findRiderIds(message).includes(winner.riderId)) {
+          const result = formatDecisiveAttack(winner, runnerUp, prime, primeWinner, riderById);
+          push({ kind: "attack", distanceKm, segmentNumber, title: "Offensive", ...result, priority: 98 });
         }
         continue;
       }
@@ -144,7 +181,7 @@ export function buildRaceCourseJournal({ simulation }: { simulation: StageSimula
       }
     }
 
-    const reprises = previous && snapshot !== finalSnapshot
+    const reprises = previous && !isFinish
       ? getReprises(previous, snapshot, recordedCatches, riderById)
       : [];
     for (const reprise of reprises) push(reprise);
@@ -153,23 +190,7 @@ export function buildRaceCourseJournal({ simulation }: { simulation: StageSimula
         detail: recordedBreakawayCatch, priority: 86 });
     }
 
-    const prime = primesBySegment.get(segmentNumber);
-    const primeWinner = prime?.classification.find((rider) => rider.rank === 1);
-    if (prime && primeWinner && previous?.segmentNumber !== segmentNumber) {
-      const mountain = prime.prime.type === "mountain";
-      const lastMountain = mountain && segmentNumber === lastMountainSegment;
-      const onFinishSegment = segmentNumber === finalSnapshot?.segmentNumber;
-      const riderName = riderById.get(primeWinner.riderId)?.name ?? primeWinner.riderId;
-      const points = `${primeWinner.points} point${primeWinner.points === 1 ? "" : "s"}`;
-      const category = mountain && prime.prime.category ? ` (catégorie ${prime.prime.category})` : "";
-      const location = onFinishSegment ? " sur le dernier tronçon" : "";
-      const prize = mountain ? "le prix du GPM" : "le sprint intermédiaire";
-      push({ kind: "prime", distanceKm, segmentNumber,
-        title: lastMountain ? "Dernier GPM" : mountain ? "Passage au GPM" : "Sprint intermédiaire",
-        detail: `${riderName} remporte ${prize}${category}${location} et marque ${points}.`,
-        riderIds: [primeWinner.riderId], priority: lastMountain ? 99 : 89,
-        ...(onFinishSegment ? { distanceIsSegmentEnd: true } : {}) });
-    }
+    addPrime();
   }
 
   if (finalSnapshot && (finalSnapshot.groups ?? []).length > 1 && finalSnapshot.groups[0].type !== "time_trial") {
@@ -182,8 +203,6 @@ export function buildRaceCourseJournal({ simulation }: { simulation: StageSimula
       riderIds: leadingGroup.riderIds, priority: 79 });
   }
 
-  const winner = simulation.results.find((result) => result.status === "finished" && result.rank === 1);
-  const runnerUp = simulation.results.find((result) => result.status === "finished" && result.rank === 2);
   if (winner) {
     push({ kind: "finish", distanceKm: totalDistanceKm, title: "Victoire",
       detail: formatVictory(winner, runnerUp, riderById),
@@ -325,6 +344,26 @@ function getIncidentDetail(type: RaceIncidentType, riderNames: string) {
 }
 
 type RiderResult = StageSimulationResult["results"][number];
+type PrimeResult = StageSimulationResult["primes"][number];
+
+function formatDecisiveAttack(winner: RiderResult, runnerUp: RiderResult, prime: PrimeResult | undefined,
+  primeWinner: PrimeResult["classification"][number] | undefined, riderById: RiderById) {
+  const winnerName = riderById.get(winner.riderId)?.name ?? winner.riderId;
+  const runnerUpName = riderById.get(runnerUp.riderId)?.name ?? runnerUp.riderId;
+  const gap = formatGap(runnerUp.gapToWinnerSeconds);
+  const riderIds = [winner.riderId, runnerUp.riderId];
+  const winnerAtPrime = prime?.classification.find((entry) => entry.riderId === winner.riderId);
+  if (prime?.prime.type === "mountain" && primeWinner && winnerAtPrime && winnerAtPrime.rank > 1) {
+    const primeWinnerName = riderById.get(primeWinner.riderId)?.name ?? primeWinner.riderId;
+    return {
+      detail: primeWinner.riderId === runnerUp.riderId
+        ? `Classé ${winnerAtPrime.rank}e au GPM derrière ${primeWinnerName}, ${winnerName} termine ${gap} devant lui.`
+        : `${winnerName} passe au GPM derrière ${primeWinnerName} et termine l’étape avec ${gap} d’avance sur ${runnerUpName}.`,
+      riderIds: [...new Set([...riderIds, primeWinner.riderId])],
+    };
+  }
+  return { detail: `${winnerName} conclut son attaque en solitaire et franchit la ligne avec ${gap} d’avance sur ${runnerUpName}.`, riderIds };
+}
 
 function formatVictory(winner: RiderResult, runnerUp: RiderResult | undefined, riderById: RiderById) {
   const winnerRider = riderById.get(winner.riderId);

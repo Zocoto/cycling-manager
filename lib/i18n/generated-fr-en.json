@@ -1,4 +1,11 @@
 {
+  "Classé {{0}}e au GPM derrière {{1}}, {{2}} termine {{3}} devant lui.": "At the mountain prime, {{2}} ranked {{0}} behind {{1}} and finished {{3}} ahead of him.",
+  "e au GPM derrière": "at the mountain prime behind",
+  "{{0}} conclut son attaque en solitaire et franchit la ligne avec {{1}} d’avance sur {{2}}.": "{{0}} completes the solo attack and crosses the line {{1}} ahead of {{2}}.",
+  "{{0}} passe au GPM derrière {{1}} et termine l’étape avec {{2}} d’avance sur {{3}}.": "{{0}} crosses the mountain prime behind {{1}} and finishes the stage {{2}} ahead of {{3}}.",
+  "conclut son attaque en solitaire et franchit la ligne avec": "completes the solo attack and crosses the line",
+  "et termine l’étape avec": "and finishes the stage",
+  "passe au GPM derrière": "crosses the mountain prime behind",
   "absente pour le champion": "missing for champion",
   "dans ce dossier.": "in that folder.",
   "Décompresse le ZIP dans un dossier portant le même nom que l’archive, puis place-le dans": "Extract the ZIP into a folder with the same name as the archive, then move it into",

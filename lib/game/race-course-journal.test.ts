@@ -93,6 +93,46 @@ describe("buildRaceCourseJournal", () => {
     expect(journal.some((entry) => entry.caughtRiderIds?.includes(gpmWinner.id))).toBe(false);
   });
 
+  it.each([true, false])("replace le GPM avant la séparation finale même sans marqueur historique (%s)", (hasMarker) => {
+    const simulation = simulateRaceStage(createDemoSimulationInput("collines-ardennes", 7));
+    const [attacker, climber, other] = simulation.resolvedRiders;
+    simulation.timeline = [
+      snapshot(18, 180, [group("peloton", 0, attacker.id, climber.id, other.id)], [
+        `${attacker.name}, favori n°5, refuse d’attendre et place une attaque dans le final.`,
+      ]),
+      snapshot(19, 184, [group("peloton", 0, attacker.id), group("dropped", 7, climber.id)], [
+        ...(hasMarker ? [`${climber.name} passe en tête du GPM.`] : []),
+        `${climber.name} impose son rythme dans la longue ascension finale ; les purs grimpeurs prennent progressivement le dessus.`,
+        `${attacker.name} prolonge son attaque jusqu’à la ligne et conserve 9 s sur ses premiers poursuivants.`,
+      ]),
+    ];
+    simulation.primes = [{
+      segmentNumber: 19, prime: { type: "mountain", category: "HC", pointsScale: [20, 15, 12] },
+      classification: [
+        { riderId: climber.id, rank: 1, points: 20 },
+        { riderId: other.id, rank: 2, points: 15 },
+        { riderId: attacker.id, rank: 3, points: 12 },
+      ],
+    }];
+    simulation.results = [
+      { riderId: attacker.id, rank: 1, status: "finished", elapsedTimeSeconds: 8000, gapToWinnerSeconds: 0,
+        energyAfter: 10, injury: null, abandonment: null },
+      { riderId: climber.id, rank: 2, status: "finished", elapsedTimeSeconds: 8007, gapToWinnerSeconds: 7,
+        energyAfter: 10, injury: null, abandonment: null },
+    ];
+
+    const journal = buildRaceCourseJournal({ simulation });
+    expect(journal.slice(-6).map((entry) => entry.title)).toEqual([
+      "Offensive", "Dernier GPM", "Tempo", "Offensive", "Sélection à l’arrivée", "Victoire",
+    ]);
+    expect(journal.at(-3)).toMatchObject({
+      kind: "attack",
+      detail: `Classé 3e au GPM derrière ${climber.name}, ${attacker.name} termine 7 s devant lui.`,
+      riderIds: [attacker.id, climber.id],
+    });
+    expect(journal.some((entry) => entry.detail.includes("conserve 9 s"))).toBe(false);
+  });
+
   it("distingue le tempo d’une attaque et un dépassement d’une jonction", () => {
     const simulation = simulateRaceStage(createDemoSimulationInput("collines-ardennes", 7));
     const [attacker, pursuer] = simulation.resolvedRiders;

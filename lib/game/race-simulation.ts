@@ -3910,23 +3910,28 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     finalCommentary,
     input.teamStrategies,
   );
+  const finalRoadGroups = timeline.at(-1)?.groups ?? [];
+  const terminalPrime = primes.at(-1);
   applySuccessfulFinalClimbAttackGap({
     states,
     finishScores,
     segments: input.segments,
     profileType: input.profileType,
     finishMode: roadFinishMode,
+    finalRoadGroups,
+    terminalPrime: terminalPrime?.segmentNumber === input.segments.at(-1)?.segmentNumber
+      ? terminalPrime
+      : undefined,
     commentary: finalCommentary,
   });
   const finalEffortGapSecondsByRiderId = buildNonMassFinishEffortGaps({
     states,
     finishScores,
-    groups: timeline.at(-1)?.groups ?? [],
+    groups: finalRoadGroups,
     segments: input.segments,
     profileType: input.profileType,
     finishMode: roadFinishMode,
   });
-  const finalRoadGroups = timeline.at(-1)?.groups ?? [];
   const fixedRoadGroupFinishTimes = buildPreservedRoadGroupFinishTimes({
     groups: finalRoadGroups,
     elapsedTimeByRiderId: new Map(
@@ -9708,7 +9713,7 @@ function getRoadFinishScores(
           (state.tacticalNoiseMultiplier ?? 1) +
         state.raceDayExecutionBonus *
           (compactSprintFinish ? 0.7 : profileType === "cobbles" ? 1.15 : 1) +
-        (compactSprintFinish ? 0 : state.decisiveAttackBonus) -
+        (compactSprintFinish || longSummitFinishFactor > 0 ? 0 : state.decisiveAttackBonus) -
         state.injuryPerformancePenalty +
         (state.tacticalFinishBonus ?? 0) -
         Math.min(6, (state.lateRecoveryEffortSeconds ?? 0) * 0.18) -
@@ -10225,6 +10230,8 @@ function applySuccessfulFinalClimbAttackGap({
   segments,
   profileType,
   finishMode,
+  finalRoadGroups,
+  terminalPrime,
   commentary,
 }: {
   states: Map<string, RiderState>;
@@ -10232,6 +10239,8 @@ function applySuccessfulFinalClimbAttackGap({
   segments: RaceStageSegment[];
   profileType: RaceProfileType;
   finishMode: RoadFinishMode;
+  finalRoadGroups: readonly RaceGroupSnapshot[];
+  terminalPrime: RacePrimeResult | undefined;
   commentary: string[];
 }) {
   const finalSegment = segments.at(-1);
@@ -10275,13 +10284,18 @@ function applySuccessfulFinalClimbAttackGap({
     0.2,
     1,
   );
-  const catchTolerance =
-    0.8 + attacker.decisiveAttackBonus * 0.38 + finalClimbDifficulty * 0.9;
+  const longSummitFinishFactor = getLongSummitFinishFactor(segments);
+  // On a long summit finish the score measures how much strength the rider
+  // has left. The attack can earn time against a comparable climber, but
+  // cannot also make the rider look stronger when checking if it will stick.
+  const catchTolerance = longSummitFinishFactor > 0
+    ? 1.6 - longSummitFinishFactor * 0.6
+    : 0.8 + attacker.decisiveAttackBonus * 0.38 + finalClimbDifficulty * 0.9;
   const scoreMargin = attackerScore - bestChaserScore;
   if (scoreMargin < -catchTolerance) return;
 
   const maximumGapSeconds = profileType === "mountain" ? 42 : 26;
-  const realizedGapSeconds = Math.round(
+  let realizedGapSeconds = Math.round(
     clamp(
       (attacker.decisiveAttackGapPotentialSeconds ?? 4) *
         (0.55 + finalClimbDifficulty * 0.35) +
@@ -10290,6 +10304,34 @@ function applySuccessfulFinalClimbAttackGap({
       maximumGapSeconds,
     ),
   );
+  if (longSummitFinishFactor > 0) {
+    const attackerGroupIndex = finalRoadGroups.findIndex(group => group.riderIds.includes(attacker.rider.id));
+    if (attackerGroupIndex === -1) return;
+    const attackerGroup = finalRoadGroups[attackerGroupIndex];
+    // A GPM at the end of the final sector has no simulated road after it.
+    // The finish shortcut cannot make an attacker leapfrog a rider from the
+    // same group who had already crossed that checkpoint first.
+    const firstInGroupAtPrime = terminalPrime?.prime.type === "mountain"
+      ? terminalPrime.classification.find(row => attackerGroup.riderIds.includes(row.riderId))
+      : undefined;
+    if (firstInGroupAtPrime && firstInGroupAtPrime.riderId !== attacker.rider.id) return;
+    // A finish adjustment only separates this rider from their own group.
+    // An escape still ahead at the end of the last sector keeps its place.
+    for (const [index, group] of finalRoadGroups.entries()) {
+      const ahead = group.gapToLeaderSeconds - attackerGroup.gapToLeaderSeconds ||
+        index - attackerGroupIndex;
+      if (ahead >= 0) continue;
+      for (const riderId of group.riderIds) {
+        const rider = states.get(riderId);
+        if (!rider) continue;
+        realizedGapSeconds = Math.min(
+          realizedGapSeconds,
+          Math.floor(attacker.elapsedTimeSeconds - rider.elapsedTimeSeconds) - 1,
+        );
+      }
+    }
+    if (realizedGapSeconds < 4) return;
+  }
   attacker.elapsedTimeSeconds = Math.max(
     0,
     attacker.elapsedTimeSeconds - realizedGapSeconds,

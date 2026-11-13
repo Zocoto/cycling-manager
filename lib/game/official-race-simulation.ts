@@ -102,7 +102,7 @@ export function buildOfficialStageRaceStandings(
 }
 
 export const OFFICIAL_RACE_ENGINE_VERSION =
-  "2026.11-road-attack-and-catch-v59";
+  "2026.11-summit-attack-sustainability-v60";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;
