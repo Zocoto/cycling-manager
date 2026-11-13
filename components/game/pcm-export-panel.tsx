@@ -112,7 +112,7 @@ export function PcmExportPanel({ seasonFinale = false }: { seasonFinale?: boolea
 
           <div className="mt-6 rounded-2xl border border-[#E1C66B]/45 bg-[#FFF8DF] px-4 py-3 text-sm font-semibold leading-6 text-[#6C5713]">
             Les bonus de forme, d’équipement et de préparation ne sont pas inclus.
-            Les maillots et autres assets graphiques restent à installer séparément.
+            Pour les maillots, mini-maillots et drapeaux, installez les graphismes du Workshop avec l’outil fourni dans le ZIP.
           </div>
 
           {error ? (
@@ -135,7 +135,7 @@ export function PcmExportPanel({ seasonFinale = false }: { seasonFinale?: boolea
               : "Générer et télécharger la base PCM26"}
           </button>
           <p className="mt-3 text-xs font-semibold leading-5 text-[#6A817A]">
-            La base est relue, contrôlée puis emballée avec tous les fichiers du mod.
+            Le ZIP contient les deux fichiers de base, l’installateur des graphismes et le rapport de compatibilité.
             Compter quelques secondes selon la charge du serveur.
           </p>
 
@@ -144,12 +144,11 @@ export function PcmExportPanel({ seasonFinale = false }: { seasonFinale?: boolea
               Où placer le fichier ?
             </summary>
             <p className="mt-3 font-semibold leading-6">
-              Décompresse l’archive, puis copie directement le dossier extrait
-              <code> Cyclostratege-PCM26-Sx</code> dans
+              Décompresse le ZIP dans un dossier portant le même nom que l’archive, puis place-le dans
               <code> %APPDATA%\Pro Cycling Manager 2026\Mod\</code>. Les fichiers
               <code> OfficialRelease.cdb</code> et <code> OfficialLocal.cdb</code>
               doivent être immédiatement dans ce dossier, sans sous-dossier
-              supplémentaire.
+              supplémentaire. Lance ensuite <code>Installer-graphismes.ps1</code> dans ce dossier.
             </p>
           </details>
         </div>

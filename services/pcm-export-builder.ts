@@ -9,9 +9,12 @@ import initSqlJs, { type Database, type SqlJsStatic } from "sql.js";
 import { configurePcmNationalities, getPcmChampionBits } from "@/services/pcm-export-nationalities";
 
 import { createUniqueTeamCodes } from "@/lib/game/pcm-export/identifiers";
+import { applyExistingPcmAssetCodes } from "@/lib/game/pcm-export/gala-asset-codes";
+import { describePcmGraphics, WORKSHOP_TEAM_ASSET_CODES } from "@/lib/game/pcm-export/graphics-coverage";
 import { withoutEmptyPcmTeams } from "@/lib/game/pcm-export/rosters";
 import { configurePcmSeasonFinaleGalaRules,configurePcmSeasonFourGalaRules } from "@/lib/game/pcm-export/gala-rules";
 import { convertRiderRatings } from "@/lib/game/pcm-export/ratings";
+import { PCM_SPECTATOR_ROSTER_IDS, PCM_SPECTATOR_TEAM_ID } from "@/lib/game/pcm-gala-startlists";
 import type {
   PcmExportResult,
   PcmExportSnapshot,
@@ -47,10 +50,8 @@ const RATING_COLUMNS = [
   "charac_i_prologue",
 ] as const;
 
-const SPECTATOR_RIDER_COUNT = 10;
-const SPECTATOR_RIDER_ID_START = 9001;
+const SPECTATOR_RIDER_COUNT = PCM_SPECTATOR_ROSTER_IDS.length;
 const SPECTATOR_PCM_RATING = 65;
-const SPECTATOR_TEAM_ID = 243;
 
 type SqlValue = string | number | Uint8Array | null;
 type SqlRow = Record<string, SqlValue>;
@@ -62,6 +63,7 @@ let localTemplatePromise: Promise<Uint8Array> | null = null;
 export async function buildPcmDatabase(
   snapshot: PcmExportSnapshot,
   templateOverride?: Uint8Array,
+  { preserveGalaSchelde = false } = {},
 ): Promise<PcmExportResult> {
   if (snapshot.ratingPolicy.bonusesIncluded !== false) {
     throw new Error("L'export PCM doit utiliser exclusivement les notes natives.");
@@ -85,7 +87,7 @@ export async function buildPcmDatabase(
       throw new Error("Le fichier local officiel PCM26 a été modifié : export interrompu avant génération.");
     }
     local = cdbToSql(localTemplate, SQL, { preciseTypes: true });
-    return buildDatabaseFromSnapshot(db, local, localTemplate, withoutEmptyPcmTeams(snapshot));
+    return buildDatabaseFromSnapshot(db, local, localTemplate, withoutEmptyPcmTeams(snapshot), preserveGalaSchelde);
   } finally {
     db.close();
     local?.close();
@@ -110,6 +112,7 @@ function buildDatabaseFromSnapshot(
   local: Database,
   localTemplate: Uint8Array,
   snapshot: PcmExportSnapshot,
+  preserveGalaSchelde: boolean,
 ): PcmExportResult {
   const sourceStageCount = Number(
     queryValue(db, "SELECT COUNT(*) FROM STA_stage"),
@@ -139,7 +142,7 @@ function buildDatabaseFromSnapshot(
     snapshot.ratings.map((row) => [row.rider_id, row]),
   );
 
-  const { resolveCountry, countryAdditions, pcmCountryByConstant, firstRegionByCountry } =
+  const { resolveCountry, countryAdditions, countryFlags, pcmCountryByConstant, firstRegionByCountry } =
     configurePcmNationalities(db, local, snapshot);
   const nationalChampions = getPcmChampionBits(snapshot);
 
@@ -195,6 +198,9 @@ function buildDatabaseFromSnapshot(
     "12": 0,
   };
 
+  const reservedTeamCodes = queryRows(db, "SELECT jersey_sz_abbreviation FROM DYN_team UNION SELECT jersey_sz_abbreviation FROM DYN_sponsor")
+    .map(row => row.jersey_sz_abbreviation);
+  reservedTeamCodes.push(...WORKSHOP_TEAM_ASSET_CODES);
   db.run("BEGIN");
   try {
     purgeOfficialProfessionalRoster(db);
@@ -207,13 +213,8 @@ function buildDatabaseFromSnapshot(
       "IDteam_history",
     );
     let nextContractId = firstGeneratedContractId;
-    const reservedTeamCodes = queryRows(
-      db,
-      "SELECT jersey_sz_abbreviation FROM DYN_team",
-    ).map((row) => row.jersey_sz_abbreviation);
-    reservedTeamCodes.push("cys");
     const explicitTeamCodes = new Map(
-      snapshot.teams
+      applyExistingPcmAssetCodes(snapshot.teams)
         .filter((team) => team.pcm_asset_code)
         .map((team) => [
           team.id,
@@ -240,7 +241,7 @@ function buildDatabaseFromSnapshot(
     if (!spectatorRegionId) {
       throw new Error("La region francaise est absente du gabarit PCM.");
     }
-    const spectatorTeamId = SPECTATOR_TEAM_ID;
+    const spectatorTeamId = PCM_SPECTATOR_TEAM_ID;
     const spectatorSponsorId = nextSponsorId++;
 
     insertRow(db, "DYN_team", {
@@ -574,8 +575,8 @@ function buildDatabaseFromSnapshot(
       ]),
     ) as SqlRow;
 
-    for (let index = 1; index <= SPECTATOR_RIDER_COUNT; index += 1) {
-      const riderId = SPECTATOR_RIDER_ID_START + index - 1;
+    for (const [position, riderId] of PCM_SPECTATOR_ROSTER_IDS.entries()) {
+      const index = position + 1;
       const contractId = nextContractId++;
       insertRow(db, "DYN_cyclist", {
         ...cyclistTemplate,
@@ -649,7 +650,9 @@ function buildDatabaseFromSnapshot(
 
     remapPresetRaceTeamLists(db, teamMappings, spectatorTeamId);
     configurePcmSeasonFinaleGalaRules(db);
-  if(snapshot.galaEdition==='season-four')configurePcmSeasonFourGalaRules(db);
+    if (snapshot.galaEdition === "season-four") {
+      configurePcmSeasonFourGalaRules(db, { preserveSchelde: preserveGalaSchelde });
+    }
 
     validateGeneratedRows(
       db,
@@ -677,6 +680,19 @@ function buildDatabaseFromSnapshot(
   const exportedRatings = exportedRiders.flatMap((rider) =>
     RATING_COLUMNS.map((column) => Number(rider[column])),
   );
+  const graphics = describePcmGraphics(
+    queryRows(db, `SELECT IDteam, gene_sz_name, jersey_sz_abbreviation FROM DYN_team
+      WHERE CONSTANT LIKE 'CS_%' ORDER BY IDteam`).map(row => ({
+      teamId: Number(row.IDteam), teamName: String(row.gene_sz_name), assetCode: String(row.jersey_sz_abbreviation),
+    })),
+    queryRows(db, `SELECT r.IDcyclist, r.fkIDteam, r.gene_i_champion_bit, c.CONSTANT AS pcmCountryCode
+      FROM DYN_cyclist r JOIN STA_region reg ON reg.IDregion = r.fkIDregion
+      JOIN STA_country c ON c.IDcountry = reg.fkIDcountry
+      WHERE r.gene_i_champion_bit <> 0 ORDER BY r.IDcyclist`).map(row => ({
+      teamId: Number(row.fkIDteam), riderId: Number(row.IDcyclist),
+      championBits: Number(row.gene_i_champion_bit), pcmCountryCode: String(row.pcmCountryCode),
+    })),
+  );
 
   return {
     cdb: output,
@@ -702,8 +718,10 @@ function buildDatabaseFromSnapshot(
       },
       countryFallbacks: [],
       countryAdditions,
+      countryFlags,
       nationalChampions: nationalChampions.counts,
       internationalChampions: nationalChampions.internationalCounts,
+      graphics,
       localOutputSha256: createHash("sha256").update(localOutput).digest("hex"),
       scope: {
         nativeRatingsOnly: true,
@@ -960,6 +978,7 @@ function validateGeneratedRows(
          WHERE fkIDteam = ?
            AND gene_sz_firstname = 'Simulo'
            AND CONSTANT LIKE 'CS_SIMULO_%'
+           AND IDcyclist IN (${PCM_SPECTATOR_ROSTER_IDS.join(", ")})
            AND ${RATING_COLUMNS.map(
              (column) => `${escapeIdentifier(column)} = ${SPECTATOR_PCM_RATING}`,
            ).join(" AND ")}`,

@@ -62,7 +62,9 @@ describe('gala S4 startlist policy',()=>{
    (f:GalaExportSnapshot)=>{f.selections[0].position=8;},
    (f:GalaExportSnapshot)=>{f.riders[0].team_id='other';},
    (f:GalaExportSnapshot)=>{f.riders[0].pcm_export_id=9001;},
+   (f:GalaExportSnapshot)=>{f.riders[0].pcm_export_id=9010;},
    (f:GalaExportSnapshot)=>{f.teams[0].pcm_export_id=243;},
+   (f:GalaExportSnapshot)=>{f.teams[0].pcm_export_id=119;},
    (f:GalaExportSnapshot)=>{f.riders[0].pcm_export_id=null;},
   ]){const fixture=galaFixture();mutate(fixture);expect(()=>buildSeasonFourGalaStartlists(fixture,'continental:mountain')).toThrow();}
  });

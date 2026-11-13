@@ -25,6 +25,10 @@ export async function createPcmExportPackage({
       "Le catalogue de noms PCM ne correspond pas à la base générée : export interrompu.",
     );
   }
+  const databaseSha256 = createHash("sha256").update(cdb).digest("hex");
+  if (databaseSha256 !== metadata.outputSha256 || cdb.byteLength !== metadata.bytes) {
+    throw new Error("La base PCM ne correspond pas au rapport de génération : export interrompu.");
+  }
 
   const date = new Date(metadata.generatedAt);
   if (!Number.isFinite(date.getTime())) throw new Error("Date de génération PCM invalide.");
@@ -54,10 +58,22 @@ export async function createPcmExportPackage({
     ratingScale: metadata.ratingScale,
     countryFallbacks: metadata.countryFallbacks,
     countryAdditions: metadata.countryAdditions,
+    countryFlags: metadata.countryFlags,
     nationalChampions: metadata.nationalChampions,
     internationalChampions: metadata.internationalChampions,
     scope: metadata.scope,
-    compatibleGraphics: { workshopItem: "3811779261", files: PCM_GRAPHICS_FILES },
+    compatibleGraphics: { workshopItem: "3811779261", files: PCM_GRAPHICS_FILES, report: "compatibilite-graphismes.json" },
+  };
+  const graphics = {
+    ...metadata.graphics,
+    databaseSha256,
+    localDatabaseSha256,
+    countryFlags: metadata.countryFlags,
+    coverage: {
+      customTeamKits: metadata.graphics?.teamKits.filter(team => team.custom).length,
+      customDistinctives: metadata.graphics?.distinctives.filter(title => title.custom).length,
+      missingCountryFlags: metadata.countryFlags?.filter(flag => flag.source === "missing").length,
+    },
   };
   const validation = {
     valid: true,
@@ -86,6 +102,7 @@ export async function createPcmExportPackage({
       "validation.json": strToU8(
         `${JSON.stringify(validation, null, 2)}\n`,
       ),
+      "compatibilite-graphismes.json": strToU8(`${JSON.stringify(graphics, null, 2)}\n`),
       "LISEZ-MOI.txt": strToU8(createInstallationGuide(folder, title)),
       "Installer-graphismes.ps1": strToU8(`\uFEFF${createPcmGraphicsInstaller()}`),
     },
@@ -137,9 +154,13 @@ Ne remplacez pas la base du dossier "Default".
 N'utilisez pas cette DB avec une sauvegarde déjà commencée.
 Les équipes et coureurs professionnels réels ont été retirés de cette base.
 L'équipe "Cyclostratège" contient dix coureurs Simulo destinés au mode spectateur.
-Les assets graphiques personnalisés ne sont pas encore inclus dans ce pack.
+Les graphismes personnalisés sont fournis par le Workshop : installez les PAK
+avec l’outil fourni. Le fichier compatibilite-graphismes.json indique les clubs
+avec un maillot et un mini-maillot, les distinctifs personnalisés disponibles
+et les drapeaux absents du pack. Les autres clubs utilisent les visuels de PCM.
 Les pays manquants et leurs noms sont ajoutés automatiquement à cette base.
-Les titres nationaux actifs sont conservés (route et contre-la-montre).
+Les titres pris en charge par PCM sont exportés : nationaux, mondiaux et
+européens (route et contre-la-montre).
 Installez ensemble OfficialRelease.cdb et OfficialLocal.cdb de cet export.
 L'abonnement seul utilise les graphismes lorsque vous sélectionnez la base du
 Workshop. Pour cette base exportée séparément, les QUATRE PAK doivent être

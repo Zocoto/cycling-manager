@@ -1,5 +1,7 @@
 export const PCM_SPECTATOR_TEAM_ID = 243;
-export const PCM_SPECTATOR_RIDER_IDS = [9001, 9002, 9003, 9004, 9005, 9006, 9007] as const;
+export const PCM_SPECTATOR_ROSTER_IDS = [9001, 9002, 9003, 9004, 9005, 9006, 9007, 9008, 9009, 9010] as const;
+export const PCM_SPECTATOR_RIDER_IDS = PCM_SPECTATOR_ROSTER_IDS.slice(0, 7);
+export const PCM_FIRST_CLUB_RIDER_ID = 10001;
 
 export type PcmStartlistTeam = {
   teamId: number;

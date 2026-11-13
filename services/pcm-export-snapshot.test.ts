@@ -13,6 +13,7 @@ vi.mock("@/lib/supabase/admin", () => ({
       state.fromCalls.push(table);
       if(table==='rider_contracts')state.contractCalls.push({method:'from',args:[]});
       let data = [...(state.tables[table] ?? [])];
+      const ordered: { column: string; ascending: boolean }[] = [];
       const query = {
         select: () => query,
         eq: (column: string, value: unknown) => {
@@ -28,8 +29,20 @@ vi.mock("@/lib/supabase/admin", () => ({
           if (table === "rider_national_championship_titles") state.titleCalls.push({ method: "is", args: [column, value] });
           data = data.filter(r => r[column] === value); return query;
         },
-        order: () => query,
-        range: (from: number, to: number) => { data = data.slice(from, to + 1); return query; },
+        gt: (column: string, value: string) => { data = data.filter(r => Date.parse(String(r[column])) > Date.parse(value)); return query; },
+        lte: (column: string, value: string) => { data = data.filter(r => Date.parse(String(r[column])) <= Date.parse(value)); return query; },
+        order: (column: string, options = { ascending: true }) => { ordered.push({ column, ...options }); return query; },
+        range: (from: number, to: number) => {
+          data.sort((a, b) => {
+            for (const { column, ascending } of ordered) {
+              const comparison = String(a[column]).localeCompare(String(b[column]));
+              if (comparison) return ascending ? comparison : -comparison;
+            }
+            return 0;
+          });
+          data = data.slice(from, to + 1);
+          return query;
+        },
         returns: () => Promise.resolve({ data, error: table === "rider_national_championship_titles" && state.titleError ? { message: "title query unavailable" } : null }),
         abortSignal: () => {
           if(table==='rider_contracts')state.contractCalls.push({method:'abortSignal',args:[]});
@@ -74,8 +87,9 @@ describe("snapshot des titres PCM", () => {
   it.each([
     ['Les Gb’s','6d6ec2fb-196c-4c7d-8c92-eda2a6786b2d',null,'les'],
     ['Cumbre','12277621-b716-4b0c-934a-f1a0b52364ba','tpp','ccr'],
-  ])('overlays the compiled S4 package code for %s only, without writes or extra queries',async(_name,teamId,oldCode,packageCode)=>{
+  ])('uses the same compiled team code for %s in both exports, without writes or extra queries',async(_name,teamId,oldCode,packageCode)=>{
     state.tables.seasons[0].game_year=4;
+    state.tables.teams[0].pcm_asset_code=null;
     const baseline=await createPcmExportSnapshot(false,true);
     expect(baseline.teams[0]).toBe(state.tables.teams[0]);
     const baselineQueries=[...state.fromCalls];state.fromCalls=[];
@@ -87,7 +101,7 @@ describe("snapshot des titres PCM", () => {
     expect(gala.teams[0]).not.toBe(state.tables.teams[0]);
     expect(state.tables).toEqual(before);
     expect(state.fromCalls).toEqual(baselineQueries);
-    expect((await createPcmExportSnapshot()).teams[0].pcm_asset_code).toBe(oldCode);
+    expect((await createPcmExportSnapshot()).teams[0].pcm_asset_code).toBe(packageCode);
     expect(state.tables).toEqual(before);
   });
   it('pins a private gala database to S4 with native ratings after S5 activation',async()=>{
@@ -96,6 +110,34 @@ describe("snapshot des titres PCM", () => {
     const snapshot=await createPcmExportSnapshot(false,true);
     expect(snapshot.activeSeason.game_year).toBe(4);expect(snapshot.galaEdition).toBe('season-four');
     expect(snapshot.ratingPolicy.bonusesIncluded).toBe(false);expect(snapshot.riders).toHaveLength(1);
+  });
+  it('keeps the country and active champion jerseys from the gala even after later changes', async () => {
+    state.tables.seasons[0].game_year = 4;
+    state.tables.riders[0].country_id = 'be';
+    state.tables.rider_naturalizations = [
+      { id: 'later', rider_id: 'r1', from_country_id: 'fr', created_at: '2026-11-13T00:00:00Z' },
+      { id: 'first', rider_id: 'r1', from_country_id: 'np', created_at: '2026-11-06T21:00:00Z' },
+      { id: 'older', rider_id: 'r1', from_country_id: 'la', created_at: '2026-11-06T18:00:00+01:00' },
+    ];
+    state.tables.rider_national_championship_titles = [
+      { rider_id: 'r1', country_id: 'np', championship_type: 'road', won_at: '2026-10-30T18:00:00Z', relinquished_at: '2026-11-07T18:00:00Z' },
+      { rider_id: 'r1', country_id: 'np', championship_type: 'time_trial', won_at: '2026-10-30T18:00:00Z', relinquished_at: '2026-11-06T17:30:00Z' },
+      { rider_id: 'r1', country_id: 'be', championship_type: 'road', won_at: '2026-11-13T10:00:00Z', relinquished_at: null },
+    ];
+    const gala = await createPcmExportSnapshot(false, true);
+    const standard = await createPcmExportSnapshot();
+    expect(gala.riders[0].country_id).toBe('np');
+    expect(gala.nationalChampionshipTitles).toEqual([{ rider_id: 'r1', country_id: 'np', championship_type: 'road' }]);
+    expect(standard.riders[0].country_id).toBe('be');
+    expect(standard.nationalChampionshipTitles).toEqual([{ rider_id: 'r1', country_id: 'be', championship_type: 'road' }]);
+    expect(state.tables.riders[0].country_id).toBe('be');
+  });
+  it('refuses to build a Gala database that silently drops an entered rider', async () => {
+    state.tables.seasons[0].game_year = 4;
+    state.tables.season_gala_registrations = [{ id: 'reg', season_id: 's3', team_id: 't1', program: 'continental' }];
+    state.tables.season_gala_registration_riders = [{ registration_id: 'reg', rider_id: 'r1' }];
+    state.tables.rider_contracts = [];
+    await expect(createPcmExportSnapshot(false, true)).rejects.toThrow('Roger Test est inscrit');
   });
   it("charge les titres nationaux et mondiaux route actifs des coureurs exportés", async () => {
     const snapshot = await createPcmExportSnapshot();

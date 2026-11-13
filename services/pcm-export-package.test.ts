@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { strFromU8, unzipSync } from "fflate";
@@ -16,6 +17,7 @@ describe("pack d'installation PCM26", () => {
       [
         "LISEZ-MOI.txt",
         "Installer-graphismes.ps1",
+        "compatibilite-graphismes.json",
         "OfficialLocal.cdb",
         "OfficialRelease.cdb",
         "manifest.json",
@@ -31,6 +33,7 @@ describe("pack d'installation PCM26", () => {
     expect(manifest.title).toMatch(/^Cyclostratège S3 · 2026-09-30 18:00:00 UTC · [a-f0-9]{12}$/);
     expect(manifest.compatibleGraphics.workshopItem).toBe("3811779261");
     expect(manifest.compatibleGraphics.files).toHaveLength(4);
+    expect(JSON.parse(strFromU8(files["compatibilite-graphismes.json"])).databaseSha256).toBe(source.metadata.outputSha256);
     expect(strFromU8(files["Installer-graphismes.ps1"])).toContain("$PSScriptRoot");
     expect(strFromU8(files["LISEZ-MOI.txt"])).toContain("les QUATRE PAK");
     expect(strFromU8(files["LISEZ-MOI.txt"])).toContain(
@@ -46,6 +49,12 @@ describe("pack d'installation PCM26", () => {
     expect(result.filename).toMatch(/^Cyclostratege-PCM26-S3-20260930-180000Z-[a-f0-9]{12}\.zip$/);
     expect(result.filename).toBe(`${manifest.installationFolder}.zip`);
     expect(result.archiveSha256).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it("refuse une base qui ne correspond pas à son rapport", async () => {
+    const source = await createSource();
+    source.cdb[0] = 42;
+    await expect(createPcmExportPackage(source)).rejects.toThrow("ne correspond pas au rapport");
   });
 
   it("distingue deux exports simultanés dans les fichiers et dans le sélecteur PCM", async () => {
@@ -74,7 +83,7 @@ async function createSource(): Promise<PcmExportResult> {
       generatedAt: "2026-09-30T18:00:00.000Z",
       season: 3,
       snapshotSha256: "a".repeat(64),
-      outputSha256: "b".repeat(64),
+      outputSha256: createHash("sha256").update(new Uint8Array([1, 2, 3, 4])).digest("hex"),
       filename: "OfficialRelease.cdb",
       bytes: 4,
       counts: { teams: 109, riders: 1351, sponsors: 109, contracts: 1351 },

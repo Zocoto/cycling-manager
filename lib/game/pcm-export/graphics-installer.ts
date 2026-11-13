@@ -11,9 +11,15 @@ export function createPcmGraphicsInstaller(): string {
 param([string]$SteamLibrary, [switch]$VerifyOnly)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
-if (-not (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'OfficialRelease.cdb') -PathType Leaf) -or
-    -not (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'mod.xml') -PathType Leaf)) {
-  throw 'Placez cet outil dans le dossier de la base exportee (OfficialRelease.cdb et mod.xml).'
+foreach ($name in @('OfficialRelease.cdb', 'OfficialLocal.cdb', 'mod.xml', 'manifest.json')) {
+  if (-not (Test-Path -LiteralPath (Join-Path $PSScriptRoot $name) -PathType Leaf)) {
+    throw ('Fichier manquant dans le dossier de la base exportee : '+$name)
+  }
+}
+$export = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+if ((Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'OfficialRelease.cdb') -Algorithm SHA256).Hash -ne $export.databaseSha256 -or
+    (Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'OfficialLocal.cdb') -Algorithm SHA256).Hash -ne $export.localDatabaseSha256) {
+  throw 'Les deux fichiers CDB ne correspondent pas au meme export. Decompressez a nouveau le ZIP dans un dossier neuf.'
 }
 $expected = '${JSON.stringify(PCM_GRAPHICS_FILES)}' | ConvertFrom-Json
 $libraries = [System.Collections.Generic.List[string]]::new()
@@ -42,21 +48,26 @@ foreach ($steam in @($libraries.ToArray() | Select-Object -Unique)) {
   }
 }
 $source = $null
+$incompatible = $false
 foreach ($library in @($libraries.ToArray() | Select-Object -Unique | Select-Object -First 64)) {
   $candidate = Join-Path $library 'steamapps\workshop\content\3936530\3811779261'
   $complete = $true
   foreach ($file in $expected) {
     if (-not (Test-Path -LiteralPath (Join-Path $candidate $file.name) -PathType Leaf)) { $complete = $false; break }
   }
+  if (-not $complete) { continue }
+  foreach ($file in $expected) {
+    if ((Get-FileHash -LiteralPath (Join-Path $candidate $file.name) -Algorithm SHA256).Hash -ne $file.sha256) {
+      $complete = $false
+      $incompatible = $true
+      break
+    }
+  }
   if ($complete) { $source = $candidate; break }
 }
 if (-not $source) {
+  if ($incompatible) { throw 'Version graphique incompatible. Mettez le Workshop a jour dans Steam.' }
   throw 'Pack introuvable : abonnez-vous au Workshop Cyclostratege 3811779261 et attendez la fin du telechargement Steam.'
-}
-# Verifier tout le lot avant la premiere copie : ne jamais installer un melange de versions.
-foreach ($file in $expected) {
-  $actual = (Get-FileHash -LiteralPath (Join-Path $source $file.name) -Algorithm SHA256).Hash
-  if ($actual -ne $file.sha256) { throw ('Version graphique incompatible : '+$file.name+'. Mettez le Workshop a jour dans Steam.') }
 }
 if ($VerifyOnly) { Write-Output 'Les quatre fichiers graphiques Steam sont compatibles.'; return }
 $backup = $null

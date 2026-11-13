@@ -1,4 +1,4 @@
-import { createPcmStartlistXml, PCM_SPECTATOR_RIDER_IDS, PCM_SPECTATOR_TEAM_ID, type PcmStartlistTeam } from "./pcm-gala-startlists";
+import { createPcmStartlistXml, PCM_FIRST_CLUB_RIDER_ID, PCM_SPECTATOR_RIDER_IDS, PCM_SPECTATOR_TEAM_ID, type PcmStartlistTeam } from "./pcm-gala-startlists";
 import { GALA_EVENTS, GALA_PROGRAM_PROFILES, SEASON_FOUR_GALA, galaClubCapacity, type GalaEventKey, type GalaProfile, type GalaProgram } from "./season-four-gala";
 import type { ContractRow, SeasonRow } from "./pcm-export/types";
 
@@ -84,16 +84,16 @@ export function buildSeasonFourGalaStartlists(snapshot:GalaExportSnapshot, event
   const manifestTeams:Record<string,unknown>[]=[];
   for(const registration of registrations){
    const team=teamsById.get(registration.team_id);
-   if(!team||!Number.isSafeInteger(team.pcm_export_id)||Number(team.pcm_export_id)<=0||team.pcm_export_id===PCM_SPECTATOR_TEAM_ID)throw new GalaStartlistError('Identifiant PCM permanent d’équipe absent ou réservé.');
+   if(!team||!Number.isSafeInteger(team.pcm_export_id)||Number(team.pcm_export_id)<=PCM_SPECTATOR_TEAM_ID)throw new GalaStartlistError('Identifiant PCM permanent d’équipe absent ou réservé.');
    const selections=[...(selectionsByProfile.get(registration.id+':'+event.profile)??[])].sort((a,b)=>a.position-b.position);
    if(selections.length<SEASON_FOUR_GALA.minRiders||selections.length>SEASON_FOUR_GALA.maxRiders||selections.some((row,index)=>row.position!==index+1))throw new GalaStartlistError(`Composition invalide pour ${team.name} : 7 à 8 coureurs sont requis, sans position manquante.`);
    const riders=selections.map(selection=>{
     const rider=ridersById.get(selection.rider_id);
     if(!rider||rider.team_id!==registration.team_id)throw new GalaStartlistError('Un coureur sélectionné n’appartient plus à l’équipe pour la saison source.');
-    if(!Number.isSafeInteger(rider.pcm_export_id)||Number(rider.pcm_export_id)<=0||(PCM_SPECTATOR_RIDER_IDS as readonly number[]).includes(Number(rider.pcm_export_id)))throw new GalaStartlistError('Identifiant PCM permanent de coureur absent ou réservé.');
+    if(!Number.isSafeInteger(rider.pcm_export_id)||Number(rider.pcm_export_id)<PCM_FIRST_CLUB_RIDER_ID)throw new GalaStartlistError('Identifiant PCM permanent de coureur absent ou réservé.');
     // Admission is checked when the lineup is saved. The owner explicitly
     // keeps registered riders and their real later ratings, without capping.
-    if(event.program==='continental'&&!hasRecordedGalaNativeRatings(rider.native))throw new GalaStartlistError(`Notes natives manquantes ou invalides pour ${rider.first_name} ${rider.last_name}.`);
+    if(!hasRecordedGalaNativeRatings(rider.native))throw new GalaStartlistError(`Notes natives manquantes ou invalides pour ${rider.first_name} ${rider.last_name}.`);
     return rider;
    });
    teams.push({teamId:Number(team.pcm_export_id),riderIds:riders.map(rider=>Number(rider.pcm_export_id))});

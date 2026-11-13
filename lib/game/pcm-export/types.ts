@@ -133,6 +133,12 @@ export type PcmCountryAddition = {
   flagName: string;
 };
 
+export type PcmCountryFlag = {
+  pcmCode: string;
+  flagName: string;
+  source: "native" | "workshop" | "missing";
+};
+
 export type PcmExportMetadata = {
   generatedAt: string;
   season: number;
@@ -158,6 +164,7 @@ export type PcmExportMetadata = {
     pcmCode: string;
   }>;
   countryAdditions: PcmCountryAddition[];
+  countryFlags?: PcmCountryFlag[];
   nationalChampions: { riders: number; road: number; timeTrial: number; both: number };
   internationalChampions?: {
     worldRoad: number;
@@ -166,6 +173,7 @@ export type PcmExportMetadata = {
     europeanTimeTrial: number;
   };
   localOutputSha256: string;
+  graphics?: ReturnType<typeof import("./graphics-coverage").describePcmGraphics>;
   scope: {
     nativeRatingsOnly: true;
     bonusesIncluded: false;

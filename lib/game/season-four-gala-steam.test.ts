@@ -31,8 +31,8 @@ const steamV2: GalaSteamCompatibility = {
 
 describe("published Steam S4 gala compatibility", () => {
   it("pins the exact published Steam release", () => {
-    expect(GALA_STEAM_DATABASE).toMatchObject({ workshopId: "3811779261", steamManifestId: "7757371739382865096",
-      databaseSha256: "c078f18f0a0def91cda4e11b3b06edca4633c2734ed5e5b86c385c60fd18e0ae" });
+    expect(GALA_STEAM_DATABASE).toMatchObject({ workshopId: "3811779261", steamManifestId: "7954577122962304709",
+      databaseSha256: "ddf5e528e9c6420eaab5838031c08bd6717d90966dcbf8d7a797a72203940976" });
     expect(Object.keys(compatibility.riders)).toHaveLength(847);
   });
   it("accepts the approved same-club lineup without mutating the input", () => {

@@ -17,7 +17,9 @@ import type {
 } from "@/lib/game/pcm-export/types";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { collectChunkedPaginatedRows } from "@/lib/supabase/pagination";
-import {selectSeasonFourGalaContracts} from "@/lib/game/season-four-gala-startlists";
+import { GalaStartlistError, selectSeasonFourGalaContracts } from "@/lib/game/season-four-gala-startlists";
+import { SEASON_FOUR_GALA } from "@/lib/game/season-four-gala";
+import { PCM_FIRST_CLUB_RIDER_ID, PCM_SPECTATOR_TEAM_ID } from "@/lib/game/pcm-gala-startlists";
 import {loadSeasonFourGalaRegisteredClubs} from "@/services/season-four-gala-startlists";
 import type { NationalChampionshipTitleRow } from "@/lib/game/pcm-export/types";
 import { PCM_CHAMPIONSHIP_MASKS } from "@/lib/game/pcm-export/types";
@@ -30,13 +32,19 @@ type PageResult<T> = {
   error: { message: string } | null;
 };
 
+type HistoricalTitleRow = NationalChampionshipTitleRow & {
+  relinquished_at: string | null;
+};
+
+type NaturalizationRow = { rider_id: string; from_country_id: string };
+
 export async function createPcmExportSnapshot(seasonFinale = false, seasonFourGala = false): Promise<PcmExportSnapshot> {
   const admin = createSupabaseAdminClient();
   const galaSourceSeason = seasonFinale ? await loadSeasonFinaleGalaSourceSeason(admin) : null;
   const activeSeasonResult = await admin
     .from("seasons")
     .select("*")
-    .eq(seasonFourGala ? "game_year" : galaSourceSeason ? "id" : "status", seasonFourGala ? 4 : galaSourceSeason?.id ?? "active")
+    .eq(seasonFourGala ? "game_year" : galaSourceSeason ? "id" : "status", seasonFourGala ? SEASON_FOUR_GALA.sourceSeason : galaSourceSeason?.id ?? "active")
     .single<SeasonRow>();
 
   if (activeSeasonResult.error || !activeSeasonResult.data) {
@@ -148,23 +156,43 @@ export async function createPcmExportSnapshot(seasonFinale = false, seasonFourGa
     (seasonYears.get(row.end_season_id) ?? -Infinity) >= activeSeason.game_year
   )));
   const contractedRiderIds = new Set(contracts.map((row) => row.rider_id));
-  const riders = allRiders.filter((row) => contractedRiderIds.has(row.id));
+  const sourceRiders = allRiders.filter((row) => contractedRiderIds.has(row.id));
   const ratings = allRatings.filter((row) => contractedRiderIds.has(row.rider_id));
-  const titleResult = await collectChunkedPaginatedRows<NationalChampionshipTitleRow, { message: string }, string>({
+
+  if (registeredClubs) {
+    const contractsByRider = new Map(contracts.map(row => [row.rider_id, row]));
+    const ridersById = new Map(allRiders.map(row => [row.id, row]));
+    for (const [riderId, clubId] of registeredClubs) {
+      if (contractsByRider.get(riderId)?.team_id !== clubId || !ridersById.has(riderId)) {
+        const rider = ridersById.get(riderId);
+        const name = rider ? `${rider.first_name} ${rider.last_name}` : riderId;
+        throw new GalaStartlistError(`Gala PCM : ${name} est inscrit mais son club ne peut pas être exporté pour la saison 4.`);
+      }
+    }
+  }
+
+  const cutoff = seasonFourGala ? new Date(SEASON_FOUR_GALA.liveStartsAt).toISOString() : null;
+  const riders = cutoff
+    ? await restoreGalaRiderCountries(admin, sourceRiders, cutoff)
+    : sourceRiders;
+  const titleResult = await collectChunkedPaginatedRows<HistoricalTitleRow, { message: string }, string>({
     values: [...contractedRiderIds],
     maxConcurrency: 1,
     fetchPage: async (riderIds, from, to) => {
-      const result = await admin.from("rider_national_championship_titles")
-        .select("rider_id, country_id, championship_type")
+      const query = admin.from("rider_national_championship_titles")
+        .select("rider_id, country_id, championship_type, relinquished_at")
         .in("rider_id", riderIds)
-        .in("championship_type", Object.keys(PCM_CHAMPIONSHIP_MASKS))
-        .is("relinquished_at", null)
+        .in("championship_type", Object.keys(PCM_CHAMPIONSHIP_MASKS));
+      const result = await (cutoff ? query.lte("won_at", cutoff) : query.is("relinquished_at", null))
         .order("id", { ascending: true })
-        .range(from, to).returns<NationalChampionshipTitleRow[]>();
+        .range(from, to).returns<HistoricalTitleRow[]>();
       return { data: result.data, error: result.error };
     },
   });
   if (titleResult.error) throw new Error(`Impossible de charger les titres nationaux : ${titleResult.error.message}`);
+  const nationalChampionshipTitles = titleResult.data
+    .filter(row => !cutoff || !row.relinquished_at || Date.parse(row.relinquished_at) > Date.parse(cutoff))
+    .map(({ rider_id, country_id, championship_type }) => ({ rider_id, country_id, championship_type }));
 
   assertSnapshotIntegrity({
     teamSeasons,
@@ -199,7 +227,7 @@ export async function createPcmExportSnapshot(seasonFinale = false, seasonFourGa
     contracts,
     riders,
     ratings,
-    nationalChampionshipTitles: titleResult.data,
+    nationalChampionshipTitles,
   };
   const projectedSnapshot = seasonFinale ? applySeasonFinaleGalaIdentities({ ...snapshotCore, exportedAt: "", sha256: "" },
     await loadSeasonFinaleGalaIdentities(admin, [...activeTeamIds])) : snapshotCore;
@@ -210,6 +238,38 @@ export async function createPcmExportSnapshot(seasonFinale = false, seasonFourGa
     exportedAt: new Date().toISOString(),
     sha256: createHash("sha256").update(canonical).digest("hex"),
   };
+}
+
+async function restoreGalaRiderCountries(
+  admin: ReturnType<typeof createSupabaseAdminClient>,
+  riders: RiderRow[],
+  cutoff: string,
+) {
+  const result = await collectChunkedPaginatedRows<NaturalizationRow, { message: string }, string>({
+    values: riders.map(row => row.id),
+    maxConcurrency: 1,
+    fetchPage: async (riderIds, from, to) => {
+      const query = await admin.from("rider_naturalizations")
+        .select("rider_id, from_country_id")
+        .in("rider_id", riderIds)
+        .gt("created_at", cutoff)
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to)
+        .abortSignal(AbortSignal.timeout(5000));
+      return { data: query.data as NaturalizationRow[] | null, error: query.error };
+    },
+  });
+  if (result.error) throw new Error(`Impossible de charger les nationalités au gala : ${result.error.message}`);
+  const historicalCountries = new Map<string, string>();
+  // The first change after the gala records the country held at the gala, even after several later changes.
+  for (const row of result.data) {
+    if (!historicalCountries.has(row.rider_id)) historicalCountries.set(row.rider_id, row.from_country_id);
+  }
+  return riders.map(row => {
+    const countryId = historicalCountries.get(row.id);
+    return countryId ? { ...row, country_id: countryId } : row;
+  });
 }
 
 async function fetchPaginated<T>(
@@ -252,7 +312,7 @@ function assertSnapshotIntegrity({
   const pcmTeamIds = teams.map((team) => Number(team.pcm_export_id));
   if (
     pcmTeamIds.some(
-      (id) => !Number.isInteger(id) || id <= 243,
+      (id) => !Number.isSafeInteger(id) || id <= PCM_SPECTATOR_TEAM_ID,
     ) ||
     new Set(pcmTeamIds).size !== pcmTeamIds.length
   ) {
@@ -271,9 +331,13 @@ function assertSnapshotIntegrity({
 
   const contractsByRider = countBy(contracts, (row) => row.rider_id);
   const ratingsByRider = countBy(ratings, (row) => row.rider_id);
+  const riderIds = new Set(riders.map(row => row.id));
+  if (contracts.some(row => !riderIds.has(row.rider_id))) {
+    throw new Error("Un contrat PCM référence un coureur absent.");
+  }
   const pcmRiderIds = riders.map((rider) => Number(rider.pcm_export_id));
   if (
-    pcmRiderIds.some((id) => !Number.isInteger(id) || id < 10001) ||
+    pcmRiderIds.some((id) => !Number.isSafeInteger(id) || id < PCM_FIRST_CLUB_RIDER_ID) ||
     new Set(pcmRiderIds).size !== pcmRiderIds.length
   ) {
     throw new Error("Les identifiants PCM permanents des coureurs sont invalides.");
@@ -294,7 +358,7 @@ function assertSnapshotIntegrity({
 
   for (const rating of ratings) {
     for (const key of CS_RATING_KEYS) {
-      if (!Number.isFinite(Number(rating[key]))) {
+      if (rating[key] == null || String(rating[key]).trim() === "" || !Number.isFinite(Number(rating[key]))) {
         throw new Error(`Note ${key} invalide pour le coureur ${rating.rider_id}.`);
       }
     }

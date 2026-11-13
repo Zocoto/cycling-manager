@@ -111,10 +111,14 @@ describe("generateur de base PCM26", () => {
             `SELECT COUNT(*) FROM DYN_team
              WHERE IDteam = 244
                AND gene_sz_name = 'Abbaye Cyclisme'
-               AND jersey_sz_abbreviation = 'apt'
+               AND jersey_sz_abbreviation <> 'apt'
                AND fkIDdivision = 11`,
           ),
         ).toBe(1);
+        expect(result.metadata.graphics?.teamKits).toEqual([
+          { teamId: 243, teamName: "Cyclostratège", assetCode: "cys", custom: true },
+          expect.objectContaining({ teamId: 244, teamName: "Abbaye Cyclisme", custom: false }),
+        ]);
         expect(
           readCount(
             db,

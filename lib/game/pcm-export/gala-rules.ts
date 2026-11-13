@@ -15,8 +15,10 @@ export function configurePcmSeasonFinaleGalaRules(db: Database) {
 }
 
 /** Explicit S4 export only: native team caps include the observer; rosters are 7–8. */
-export function configurePcmSeasonFourGalaRules(db:Database){
- for(const course of Object.values(GALA_COURSES)){
+export function configurePcmSeasonFourGalaRules(db: Database, { preserveSchelde = false } = {}) {
+ const courses = Object.values(GALA_COURSES);
+ const rules = preserveSchelde ? [...courses, { raceId: 145, nativeCapacity: 20 }] : courses;
+ for(const course of rules){
   if(!db.exec('SELECT IDrace FROM STA_race WHERE IDrace='+course.raceId)[0]?.values.length)throw new Error('Parcours PCM du gala S4 absent du gabarit.');
   const values=[course.nativeCapacity,SEASON_FOUR_GALA.minRiders,SEASON_FOUR_GALA.maxRiders,course.raceId];
   if(db.exec('SELECT IDrace_rule FROM STA_race_rules WHERE fkIDrace='+course.raceId)[0]?.values.length)db.run('UPDATE STA_race_rules SET gene_i_max_team=?,gene_i_min_riders=?,gene_i_max_riders=? WHERE fkIDrace=?',values);
