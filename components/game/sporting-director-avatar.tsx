@@ -60,7 +60,7 @@ export function SportingDirectorAvatar({
   const eyes = getAvatarEyeColor(avatar.eyeColor);
   const outfit = getAvatarOutfit(avatar.outfit);
   const background = getAvatarBackground(avatar.background);
-  const flagCode = getAvatarFlagCountryCode(avatar.background);
+  const flagCode = halloweenArts.includes("moon") ? null : getAvatarFlagCountryCode(avatar.background);
 
   return (
     <span
@@ -78,16 +78,10 @@ export function SportingDirectorAvatar({
       ) : null}
       <span className="relative z-10 flex h-full w-full overflow-hidden rounded-full border-2 border-white/80 shadow-md">
         <svg aria-hidden="true" viewBox="0 0 120 120" className="h-full w-full">
-        <circle cx="60" cy="60" r="60" fill={background.color} />
         {flagCode ? (
-          <image
-            data-avatar-national-flag={flagCode}
-            href={`/images/flags/4x3/${flagCode}.svg`}
-            width="120"
-            height="120"
-            preserveAspectRatio="xMidYMid slice"
-          />
+          <NationalFlagBackground countryCode={flagCode} />
         ) : <>
+          <circle cx="60" cy="60" r="60" fill={background.color} />
           <path
             d="M-8 89C19 64 33 70 53 50C75 28 90 31 128 7V-5H-8Z"
             fill={background.accent}
@@ -154,6 +148,30 @@ export function SportingDirectorAvatar({
         </svg>
       </span>
     </span>
+  );
+}
+
+function NationalFlagBackground({ countryCode }: { countryCode: string }) {
+  return (
+    <g data-avatar-national-flag={countryCode}>
+      <rect width="120" height="120" fill="#F5F1EA" />
+      <g opacity="0.84">
+        {countryCode === "ch" ? (
+          <>
+            <rect width="120" height="120" fill="#C6384B" />
+            {/* Keep the complete cross clear of the face in a round portrait. */}
+            <path d="M21 18h7v9h9v7h-9v9h-7v-9h-9v-7h9Z" fill="#FFFDF8" />
+          </>
+        ) : (
+          <image
+            href={`/images/flags/4x3/${countryCode}.svg`}
+            width="120"
+            height="120"
+            preserveAspectRatio="none"
+          />
+        )}
+      </g>
+    </g>
   );
 }
 

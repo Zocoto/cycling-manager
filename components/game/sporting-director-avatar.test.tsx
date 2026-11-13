@@ -28,10 +28,20 @@ describe("SportingDirectorAvatar", () => {
     expect(decodeCustomSportingDirectorAvatar(key.replace("flag-ws", "flag-zzz"))).toBeNull();
 
     const html = renderToStaticMarkup(<SportingDirectorAvatar avatarKey={`${key}~halloween~cap`} frameKey="alpha_tester" size="chat" />);
-    expect(html).toContain('data-avatar-national-flag="ws" href="/images/flags/4x3/ws.svg"');
+    expect(html).toContain('data-avatar-national-flag="ws"');
+    expect(html).toContain('href="/images/flags/4x3/ws.svg"');
     expect(html.indexOf('data-avatar-national-flag="ws"')).toBeLessThan(html.indexOf("data-avatar-hair-back"));
     expect(html).toContain('data-avatar-frame="alpha_tester"');
     expect(html).toContain('data-halloween-avatar="cap"');
+  });
+
+  it("keeps a Swiss flag and an equipped Halloween background from stacking", () => {
+    const key = encodeSportingDirectorAvatar({ ...DEFAULT_SPORTING_DIRECTOR_AVATAR, background: "flag-ch" });
+    const flag = renderToStaticMarkup(<SportingDirectorAvatar avatarKey={key} size="hero" />);
+    const moon = renderToStaticMarkup(<SportingDirectorAvatar avatarKey={`${key}~halloween~moon`} />);
+    expect(flag).toContain('data-avatar-national-flag="ch"');
+    expect(moon).toContain('data-halloween-art="moon"');
+    expect(moon).not.toContain("data-avatar-national-flag");
   });
 
   it("gives the dashboard a large responsive portrait without changing other avatar sizes", () => {
