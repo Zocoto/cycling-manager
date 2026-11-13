@@ -1,8 +1,5 @@
 "use client";
 
-import { useState } from "react";
-
-import { registerDevelopmentRaceAction } from "@/app/jeu/centre-de-formation/development-actions";
 import type { AmateurJerseyConfig } from "@/lib/amateur-team";
 import {
   createAmateurRiderJersey,
@@ -11,6 +8,8 @@ import {
 } from "@/lib/rider-jersey";
 import type { DevelopmentRider } from "@/services/development-team";
 
+import { DevelopmentRaceRatingSort } from "./development-race-rating-sort";
+import { useDevelopmentRaceRegistrationDrafts } from "./development-race-registration-editor";
 import { DevelopmentRiderVisibleProfile } from "./development-rider-visible-profile";
 
 export function DevelopmentRaceSelectionForm({
@@ -30,31 +29,28 @@ export function DevelopmentRaceSelectionForm({
   startDayNumber: number;
   teamJersey: AmateurJerseyConfig;
 }) {
-  const [selectedRiderIds, setSelectedRiderIds] = useState(
-    () => new Set(initialSelectedRiderIds.slice(0, selectionMaximum)),
-  );
+  const { drafts, pending, setDraft } = useDevelopmentRaceRegistrationDrafts();
+  const draft = drafts[raceEditionId];
+  const initialSelection = initialSelectedRiderIds.slice(0, selectionMaximum);
+  const selectedRiderIds = new Set(draft?.riderIds ?? initialSelection);
   const quotaReached = selectedRiderIds.size >= selectionMaximum;
-  const selectionComplete = selectedRiderIds.size >= selectionMinimum;
 
   function updateSelection(riderId: string, checked: boolean) {
-    setSelectedRiderIds((current) => {
-      const next = new Set(current);
-      if (checked) {
-        if (next.size >= selectionMaximum && !next.has(riderId)) return current;
-        next.add(riderId);
-      } else {
-        next.delete(riderId);
-      }
-      return next;
+    if (pending || (checked && quotaReached)) return;
+    const next = new Set(selectedRiderIds);
+    if (checked) next.add(riderId);
+    else next.delete(riderId);
+    const unchanged =
+      next.size === initialSelection.length &&
+      initialSelection.every((id) => next.has(id));
+    setDraft(raceEditionId, unchanged ? null : {
+      riderIds: [...next],
+      complete: next.size >= selectionMinimum,
     });
   }
 
   return (
-    <form
-      action={registerDevelopmentRaceAction}
-      className="border-t border-[#315B3E]/8 p-4 sm:p-5"
-    >
-      <input type="hidden" name="raceEditionId" value={raceEditionId} />
+    <div className="border-t border-[#315B3E]/8 p-4 sm:p-5">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs font-black text-[#183F37]">
           {selectedRiderIds.size}/{selectionMaximum} coureurs sélectionnés
@@ -64,9 +60,24 @@ export function DevelopmentRaceSelectionForm({
             Quota atteint · désélectionnez un coureur pour en choisir un autre
           </p>
         ) : null}
+        {draft ? (
+          <div className="flex flex-wrap items-center gap-2">
+            {!draft.complete ? (
+              <p className="text-xs font-bold text-[#875313]">Sélection incomplète</p>
+            ) : null}
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => setDraft(raceEditionId, null)}
+              className="min-h-10 rounded-lg px-2 text-xs font-bold text-[#176951] hover:bg-[#E5F4ED] disabled:opacity-50"
+            >
+              Rétablir la sélection
+            </button>
+          </div>
+        ) : null}
       </div>
-      <div className="grid gap-3 lg:grid-cols-2">
-        {riders.map((rider) => {
+      <DevelopmentRaceRatingSort riders={riders}>
+        {(rider) => {
           const selected = selectedRiderIds.has(rider.id);
           const disabled = isDevelopmentRaceRiderSelectionDisabled(
             selectedRiderIds,
@@ -87,10 +98,9 @@ export function DevelopmentRaceSelectionForm({
             >
               <input
                 type="checkbox"
-                name="riderIds"
                 value={rider.id}
                 checked={selected}
-                disabled={disabled}
+                disabled={disabled || pending}
                 onChange={(event) =>
                   updateSelection(rider.id, event.currentTarget.checked)
                 }
@@ -105,22 +115,15 @@ export function DevelopmentRaceSelectionForm({
               />
             </label>
           );
-        })}
-      </div>
+        }}
+      </DevelopmentRaceRatingSort>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs font-semibold text-[#60756E]">
           Entre {selectionMinimum} et {selectionMaximum} coureurs · clôture au
           début de J{startDayNumber}
         </p>
-        <button
-          type="submit"
-          disabled={!selectionComplete}
-          className="min-h-11 rounded-xl bg-[#176951] px-5 text-xs font-black uppercase tracking-[0.08em] text-white disabled:cursor-not-allowed disabled:bg-[#C7D1CD] disabled:text-[#60756E]"
-        >
-          Enregistrer l’engagement
-        </button>
       </div>
-    </form>
+    </div>
   );
 }
 

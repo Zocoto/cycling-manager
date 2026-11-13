@@ -15,6 +15,10 @@ const selectionForm = readFileSync(
   join(process.cwd(), "components/game/development-race-selection-form.tsx"),
   "utf8",
 );
+const registrationEditor = readFileSync(
+  join(process.cwd(), "components/game/development-race-registration-editor.tsx"),
+  "utf8",
+);
 const builder = readFileSync(
   join(process.cwd(), "components/game/development-team-builder.tsx"),
   "utf8",
@@ -64,7 +68,9 @@ describe("Development Team UI", () => {
 
   it("expose le calendrier, les inscriptions et les résultats bruts", () => {
     expect(panel).toContain("<DevelopmentRaceSelectionForm");
-    expect(selectionForm).toContain("action={registerDevelopmentRaceAction}");
+    expect(panel).toContain("<DevelopmentRaceRegistrationEditor>");
+    expect(registrationEditor).toContain("await registerDevelopmentRacesAction(");
+    expect(selectionForm).toContain("<DevelopmentRaceRatingSort");
     expect(panel).toContain("{overview.races.length} rendez-vous juniors");
     expect(panel).toContain("Résultats bruts");
     expect(panel).toContain("Classement général final");

@@ -27,6 +27,7 @@ import {
 import { DevelopmentTeamBuilder } from "./development-team-builder";
 import { DevelopmentTeamJerseyEditor } from "./development-team-jersey-editor";
 import { DevelopmentTeamRosterEditor } from "./development-team-roster-editor";
+import { DevelopmentRaceRegistrationEditor } from "./development-race-registration-editor";
 import { DevelopmentRaceSelectionForm } from "./development-race-selection-form";
 import { RiderAvatar } from "./rider-avatar";
 
@@ -280,9 +281,13 @@ function DevelopmentCalendar({ overview }: { overview: DevelopmentTeamOverview }
         Profils et sélections internationales juniors →
       </Link>
       <div className="mt-4 space-y-3">
-        {overview.races.map((race) => (
-          <RaceRegistrationCard key={race.id} race={race} overview={overview} />
-        ))}
+        <DevelopmentRaceRegistrationEditor>
+          <div className="space-y-3">
+            {overview.races.map((race) => (
+              <RaceRegistrationCard key={race.id} race={race} overview={overview} />
+            ))}
+          </div>
+        </DevelopmentRaceRegistrationEditor>
       </div>
     </section>
   );

@@ -1,4 +1,13 @@
 {
+  "{{0}} courses modifiées": "{{0}} races changed",
+  "1 course modifiée": "1 race changed",
+  "Complétez les sélections signalées.": "Complete the highlighted lineups.",
+  "courses modifiées": "races changed",
+  "Inscriptions enregistrées.": "Entries saved.",
+  "La liste des inscriptions juniors est invalide.": "The junior entries are invalid.",
+  "Rétablir la sélection": "Reset lineup",
+  "Sélection incomplète": "Incomplete lineup",
+  "Une épreuve ne peut apparaître qu’une fois dans la validation.": "Each race can only be submitted once.",
   "Rechercher une épreuve": "Search for a race",
   "Aucune épreuve trouvée": "No races found",
   "{{0}} en mission fédérale": "{{0}} on federation duty",

@@ -104,33 +104,52 @@ export async function updateDevelopmentTeamJerseyAction(formData: FormData) {
   redirectWithMessage("maillot", "succes", "Le maillot de l’équipe de développement est enregistré.");
 }
 
-export async function registerDevelopmentRaceAction(formData: FormData) {
-  const raceEditionId = readValue(formData, "raceEditionId");
-  const riderIds = readRiderIds(formData);
-  if (!isUuid(raceEditionId) || !riderIds?.length || riderIds.length > 6) {
-    redirectWithMessage(
-      "calendrier",
-      "erreur",
-      "La course ou la sélection transmise est invalide.",
-    );
+export async function registerDevelopmentRacesAction(
+  updates: unknown,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const invalidSelection = {
+    ok: false,
+    message: "La liste des inscriptions juniors est invalide.",
+  } as const;
+  if (!Array.isArray(updates) || updates.length < 1 || updates.length > 100) {
+    return invalidSelection;
+  }
+
+  const selections: Array<{ raceEditionId: string; riderIds: string[] }> = [];
+  const raceIds = new Set<string>();
+  for (const update of updates) {
+    if (
+      !update ||
+      typeof update !== "object" ||
+      typeof update.raceEditionId !== "string" ||
+      !isUuid(update.raceEditionId) ||
+      !Array.isArray(update.riderIds) ||
+      update.riderIds.length < 1 ||
+      update.riderIds.length > 6 ||
+      update.riderIds.some((id: unknown) => typeof id !== "string" || !isUuid(id))
+    ) {
+      return invalidSelection;
+    }
+
+    const raceEditionId = update.raceEditionId.toLowerCase();
+    const riderIds = update.riderIds.map((id: string) => id.toLowerCase());
+    if (raceIds.has(raceEditionId) || new Set(riderIds).size !== riderIds.length) {
+      return invalidSelection;
+    }
+    raceIds.add(raceEditionId);
+    selections.push({ raceEditionId, riderIds });
   }
 
   const supabase = await authenticatedClient();
-  const result = await supabase.rpc("register_current_development_race", {
-    p_race_edition_id: raceEditionId,
-    p_academy_rider_ids: riderIds,
+  const { error } = await supabase.rpc("register_current_development_races", {
+    p_updates: selections,
   });
-  if (result.error) {
-    redirectWithMessage("calendrier", "erreur", result.error.message);
+  if (error) {
+    return { ok: false, message: error.message.slice(0, 280) };
   }
 
   revalidateDevelopmentTeam();
-  const payload = result.data as { raceName?: string; riderCount?: number } | null;
-  redirectWithMessage(
-    "calendrier",
-    "succes",
-    `${payload?.riderCount ?? riderIds.length} junior${(payload?.riderCount ?? riderIds.length) > 1 ? "s" : ""} engagé${(payload?.riderCount ?? riderIds.length) > 1 ? "s" : ""} sur ${payload?.raceName ?? "l’épreuve"}.`,
-  );
+  return { ok: true };
 }
 
 async function authenticatedClient() {
