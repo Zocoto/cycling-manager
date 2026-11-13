@@ -106,7 +106,7 @@ describe("header subscription initialization", () => {
     expect(runtime.client.rpc).not.toHaveBeenCalled();
     recordAttendance();
     await vi.runAllTimersAsync();
-    expect(runtime.client.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_header_indicators_v5");
+    expect(runtime.client.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_header_indicators_v6");
     expect(runtime.setCollectorAlbumHasUnopenedBoosters).toHaveBeenLastCalledWith(true);
   });
 
@@ -144,9 +144,9 @@ describe("header subscription initialization", () => {
   });
 
   function expectCompleteSubscription() {
-    expect(runtime.client.rpc).toHaveBeenCalledWith("get_current_game_header_indicators_v5");
+    expect(runtime.client.rpc).toHaveBeenCalledWith("get_current_game_header_indicators_v6");
     expect(runtime.client.channel).toHaveBeenCalledTimes(1);
-    expect(runtime.channel.on).toHaveBeenCalledTimes(5);
+    expect(runtime.channel.on).toHaveBeenCalledTimes(6);
     expect(runtime.channel.on).toHaveBeenCalledWith(
       "postgres_changes",
       expect.objectContaining({ table: "direct_messages", filter: "recipient_id=eq.director-1" }),
@@ -164,7 +164,7 @@ describe("header subscription initialization", () => {
     expect(runtime.setCollectorAlbumAvailable).toHaveBeenLastCalledWith(false);
     runtime.authState.callback!("SIGNED_OUT", null);
     expect(runtime.setCollectorAlbumAvailable).toHaveBeenLastCalledWith(false);
-    expect(runtime.client.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_header_indicators_v5");
+    expect(runtime.client.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_header_indicators_v6");
     const calls = runtime.setCollectorAlbumAvailable.mock.calls.length;
     cleanup?.(); cleanup=undefined;
     expect(runtime.unsubscribeAuth).toHaveBeenCalledTimes(1);
@@ -178,7 +178,7 @@ describe("header subscription initialization", () => {
     expect(runtime.setCollectorAlbumAvailable).toHaveBeenLastCalledWith(true);
     runtime.authState.callback!("INITIAL_SESSION", {user:{id:"another-account"}});
     expect(runtime.setCollectorAlbumAvailable).toHaveBeenLastCalledWith(true);
-    expect(runtime.client.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_header_indicators_v5");
+    expect(runtime.client.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_header_indicators_v6");
     runtime.authState.callback!("SIGNED_OUT", null);
     expect(runtime.setCollectorAlbumAvailable).toHaveBeenLastCalledWith(false);
   });
@@ -225,7 +225,7 @@ describe("header subscription initialization", () => {
   it.each(["owner", "game_staff"])("expose le rôle %s via le même snapshot sans nouvelle RPC", async (role) => {
     runtime.maybeSingle.mockResolvedValue({ data: { ...ROW, game_role: role }, error: null });
     await mount();
-    expect(runtime.client.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_header_indicators_v5");
+    expect(runtime.client.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_header_indicators_v6");
     expect(runtime.setIndicators).toHaveBeenCalledWith(expect.objectContaining({ gameStaffRole: role }));
     expectCompleteSubscription();
   });
@@ -287,7 +287,7 @@ describe("header subscription initialization", () => {
     expect(runtime.client.channel).not.toHaveBeenCalled();
   });
 
-  it("disconnects all five realtime bindings while hidden and catches up on return", async () => {
+  it("disconnects all realtime bindings while hidden and catches up on return", async () => {
     runtime.maybeSingle.mockResolvedValue(SUCCESS);
     await mount();
     expectCompleteSubscription();
@@ -307,7 +307,7 @@ describe("header subscription initialization", () => {
     await vi.runAllTimersAsync();
     expect(runtime.client.rpc).toHaveBeenCalledTimes(requests + 1);
     expect(runtime.client.channel).toHaveBeenCalledTimes(2);
-    expect(runtime.channel.on).toHaveBeenCalledTimes(10);
+    expect(runtime.channel.on).toHaveBeenCalledTimes(12);
     for (const callback of oldCallbacks) callback({ new: { sporting_director_id: "another-director" } });
     await vi.runAllTimersAsync();
     expect(runtime.setIndicators).toHaveBeenCalledTimes(updates + 1);

@@ -22,6 +22,7 @@ import {
 } from "@/lib/game/director-mailbox-sync";
 import { DIRECT_MESSAGES_CHANGED_EVENT } from "@/lib/game/direct-message-sync";
 import { GLOBAL_CHAT_MESSAGES_READ_EVENT } from "@/lib/game/global-chat-read-sync";
+import { GLOBAL_CHAT_QUIZ_READ_EVENT } from "@/lib/game/global-chat-quiz";
 import { createVisibleRefreshScheduler } from "@/lib/game/visible-refresh-scheduler";
 import type { GameStaffRole } from "@/lib/game/game-product-news";
 import { canAccessCollectorAlbum } from "@/lib/game/collector-album-access";
@@ -36,6 +37,7 @@ type GameHeaderIndicators = {
   mailboxUnreadCount: number;
   directMessageUnreadCount: number;
   hasUnreadGlobalChat: boolean;
+  globalChatQuizUnreadUntil: string | null;
   hasUnreadCyclogazette: boolean;
 };
 
@@ -45,6 +47,7 @@ type GameHeaderIndicatorsRow = {
   mailbox_unread_count: number | null;
   direct_message_unread_count: number | null;
   has_unread_global_chat: boolean | null;
+  global_chat_quiz_unread_until?: string | null;
   has_unread_cyclogazette: boolean | null;
   collector_album_available?: boolean | null;
   collector_album_has_unopened_boosters?: boolean | null;
@@ -55,11 +58,13 @@ const EMPTY_INDICATORS: GameHeaderIndicators = {
   mailboxUnreadCount: 0,
   directMessageUnreadCount: 0,
   hasUnreadGlobalChat: false,
+  globalChatQuizUnreadUntil: null,
   hasUnreadCyclogazette: false,
 };
 
 const GameHeaderIndicatorsContext =
   createContext<(GameHeaderIndicators & {
+    hasUnreadGlobalChatQuiz: boolean;
     collectorAlbumAvailable: boolean;
     collectorAlbumHasUnopenedBoosters: boolean;
     pcmExportAvailable: boolean;
@@ -78,9 +83,12 @@ export function GameHeaderIndicatorsProvider({
   const [collectorAlbumAvailable, setCollectorAlbumAvailable] = useState(false);
   const [pcmExportAvailable, setPcmExportAvailable] = useState(false);
   const [collectorAlbumHasUnopenedBoosters, setCollectorAlbumHasUnopenedBoosters] = useState(false);
+  const quizUnreadUntil = indicators.globalChatQuizUnreadUntil;
   const contextValue = useMemo(() => ({
-    ...indicators, collectorAlbumAvailable, collectorAlbumHasUnopenedBoosters, pcmExportAvailable,
-  }), [indicators, collectorAlbumAvailable, collectorAlbumHasUnopenedBoosters, pcmExportAvailable]);
+    ...indicators,
+    hasUnreadGlobalChatQuiz: quizUnreadUntil !== null,
+    collectorAlbumAvailable, collectorAlbumHasUnopenedBoosters, pcmExportAvailable,
+  }), [indicators, quizUnreadUntil, collectorAlbumAvailable, collectorAlbumHasUnopenedBoosters, pcmExportAvailable]);
 
   useEffect(() => {
     let active = true;
@@ -117,7 +125,7 @@ export function GameHeaderIndicatorsProvider({
       const requestVersion = ++requestVersionRef.current;
       const requestedBoosterRevision = boosterRevision;
       const result = await supabase
-        .rpc("get_current_game_header_indicators_v5")
+        .rpc("get_current_game_header_indicators_v6")
         .maybeSingle();
 
       if (!active || result.error || requestVersion !== requestVersionRef.current) {
@@ -137,6 +145,7 @@ export function GameHeaderIndicatorsProvider({
           Number(row?.direct_message_unread_count ?? 0),
         ),
         hasUnreadGlobalChat: row?.has_unread_global_chat === true,
+        globalChatQuizUnreadUntil: row?.global_chat_quiz_unread_until ?? null,
         hasUnreadCyclogazette:
           row?.has_unread_cyclogazette === true,
       });
@@ -204,6 +213,12 @@ export function GameHeaderIndicatorsProvider({
       }));
     }
 
+    function refreshQuizIndicator() {
+      // A response started before the announcement or acknowledgement is stale.
+      requestVersionRef.current += 1;
+      scheduleRefresh();
+    }
+
     function acknowledgeCyclogazetteRead() {
       requestVersionRef.current += 1;
       setIndicators((current) => ({
@@ -236,6 +251,7 @@ export function GameHeaderIndicatorsProvider({
       GLOBAL_CHAT_MESSAGES_READ_EVENT,
       acknowledgeGlobalChatRead,
     );
+    window.addEventListener(GLOBAL_CHAT_QUIZ_READ_EVENT, refreshQuizIndicator);
     window.addEventListener(
       CYCLOGAZETTE_READ_EVENT,
       acknowledgeCyclogazetteRead,
@@ -260,6 +276,7 @@ export function GameHeaderIndicatorsProvider({
           if (signedOut || accountChanged) {
             publicAlbumAvailable = false;
             requestVersionRef.current += 1;
+            setIndicators(EMPTY_INDICATORS);
             setCollectorAlbumHasUnopenedBoosters(false);
             stopRealtimeIndicators();
           }
@@ -295,6 +312,16 @@ export function GameHeaderIndicatorsProvider({
               ...current,
               hasUnreadGlobalChat: true,
             }));
+          },
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "global_chat_quiz_events" },
+          (payload: { eventType: string; new: Record<string, unknown> }) => {
+            if (!canReceive()) return;
+            if (payload.eventType === "INSERT" || (payload.eventType === "UPDATE" && payload.new.status === "won")) {
+              refreshQuizIndicator();
+            }
           },
         )
         .on(
@@ -377,6 +404,7 @@ export function GameHeaderIndicatorsProvider({
         GLOBAL_CHAT_MESSAGES_READ_EVENT,
         acknowledgeGlobalChatRead,
       );
+      window.removeEventListener(GLOBAL_CHAT_QUIZ_READ_EVENT, refreshQuizIndicator);
       window.removeEventListener(
         CYCLOGAZETTE_READ_EVENT,
         acknowledgeCyclogazetteRead,
@@ -386,6 +414,16 @@ export function GameHeaderIndicatorsProvider({
       stopRealtimeIndicators();
     };
   }, [attendanceReady]);
+
+  useEffect(() => {
+    if (!quizUnreadUntil) return;
+    const timer = window.setTimeout(() => setIndicators(current =>
+      current.globalChatQuizUnreadUntil === quizUnreadUntil
+        ? { ...current, globalChatQuizUnreadUntil: null }
+        : current,
+    ), Math.max(0, Date.parse(quizUnreadUntil) - Date.now()));
+    return () => window.clearTimeout(timer);
+  }, [quizUnreadUntil]);
 
   return (
     <GameHeaderIndicatorsContext value={contextValue}>

@@ -43,7 +43,7 @@ describe("game header indicators provider", () => {
     expect(provider).not.toContain(
       'import { createSupabaseBrowserClient } from "@/lib/supabase/client"',
     );
-    expect(provider).toContain('.rpc("get_current_game_header_indicators_v5")');
+    expect(provider).toContain('.rpc("get_current_game_header_indicators_v6")');
     expect(provider).toContain('.channel("game-header-indicators:v2")');
     expect(provider.match(/\.channel\(/g)).toHaveLength(1);
     expect(provider).toContain('table: "sporting_director_messages"');

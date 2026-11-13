@@ -4,11 +4,13 @@ import { isUuid } from "@/lib/game/direct-messages";
 
 export const GLOBAL_CHAT_QUIZ_RESULT_VISIBILITY_MS = 15 * 60_000;
 export const GLOBAL_CHAT_QUIZ_PORTRAIT_BUCKET = "global-chat-quiz-portraits";
+export const GLOBAL_CHAT_QUIZ_READ_EVENT = "global-chat:quiz-read";
 
 export type GlobalChatQuizRound = {
   id: string;
   startsAt: string;
   endsAt: string;
+  notificationAt?: string;
   status: "open" | "won" | "expired";
   portraitPath: string;
   answerName: string | null;
@@ -24,6 +26,7 @@ export function readGlobalChatQuizRound(value: unknown): GlobalChatQuizRound | n
   const { id, status } = row;
   const startsAt = row.startsAt ?? row.starts_at;
   const endsAt = row.endsAt ?? row.ends_at;
+  const notificationAt = row.notificationAt ?? row.notification_at;
   const portraitPath = row.portraitPath ?? row.portrait_path;
   if (typeof id !== "string" || !isUuid(id) ||
     (status !== "open" && status !== "won" && status !== "expired") ||
@@ -43,6 +46,7 @@ export function readGlobalChatQuizRound(value: unknown): GlobalChatQuizRound | n
 
   return {
     id, startsAt, endsAt, status, portraitPath,
+    ...(typeof notificationAt === "string" && Number.isFinite(Date.parse(notificationAt)) ? { notificationAt } : {}),
     answerName: status !== "open" && typeof answerName === "string" ? answerName : null,
     answerRiderId: status !== "open" && typeof riderId === "string" && isUuid(riderId) ? riderId : null,
     winnerUsername,

@@ -78,6 +78,8 @@ import { notifyGlobalChatMessagesRead } from "@/lib/game/global-chat-read-sync";
 import { notifyCycloStickersBoostersChanged } from "@/lib/game/cyclo-stickers-booster-sync";
 import {
   GLOBAL_CHAT_QUIZ_PORTRAIT_BUCKET,
+  GLOBAL_CHAT_QUIZ_READ_EVENT,
+  GLOBAL_CHAT_QUIZ_RESULT_VISIBILITY_MS,
   loadGlobalChatQuizHistory,
   mergeGlobalChatQuizRound,
   readGlobalChatQuizRound,
@@ -223,6 +225,7 @@ export function GlobalGameChat({
   const quizHistoryFrom = useRef(initialHasMore ? quizHistoryPageStart(initialMessages[0]) : undefined);
   const quizRevision = useRef(0);
   const syncedQuizWinId = useRef<string | null>(null);
+  const lastQuizReadAt = useRef<string | null>(null);
   const mergeQuizHistory = useCallback((rounds: GlobalChatQuizRound[]) => {
     if (rounds.length === 0) return;
     setQuizHistory((current) => {
@@ -842,6 +845,24 @@ export function GlobalGameChat({
     syncedQuizWinId.current = quizRound.id;
     notifyCycloStickersBoostersChanged();
   }, [identity.sportingDirectorId, quizRound]);
+
+  useEffect(() => {
+    if (activeMode !== "global" || !documentVisible || !quizRound ||
+      Date.parse(quizRound.endsAt) + GLOBAL_CHAT_QUIZ_RESULT_VISIBILITY_MS <= Date.now()) return;
+    const readAt = quizRound.notificationAt ?? quizRound.startsAt;
+    if (lastQuizReadAt.current && Date.parse(lastQuizReadAt.current) >= Date.parse(readAt)) return;
+    lastQuizReadAt.current = readAt;
+
+    void (async () => {
+      try {
+        const { error } = await supabase.rpc("mark_global_chat_quiz_read", { p_read_at: readAt });
+        if (error) throw error;
+        window.dispatchEvent(new Event(GLOBAL_CHAT_QUIZ_READ_EVENT));
+      } catch {
+        if (lastQuizReadAt.current === readAt) lastQuizReadAt.current = null;
+      }
+    })();
+  }, [activeMode, documentVisible, quizRound, supabase]);
 
   useEffect(() => {
     if (!documentVisible) {

@@ -1,9 +1,25 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { GlobalChatShortcut } from "./global-chat-shortcut";
 
+const { indicators } = vi.hoisted(() => ({ indicators: vi.fn() }));
+vi.mock("./game-header-indicators-provider", () => ({
+  useGameHeaderIndicators: indicators,
+}));
+
 describe("GlobalChatShortcut", () => {
+  afterEach(() => indicators.mockReset());
+
+  it("gives an unread quiz priority over red chat notifications on the mobile shortcut", () => {
+    indicators.mockReturnValue({ hasUnreadGlobalChatQuiz: true, hasUnreadGlobalChat: true, directMessageUnreadCount: 1 });
+    const markup = renderToStaticMarkup(<GlobalChatShortcut floatingOnMobile />);
+    expect(markup).toContain("bg-[#C084FC]");
+    expect(markup).toContain("nouveau message de Quizz’o Stratège");
+    expect(markup).not.toContain("bg-[#EF5B65]");
+    expect(renderToStaticMarkup(<GlobalChatShortcut chatIsOpen />)).toContain("bg-[#42B99A]");
+  });
+
   it("affiche une pastille verte quand le chat est à jour", () => {
     const markup = renderToStaticMarkup(<GlobalChatShortcut />);
 

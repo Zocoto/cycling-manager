@@ -16,11 +16,12 @@ export function GlobalChatShortcut({
   const hasUnread = indicators
     ? indicators.hasUnreadGlobalChat || indicators.directMessageUnreadCount > 0
     : initialHasUnread;
-  const displayedUnread = chatIsOpen ? false : hasUnread;
+  const displayedQuiz = !chatIsOpen && indicators?.hasUnreadGlobalChatQuiz === true;
+  const displayedUnread = !chatIsOpen && (hasUnread || displayedQuiz);
 
-  const label = displayedUnread
-    ? "Ouvrir le chat · nouveaux messages non lus"
-    : "Ouvrir le chat";
+  const label = displayedQuiz
+    ? "Ouvrir le chat · nouveau message de Quizz’o Stratège"
+    : displayedUnread ? "Ouvrir le chat · nouveaux messages non lus" : "Ouvrir le chat";
 
   return (
     <Link
@@ -50,7 +51,9 @@ export function GlobalChatShortcut({
       <span
         aria-hidden="true"
         className={`absolute right-1.5 top-1.5 h-2 w-2 rounded-full border border-[#071A17] transition ${
-          displayedUnread
+          displayedQuiz
+            ? "bg-[#C084FC] shadow-[0_0_0_3px_rgba(192,132,252,0.28)] motion-safe:animate-pulse"
+            : displayedUnread
             ? "bg-[#EF5B65] shadow-[0_0_0_3px_rgba(239,91,101,0.18)] motion-safe:animate-pulse"
             : "bg-[#42B99A] group-hover:bg-[var(--game-header-accent)]"
         }`}

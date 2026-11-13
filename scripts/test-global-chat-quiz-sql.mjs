@@ -406,6 +406,71 @@ try {
   `);
   equal((await history('select id from public.get_global_chat_quiz_history()')).length, 60, 'each history read is bounded');
 
+  // Use the existing v5 interface here. The real v6 wraps it and must preserve
+  // its results while checking the independent quiz read receipt.
+  await db.exec(`
+    create function public.get_current_game_header_indicators_v5()
+    returns table (
+      current_sporting_director_id uuid, mailbox_unread_count integer,
+      direct_message_unread_count integer, has_unread_global_chat boolean,
+      has_unread_cyclogazette boolean, game_role text, collector_album_available boolean,
+      collector_album_has_unopened_boosters boolean
+    )
+    language sql stable as $$
+      select (select director.id from public.sporting_directors director
+        where director.auth_user_id = auth.uid() and director.status = 'active'),
+        2, 3, true, false, null::text, true, false
+    $$;
+  `);
+  await runFixture('../supabase/migrations/20261113150000_add_unread_global_chat_quiz_indicator.sql');
+  const header = async (number = 1) => (
+    await withRole('authenticated', number, () => rows('select * from public.get_current_game_header_indicators_v6()'))
+  )[0];
+  const readQuiz = (number, at) => withRole('authenticated', number, () =>
+    scalar('select public.mark_global_chat_quiz_read($1)::text', [at])
+  );
+  const legacyOpen = await publicState();
+  equal(legacyOpen.id, openId, 'future event is not returned as the current question');
+  equal(legacyOpen.notificationAt, legacyOpen.startsAt, 'active event predating migration uses its start time');
+  equal((await header()).has_unread_global_chat_quiz, true, 'a visible legacy question can be unread');
+  equal((await header(99)).has_unread_global_chat_quiz, false, 'authenticated subject without a director sees no badge');
+  await readQuiz(1, legacyOpen.notificationAt);
+  const readHeader = await header();
+  equal(readHeader.has_unread_global_chat_quiz, false, 'opening a question clears its badge');
+  equal(readHeader.global_chat_quiz_unread_until, null, 'read badge has no timer');
+  equal(readHeader.has_unread_global_chat, true, 'reading quiz does not clear ordinary chat');
+  equal(readHeader.direct_message_unread_count, 3, 'v5 direct message count is preserved');
+  equal((await header(2)).has_unread_global_chat_quiz, true, 'receipts belong only to the current director');
+  equal(await readQuiz(99, legacyOpen.notificationAt), null, 'unregistered subjects cannot mark a quiz read');
+  await assert.rejects(
+    () => withRole('anon', null, () => scalar('select public.mark_global_chat_quiz_read(now())')),
+    /permission denied for function/
+  );
+  await assert.rejects(
+    () => withRole('anon', null, () => rows('select * from public.get_current_game_header_indicators_v6()')),
+    /permission denied for function/
+  );
+  checks += 2;
+
+  await db.exec('delete from public.global_chat_quiz_events');
+  await scalar('select public.quiz_fixture_open_round()');
+  const publishedQuestion = await publicState();
+  equal(publishedQuestion.notificationAt > publishedQuestion.startsAt, true, 'the quiz records its actual publication time');
+  equal((await header()).has_unread_global_chat_quiz, true, 'a new question reopens the badge');
+  equal((await header()).global_chat_quiz_unread_until.toISOString(),
+    new Date(Date.parse(publishedQuestion.endsAt) + 15 * 60_000).toISOString(), 'badge expires with the result card');
+  const questionReceipt = await readQuiz(1, publishedQuestion.notificationAt);
+  equal(await readQuiz(1, legacyOpen.notificationAt), questionReceipt, 'out-of-order read acknowledgements cannot regress');
+  await post(15, exact);
+  const solvedQuestion = await publicState();
+  equal(solvedQuestion.status, 'won', 'the real scoring trigger posts the result');
+  equal(solvedQuestion.notificationAt > publishedQuestion.notificationAt, true, 'the winner announcement gets its own timestamp');
+  equal((await header()).has_unread_global_chat_quiz, true, 'the winner announcement reopens a previously read badge');
+  await readQuiz(1, solvedQuestion.notificationAt);
+  equal((await header()).has_unread_global_chat_quiz, false, 'the winner announcement can be read');
+  await db.exec("update public.global_chat_quiz_events set ends_at = now() - interval '16 minutes'");
+  equal((await header(2)).global_chat_quiz_unread_until, null, 'unread results expire at the end of their visibility window');
+
   console.log(JSON.stringify({ isolatedPostgresChecks: checks, productionAccess: false }));
 } finally {
   await db.close();
