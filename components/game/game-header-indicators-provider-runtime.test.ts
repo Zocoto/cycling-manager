@@ -16,6 +16,7 @@ const runtime = vi.hoisted(() => {
     setCollectorAlbumAvailable: vi.fn(),
     setPcmExportAvailable: vi.fn(),
     setCollectorAlbumHasUnopenedBoosters: vi.fn(),
+    setStickerTradeNotification: vi.fn(),
     booleanStateIndex: 0,
     authState,
     unsubscribeAuth,
@@ -37,7 +38,7 @@ const runtime = vi.hoisted(() => {
 vi.mock("react", async (importOriginal) => ({
   ...await importOriginal<typeof import("react")>(),
   useEffect: (effect: () => void | (() => void)) => { runtime.effects.push(effect); },
-  useState: (initial: unknown) => [initial, typeof initial === "boolean"
+  useState: (initial: unknown) => [initial, initial === null ? runtime.setStickerTradeNotification : typeof initial === "boolean"
     ? [runtime.setCollectorAlbumAvailable, runtime.setPcmExportAvailable, runtime.setCollectorAlbumHasUnopenedBoosters][runtime.booleanStateIndex++]
     : runtime.setIndicators],
   useMemo: (factory: () => unknown) => factory(),
@@ -208,6 +209,38 @@ describe("header subscription initialization", () => {
     expect(runtime.setCollectorAlbumAvailable).toHaveBeenLastCalledWith(false);
     expect(runtime.setCollectorAlbumAvailable.mock.calls.some(([value])=>value===true)).toBe(false);
     expect(runtime.client.channel).not.toHaveBeenCalled();
+  });
+
+  it("shows a trade alert from the existing recipient mailbox subscription and clears it when the account changes", async () => {
+    runtime.maybeSingle.mockResolvedValue(SUCCESS);
+    await mount();
+    runtime.authState.callback!("INITIAL_SESSION", { user: { id: "player" } });
+    const insertMail = runtime.channel.on.mock.calls.find(([, filter]) =>
+      filter.table === "sporting_director_messages" && filter.event === "INSERT",
+    )?.[2];
+    expect(insertMail).toEqual(expect.any(Function));
+
+    const message = {
+      sporting_director_id: ROW.current_sporting_director_id,
+      sender_name: "Un DS",
+      source_reference: "cyclo-stickers:trade:12345678-1234-1234-1234-123456789abc:proposed",
+    };
+    insertMail({ new: { ...message, sporting_director_id: "other-director" } });
+    insertMail({ new: { ...message, read_at: "2026-11-14T19:00:00Z" } });
+    insertMail({ new: { ...message, source_reference: "transfer-offer:xyz:received" } });
+    expect(runtime.setStickerTradeNotification).not.toHaveBeenCalled();
+
+    insertMail({ new: message });
+    expect(runtime.setStickerTradeNotification).toHaveBeenCalledExactlyOnceWith({ senderName: "Un DS" });
+    insertMail({ new: message });
+    expect(runtime.setStickerTradeNotification).toHaveBeenCalledTimes(1);
+    expectCompleteSubscription();
+    expect(runtime.client.rpc).toHaveBeenCalledTimes(1);
+
+    runtime.authState.callback!("SIGNED_IN", { user: { id: "other-player" } });
+    expect(runtime.setStickerTradeNotification).toHaveBeenLastCalledWith(null);
+    insertMail({ new: { ...message, source_reference: "cyclo-stickers:trade:87654321-1234-1234-1234-123456789abc:proposed" } });
+    expect(runtime.setStickerTradeNotification).toHaveBeenCalledTimes(2);
   });
 
   it("waits for a successful identified snapshot after the first RPC fails", async () => {

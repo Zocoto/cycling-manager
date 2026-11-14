@@ -42,8 +42,8 @@ export type CollectorAlbumTab = "album" | "trades" | "boosters" | "achievements"
 export type CollectorAlbumRuntime = {
   state: AlbumPilotState; ready: boolean; boosterCount: number; tradeCount: number; ownerName: string;
   notice: string; onAction: (action: AlbumPilotAction) => void;
-  boosters: ReactNode; achievements: ReactNode; trades: (requestedCard: number | null, wanted: readonly number[]) => ReactNode;
-  duplicates?: ReactNode;
+  boosters: ReactNode; achievements: ReactNode; trades: (requestedCard: number | null, wanted: readonly number[], offeredCard: number | null) => ReactNode;
+  duplicates?: (onOffer: (number: number) => void) => ReactNode;
   leaderboard?: StickerAlbumLeaderboard | null;
   onViewLeaderboard?: () => void;
 };
@@ -77,6 +77,7 @@ export function CollectorAlbum({ snapshot, storageOwnerId, initialTab = "album",
   const [openingCover, setOpeningCover] = useState(false);
   const [turn, setTurn] = useState<{number:number; direction:"next"|"previous"}>({number:0,direction:"next"});
   const [requestedCard, setRequestedCard] = useState<number | null>(null);
+  const [offeredCard, setOfferedCard] = useState<number | null>(null);
   const openingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gesture = useRef<{x:number;y:number;pointerId:number}|null>(null);
   const chapterId = useId();
@@ -218,16 +219,26 @@ export function CollectorAlbum({ snapshot, storageOwnerId, initialTab = "album",
       cover?.scrollIntoView({ block: "start", behavior: "auto" });
     });
   };
+  const offerDuplicate = (number: number) => {
+    setRequestedCard(null);
+    setOfferedCard(number);
+    setTab("trades");
+    focusTradeDesk();
+  };
   const findCard = (number:number) => {
+    setOfferedCard(null);
     setRequestedCard(number);
     setTab("trades");
     setNotice(privatePreview ? "La carte recherchée est sélectionnée dans les échanges de démonstration." : "La carte recherchée est sélectionnée dans le carnet d’échanges.");
+    focusTradeDesk();
+  };
+  function focusTradeDesk() {
     requestAnimationFrame(() => {
       const composer = document.querySelector<HTMLElement>("[data-album-trade-composer]");
-      composer?.focus({preventScroll:true});
-      composer?.scrollIntoView({block:"start",behavior:"auto"});
+      composer?.focus({ preventScroll: true });
+      composer?.scrollIntoView({ block: "start", behavior: "auto" });
     });
-  };
+  }
   const showCardInBook = (card: CollectorCard) => {
     if (card.kind) {
       const leaf = getAlbumIntroductionLeaves(snapshot.cards).findIndex(cards => cards.some(entry => entry.number === card.number));
@@ -267,6 +278,7 @@ export function CollectorAlbum({ snapshot, storageOwnerId, initialTab = "album",
         <button type="button" aria-pressed={tab === "boosters"} onClick={() => setTab("boosters")}>Boosters <span>{closedPackCount}</span></button>
         <button type="button" aria-pressed={tab === "trades"} onClick={() => {
           setRequestedCard(null);
+          setOfferedCard(null);
           setTab("trades");
         }}>Échanges <span>{privatePreview ? "Démo" : runtime?.tradeCount ?? 0}</span>{privatePreview && state.pending ? " · 1" : ""}</button>
         {runtime?.duplicates !== undefined && (
@@ -283,7 +295,7 @@ export function CollectorAlbum({ snapshot, storageOwnerId, initialTab = "album",
 
     {tab === "leaderboard" ? (
       leaderboard !== undefined && <CollectorAlbumLeaderboard leaderboard={leaderboard} total={snapshot.cards.length} />
-    ) : tab === "duplicates" ? runtime?.duplicates : tab === "album" && !bookOpen ? (
+    ) : tab === "duplicates" ? runtime?.duplicates?.(offerDuplicate) : tab === "album" && !bookOpen ? (
       <div className={leaderboard !== undefined ? ranking.closedLayout : undefined}>
         <section className={book.coverStage} aria-label="Couverture de l’album">
           <CollectorAlbumCover
@@ -375,7 +387,7 @@ export function CollectorAlbum({ snapshot, storageOwnerId, initialTab = "album",
         </section>
         </div>
         </div>
-        <aside className={`${styles.wallet} ${retro.collectorTable} ${spread.walletShelf}`}><div className={styles.walletHeading}><p className={styles.eyebrow}>SUR LA TABLE</p><h2>Les cartes à coller <span>{available.length}</span></h2><p>Choisis leur page, puis colle tes cartes.</p><p>{duplicateCount} doublon(s) échangeable(s) · {wanted.length} carte(s) recherchée(s)</p><button type="button" className={styles.textButton} onClick={()=>{setRequestedCard(null);setTab("trades");}}>Ouvrir mon carnet d’échanges ↗</button></div>
+        <aside className={`${styles.wallet} ${retro.collectorTable} ${spread.walletShelf}`}><div className={styles.walletHeading}><p className={styles.eyebrow}>SUR LA TABLE</p><h2>Les cartes à coller <span>{available.length}</span></h2><p>Choisis leur page, puis colle tes cartes.</p><p>{duplicateCount} doublon(s) échangeable(s) · {wanted.length} carte(s) recherchée(s)</p><button type="button" className={styles.textButton} onClick={()=>{setRequestedCard(null);setOfferedCard(null);setTab("trades");}}>Ouvrir mon carnet d’échanges ↗</button></div>
           {available.length ? available.slice(visibleWalletPage*2,visibleWalletPage*2+2).map(id => <div className={`${styles.walletCard} ${format.slot}`} key={id}><CollectorCardFace card={cardFor(id)} season={snapshot.sourceSeason} provisional={provisional} /><p className={retro.copyCount}>{getAlbumOwnedCardCount(state,id)} exemplaire(s) · {getLooseAlbumCardCount(state,id)} disponible(s)</p><button type="button" className={styles.primaryButton} disabled={!store.ready || state.pasted.includes(id) || getLooseAlbumCardCount(state,id)<1} onClick={() => {
             const card = cardFor(id);
             showCardInBook(card);
@@ -385,7 +397,7 @@ export function CollectorAlbum({ snapshot, storageOwnerId, initialTab = "album",
           <div className={styles.gazetteNote}><span aria-hidden="true">✉</span><h3>Les rendez-vous du collectionneur</h3><p>Les boosters de connexion et de parrainage restent attachés à leur édition. Chaque sachet contient deux vignettes.</p></div>
         </aside>
       </div>
-    </> : tab === "boosters" ? runtime?.boosters ?? <CollectorAlbumBoosters state={state} ready={store.ready} snapshot={snapshot} onAction={send} onViewAlbum={()=>{setTab("album");if(hasIntroduction&&!reading.lastProfile)showIntroduction();else switchProfile(reading.lastProfile ?? profile);}} onPasteCards={pasteCards} /> : tab === "achievements" ? runtime?.achievements ?? <CollectorAlbumAchievements state={state} ready={store.ready} snapshot={snapshot} onAction={send} /> : runtime?.trades(requestedCard,wanted) ?? <CollectorAlbumTradeDesk key={requestedCard ?? "desk"} state={state} ready={store.ready} snapshot={snapshot} onAction={send} requestedCard={requestedCard} wanted={wanted} onToggleWanted={number=>read({type:"wanted",card:number})} />}
+    </> : tab === "boosters" ? runtime?.boosters ?? <CollectorAlbumBoosters state={state} ready={store.ready} snapshot={snapshot} onAction={send} onViewAlbum={()=>{setTab("album");if(hasIntroduction&&!reading.lastProfile)showIntroduction();else switchProfile(reading.lastProfile ?? profile);}} onPasteCards={pasteCards} /> : tab === "achievements" ? runtime?.achievements ?? <CollectorAlbumAchievements state={state} ready={store.ready} snapshot={snapshot} onAction={send} /> : runtime?.trades(requestedCard,wanted,offeredCard) ?? <CollectorAlbumTradeDesk key={requestedCard ?? "desk"} state={state} ready={store.ready} snapshot={snapshot} onAction={send} requestedCard={requestedCard} wanted={wanted} onToggleWanted={number=>read({type:"wanted",card:number})} />}
     {privatePreview ? <div className={styles.pilotNote}><span aria-hidden="true">✦</span><p><strong>Ton exemplaire de démonstration.</strong> Deux cartes et deux sachets d’essai. {snapshot.gamesEdition?"Les 19 vignettes d’ouverture sont fournies pour ce test. ":null}Progression et échanges restent dans ce navigateur. Les récompenses sont simulées, sans effet sur ton équipe.</p></div> : null}
     <footer className={styles.legend}><div><h2>Les finitions de la collection</h2><p>Le classement UCI final S{snapshot.sourceSeason} détermine la finition. Les notes restent celles du coureur, sans bonus d’équipement.</p><div className={styles.rarityLegend}><span>✦ Or <small>1–5</small></span><span>✦ Argent <small>6–20</small></span><span>✦ Bronze <small>{snapshot.cards.filter(card=>!card.kind).length>50?"21+":"21–50"}</small></span></div></div>{privatePreview ? <div className={styles.reset}><p>Aperçu privé · aucun effet sur les courses, les finances ou les inventaires des joueurs.</p>{resetConfirm ? <div><button type="button" onClick={()=>{send({type:"reset"},"La démonstration est réinitialisée : tes deux cartes de départ sont disponibles.");setReading(createAlbumReadingState());setProfile("tours");setInIntroduction(hasIntroduction);setIntroLeaf(0);setBookOpen(false);setRequestedCard(null);setResetConfirm(false);}}>Confirmer la remise à zéro</button><button type="button" onClick={()=>setResetConfirm(false)}>Garder mon essai</button></div> : <button type="button" onClick={()=>setResetConfirm(true)}>Réinitialiser uniquement cet essai</button>}</div> : null}</footer>
   </div>;

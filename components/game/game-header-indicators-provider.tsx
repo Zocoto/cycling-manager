@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from "react";
 
+import { useLocale } from "@/components/i18n/locale-provider";
 import {
   CYCLO_STICKERS_BOOSTERS_CHANGED_EVENT,
   type CycloStickersBoostersChangedDetail,
@@ -53,6 +54,8 @@ type GameHeaderIndicatorsRow = {
   collector_album_has_unopened_boosters?: boolean | null;
 };
 
+type StickerTradeNotification = { senderName: string | null };
+
 const EMPTY_INDICATORS: GameHeaderIndicators = {
   gameStaffRole: null,
   mailboxUnreadCount: 0,
@@ -83,6 +86,7 @@ export function GameHeaderIndicatorsProvider({
   const [collectorAlbumAvailable, setCollectorAlbumAvailable] = useState(false);
   const [pcmExportAvailable, setPcmExportAvailable] = useState(false);
   const [collectorAlbumHasUnopenedBoosters, setCollectorAlbumHasUnopenedBoosters] = useState(false);
+  const [stickerTradeNotification, setStickerTradeNotification] = useState<StickerTradeNotification | null>(null);
   const quizUnreadUntil = indicators.globalChatQuizUnreadUntil;
   const contextValue = useMemo(() => ({
     ...indicators,
@@ -101,6 +105,7 @@ export function GameHeaderIndicatorsProvider({
     let publicAlbumAvailable = false;
     let boosterRevision = 0;
     let authSubscription: { unsubscribe: () => void } | null = null;
+    let latestStickerTradeSource: string | null = null;
     const refreshScheduler = createVisibleRefreshScheduler({
       isVisible: () => document.visibilityState === "visible",
       refresh: async () => {
@@ -278,6 +283,8 @@ export function GameHeaderIndicatorsProvider({
             requestVersionRef.current += 1;
             setIndicators(EMPTY_INDICATORS);
             setCollectorAlbumHasUnopenedBoosters(false);
+            setStickerTradeNotification(null);
+            latestStickerTradeSource = null;
             stopRealtimeIndicators();
           }
           authUserId = nextUserId;
@@ -353,11 +360,17 @@ export function GameHeaderIndicatorsProvider({
             (payload: { new: Record<string, unknown> }) => {
               if (!canReceive()) return;
               const message = payload.new;
-              if (message.read_at || message.archived_at) return;
+              if (message.sporting_director_id !== row.current_sporting_director_id || message.read_at || message.archived_at) return;
               setIndicators((current) => ({
                 ...current,
                 mailboxUnreadCount: current.mailboxUnreadCount + 1,
               }));
+              const source = message.source_reference;
+              if (typeof source === "string" && /^cyclo-stickers:trade:[0-9a-f-]+:proposed$/i.test(source) && source !== latestStickerTradeSource) {
+                latestStickerTradeSource = source;
+                const senderName = typeof message.sender_name === "string" ? message.sender_name.trim() : "";
+                setStickerTradeNotification({ senderName: senderName && senderName !== "La Cyclogazette" ? senderName : null });
+              }
             },
           )
           .on(
@@ -428,7 +441,35 @@ export function GameHeaderIndicatorsProvider({
   return (
     <GameHeaderIndicatorsContext value={contextValue}>
       {children}
+      <StickerTradeNotice notification={stickerTradeNotification} onDismiss={() => setStickerTradeNotification(null)} />
     </GameHeaderIndicatorsContext>
+  );
+}
+
+function StickerTradeNotice({ notification, onDismiss }: {
+  notification: StickerTradeNotification | null;
+  onDismiss: () => void;
+}) {
+  const { locale } = useLocale();
+  const isEnglish = locale === "en";
+  return (
+    <div role="status" aria-live="polite" className="pointer-events-none fixed inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] z-[130] sm:left-auto sm:right-4 sm:w-96">
+      {notification ? (
+        <article className="pointer-events-auto relative rounded-2xl border border-[#67998C] bg-[#102D27] p-4 text-[#FFFDF4] shadow-xl shadow-black/25">
+          <p className="pr-8 text-sm font-black">
+            {isEnglish ? "New Cyclo-Stickers trade offer" : "Nouvelle proposition d’échange Cyclo-Stickers"}
+          </p>
+          {notification.senderName ? <p className="mt-1 break-words text-xs text-[#CCE4D9]">{notification.senderName}</p> : null}
+          {/* A document navigation also refreshes the already-open received offers view. */}
+          <a href="/jeu/album?onglet=echanges&vue=recues" className="mt-3 inline-block rounded-lg bg-[#F4D48C] px-3 py-2 text-xs font-black text-[#493414] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F4D48C]">
+            {isEnglish ? "View received offers" : "Voir les propositions reçues"}
+          </a>
+          <button type="button" onClick={onDismiss} aria-label={isEnglish ? "Dismiss notification" : "Fermer la notification"} className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-lg text-xl leading-none hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-[#F4D48C]">
+            ×
+          </button>
+        </article>
+      ) : null}
+    </div>
   );
 }
 

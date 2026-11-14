@@ -11,7 +11,7 @@ import { getCycloStickersLeaderboard } from "@/lib/game/cyclo-stickers-leaderboa
 
 export const metadata: Metadata = { title: "Album de Cyclo-Stickers", robots: {index: false, follow: false} };
 
-export default async function CollectorAlbumPage({searchParams}: {searchParams?: Promise<{saison?:string;onglet?:string}>}) {
+export default async function CollectorAlbumPage({searchParams}: {searchParams?: Promise<{saison?:string;onglet?:string;vue?:string}>}) {
   const supabase = await createSupabaseServerClient();
   const { data: { user }, error } = await getAuthenticatedUser(supabase);
   if (error || !user) redirect("/connexion");
@@ -35,11 +35,12 @@ export default async function CollectorAlbumPage({searchParams}: {searchParams?:
       return <main className="min-h-screen bg-[#e8efed] text-[#172d29]">
         <GameHeader simulatorEmail={user.email} displayName={header.displayName} sponsor={header.teamSponsorVisual} maxWidth="wide" collectorAlbumAvailable />
         <CycloStickersPersistentAlbum
-          key={album.snapshot.edition}
+          key={`${album.snapshot.edition}:${params?.onglet ?? "album"}:${params?.vue ?? ""}`}
           snapshot={album.snapshot}
           initialState={album.state}
           initialLeaderboard={leaderboard}
           initialTab={params?.onglet === "classement" ? "leaderboard" : initialTab}
+          initialTradeView={params?.onglet === "echanges" && params?.vue === "recues" ? "inbox" : "compose"}
           loginBoosterProgress={album.loginBoosterProgress}
         />
       </main>;

@@ -92,6 +92,38 @@
   font-size: .75rem;
 }
 
+.tradeDuplicate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  min-height: 44px;
+  padding: .45rem .8rem;
+  border: 1px solid #195343;
+  border-radius: 8px;
+  background: #195343;
+  color: #fff;
+  font-size: .8rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.tradeDuplicate:hover:not(:disabled) {
+  background: #103b31;
+}
+
+.tradeDuplicate:focus-visible {
+  outline: 2px solid #196b56;
+  outline-offset: 3px;
+}
+
+.tradeDuplicate:disabled {
+  background: #edf1ee;
+  border-color: #d2ded6;
+  color: #5b6e65;
+  cursor: default;
+}
+
 .empty {
   margin-top: 1rem;
   color: #605846;

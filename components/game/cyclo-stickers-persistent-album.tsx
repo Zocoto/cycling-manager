@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useLocale } from "@/components/i18n/locale-provider";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { ALBUM_ACHIEVEMENTS, getAlbumAchievementProgress, type AlbumPilotAction, type CollectorAlbumSnapshot } from "@/lib/game/collector-album";
 import { notifyCycloStickersBoostersChanged } from "@/lib/game/cyclo-stickers-booster-sync";
@@ -28,12 +29,14 @@ export function CycloStickersPersistentAlbum({
   initialState,
   initialLeaderboard = null,
   initialTab = "album",
+  initialTradeView = "compose",
   loginBoosterProgress = null,
 }: {
   snapshot: CollectorAlbumSnapshot;
   initialState: CycloStickersPersistentState;
   initialLeaderboard?: StickerAlbumLeaderboard | null;
   initialTab?: CollectorAlbumTab;
+  initialTradeView?: "compose" | "inbox";
   loginBoosterProgress?: WeeklyLoginBoosterProgress | null;
 }) {
   const [state, setState] = useState(initialState);
@@ -86,9 +89,19 @@ export function CycloStickersPersistentAlbum({
     notice, onAction: send,
     leaderboard, onViewLeaderboard: () => void refreshLeaderboard(),
     boosters: <PersistentBoosters snapshot={snapshot} state={state} busy={busy} mutate={mutate} loginBoosterProgress={loginBoosterProgress} onPaste={card => send({ type: "paste", card })} />,
-    duplicates: <PersistentDuplicates snapshot={snapshot} owned={state.owned} />,
+    duplicates: onOffer => <PersistentDuplicates snapshot={snapshot} owned={state.owned} busy={busy} onOffer={onOffer} />,
     achievements: <PersistentAchievements snapshot={snapshot} state={state} busy={busy} onAction={send} />,
-    trades: (requestedCard, wanted) => <CycloStickersTrades key={requestedCard ?? "desk"} snapshot={snapshot} state={state} busy={busy} mutate={mutate} initialTarget={requestedCard} wanted={wanted} />,
+    trades: (requestedCard, wanted, offeredCard) => <CycloStickersTrades
+      key={`${requestedCard ?? ""}:${offeredCard ?? ""}`}
+      snapshot={snapshot}
+      state={state}
+      busy={busy}
+      mutate={mutate}
+      initialTarget={requestedCard}
+      initialOffer={offeredCard}
+      initialView={requestedCard || offeredCard ? "compose" : initialTradeView}
+      wanted={wanted}
+    />,
   }} />;
 }
 function PersistentBoosters({ snapshot, state, busy, mutate, loginBoosterProgress, onPaste }: {
@@ -170,10 +183,13 @@ function PersistentBoosters({ snapshot, state, busy, mutate, loginBoosterProgres
   </section>;
 }
 
-function PersistentDuplicates({ snapshot, owned }: {
+function PersistentDuplicates({ snapshot, owned, busy, onOffer }: {
   snapshot: CollectorAlbumSnapshot;
   owned: CycloStickersPersistentState["owned"];
+  busy: boolean;
+  onOffer: (number: number) => void;
 }) {
+  const { locale } = useLocale();
   const byNumber = new Map(owned.map(row => [row.cardNumber, row]));
   const doubles = snapshot.cards.flatMap(card => {
     const row = byNumber.get(card.number);
@@ -187,7 +203,7 @@ function PersistentDuplicates({ snapshot, owned }: {
     <section className={styles.achievementDesk} aria-label="Inventaire des doubles">
       <header className={styles.sectionHeading}>
         <h2>Inventaire des doubles</h2>
-        <span>Retrouve les exemplaires au-delà du premier et ceux déjà réservés dans tes échanges.</span>
+        <span>{locale === "en" ? "Choose a spare to see matching trades." : "Choisis un double pour voir les échanges possibles."}</span>
       </header>
       {doubles.length ? (
         <ul className={collection.doubles}>
@@ -199,6 +215,15 @@ function PersistentDuplicates({ snapshot, owned }: {
                 <span><b>{available}</b> en stock</span>
                 {reserved > 0 && <span><b>{reserved}</b> en réservation</span>}
               </span>
+              <button
+                type="button"
+                className={collection.tradeDuplicate}
+                disabled={busy || available === 0}
+                onClick={() => onOffer(card.number)}
+              >
+                {locale === "en" ? "Trade this spare" : "Échanger ce double"}
+                <span aria-hidden="true">→</span>
+              </button>
             </li>
           ))}
         </ul>

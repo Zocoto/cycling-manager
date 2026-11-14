@@ -312,6 +312,15 @@ try{
   await rejects(()=>propose('self',[1],9,'a'),/invalide/,'self trading rejected');
   await rejects(()=>propose('four',[1,1,8,8],9),/invalide/,'at most three outgoing copies');
   const offer=await propose('real',[1,1,8],9);eq(offer.state.owned.find(c=>c.cardNumber===1).reserved,2,'duplicates reserve exact copy count');
+  const noticeReference=`cyclo-stickers:trade:${offer.offerId}:proposed`;
+  const readNotice=()=>rows('select id,sporting_director_id,sender_name,subject,action_href,sent_at,read_at,archived_at from sporting_director_messages where source_reference=$1',[noticeReference]);
+  await admin();
+  const [legacyNotice]=await readNotice();
+  eq(legacyNotice.action_href,'/jeu/album?saison=4&onglet=echanges','existing proposal uses previous album link');
+  await db.exec(await read('20261114213000_notify_cyclo_stickers_trade_recipients'));
+  const [updatedNotice]=await readNotice();
+  eq(updatedNotice,{...legacyNotice,sender_name:'Synthetic a',subject:'Proposition d’échange Cyclo-Stickers',action_href:'/jeu/album?onglet=echanges&vue=recues'},'the existing unread offer opens received trades and keeps the original notice identity and timestamp');
+  await as('a');
   eq((await propose('real',[1,1,8],9)).offerId,offer.offerId,'proposal request replay does not duplicate');
   await rejects(()=>propose('real',[1],9),/déjà utilisé/,'request id cannot mutate an existing offer');
   await rejects(()=>propose('second',[1],10),/seule proposition/,'one active outgoing offer');
@@ -334,6 +343,7 @@ try{
   const replacement=await propose('after-expire',[11],12);await respond(replacement.offerId,'cancel');
   await as('b');eq((await respond(expired.offerId,'accept')).status,'expired','expired proposal cannot be accepted');
   await admin();
+  eq(await rows('select sporting_director_id,sender_name,subject,action_href,read_at from sporting_director_messages where source_reference=$1',[`cyclo-stickers:trade:${replacement.offerId}:proposed`]),[{sporting_director_id:id('b'),sender_name:'Synthetic a',subject:'Proposition d’échange Cyclo-Stickers',action_href:'/jeu/album?onglet=echanges&vue=recues',read_at:null}],'new proposals send a single unread notice to the recipient with the sender and direct link');
   await seedCard('a',13,1);await seedCard('b',14,1);
   await as('a');const stockRace=await propose('stock-race',[13],14);await as('b');await paste(14);
   await rejects(()=>respond(stockRace.offerId,'accept'),/plus disponible/,'accept rechecks live recipient stock');
