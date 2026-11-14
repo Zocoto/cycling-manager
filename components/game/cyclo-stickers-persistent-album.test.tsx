@@ -37,7 +37,9 @@ it("renders only real collectors and protects already pasted special cards", () 
   state.owned = [{ cardNumber: 68, quantity: 1, pasted: true, reserved: 0 }];
   const html = renderToStaticMarkup(<CycloStickersPersistentAlbum snapshot={createCycloStickersFinalSnapshot(createFinalCycloStickersSourceFixture())} initialState={state} initialTab="trades" />);
   expect(html).toContain("Mes propositions");
+  expect(html).toContain("Lancer un échange");
   expect(html).toContain("Tu n’as pas encore de double disponible pour un échange.");
+  expect(html).toContain("Ouvrir mes boosters");
   expect(html).not.toContain("Trouver un échange");
   expect(html).not.toContain("Collectionneur démo");
   expect(html).not.toContain("Simuler l’acceptation");
@@ -85,6 +87,7 @@ it("renders each requested copy on a multi-sticker incoming offer in English", (
   }];
   const html = renderToStaticMarkup(<LocaleProvider initialLocale="en"><CycloStickersPersistentAlbum snapshot={snapshot} initialState={state} initialTab="trades" initialTradeView="inbox" /></LocaleProvider>);
   expect(html).toContain("Sticker trades");
+  expect(html).toContain("Start a trade");
   expect(html).toContain("Collector One");
   expect(html).toContain(`2 × ${snapshot.cards.find(card => card.number === 2)?.name} + ${snapshot.cards.find(card => card.number === 3)?.name}`);
   expect(html).toContain("Accept this trade");

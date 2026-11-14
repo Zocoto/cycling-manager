@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useLocale } from "@/components/i18n/locale-provider";
+import Link from "@/components/ui/app-link";
 import { getCollectorCardRarity, type CollectorAlbumSnapshot } from "@/lib/game/collector-album";
 import { createCycloStickersTradeRequestIds } from "@/lib/game/cyclo-stickers-persistent-view";
 import type { CycloStickersCollectorMatch, CycloStickersPersistentState, CycloStickersTrade } from "@/lib/game/cyclo-stickers-persistence";
@@ -14,10 +15,12 @@ const COPY = {
   fr: {
     heading: "Échanges de vignettes",
     intro: "Sélectionne un double pour trouver les collectionneurs qui en ont besoin et possèdent une vignette qui te manque.",
-    compose: "Nouvel échange",
+    compose: "Lancer un échange",
     inbox: "Mes propositions",
     offered: "Tes doubles disponibles",
     emptyStock: "Tu n’as pas encore de double disponible pour un échange.",
+    emptyStockHelp: "Ton premier exemplaire reste dans ta collection. Les doubles libres apparaîtront ici.",
+    openBoosters: "Ouvrir mes boosters",
     chooseOffer: "Tu peux proposer jusqu’à trois doubles.",
     searchOptions: "Vignettes recherchées",
     missing: "Toutes les vignettes manquantes",
@@ -44,6 +47,8 @@ const COPY = {
     givenTo: "Tu proposes",
     askingFor: "Tu demandes",
     offer: "Envoyer la proposition",
+    missingRequest: "Choisis au moins une vignette à demander pour envoyer ta proposition.",
+    updateOffer: "Les exemplaires sélectionnés ne sont plus disponibles. Ajuste ta sélection.",
     reserved: "Tes exemplaires restent réservés tant que l’offre est active, pendant 48 h au maximum.",
     sent: "Proposition envoyée. Tes exemplaires sont réservés.",
     incoming: "Propositions reçues",
@@ -69,10 +74,12 @@ const COPY = {
   en: {
     heading: "Sticker trades",
     intro: "Select a spare to find collectors who need it and have a sticker you’re missing.",
-    compose: "New trade",
+    compose: "Start a trade",
     inbox: "My offers",
     offered: "Your available spares",
     emptyStock: "You don’t have any spare stickers available for a trade yet.",
+    emptyStockHelp: "Your first copy stays in your collection. Available spares will appear here.",
+    openBoosters: "Open my boosters",
     chooseOffer: "You can offer up to three spares.",
     searchOptions: "Stickers you want",
     missing: "All missing stickers",
@@ -99,6 +106,8 @@ const COPY = {
     givenTo: "You offer",
     askingFor: "You request",
     offer: "Send offer",
+    missingRequest: "Choose at least one sticker to request before sending your offer.",
+    updateOffer: "The copies you selected are no longer available. Adjust your selection.",
     reserved: "Your copies stay reserved while the offer is active, for up to 48 hours.",
     sent: "Offer sent. Your copies are reserved.",
     incoming: "Incoming offers",
@@ -130,6 +139,7 @@ type Mutation = (
   name: string,
   args: Record<string, unknown>,
   message: string | ((next: CycloStickersPersistentState) => string),
+  onError?: (message: string) => void,
 ) => Promise<CycloStickersPersistentState | null>;
 
 function countCopies(numbers: readonly number[], cardNumber: number) {
@@ -146,7 +156,7 @@ function requestedCards(offer: CycloStickersTrade) {
   return offer.receiveCards?.length ? offer.receiveCards : [offer.receive];
 }
 
-export function CycloStickersTrades({ snapshot, state, busy, mutate, initialTarget, wanted, initialOffer = null, initialView = "compose" }: {
+export function CycloStickersTrades({ snapshot, state, busy, mutate, initialTarget, wanted, initialOffer = null, initialView = "compose", onViewBoosters }: {
   snapshot: CollectorAlbumSnapshot;
   state: CycloStickersPersistentState;
   busy: boolean;
@@ -155,12 +165,15 @@ export function CycloStickersTrades({ snapshot, state, busy, mutate, initialTarg
   wanted: readonly number[];
   initialOffer?: number | null;
   initialView?: "compose" | "inbox";
+  onViewBoosters?: () => void;
 }) {
   const { locale } = useLocale();
   const t = COPY[locale];
   const id = useId();
   const request = useRef(createCycloStickersTradeRequestIds());
   const inFlight = useRef<{ key: string; promise: Promise<CycloStickersCollectorMatch[]> } | null>(null);
+  const composePanel = useRef<HTMLDivElement>(null);
+  const focusCompose = useRef(false);
   const [view, setView] = useState(initialView);
   const [scope, setScope] = useState<"missing" | "saved" | "selected">(initialTarget ? "selected" : "missing");
   const [give, setGive] = useState<number[]>(() => initialOffer && state.owned.some(row => row.cardNumber === initialOffer && row.quantity - 1 - row.reserved > 0) ? [initialOffer] : []);
@@ -170,6 +183,8 @@ export function CycloStickersTrades({ snapshot, state, busy, mutate, initialTarg
   const [manualQuery, setManualQuery] = useState("");
   const [result, setResult] = useState<SearchResult | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const [offerError, setOfferError] = useState("");
+  const [responseError, setResponseError] = useState<{ id: string; message: string } | null>(null);
 
   const cards = new Map(snapshot.cards.map(card => [card.number, card]));
   const cardName = (number: number) => cards.get(number)?.name ?? `#${number}`;
@@ -191,10 +206,32 @@ export function CycloStickersTrades({ snapshot, state, busy, mutate, initialTarg
   const receiveStock = selected?.availableCards.filter(row => !give.includes(row.cardNumber) && cards.has(row.cardNumber)) ?? [];
   const canSend = validGive && selected && fitsStock(receive, receiveStock);
 
+  function focusOfferPicker() {
+    const panel = composePanel.current;
+    const target = panel?.querySelector<HTMLElement>("[data-trade-start-target]:not(:disabled)") ?? panel;
+    target?.focus();
+  }
+
+  useEffect(() => {
+    if (view !== "compose" || !focusCompose.current) return;
+    focusCompose.current = false;
+    focusOfferPicker();
+  }, [view]);
+
+  function startTrade() {
+    if (view === "compose") {
+      focusOfferPicker();
+    } else {
+      focusCompose.current = true;
+      setView("compose");
+    }
+  }
+
   function clearSelection() {
     setResult(null);
     setRecipient("");
     setReceive([]);
+    setOfferError("");
   }
 
   useEffect(() => {
@@ -243,6 +280,7 @@ export function CycloStickersTrades({ snapshot, state, busy, mutate, initialTarg
 
   function sendOffer() {
     if (!canSend || busy || searching) return;
+    setOfferError("");
     const sortedGive = [...give].sort((a, b) => a - b);
     const sortedReceive = [...receive].sort((a, b) => a - b);
     const requestId = request.current.forOffer(JSON.stringify([recipient, sortedGive, sortedReceive]));
@@ -252,7 +290,7 @@ export function CycloStickersTrades({ snapshot, state, busy, mutate, initialTarg
       p_recipient_id: recipient,
       p_give: sortedGive,
       p_receive_cards: sortedReceive,
-    }, t.sent).then(next => {
+    }, t.sent, setOfferError).then(next => {
       if (!next) return;
       request.current.confirmed(requestId);
       changeOffer([]);
@@ -261,6 +299,7 @@ export function CycloStickersTrades({ snapshot, state, busy, mutate, initialTarg
   }
 
   function respond(offer: CycloStickersTrade, response: "accept" | "decline" | "cancel") {
+    setResponseError(null);
     void mutate("respond_current_cyclo_stickers_trade", {
       p_edition: state.edition.id,
       p_offer_id: offer.id,
@@ -270,7 +309,7 @@ export function CycloStickersTrades({ snapshot, state, busy, mutate, initialTarg
       const closedOffer = next.history.find(item => item.id === offer.id);
       if (closedOffer?.status === "accepted") return t.acceptedNotice;
       return closedOffer?.status === "expired" ? t.expiredNotice : t.closedNotice;
-    });
+    }, message => setResponseError({ id: offer.id, message }));
   }
 
   function picker(entries: readonly Stock[], values: readonly number[], change: (next: number[]) => void, offering = false) {
@@ -282,7 +321,7 @@ export function CycloStickersTrades({ snapshot, state, busy, mutate, initialTarg
         const rarity = getCollectorCardRarity(card);
         const canAdd = values.length < LIMIT && count < quantity;
         return <li key={cardNumber} className={styles.sticker} data-rarity={rarity} data-selected={count > 0}>
-          <button type="button" className={styles.cardButton} aria-label={locale === "en" ? `Add ${card.name}` : `Ajouter ${card.name}`} disabled={!canAdd} onClick={() => change([...values, cardNumber])}>
+          <button type="button" className={styles.cardButton} data-trade-start-target={offering || undefined} aria-label={locale === "en" ? `Add ${card.name}` : `Ajouter ${card.name}`} disabled={!canAdd} onClick={() => change([...values, cardNumber])}>
             <span className={styles.portrait} aria-hidden="true">
               {card.kind
                 ? <span className={`fi fi-${card.countryCode.toLowerCase()}`} />
@@ -319,22 +358,29 @@ export function CycloStickersTrades({ snapshot, state, busy, mutate, initialTarg
         ? <button type="button" className={styles.secondary} disabled={busy} onClick={() => respond(offer, "cancel")}>{t.cancel}</button>
         : <><button type="button" className={styles.primary} disabled={busy} onClick={() => respond(offer, "accept")}>{t.accept}</button><button type="button" className={styles.secondary} disabled={busy} onClick={() => respond(offer, "decline")}>{t.decline}</button></>}
     </div>
+    {responseError?.id === offer.id ? <p className={styles.actionError} role="alert">{responseError.message}</p> : null}
   </article>;
 
   return <section className={styles.desk} aria-label={t.heading} data-album-trade-composer="" tabIndex={-1}>
     <header className={styles.header}>
       <h2>{t.heading}</h2>
       <div className={styles.switcher}>
-        <button type="button" aria-pressed={view === "compose"} onClick={() => setView("compose")}>{t.compose}</button>
+        <button type="button" className={styles.start} aria-controls={`${id}-compose`} onClick={startTrade}><span aria-hidden="true">＋</span> {t.compose}</button>
         <button type="button" aria-pressed={view === "inbox"} onClick={() => setView("inbox")}>{t.inbox} <span>{state.incomingOffers.length + state.outgoingOffers.length}</span></button>
       </div>
     </header>
-    {view === "compose" ? <div className={styles.workbench}>
+    {view === "compose" ? <div ref={composePanel} id={`${id}-compose`} className={styles.workbench} tabIndex={-1}>
       <fieldset className={styles.step} disabled={busy}>
         <legend>{t.offered} <span>{give.length}/{LIMIT}</span></legend>
         {stock.length
           ? <><p>{give.length ? t.chooseOffer : t.intro}</p>{picker(stock, give, changeOffer, true)}</>
-          : <p className={styles.empty}>{t.emptyStock}</p>}
+          : <div className={styles.emptyStock}>
+            <p><strong>{t.emptyStock}</strong></p>
+            <p>{t.emptyStockHelp}</p>
+            {onViewBoosters
+              ? <button type="button" className={styles.primary} data-trade-start-target onClick={onViewBoosters}>{t.openBoosters}</button>
+              : <Link className={styles.primary} data-trade-start-target href="/jeu/album?onglet=boosters">{t.openBoosters}</Link>}
+          </div>}
         {stock.length && (initialTarget || wanted.length) ? <div className={styles.searchTools}>
           <label htmlFor={`${id}-scope`}>{t.searchOptions}
             <select id={`${id}-scope`} value={scope} onChange={event => {
@@ -382,6 +428,7 @@ export function CycloStickersTrades({ snapshot, state, busy, mutate, initialTarg
               if (recipient === collector.directorId) return;
               setRecipient(collector.directorId);
               setReceive([]);
+              setOfferError("");
             }}>
               <strong>{collector.displayName}</strong>
               {collector.wantedOfferCards.length ? <span>{t.wants} <b>{describe(collector.wantedOfferCards)}</b></span> : null}
@@ -395,14 +442,15 @@ export function CycloStickersTrades({ snapshot, state, busy, mutate, initialTarg
       </div> : null}
       {selected ? <fieldset className={`${styles.step} ${styles.requested}`} disabled={busy || searching}>
         <legend>{t.requested} <span>{receive.length}/{LIMIT}</span></legend>
-        {receiveStock.length ? picker(receiveStock, receive, setReceive) : <p className={styles.empty}>{t.emptyReceive}</p>}
+        {receiveStock.length ? picker(receiveStock, receive, next => { setReceive(next); setOfferError(""); }) : <p className={styles.empty}>{t.emptyReceive}</p>}
         <div className={styles.summary}>
           <dl>
             <div><dt>{t.givenTo}</dt><dd>{describe(give)}</dd></div>
             {receive.length ? <div><dt>{t.askingFor}</dt><dd>{describe(receive)}</dd></div> : null}
           </dl>
           <button type="button" className={styles.primary} disabled={!canSend} onClick={sendOffer}>{t.offer}</button>
-          <p>{t.reserved}</p>
+          {offerError ? <p className={styles.actionError} role="alert">{offerError}</p> : null}
+          <p>{canSend ? t.reserved : !receive.length ? t.missingRequest : t.updateOffer}</p>
         </div>
       </fieldset> : null}
     </div> : <><div className={styles.mailbox}>

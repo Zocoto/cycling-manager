@@ -4,6 +4,7 @@ import type { GameStaffRole } from "@/lib/game/game-product-news";
 
 const indicators = vi.hoisted(() => ({
   role: null as GameStaffRole, pcmExportAvailable: false, collectorAlbumAvailable: false, collectorAlbumHasUnopenedBoosters: false,
+  collectorAlbumPendingTradeCount: 0,
 }));
 vi.mock("./game-header-indicators-provider", () => ({
   useGameHeaderIndicators: () => ({
@@ -11,6 +12,7 @@ vi.mock("./game-header-indicators-provider", () => ({
     pcmExportAvailable: indicators.pcmExportAvailable,
     collectorAlbumAvailable: indicators.collectorAlbumAvailable,
     collectorAlbumHasUnopenedBoosters: indicators.collectorAlbumHasUnopenedBoosters,
+    collectorAlbumPendingTradeCount: indicators.collectorAlbumPendingTradeCount,
   }),
 }));
 
@@ -26,6 +28,7 @@ beforeEach(() => {
   indicators.pcmExportAvailable = false;
   indicators.collectorAlbumAvailable = false;
   indicators.collectorAlbumHasUnopenedBoosters = false;
+  indicators.collectorAlbumPendingTradeCount = 0;
 });
 
 describe("GameUserMenu", () => {
@@ -52,7 +55,7 @@ describe("GameUserMenu", () => {
   it("signale les boosters fermés et ouvre directement le bon onglet depuis les deux raccourcis", () => {
     indicators.collectorAlbumAvailable = true;
     indicators.collectorAlbumHasUnopenedBoosters = true;
-    for (const shortcut of [<GameUserMenu displayName="Joueur" />, <CycloStickersShortcut />]) {
+    for (const shortcut of [<GameUserMenu key="menu" displayName="Joueur" />, <CycloStickersShortcut key="tile" />]) {
       const markup = renderToStaticMarkup(shortcut);
       expect(markup).toContain("Boosters à ouvrir");
       expect(markup).toContain('href="/jeu/album?onglet=boosters"');
@@ -62,6 +65,23 @@ describe("GameUserMenu", () => {
   it("garde l’entrée dans le menu dès que la page de l’album a confirmé l’accès", () => {
     const menu = renderToStaticMarkup(<GameUserMenu displayName="Zocoto" collectorAlbumAvailable />);
     expect(menu).toContain('href="/jeu/album"');
+  });
+
+  it("affiche le nombre de propositions sur un lien distinct du raccourci des boosters", () => {
+    indicators.collectorAlbumAvailable = true;
+    indicators.collectorAlbumHasUnopenedBoosters = true;
+    indicators.collectorAlbumPendingTradeCount = 3;
+    const tile = renderToStaticMarkup(<CycloStickersShortcut />);
+    const links = tile.match(/<a [^>]*>.*?<\/a>/g) ?? [];
+    expect(links).toHaveLength(2);
+    expect(links[0]).toContain('href="/jeu/album?onglet=boosters"');
+    expect(links[0]).not.toContain("data-cyclo-stickers-trade-badge");
+    expect(links[1]).toContain('href="/jeu/album?onglet=echanges&amp;vue=recues"');
+    expect(links[1]).toContain('data-cyclo-stickers-trade-badge="true"');
+    expect(links[1]).toContain("(3)");
+    expect(links[1]).toContain(">3</a>");
+    indicators.collectorAlbumPendingTradeCount = 0;
+    expect(renderToStaticMarkup(<CycloStickersShortcut />)).not.toContain("data-cyclo-stickers-trade-badge");
   });
 
   it("shows the delegated PCM download without granting any other staff tool", () => {

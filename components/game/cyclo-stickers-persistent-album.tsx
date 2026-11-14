@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { ALBUM_ACHIEVEMENTS, getAlbumAchievementProgress, type AlbumPilotAction, type CollectorAlbumSnapshot } from "@/lib/game/collector-album";
-import { notifyCycloStickersBoostersChanged } from "@/lib/game/cyclo-stickers-booster-sync";
+import { notifyCycloStickersBoostersChanged, notifyCycloStickersTradesChanged } from "@/lib/game/cyclo-stickers-booster-sync";
 import { getCycloStickersLeaderboard, type StickerAlbumLeaderboard } from "@/lib/game/cyclo-stickers-leaderboard";
 import { getCycloStickersActionRpc, getCycloStickersOpenRpc, toCycloStickersAlbumView } from "@/lib/game/cyclo-stickers-persistent-view";
 import type { CycloStickersPersistentState } from "@/lib/game/cyclo-stickers-persistence";
@@ -17,7 +17,12 @@ import { CycloStickersTrades } from "./cyclo-stickers-trades";
 import styles from "./collector-album-retro.module.css";
 import collection from "./cyclo-stickers-collection.module.css";
 
-type Mutation = (name: string, args: Record<string, unknown>, message: string | ((next: CycloStickersPersistentState) => string)) => Promise<CycloStickersPersistentState | null>;
+type Mutation = (
+  name: string,
+  args: Record<string, unknown>,
+  message: string | ((next: CycloStickersPersistentState) => string),
+  onError?: (message: string) => void,
+) => Promise<CycloStickersPersistentState | null>;
 const BOOSTER_SOURCE_LABELS = { login: "Connexion", referral: "Parrainage", edition: "Événement" };
 const BOOSTER_ACQUISITION_LABELS = new Map([
   ["gazette", "Cadeau Cyclogazette"],
@@ -62,7 +67,7 @@ export function CycloStickersPersistentAlbum({
       refreshingLeaderboard.current = false;
     }
   };
-  const mutate: Mutation = async (name, args, message) => {
+  const mutate: Mutation = async (name, args, message, onError) => {
     if (locked.current) return null;
     locked.current = true; setBusy(true); setNotice("");
     try {
@@ -70,9 +75,16 @@ export function CycloStickersPersistentAlbum({
       if (result.error) throw new Error(result.error.message);
       const next = result.data?.state as CycloStickersPersistentState | undefined;
       if (!next || next.edition.id !== state.edition.id || next.directorId !== state.directorId) throw new Error("La réponse du serveur ne correspond pas à ta collection.");
-      setState(next); setNotice(typeof message === "function" ? message(next) : message); return next;
+      setState(next);
+      setNotice(typeof message === "function" ? message(next) : message);
+      if (name === "respond_current_cyclo_stickers_trade" && args.p_response !== "cancel") {
+        notifyCycloStickersTradesChanged(next.incomingOffers.length);
+      }
+      return next;
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "L’action n’a pas pu être confirmée. Recharge la page pour retrouver ta collection.");
+      const reason = error instanceof Error ? error.message : "L’action n’a pas pu être confirmée. Recharge la page pour retrouver ta collection.";
+      if (onError) onError(reason);
+      else setNotice(reason);
       return null;
     } finally { locked.current = false; setBusy(false); }
   };
@@ -91,7 +103,7 @@ export function CycloStickersPersistentAlbum({
     boosters: <PersistentBoosters snapshot={snapshot} state={state} busy={busy} mutate={mutate} loginBoosterProgress={loginBoosterProgress} onPaste={card => send({ type: "paste", card })} />,
     duplicates: onOffer => <PersistentDuplicates snapshot={snapshot} owned={state.owned} busy={busy} onOffer={onOffer} />,
     achievements: <PersistentAchievements snapshot={snapshot} state={state} busy={busy} onAction={send} />,
-    trades: (requestedCard, wanted, offeredCard) => <CycloStickersTrades
+    trades: (requestedCard, wanted, offeredCard, onViewBoosters) => <CycloStickersTrades
       key={`${requestedCard ?? ""}:${offeredCard ?? ""}`}
       snapshot={snapshot}
       state={state}
@@ -101,6 +113,7 @@ export function CycloStickersPersistentAlbum({
       initialOffer={offeredCard}
       initialView={requestedCard || offeredCard ? "compose" : initialTradeView}
       wanted={wanted}
+      onViewBoosters={onViewBoosters}
     />,
   }} />;
 }

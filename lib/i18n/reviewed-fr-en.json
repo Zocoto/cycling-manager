@@ -3859,5 +3859,10 @@
   "Voir les propositions reçues": "View received offers",
   "Proposition d’échange Cyclo-Stickers": "Cyclo-Stickers trade offer",
   "Vous avez reçu une proposition d’échange de vignettes.": "You received a sticker trade offer.",
-  "Consultez les cartes proposées et demandées dans votre album avant de répondre.": "Review the offered and requested stickers in your album before responding."
+  "Consultez les cartes proposées et demandées dans votre album avant de répondre.": "Review the offered and requested stickers in your album before responding.",
+  "Choisis au moins une vignette à demander pour envoyer ta proposition.": "Choose at least one sticker to request before sending your offer.",
+  "Lancer un échange": "Start a trade",
+  "Les exemplaires sélectionnés ne sont plus disponibles. Ajuste ta sélection.": "The selected copies are no longer available. Update your selection.",
+  "Ton premier exemplaire reste dans ta collection. Les doubles libres apparaîtront ici.": "Your first copy stays in your collection. Available spares will appear here.",
+  "Propositions d’échange reçues": "Received trade offers"
 }

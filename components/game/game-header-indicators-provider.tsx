@@ -14,7 +14,9 @@ import {
 import { useLocale } from "@/components/i18n/locale-provider";
 import {
   CYCLO_STICKERS_BOOSTERS_CHANGED_EVENT,
+  CYCLO_STICKERS_TRADES_CHANGED_EVENT,
   type CycloStickersBoostersChangedDetail,
+  type CycloStickersTradesChangedDetail,
 } from "@/lib/game/cyclo-stickers-booster-sync";
 import { CYCLOGAZETTE_READ_EVENT } from "@/lib/game/cyclogazette-read-sync";
 import {
@@ -52,6 +54,7 @@ type GameHeaderIndicatorsRow = {
   has_unread_cyclogazette: boolean | null;
   collector_album_available?: boolean | null;
   collector_album_has_unopened_boosters?: boolean | null;
+  collector_album_pending_trade_count?: number | null;
 };
 
 type StickerTradeNotification = { senderName: string | null };
@@ -70,6 +73,7 @@ const GameHeaderIndicatorsContext =
     hasUnreadGlobalChatQuiz: boolean;
     collectorAlbumAvailable: boolean;
     collectorAlbumHasUnopenedBoosters: boolean;
+    collectorAlbumPendingTradeCount: number;
     pcmExportAvailable: boolean;
   }) | null>(null);
 
@@ -86,13 +90,14 @@ export function GameHeaderIndicatorsProvider({
   const [collectorAlbumAvailable, setCollectorAlbumAvailable] = useState(false);
   const [pcmExportAvailable, setPcmExportAvailable] = useState(false);
   const [collectorAlbumHasUnopenedBoosters, setCollectorAlbumHasUnopenedBoosters] = useState(false);
+  const [collectorAlbumPendingTradeCount, setCollectorAlbumPendingTradeCount] = useState(0);
   const [stickerTradeNotification, setStickerTradeNotification] = useState<StickerTradeNotification | null>(null);
   const quizUnreadUntil = indicators.globalChatQuizUnreadUntil;
   const contextValue = useMemo(() => ({
     ...indicators,
     hasUnreadGlobalChatQuiz: quizUnreadUntil !== null,
-    collectorAlbumAvailable, collectorAlbumHasUnopenedBoosters, pcmExportAvailable,
-  }), [indicators, quizUnreadUntil, collectorAlbumAvailable, collectorAlbumHasUnopenedBoosters, pcmExportAvailable]);
+    collectorAlbumAvailable, collectorAlbumHasUnopenedBoosters, collectorAlbumPendingTradeCount, pcmExportAvailable,
+  }), [indicators, quizUnreadUntil, collectorAlbumAvailable, collectorAlbumHasUnopenedBoosters, collectorAlbumPendingTradeCount, pcmExportAvailable]);
 
   useEffect(() => {
     let active = true;
@@ -104,6 +109,7 @@ export function GameHeaderIndicatorsProvider({
     let signedOut = false;
     let publicAlbumAvailable = false;
     let boosterRevision = 0;
+    let stickerTradeRevision = 0;
     let authSubscription: { unsubscribe: () => void } | null = null;
     let latestStickerTradeSource: string | null = null;
     const refreshScheduler = createVisibleRefreshScheduler({
@@ -129,8 +135,9 @@ export function GameHeaderIndicatorsProvider({
 
       const requestVersion = ++requestVersionRef.current;
       const requestedBoosterRevision = boosterRevision;
+      const requestedStickerTradeRevision = stickerTradeRevision;
       const result = await supabase
-        .rpc("get_current_game_header_indicators_v6")
+        .rpc("get_current_game_header_indicators_v7")
         .maybeSingle();
 
       if (!active || result.error || requestVersion !== requestVersionRef.current) {
@@ -161,6 +168,9 @@ export function GameHeaderIndicatorsProvider({
       if (!signedOut) setCollectorAlbumAvailable(canAccessCollectorAlbum(authUserId) || publicAlbumAvailable);
       if (requestedBoosterRevision === boosterRevision) {
         setCollectorAlbumHasUnopenedBoosters(publicAlbumAvailable && row?.collector_album_has_unopened_boosters === true);
+      }
+      if (!publicAlbumAvailable || requestedStickerTradeRevision === stickerTradeRevision) {
+        setCollectorAlbumPendingTradeCount(publicAlbumAvailable ? Math.max(0, row?.collector_album_pending_trade_count ?? 0) : 0);
       }
 
       return row;
@@ -243,7 +253,19 @@ export function GameHeaderIndicatorsProvider({
       }
     }
 
+    function handleCycloStickersTradesChanged(event: Event) {
+      if (signedOut) return;
+      stickerTradeRevision += 1;
+      const count = (event as CustomEvent<CycloStickersTradesChangedDetail>).detail?.pendingIncomingCount;
+      if (typeof count === "number" && Number.isFinite(count)) {
+        setCollectorAlbumPendingTradeCount(Math.max(0, Math.trunc(count)));
+      } else {
+        refreshWhenVisible();
+      }
+    }
+
     window.addEventListener(CYCLO_STICKERS_BOOSTERS_CHANGED_EVENT, handleCycloStickersBoostersChanged);
+    window.addEventListener(CYCLO_STICKERS_TRADES_CHANGED_EVENT, handleCycloStickersTradesChanged);
     window.addEventListener(
       DIRECTOR_MAILBOX_CHANGED_EVENT,
       handleDirectorMailboxChanged,
@@ -283,6 +305,7 @@ export function GameHeaderIndicatorsProvider({
             requestVersionRef.current += 1;
             setIndicators(EMPTY_INDICATORS);
             setCollectorAlbumHasUnopenedBoosters(false);
+            setCollectorAlbumPendingTradeCount(0);
             setStickerTradeNotification(null);
             latestStickerTradeSource = null;
             stopRealtimeIndicators();
@@ -370,6 +393,8 @@ export function GameHeaderIndicatorsProvider({
                 latestStickerTradeSource = source;
                 const senderName = typeof message.sender_name === "string" ? message.sender_name.trim() : "";
                 setStickerTradeNotification({ senderName: senderName && senderName !== "La Cyclogazette" ? senderName : null });
+                stickerTradeRevision += 1;
+                scheduleRefresh();
               }
             },
           )
@@ -405,6 +430,7 @@ export function GameHeaderIndicatorsProvider({
       refreshScheduler.dispose();
       authSubscription?.unsubscribe();
       window.removeEventListener(CYCLO_STICKERS_BOOSTERS_CHANGED_EVENT, handleCycloStickersBoostersChanged);
+      window.removeEventListener(CYCLO_STICKERS_TRADES_CHANGED_EVENT, handleCycloStickersTradesChanged);
       window.removeEventListener(
         DIRECTOR_MAILBOX_CHANGED_EVENT,
         handleDirectorMailboxChanged,

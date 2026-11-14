@@ -361,6 +361,47 @@ try{
   eq(await scalar('select status from cyclo_stickers_trade_offers where id=$1',[atomicOffer.offerId]),'pending','failed acceptance preserves offer');
   await db.exec('drop trigger isolated_fail_copy on cyclo_stickers_card_inventory;drop function public.isolated_fail_copy();');
   await as('c');await respond(atomicOffer.offerId,'cancel');await paste(15);
+  await admin();
+  await db.exec(await read('20261114220000_allow_concurrent_cyclo_stickers_offers'));
+  await seedCard('a',17,3,true);await seedCard('a',18,1);await seedCard('b',19,1);await seedCard('c',20,1);await seedCard('b',21,1);
+  const stockBeforeParallelOffers=await rows('select card_number,sum(quantity)::int quantity from cyclo_stickers_card_inventory group by card_number order by card_number');
+  await as('a');
+  const firstPending=await propose('pending-for-b',[17],19);
+  const secondPending=await propose('pending-for-c',[17],20,'c');
+  const thirdPending=await propose('another-pending-for-b',[18],21);
+  eq(new Set((await state()).outgoingOffers.map(offer=>offer.id)),new Set([firstPending.offerId,secondPending.offerId,thirdPending.offerId]),'simultaneous offers are allowed to the same and different recipients');
+  eq((await state()).owned.find(card=>card.cardNumber===17).reserved,2,'distinct offers reserve separate copies of the same card');
+  await rejects(()=>propose('unavailable-fourth',[17],21),/Exemplaires/,'pending offers cannot reserve a third copy by counting a pasted card');
+  eq((await propose('pending-for-b',[17],19)).offerId,firstPending.offerId,'request replay still resolves its original offer even with other pending offers');
+
+  await as('b');
+  eq(new Set((await state()).incomingOffers.map(offer=>offer.id)),new Set([firstPending.offerId,thirdPending.offerId]),'the recipient sees both offers addressed to them');
+  eq((await respond(firstPending.offerId,'accept')).status,'accepted','the recipient accepts one offer while the others remain pending');
+  await as('a');
+  eq((await state()).owned.find(card=>card.cardNumber===17),{cardNumber:17,quantity:2,pasted:true,reserved:1},'accepting one offer only transfers its reserved copy');
+  eq((await respond(secondPending.offerId,'cancel')).status,'cancelled','the sender can cancel another pending offer');
+  eq((await state()).owned.find(card=>card.cardNumber===17).reserved,0,'cancellation releases only its reservation');
+  eq((await state()).owned.find(card=>card.cardNumber===18).reserved,1,'the other offer remains reserved');
+
+  await admin();
+  await db.query("update cyclo_stickers_trade_offers set created_at=now()-interval '3 days',expires_at=now()-interval '1 day' where id=$1",[thirdPending.offerId]);
+  await as('a');
+  const nextAfterExpiry=await propose('reuse-expired-copy',[18],20,'c');
+  eq(nextAfterExpiry.state.owned.find(card=>card.cardNumber===18).reserved,1,'expiry releases exactly the copy used by a new offer');
+  await respond(nextAfterExpiry.offerId,'cancel');
+  await admin();
+  eq(await scalar('select status from cyclo_stickers_trade_offers where id=$1',[thirdPending.offerId]),'expired','the old outgoing offer is expired before reusing its stock');
+  eq(await rows('select card_number,sum(quantity)::int quantity from cyclo_stickers_card_inventory group by card_number order by card_number'),stockBeforeParallelOffers,'accepting, cancelling and expiring concurrent offers conserves stock');
+  eq(await scalar('select count(*)::int from sporting_director_messages where source_reference=any($1)',[[firstPending.offerId,secondPending.offerId,thirdPending.offerId,nextAfterExpiry.offerId].map(id=>`cyclo-stickers:trade:${id}:proposed`)]),4,'each successful offer produces exactly one notification');
+
+  await db.exec("update cyclo_stickers_editions set configuration=jsonb_set(configuration,'{maxOffersPerDay}','1')");
+  await as('a');await rejects(()=>propose('daily-limit-is-still-enforced',[17],21),/limite de propositions/,'the daily proposal cap remains enforced');
+  await admin();
+  await db.exec("update cyclo_stickers_editions set configuration=jsonb_set(jsonb_set(configuration,'{maxOffersPerDay}','50'),'{maxIncomingOffers}','1')");
+  await as('a');const holdsInboxSlot=await propose('hold-single-inbox-slot',[17],21);
+  await rejects(()=>propose('inbox-limit-is-still-enforced',[18],21),/limite de propositions/,'the recipient inbox cap remains enforced');
+  await respond(holdsInboxSlot.offerId,'cancel');
+  await admin();await db.exec("update cyclo_stickers_editions set configuration=jsonb_set(jsonb_set(configuration,'{maxOffersPerDay}','10'),'{maxIncomingOffers}','20')");
   await admin();await db.exec("create function public.isolated_fail_finance() returns trigger language plpgsql as $$begin raise exception 'isolated finance write failure';end$$;create trigger isolated_fail_finance before insert on team_finance_transactions for each row execute function public.isolated_fail_finance();");
   await as('c');await rejects(()=>claim('count-1'),/isolated finance/,'late finance failure rolls back reward');
   await admin();eq(await scalar('select experience_points from sporting_directors where id=$1',[id('c')]),0,'failed reward credits no XP');eq(await scalar('select cash_balance::int from team_seasons where id=$1',[id('ts-c')]),0,'failed reward credits no cash');

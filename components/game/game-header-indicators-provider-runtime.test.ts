@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { notifyCycloStickersBoostersChanged } from "@/lib/game/cyclo-stickers-booster-sync";
+import { notifyCycloStickersBoostersChanged, notifyCycloStickersTradesChanged } from "@/lib/game/cyclo-stickers-booster-sync";
 import { GLOBAL_CHAT_MESSAGES_READ_EVENT } from "@/lib/game/global-chat-read-sync";
 
 const runtime = vi.hoisted(() => {
@@ -16,6 +16,7 @@ const runtime = vi.hoisted(() => {
     setCollectorAlbumAvailable: vi.fn(),
     setPcmExportAvailable: vi.fn(),
     setCollectorAlbumHasUnopenedBoosters: vi.fn(),
+    setCollectorAlbumPendingTradeCount: vi.fn(),
     setStickerTradeNotification: vi.fn(),
     booleanStateIndex: 0,
     authState,
@@ -38,7 +39,7 @@ const runtime = vi.hoisted(() => {
 vi.mock("react", async (importOriginal) => ({
   ...await importOriginal<typeof import("react")>(),
   useEffect: (effect: () => void | (() => void)) => { runtime.effects.push(effect); },
-  useState: (initial: unknown) => [initial, initial === null ? runtime.setStickerTradeNotification : typeof initial === "boolean"
+  useState: (initial: unknown) => [initial, initial === null ? runtime.setStickerTradeNotification : typeof initial === "number" ? runtime.setCollectorAlbumPendingTradeCount : typeof initial === "boolean"
     ? [runtime.setCollectorAlbumAvailable, runtime.setPcmExportAvailable, runtime.setCollectorAlbumHasUnopenedBoosters][runtime.booleanStateIndex++]
     : runtime.setIndicators],
   useMemo: (factory: () => unknown) => factory(),
@@ -59,6 +60,7 @@ const ROW = {
   has_unread_cyclogazette: false,
   collector_album_available: false,
   collector_album_has_unopened_boosters: false,
+  collector_album_pending_trade_count: 0,
 };
 const SUCCESS = { data: ROW, error: null };
 
@@ -107,7 +109,7 @@ describe("header subscription initialization", () => {
     expect(runtime.client.rpc).not.toHaveBeenCalled();
     recordAttendance();
     await vi.runAllTimersAsync();
-    expect(runtime.client.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_header_indicators_v6");
+    expect(runtime.client.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_header_indicators_v7");
     expect(runtime.setCollectorAlbumHasUnopenedBoosters).toHaveBeenLastCalledWith(true);
   });
 
@@ -145,7 +147,7 @@ describe("header subscription initialization", () => {
   });
 
   function expectCompleteSubscription() {
-    expect(runtime.client.rpc).toHaveBeenCalledWith("get_current_game_header_indicators_v6");
+    expect(runtime.client.rpc).toHaveBeenCalledWith("get_current_game_header_indicators_v7");
     expect(runtime.client.channel).toHaveBeenCalledTimes(1);
     expect(runtime.channel.on).toHaveBeenCalledTimes(6);
     expect(runtime.channel.on).toHaveBeenCalledWith(
@@ -165,7 +167,7 @@ describe("header subscription initialization", () => {
     expect(runtime.setCollectorAlbumAvailable).toHaveBeenLastCalledWith(false);
     runtime.authState.callback!("SIGNED_OUT", null);
     expect(runtime.setCollectorAlbumAvailable).toHaveBeenLastCalledWith(false);
-    expect(runtime.client.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_header_indicators_v6");
+    expect(runtime.client.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_header_indicators_v7");
     const calls = runtime.setCollectorAlbumAvailable.mock.calls.length;
     cleanup?.(); cleanup=undefined;
     expect(runtime.unsubscribeAuth).toHaveBeenCalledTimes(1);
@@ -179,7 +181,7 @@ describe("header subscription initialization", () => {
     expect(runtime.setCollectorAlbumAvailable).toHaveBeenLastCalledWith(true);
     runtime.authState.callback!("INITIAL_SESSION", {user:{id:"another-account"}});
     expect(runtime.setCollectorAlbumAvailable).toHaveBeenLastCalledWith(true);
-    expect(runtime.client.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_header_indicators_v6");
+    expect(runtime.client.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_header_indicators_v7");
     runtime.authState.callback!("SIGNED_OUT", null);
     expect(runtime.setCollectorAlbumAvailable).toHaveBeenLastCalledWith(false);
   });
@@ -211,8 +213,51 @@ describe("header subscription initialization", () => {
     expect(runtime.client.channel).not.toHaveBeenCalled();
   });
 
+  it("reads the pending trade badge in the combined snapshot and removes it following a current album response", async () => {
+    const withTrades = {
+      data: { ...ROW, collector_album_available: true, collector_album_pending_trade_count: 2 },
+      error: null,
+    };
+    let resolveRefresh!: (value: typeof withTrades) => void;
+    runtime.maybeSingle.mockResolvedValueOnce(withTrades).mockImplementationOnce(
+      () => new Promise<typeof withTrades>((resolve) => { resolveRefresh = resolve; }),
+    );
+    await mount();
+    expect(runtime.setCollectorAlbumPendingTradeCount).toHaveBeenLastCalledWith(2);
+
+    window.dispatchEvent(new Event("focus"));
+    await vi.advanceTimersByTimeAsync(0);
+    notifyCycloStickersTradesChanged(0);
+    resolveRefresh(withTrades);
+    await vi.runAllTimersAsync();
+    expect(runtime.setCollectorAlbumPendingTradeCount).toHaveBeenLastCalledWith(0);
+    expect(runtime.setIndicators).toHaveBeenLastCalledWith(expect.objectContaining({ mailboxUnreadCount: ROW.mailbox_unread_count }));
+    expect(runtime.client.rpc).toHaveBeenCalledTimes(2);
+  });
+
+  it("still establishes the initial subscription when an album response overtakes the first snapshot", async () => {
+    const withTrades = {
+      data: { ...ROW, collector_album_available: true, collector_album_pending_trade_count: 1 },
+      error: null,
+    };
+    let resolveFirst!: (value: typeof withTrades) => void;
+    runtime.maybeSingle.mockImplementationOnce(
+      () => new Promise<typeof withTrades>((resolve) => { resolveFirst = resolve; }),
+    );
+    await mount();
+    notifyCycloStickersTradesChanged(0);
+    resolveFirst(withTrades);
+    await vi.runAllTimersAsync();
+    expectCompleteSubscription();
+    expect(runtime.setCollectorAlbumPendingTradeCount).toHaveBeenCalledExactlyOnceWith(0);
+    expect(runtime.setIndicators).toHaveBeenLastCalledWith(expect.objectContaining({ mailboxUnreadCount: ROW.mailbox_unread_count }));
+  });
+
   it("shows a trade alert from the existing recipient mailbox subscription and clears it when the account changes", async () => {
-    runtime.maybeSingle.mockResolvedValue(SUCCESS);
+    runtime.maybeSingle.mockResolvedValueOnce(SUCCESS).mockResolvedValue({
+      data: { ...ROW, collector_album_available: true, collector_album_pending_trade_count: 1 },
+      error: null,
+    });
     await mount();
     runtime.authState.callback!("INITIAL_SESSION", { user: { id: "player" } });
     const insertMail = runtime.channel.on.mock.calls.find(([, filter]) =>
@@ -236,6 +281,9 @@ describe("header subscription initialization", () => {
     expect(runtime.setStickerTradeNotification).toHaveBeenCalledTimes(1);
     expectCompleteSubscription();
     expect(runtime.client.rpc).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(150);
+    expect(runtime.client.rpc).toHaveBeenCalledTimes(2);
+    expect(runtime.setCollectorAlbumPendingTradeCount).toHaveBeenLastCalledWith(1);
 
     runtime.authState.callback!("SIGNED_IN", { user: { id: "other-player" } });
     expect(runtime.setStickerTradeNotification).toHaveBeenLastCalledWith(null);
@@ -258,7 +306,7 @@ describe("header subscription initialization", () => {
   it.each(["owner", "game_staff"])("expose le rôle %s via le même snapshot sans nouvelle RPC", async (role) => {
     runtime.maybeSingle.mockResolvedValue({ data: { ...ROW, game_role: role }, error: null });
     await mount();
-    expect(runtime.client.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_header_indicators_v6");
+    expect(runtime.client.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_header_indicators_v7");
     expect(runtime.setIndicators).toHaveBeenCalledWith(expect.objectContaining({ gameStaffRole: role }));
     expectCompleteSubscription();
   });
