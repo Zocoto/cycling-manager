@@ -27,7 +27,7 @@ const row = {
       { infrastructure_code: "federal_medical_network", completes_game_day_index: 147, completes_at: null },
       { infrastructure_code: "race_organization_office", completes_game_day_index: 147, completes_at: null },
       { infrastructure_code: "home_advantage_program", completes_game_day_index: 146, completes_at: null },
-    ] satisfies DashboardProject[],
+    ] as DashboardProject[],
   },
 };
 
