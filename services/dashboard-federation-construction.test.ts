@@ -4,6 +4,12 @@ import { getDashboardFederationConstructionOpportunity } from "./dashboard-feder
 
 vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: vi.fn() }));
 
+type DashboardProject = {
+  infrastructure_code: string;
+  completes_game_day_index: number;
+  completes_at: string | null;
+};
+
 const context = { teamSeasonId: "team-season", sportingDirectorId: "president", seasonId: "season" };
 const row = {
   season: { game_year: 5, current_day_number: 8 },
@@ -17,11 +23,11 @@ const row = {
       { infrastructure_code: "national_technical_laboratory", level: 1 },
     ],
     projects: [
-      { infrastructure_code: "federal_staff_institute", completes_game_day_index: 146 },
-      { infrastructure_code: "federal_medical_network", completes_game_day_index: 147 },
-      { infrastructure_code: "race_organization_office", completes_game_day_index: 147 },
-      { infrastructure_code: "home_advantage_program", completes_game_day_index: 146 },
-    ],
+      { infrastructure_code: "federal_staff_institute", completes_game_day_index: 146, completes_at: null },
+      { infrastructure_code: "federal_medical_network", completes_game_day_index: 147, completes_at: null },
+      { infrastructure_code: "race_organization_office", completes_game_day_index: 147, completes_at: null },
+      { infrastructure_code: "home_advantage_program", completes_game_day_index: 146, completes_at: null },
+    ] satisfies DashboardProject[],
   },
 };
 
@@ -73,6 +79,23 @@ describe("dashboard federation construction", () => {
     });
   });
 
+  it("waits for the delivery time on the completion day", async () => {
+    const { client } = mockRead({
+      ...row,
+      country: {
+        ...row.country,
+        projects: [{
+          infrastructure_code: "national_technical_laboratory",
+          completes_game_day_index: 147,
+          completes_at: new Date(Date.now() + 37 * 60_000).toISOString(),
+        }],
+      },
+    });
+
+    await expect(getDashboardFederationConstructionOpportunity(context)).resolves.toBeNull();
+    expect(client.rpc).not.toHaveBeenCalled();
+  });
+
   it("skips the budget read while any active project is still in progress", async () => {
     const { client } = mockRead({
       ...row,
@@ -80,7 +103,7 @@ describe("dashboard federation construction", () => {
         ...row.country,
         projects: [
           ...row.country.projects,
-          { infrastructure_code: "national_technical_laboratory", completes_game_day_index: 148 },
+          { infrastructure_code: "national_technical_laboratory", completes_game_day_index: 148, completes_at: null },
         ],
       },
     });

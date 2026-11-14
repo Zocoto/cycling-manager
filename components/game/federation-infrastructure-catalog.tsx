@@ -15,6 +15,7 @@ import { InfrastructureSpecializationPanel } from "@/components/game/infrastruct
 import { initialFederationInfrastructureActionState } from "@/lib/game/federation-action-states";
 import { getInfrastructureSpecializationProposal } from "@/lib/game/infrastructure-specializations";
 import {
+  FEDERATION_CONSTRUCTION_MINUTES_PER_DAY,
   FEDERATION_INFRASTRUCTURE_DEFINITIONS,
   MAX_FEDERATION_PROJECT_ARCHITECTS,
   calculateFederationConstructionPreview,
@@ -50,7 +51,8 @@ type FederationInfrastructureCatalogProps = {
 const moneyFormatter = new Intl.NumberFormat("fr-FR", {
   style: "currency",
   currency: "EUR",
-  maximumFractionDigits: 0,
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
 });
 
 const PRIORITIES: Array<{
@@ -82,7 +84,7 @@ export function FederationInfrastructureCatalog({
   infrastructureState,
 }: FederationInfrastructureCatalogProps) {
   const activeProjects = infrastructureState?.activeProjects ?? [];
-  const constructionInProgress = activeProjects.some((project) => project.remainingDays > 0);
+  const constructionInProgress = activeProjects.some((project) => project.remainingMinutes > 0);
 
   return (
     <div className="space-y-6">
@@ -741,14 +743,14 @@ function FederationInfrastructureCard({
             </p>
             <dl className="mt-4 grid grid-cols-2 gap-4">
               <QuoteMetric label="Coût fédéral" value={formatMoney(quote.cost, currency)} />
-              <QuoteMetric label="Durée" value={`${quote.durationDays} jours`} />
+              <QuoteMetric label="Durée" value={formatConstructionDuration(quote.durationMinutes)} />
               <QuoteMetric
                 label="Économie simulée"
                 value={quote.savedAmount > 0 ? formatMoney(quote.savedAmount, currency) : "—"}
               />
               <QuoteMetric
                 label="Temps simulé"
-                value={quote.savedDays > 0 ? `${quote.savedDays} jour${quote.savedDays > 1 ? "s" : ""}` : "—"}
+                value={quote.savedMinutes > 0 ? formatConstructionDuration(quote.savedMinutes) : "—"}
               />
             </dl>
             <p className="mt-4 text-xs font-bold leading-5 text-[#75631C]">
@@ -826,13 +828,18 @@ function ActiveProjectPanel({
     updateFederationProjectPriorityAction,
     initialFederationInfrastructureActionState,
   );
-  const elapsedDays = Math.max(
+  const elapsedMinutes = Math.max(
     0,
-    project.finalDurationDays - project.remainingDays,
+    project.finalDurationMinutes - project.remainingMinutes,
   );
   const progress = Math.min(
     100,
-    Math.max(4, Math.round((elapsedDays / project.finalDurationDays) * 100)),
+    Math.max(4, Math.round((elapsedMinutes / project.finalDurationMinutes) * 100)),
+  );
+  const savedMinutes = Math.max(
+    0,
+    project.baseDurationDays * FEDERATION_CONSTRUCTION_MINUTES_PER_DAY -
+      project.finalDurationMinutes,
   );
   const hasCapacity =
     project.architectCount < MAX_FEDERATION_PROJECT_ARCHITECTS;
@@ -853,8 +860,8 @@ function ActiveProjectPanel({
             {definition?.name ?? "Infrastructure fédérale"}
           </p>
           <p className="mt-1 text-sm font-black text-[var(--federation-secondary)]">
-            {project.remainingDays > 0
-              ? `${project.remainingDays} jour${project.remainingDays > 1 ? "s" : ""} restant${project.remainingDays > 1 ? "s" : ""}`
+            {project.remainingMinutes > 0
+              ? <>Temps restant{" · "}{formatConstructionDuration(project.remainingMinutes)}</>
               : "Livraison imminente"}
           </p>
         </div>
@@ -906,14 +913,14 @@ function ActiveProjectPanel({
       </div>
       <dl className="mt-4 grid grid-cols-2 gap-3">
         <QuoteMetric label="Coût final" value={formatMoney(project.finalCost, currency)} />
-        <QuoteMetric label="Délai final" value={`${project.finalDurationDays} jours`} />
+        <QuoteMetric label="Délai final" value={formatConstructionDuration(project.finalDurationMinutes)} />
         <QuoteMetric
           label="Économie"
           value={formatMoney(project.baseCost - project.finalCost, currency)}
         />
         <QuoteMetric
           label="Temps gagné"
-          value={`${project.baseDurationDays - project.finalDurationDays} jour(s)`}
+          value={formatConstructionDuration(savedMinutes)}
         />
       </dl>
       {project.architects.length > 0 ? (
@@ -932,7 +939,7 @@ function ActiveProjectPanel({
                 </span>
               </span>
               <span className="shrink-0 text-[var(--federation-secondary)]">
-                +{formatMoney(architect.costRefund, currency)} · −{architect.savedDays} j
+                +{formatMoney(architect.costRefund, currency)} · −{formatConstructionDuration(architect.savedMinutes)}
               </span>
             </li>
           ))}
@@ -1089,11 +1096,23 @@ function QuoteMetric({ label, value }: { label: string; value: string }) {
   );
 }
 
+function formatConstructionDuration(totalMinutes: number): string {
+  const days = Math.floor(totalMinutes / FEDERATION_CONSTRUCTION_MINUTES_PER_DAY);
+  const hours = Math.floor((totalMinutes % FEDERATION_CONSTRUCTION_MINUTES_PER_DAY) / 60);
+  const minutes = totalMinutes % 60;
+  return [
+    days > 0 && `${days} j`,
+    hours > 0 && `${hours} h`,
+    (minutes > 0 || totalMinutes === 0) && `${minutes} min`,
+  ].filter(Boolean).join(" ");
+}
+
 function formatMoney(value: number, currency: string): string {
   if (currency === "EUR") return moneyFormatter.format(value);
   return new Intl.NumberFormat("fr-FR", {
     style: "currency",
     currency,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
   }).format(value);
 }

@@ -130,7 +130,7 @@ try {
   `, [cancelled, belgium]);
   const beforeMigration = await accounting(belgium, belgianAccount);
 
-  await db.exec(await readMigration("20261112220000_limit_federal_construction_to_one_project.sql"));
+  await db.exec((await readMigration("20261112220000_limit_federal_construction_to_one_project.sql")).replaceAll("\r", ""));
   assert.equal(await scalar("select has_function_privilege('anon', $1, 'execute')", [signature]), false);
   assert.equal(await scalar("select has_function_privilege('authenticated', $1, 'execute')", [signature]), true);
   assert.deepEqual(await activeIds(belgium), [first, second].sort());

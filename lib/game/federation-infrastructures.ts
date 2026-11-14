@@ -244,6 +244,8 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
 
 export type FederationConstructionPriority = "balanced" | "cost" | "time";
 
+export const FEDERATION_CONSTRUCTION_MINUTES_PER_DAY = 24 * 60;
+
 export function calculateFederationConstructionPreview({
   level,
   architectCount,
@@ -257,35 +259,33 @@ export function calculateFederationConstructionPreview({
     MAX_FEDERATION_PROJECT_ARCHITECTS,
     Math.max(0, Math.trunc(architectCount)),
   );
-  const costReductionRate =
+  const costReductionPercentage =
     priority === "cost"
-      ? architects * 0.04
+      ? architects * 4
       : priority === "balanced"
-        ? architects * 0.02
+        ? architects * 2
         : 0;
-  const durationReductionRate =
+  const durationReductionPercentage =
     priority === "time"
-      ? architects * 0.06
+      ? architects * 6
       : priority === "balanced"
-        ? architects * 0.03
+        ? architects * 3
         : 0;
-  const cost = roundToNearest(level.cost * (1 - costReductionRate), 5_000);
-  const durationDays = Math.max(
-    1,
-    Math.ceil(level.durationDays * (1 - durationReductionRate)),
+  const baseCostCents = Math.round(level.cost * 100);
+  const finalCostCents = Math.round((baseCostCents * (100 - costReductionPercentage)) / 100);
+  const baseDurationMinutes = level.durationDays * FEDERATION_CONSTRUCTION_MINUTES_PER_DAY;
+  const durationMinutes = Math.max(
+    FEDERATION_CONSTRUCTION_MINUTES_PER_DAY,
+    Math.ceil((baseDurationMinutes * (100 - durationReductionPercentage)) / 100),
   );
 
   return {
     architectCount: architects,
-    cost,
-    durationDays,
-    savedAmount: level.cost - cost,
-    savedDays: level.durationDays - durationDays,
-    costReductionPercentage: Math.round(costReductionRate * 100),
-    durationReductionPercentage: Math.round(durationReductionRate * 100),
+    cost: finalCostCents / 100,
+    durationMinutes,
+    savedAmount: (baseCostCents - finalCostCents) / 100,
+    savedMinutes: baseDurationMinutes - durationMinutes,
+    costReductionPercentage,
+    durationReductionPercentage,
   };
-}
-
-function roundToNearest(value: number, step: number): number {
-  return Math.round(value / step) * step;
 }

@@ -134,23 +134,23 @@ describe("federation infrastructures", () => {
     expect(balanced.durationReductionPercentage).toBe(15);
   });
 
-  it("explains why one architect cannot shorten a fourteen-day time-priority project", () => {
+  it("applies sub-day savings and exact refunds to a fourteen-day project", () => {
     const catalogLevel = FEDERATION_INFRASTRUCTURE_DEFINITIONS.find(
       (definition) => definition.code === "national_performance_center",
     )!.levels[0];
     // Existing projects keep their initial quote when the catalogue is rebalanced.
     const level = { ...catalogLevel, durationDays: 14 };
     expect(calculateFederationConstructionPreview({level, architectCount: 1, priority: "time"})).toMatchObject({
-      cost: 1_400_000, durationDays: 14, savedAmount: 0, savedDays: 0, durationReductionPercentage: 6,
+      cost: 1_400_000, durationMinutes: 18_951, savedAmount: 0, savedMinutes: 1_209, durationReductionPercentage: 6,
     });
     expect(calculateFederationConstructionPreview({level, architectCount: 2, priority: "time"})).toMatchObject({
-      cost: 1_400_000, durationDays: 13, savedDays: 1, durationReductionPercentage: 12,
+      cost: 1_400_000, durationMinutes: 17_741, savedMinutes: 2_419, durationReductionPercentage: 12,
     });
     expect(calculateFederationConstructionPreview({level, architectCount: 1, priority: "balanced"})).toMatchObject({
-      cost: 1_370_000, durationDays: 14, costReductionPercentage: 2, durationReductionPercentage: 3,
+      cost: 1_372_000, durationMinutes: 19_556, savedAmount: 28_000, savedMinutes: 604, costReductionPercentage: 2, durationReductionPercentage: 3,
     });
     expect(calculateFederationConstructionPreview({level, architectCount: 1, priority: "cost"})).toMatchObject({
-      cost: 1_345_000, durationDays: 14, costReductionPercentage: 4, durationReductionPercentage: 0,
+      cost: 1_344_000, durationMinutes: 20_160, savedAmount: 56_000, savedMinutes: 0, costReductionPercentage: 4, durationReductionPercentage: 0,
     });
   });
 

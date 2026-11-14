@@ -23,10 +23,8 @@ const project: FederationInfrastructureProjectState = {
   baseCost: 450_000,
   finalCost: 450_000,
   baseDurationDays: 6,
-  finalDurationDays: 6,
-  startsGameDayIndex: 140,
-  completesGameDayIndex: 146,
-  remainingDays: 3,
+  finalDurationMinutes: 8_640,
+  remainingMinutes: 4_320,
   architectCount: 0,
   architects: [],
   viewerTeamHasContributed: false,
@@ -78,11 +76,36 @@ describe("limite des chantiers fédéraux", () => {
   });
 
   it("autorise un autre bâtiment à la date de livraison sans masquer le suivi", () => {
-    const markup = renderCatalog([{ ...project, remainingDays: 0 }]);
+    const markup = renderCatalog([{ ...project, remainingMinutes: 0 }]);
     const launches = launchButtons(markup);
     expect(markup).toContain("Livraison imminente");
     expect(markup).not.toContain("Un chantier est déjà en cours dans cette fédération.");
     expect(launches.length).toBeGreaterThan(0);
     expect(launches.some(button => button.includes(' disabled=""'))).toBe(false);
+  });
+
+  it("affiche les minutes et les centimes réellement gagnés", () => {
+    const markup = renderCatalog([{
+      ...project,
+      finalCost: 449_999.58,
+      finalDurationMinutes: 8_381,
+      remainingMinutes: 37,
+      architectCount: 1,
+      architects: [{
+        contractId: "architect",
+        name: "Camille Martin",
+        level: 2,
+        specialty: "Équilibré",
+        teamId: "club",
+        teamName: "Club",
+        costRefund: 0.42,
+        savedMinutes: 259,
+      }],
+    }]);
+
+    expect(markup).toContain("37 min");
+    expect(markup).toContain("5 j 19 h 41 min");
+    expect(markup).toMatch(/\+0,42\s€ · −4 h 19 min/);
+    expect(launchButtons(markup).every(button => button.includes(' disabled=""'))).toBe(true);
   });
 });

@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  FEDERATION_CONSTRUCTION_MINUTES_PER_DAY,
   FEDERATION_INFRASTRUCTURE_CODES,
   type FederationConstructionPriority,
   type FederationInfrastructureCode,
@@ -22,7 +23,7 @@ export type FederationProjectArchitect = {
   teamId: string;
   teamName: string;
   costRefund: number;
-  savedDays: number;
+  savedMinutes: number;
 };
 
 export type FederationInfrastructureProjectState = {
@@ -33,10 +34,8 @@ export type FederationInfrastructureProjectState = {
   baseCost: number;
   finalCost: number;
   baseDurationDays: number;
-  finalDurationDays: number;
-  startsGameDayIndex: number;
-  completesGameDayIndex: number;
-  remainingDays: number;
+  finalDurationMinutes: number;
+  remainingMinutes: number;
   architectCount: number;
   architects: FederationProjectArchitect[];
   viewerTeamHasContributed: boolean;
@@ -117,8 +116,9 @@ type ProjectRow = {
   final_cost: number | string;
   base_duration_days: number;
   final_duration_days: number;
-  starts_game_day_index: number;
   completes_game_day_index: number;
+  final_duration_minutes: number | null;
+  completes_at: string | null;
 };
 type ContributionRow = {
   project_id: string;
@@ -126,6 +126,7 @@ type ContributionRow = {
   staff_contract_id: string;
   cost_refund: number | string;
   saved_days: number;
+  saved_minutes: number | null;
 };
 type AssignmentRow = { sporting_director_id: string };
 type TermRow = { president_director_id: string | null };
@@ -235,7 +236,7 @@ export async function getFederationInfrastructureState({
         admin
           .from("national_federation_infrastructure_projects")
           .select(
-            "id, infrastructure_code, target_level, priority, base_cost, final_cost, base_duration_days, final_duration_days, starts_game_day_index, completes_game_day_index",
+            "id, infrastructure_code, target_level, priority, base_cost, final_cost, base_duration_days, final_duration_days, completes_game_day_index, final_duration_minutes, completes_at",
           )
           .eq("country_id", countryId)
           .eq("status", "active")
@@ -314,7 +315,7 @@ export async function getFederationInfrastructureState({
       ? await admin
           .from("national_federation_project_architects")
           .select(
-            "project_id, team_id, staff_contract_id, cost_refund, saved_days",
+            "project_id, team_id, staff_contract_id, cost_refund, saved_days, saved_minutes",
           )
           .in("project_id", projectIds)
           .order("created_at", { ascending: true })
@@ -450,6 +451,7 @@ export async function getFederationInfrastructureState({
       contributionsByProject.set(contribution.project_id, current);
     }
     const currentGameDayIndex = gameYear * 28 + currentDayNumber - 1;
+    const now = Date.now();
     const viewerDirectorId = assignment.data?.sporting_director_id ?? null;
     const activeProjects = projectRows.flatMap(
       (project): FederationInfrastructureProjectState[] => {
@@ -470,12 +472,15 @@ export async function getFederationInfrastructureState({
             baseCost: Number(project.base_cost),
             finalCost: Number(project.final_cost),
             baseDurationDays: project.base_duration_days,
-            finalDurationDays: project.final_duration_days,
-            startsGameDayIndex: project.starts_game_day_index,
-            completesGameDayIndex: project.completes_game_day_index,
-            remainingDays: Math.max(
+            finalDurationMinutes:
+              project.final_duration_minutes ??
+              project.final_duration_days * FEDERATION_CONSTRUCTION_MINUTES_PER_DAY,
+            remainingMinutes: Math.max(
               0,
-              project.completes_game_day_index - currentGameDayIndex,
+              project.completes_at
+                ? Math.ceil((Date.parse(project.completes_at) - now) / 60_000)
+                : (project.completes_game_day_index - currentGameDayIndex) *
+                    FEDERATION_CONSTRUCTION_MINUTES_PER_DAY,
             ),
             architectCount: projectContributions.length,
             architects: projectContributions.map((contribution) => {
@@ -496,7 +501,9 @@ export async function getFederationInfrastructureState({
                 teamName:
                   teamNameById.get(contribution.team_id) ?? "Équipe affiliée",
                 costRefund: Number(contribution.cost_refund),
-                savedDays: contribution.saved_days,
+                savedMinutes:
+                  contribution.saved_minutes ??
+                  contribution.saved_days * FEDERATION_CONSTRUCTION_MINUTES_PER_DAY,
               };
             }),
             viewerTeamHasContributed: projectContributions.some(

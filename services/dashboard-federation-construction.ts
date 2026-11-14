@@ -25,7 +25,11 @@ type FederationConstructionRow = {
     iso_alpha2: string;
     terms: Array<{ start_game_year: number; end_game_year: number }>;
     levels: Array<{ infrastructure_code: string; level: number }>;
-    projects: Array<{ infrastructure_code: string; completes_game_day_index: number }>;
+    projects: Array<{
+      infrastructure_code: string;
+      completes_game_day_index: number;
+      completes_at: string | null;
+    }>;
   };
 };
 
@@ -46,7 +50,7 @@ export async function getDashboardFederationConstructionOpportunity(
           id,iso_alpha2,
           terms:national_federation_terms!inner(start_game_year,end_game_year),
           levels:national_federation_infrastructures(infrastructure_code,level),
-          projects:national_federation_infrastructure_projects(infrastructure_code,completes_game_day_index)
+          projects:national_federation_infrastructure_projects(infrastructure_code,completes_game_day_index,completes_at)
         )
       `)
       .eq("id", teamSeasonId)
@@ -73,7 +77,12 @@ export async function getDashboardFederationConstructionOpportunity(
     }
 
     const currentGameDayIndex = gameYear * 28 + currentDayNumber - 1;
-    if (country.projects.some((project) => project.completes_game_day_index > currentGameDayIndex)) {
+    const now = Date.now();
+    if (country.projects.some((project) =>
+      project.completes_at
+        ? Date.parse(project.completes_at) > now
+        : project.completes_game_day_index > currentGameDayIndex,
+    )) {
       return null;
     }
 
