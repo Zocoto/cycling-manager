@@ -10,7 +10,7 @@ import { CyclogazetteReadMarker } from "@/components/game/cyclogazette-read-mark
 import { CyclogazetteRivalries } from "@/components/game/cyclogazette-rivalries";
 import { CyclogazetteSeasonQuiz } from "@/components/game/cyclogazette-season-quiz";
 import { CyclogazetteSectionNavigation } from "@/components/game/cyclogazette-section-navigation";
-import { CyclogazetteStickerGift } from "@/components/game/cyclogazette-sticker-gift";
+import { CyclogazetteHiddenStickerGift, CyclogazetteStickerGift } from "@/components/game/cyclogazette-sticker-gift";
 import { GameHeader } from "@/components/game/game-header";
 import { MediaCenterComposer } from "@/components/game/media-center-composer";
 import { CYCLO_STICKERS_RELEASE } from "@/lib/game/cyclo-stickers-release";
@@ -105,6 +105,7 @@ export default async function CyclogazettePage({
   ]);
   const edition = requestedEdition ?? latestEdition;
   const isStickerGiftEdition = edition?.issueDate === "2026-11-07" && edition.issueNumber === 114;
+  const isStickerHuntEdition = edition?.issueDate === "2026-11-14" && edition.issueNumber === 121 && edition.dayNumber === 9;
   const isSeasonFinaleEdition = edition?.dayNumber === 28;
   const finaleGameYear = isSeasonFinaleEdition && edition ? Math.ceil(edition.issueNumber / 28) : null;
   // A late first reader may have triggered publication while the parallel
@@ -139,7 +140,7 @@ export default async function CyclogazettePage({
             edition,
             latestEditionId: latestEdition.id,
           }),
-          CYCLO_STICKERS_RELEASE.publicReady && isStickerGiftEdition
+          CYCLO_STICKERS_RELEASE.publicReady && (isStickerGiftEdition || isStickerHuntEdition)
             ? supabase.rpc("get_current_cyclogazette_booster_gift", { p_edition_id: edition.id })
             : null,
           getCyclogazetteArticleReactions(supabase, edition),
@@ -226,11 +227,20 @@ export default async function CyclogazettePage({
                   interviewReactions={community?.interviewReactions}
                   articleReactions={articleReactions}
                   stickerGift={
-                    stickerGiftState === "available" || stickerGiftState === "claimed" ? (
+                    isStickerGiftEdition && (stickerGiftState === "available" || stickerGiftState === "claimed") ? (
                       <CyclogazetteStickerGift
                         key={edition.id}
                         editionId={edition.id}
                         sourceSeason={CYCLO_STICKERS_RELEASE.sourceSeason}
+                        initiallyClaimed={stickerGiftState === "claimed"}
+                      />
+                    ) : null
+                  }
+                  stickerHunt={
+                    isStickerHuntEdition && (stickerGiftState === "available" || stickerGiftState === "claimed") ? (
+                      <CyclogazetteHiddenStickerGift
+                        key={edition.id}
+                        editionId={edition.id}
                         initiallyClaimed={stickerGiftState === "claimed"}
                       />
                     ) : null

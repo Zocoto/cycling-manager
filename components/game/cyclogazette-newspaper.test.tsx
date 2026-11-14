@@ -5,7 +5,7 @@ import type { CyclogazetteEdition } from "@/lib/game/cyclogazette";
 import type { CyclogazetteInterviewReactionStates } from "@/lib/game/cyclogazette-interview-reactions";
 
 import { CyclogazetteNewspaper } from "./cyclogazette-newspaper";
-import { CyclogazetteStickerGift } from "./cyclogazette-sticker-gift";
+import { CyclogazetteHiddenStickerGift, CyclogazetteStickerGift } from "./cyclogazette-sticker-gift";
 
 vi.mock("@/app/jeu/gazette/actions", () => ({
   claimCyclogazetteBoosterGiftAction: vi.fn(),
@@ -184,6 +184,30 @@ describe("CyclogazetteNewspaper", () => {
     expect(claimed).toContain('data-cyclogazette-sticker-gift="claimed"');
     expect(claimed).toContain('href="/jeu/album?onglet=boosters"');
     expect(claimed).not.toContain("Récupérer ma pochette");
+  });
+
+  it("embeds the hidden gift as a captionless masthead sticker and links claimed gifts to the album", () => {
+    const render = (initiallyClaimed: boolean) => renderToStaticMarkup(
+      <CyclogazetteNewspaper
+        edition={edition}
+        stickerHunt={<CyclogazetteHiddenStickerGift editionId={edition.id} initiallyClaimed={initiallyClaimed} />}
+      />,
+    );
+
+    const available = render(false);
+    const sticker = available.indexOf('data-cyclogazette-sticker-hunt="available"');
+    expect(sticker).toBeGreaterThan(available.indexOf("<h1"));
+    expect(sticker).toBeLessThan(available.indexOf("</header>"));
+    expect(available).toContain('aria-label="Vignette de la Gazette"');
+    expect(available).toContain('data-cyclo-stickers-icon="vashadze-sticker"');
+    expect(available).not.toContain("Booster ajouté à ton album.");
+    expect(available).not.toContain("Récupérer ma pochette");
+    expect(available).not.toContain("/jeu/album?onglet=boosters");
+
+    const claimed = render(true);
+    expect(claimed).toContain('data-cyclogazette-sticker-hunt="claimed"');
+    expect(claimed).toContain('href="/jeu/album?onglet=boosters"');
+    expect(claimed).not.toContain('aria-label="Vignette de la Gazette"');
   });
 
   it("place le palmarès d'ouverture avant la Une", () => {

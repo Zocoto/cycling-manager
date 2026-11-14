@@ -229,6 +229,7 @@ export function CyclogazetteNewspaper({
   interviewReactions,
   articleReactions,
   stickerGift,
+  stickerHunt,
   seasonOpeningAwards,
   seasonQuizSection,
   gamesSection,
@@ -240,6 +241,7 @@ export function CyclogazetteNewspaper({
   interviewReactions?: CyclogazetteInterviewReactionStates;
   articleReactions?: CyclogazetteArticleReactionStates;
   stickerGift?: ReactNode;
+  stickerHunt?: ReactNode;
   seasonOpeningAwards?: ReactNode;
   seasonQuizSection?: ReactNode;
   gamesSection?: ReactNode;
@@ -478,19 +480,22 @@ export function CyclogazetteNewspaper({
               ? newspaperName.toUpperCase()
               : newspaperName}
           </h1>
-          <p className="text-center text-[10px] font-black uppercase tracking-[0.16em] text-[var(--gazette-accent)] sm:text-right">
-            {isSeasonTwoGalaEdition
-              ? `${isEnglish ? "Gala issue" : "Numéro de gala"} · N° ${edition.issueNumber}`
-              : isNationsCupSpecialEdition
-                ? `${isEnglish ? "Nations Cup issue" : "Numéro Nations Cup"} · N° ${edition.issueNumber}`
-              : isItalianGrandTourEdition
-              ? `Edizione rosa · N° ${edition.issueNumber}`
-              : isFrenchGrandTourEdition
-                ? `${isEnglish ? "Tour issue" : "Numéro du Tour"} · N° ${edition.issueNumber}`
-                : isSpanishGrandTourEdition
-                  ? `${isEnglish ? "Red issue" : "Edición roja"} · N° ${edition.issueNumber}`
-              : `N° ${edition.issueNumber}`}
-          </p>
+          <div className={stickerHunt ? "relative flex items-center justify-center gap-1 sm:justify-end" : "contents"}>
+            <p className="text-center text-[10px] font-black uppercase tracking-[0.16em] text-[var(--gazette-accent)] sm:text-right">
+              {isSeasonTwoGalaEdition
+                ? `${isEnglish ? "Gala issue" : "Numéro de gala"} · N° ${edition.issueNumber}`
+                : isNationsCupSpecialEdition
+                  ? `${isEnglish ? "Nations Cup issue" : "Numéro Nations Cup"} · N° ${edition.issueNumber}`
+                : isItalianGrandTourEdition
+                ? `Edizione rosa · N° ${edition.issueNumber}`
+                : isFrenchGrandTourEdition
+                  ? `${isEnglish ? "Tour issue" : "Numéro du Tour"} · N° ${edition.issueNumber}`
+                  : isSpanishGrandTourEdition
+                    ? `${isEnglish ? "Red issue" : "Edición roja"} · N° ${edition.issueNumber}`
+                : `N° ${edition.issueNumber}`}
+            </p>
+            {stickerHunt}
+          </div>
         </div>
         <p className="border-t border-[var(--gazette-ink)]/40 pt-3 text-center font-serif text-lg font-black italic sm:text-2xl">
           {localizeCyclogazetteText(edition.subtitle, locale)}

@@ -2,9 +2,11 @@
 
 import { useActionState, useEffect, useId, useRef } from "react";
 import { claimCyclogazetteBoosterGiftAction } from "@/app/jeu/gazette/actions";
+import { useLocale } from "@/components/i18n/locale-provider";
 import Link from "@/components/ui/app-link";
 import { notifyCycloStickersBoostersChanged } from "@/lib/game/cyclo-stickers-booster-sync";
 import { AlbumBoosterArtwork } from "./collector-album-artwork";
+import { CycloStickersStickerIcon } from "./cyclo-stickers-shortcut";
 
 const actionClassName = "inline-flex min-h-11 w-full items-center justify-center rounded-sm bg-[#294650] px-4 py-2 text-center text-sm font-black leading-snug text-[#FFF5DB] transition hover:bg-[#345862] focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[#345862] disabled:cursor-wait disabled:opacity-70 sm:w-auto";
 
@@ -73,5 +75,60 @@ export function CyclogazetteStickerGift({
         </div>
       </div>
     </section>
+  );
+}
+
+export function CyclogazetteHiddenStickerGift({ editionId, initiallyClaimed }: {
+  editionId: string;
+  initiallyClaimed: boolean;
+}) {
+  const { locale } = useLocale();
+  const en = locale === "en";
+  const [claimState, claimAction, pending] = useActionState(claimCyclogazetteBoosterGiftAction, "idle");
+  const albumLink = useRef<HTMLAnchorElement>(null);
+  const claimed = initiallyClaimed || claimState === "claimed";
+  const stickerLabel = en ? "Gazette sticker" : "Vignette de la Gazette";
+  const albumLabel = en ? "View my packs" : "Voir mes sachets";
+  const iconClassName = "group inline-grid size-11 shrink-0 place-items-center rounded-sm text-[var(--gazette-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--gazette-accent)]";
+
+  useEffect(() => {
+    if (claimState === "claimed") {
+      albumLink.current?.focus({ preventScroll: true });
+      notifyCycloStickersBoostersChanged();
+    }
+  }, [claimState]);
+
+  const icon = <CycloStickersStickerIcon className="w-[19px] rotate-6 opacity-80 saturate-75 transition group-hover:rotate-0 group-hover:opacity-100 group-hover:saturate-100 group-focus-visible:opacity-100" />;
+
+  return (
+    <div className="shrink-0 sm:relative" data-cyclogazette-sticker-hunt={claimed ? "claimed" : "available"}>
+      {claimed ? (
+        <Link href="/jeu/album?onglet=boosters" prefetch={false} className={iconClassName} aria-label={albumLabel}>{icon}</Link>
+      ) : (
+        <form action={claimAction}>
+          <input type="hidden" name="editionId" value={editionId} />
+          <button type="submit" className={`${iconClassName} cursor-pointer disabled:cursor-wait disabled:opacity-60`} aria-label={stickerLabel} aria-busy={pending} disabled={pending}>
+            {icon}
+          </button>
+        </form>
+      )}
+      {pending ? (
+        <span className="sr-only" role="status">{en ? "Adding to your album…" : "Ajout à ton album…"}</span>
+      ) : null}
+      {claimState !== "idle" ? (
+        <div className="absolute inset-x-0 top-full z-30 mx-auto w-60 max-w-full rounded border border-[#BFA36B] bg-[#FAEFD0] p-3 text-left text-[#293F48] shadow-md sm:left-auto sm:right-0 sm:max-w-none">
+          {claimed ? <>
+            <p role="status" className="text-sm font-bold">{en ? "Booster added to your album." : "Booster ajouté à ton album."}</p>
+            <Link ref={albumLink} href="/jeu/album?onglet=boosters" prefetch={false} className="mt-2 inline-block text-sm font-black text-[#294650] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2">
+              {albumLabel} <span aria-hidden="true">→</span>
+            </Link>
+          </> : (
+            <p role="alert" className="text-sm font-semibold text-[#8C4336]">
+              {en ? "The pack could not be claimed. Try again in a moment." : "La pochette n’a pas pu être récupérée. Réessaie dans un instant."}
+            </p>
+          )}
+        </div>
+      ) : null}
+    </div>
   );
 }

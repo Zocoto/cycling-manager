@@ -477,8 +477,41 @@ try{
   await admin();
   eq(await scalar("select count(*)::int from cyclo_stickers_boosters where acquisition_source='gazette' and source_reference=$1",[giftIssue]),2,'exactly one gift receipt exists per claimant');
 
+  const eveningIssue=id('gazette-121');
+  const neighbouringIssue=id('gazette-122');
+  await db.query(`insert into season_days values
+    ($1,$3,9,date '2026-11-14'),($2,$3,10,date '2026-11-15')`,[id('day-s5-9'),id('day-s5-10'),id('s5')]);
+  await db.query(`insert into cyclogazette_editions
+    (id,season_id,season_day_id,issue_number,subtitle,issue_date,content,published_at) values
+    ($1,$3,$4,121,'Evening gift issue',date '2026-11-14','{}',now()+interval '1 hour'),
+    ($2,$3,$5,122,'Neighbouring issue',date '2026-11-15','{}',now()-interval '1 minute')`,
+    [eveningIssue,neighbouringIssue,id('s5'),id('day-s5-9'),id('day-s5-10')]);
+  await db.exec(await read('20261114230000_add_evening_gazette_booster_gift'));
+  eq(await scalar("select count(*)::int from cyclo_stickers_boosters where acquisition_source='gazette'"),2,'the evening gift migration grants no packs');
+  await as('a');
+  eq(await getGift(),'claimed','the earlier Gazette receipt remains valid');
+  eq(await getGift(eveningIssue),null,'the new gift is hidden while its issue is unpublished');
+  await rejects(()=>claimGift(eveningIssue),/ne propose pas/,'the new gift cannot be claimed before publication');
+  eq(await getGift(neighbouringIssue),null,'the next issue is ineligible');
+  await rejects(()=>claimGift(neighbouringIssue),/ne propose pas/,'the next issue cannot grant another gift');
+  await admin();
+  await db.query("update cyclogazette_editions set published_at=now()-interval '1 minute' where id=$1",[eveningIssue]);
+  await as('a');
+  const packsBeforeEveningGift=(await state()).boosterCount;
+  eq(await getGift(eveningIssue),'available','delayed publication preserves the gift on the intended issue');
+  eq((await state()).boosterCount,packsBeforeEveningGift,'displaying the evening gift grants no packs');
+  eq(await claimGift(eveningIssue),'claimed','the reader can claim the evening gift independently of the earlier one');
+  eq(await claimGift(eveningIssue),'claimed','the evening gift claim is idempotent');
+  eq((await state()).boosterCount,packsBeforeEveningGift+1,'the claim adds exactly one regular pack');
+  await as('b');
+  eq(await getGift(eveningIssue),'available','a second reader has a separate claim');
+  eq(await claimGift(eveningIssue),'claimed','the second reader receives their pack');
+  await admin();
+  eq(await scalar("select count(*)::int from cyclo_stickers_boosters where acquisition_source='gazette' and source_reference=$1",[eveningIssue]),2,'one durable receipt exists per reader for the exact evening issue');
+
   await db.exec("update seasons set status=case when game_year=4 then 'completed' when game_year=5 then 'completed' else 'active' end");
   await as('a');eq((await state()).edition.collectionSeason,5,'later seasons preserve the old edition and unopened packs');
+  eq(await getGift(eveningIssue),'claimed','the archived evening issue preserves the claim');
   await admin();await db.exec("update cyclo_stickers_editions set configuration=jsonb_set(configuration,'{enabled}','false')");await as('a');await rejects(()=>open('login','pack-login'),/pas encore disponible/,'server kill switch also guards opening replays');
   eq(await getGift(),null,'disabling the album hides the gift');
   await rejects(()=>claimGift(),/ne propose pas/,'disabling the album blocks gift claims');
