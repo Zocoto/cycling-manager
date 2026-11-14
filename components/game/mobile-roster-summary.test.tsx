@@ -40,12 +40,14 @@ describe("mobile roster summary", () => {
             profile: "Grimpeur",
             form: 82,
             morale: 71,
+            seasonRaceDays: 0,
             ratings,
           },
         ]}
         availableRatings={ratings}
         currentSortKey={null}
         currentDirection="asc"
+        warnOnOverload
       />,
     );
 
@@ -54,6 +56,8 @@ describe("mobile roster summary", () => {
     expect(markup.match(/data-summary-rating=/g)).toHaveLength(6);
     expect(markup).toContain("Augusto Silva");
     expect(markup).toContain("Santé : forme 82 %, moral 71 %");
+    expect(markup).toContain("JDC saison");
+    expect(markup).toContain(">0 / 30<");
     expect(markup).not.toContain("overflow-x-auto");
     expect(markup).toContain("Montagne : 81");
     expect(markup).toContain("Vallon : 77");

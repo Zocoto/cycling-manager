@@ -82,6 +82,7 @@ function createProfile({
     age: 26,
     physique: null,
     careerRaceDays: 125,
+    seasonRaceDays: 0,
     potentialSteps: 6,
     ratings,
     scoutingReport: null,

@@ -47,6 +47,7 @@ type RiderRow = {
   weight_kg: number | string | null;
   baseline_weight_kg: number | string | null;
   physiology_version: number | null;
+  rider_special_abilities?: Array<{ ability_code: string }>;
 };
 type CountryRow = { id: string; name: string; iso_alpha2: string };
 type RatingRow = {
@@ -245,6 +246,7 @@ export type TeamHealthRider = {
   fatigue: number;
   morale: number;
   seasonRaceDays?: number;
+  hasEtapovore?: boolean;
   moraleEvents: RiderMoraleEvent[];
   injury: RiderMedicalInjury | null;
   formCamp: RiderFormCamp | null;
@@ -433,9 +435,10 @@ export async function getCurrentTeamHealthOverview(
       admin
         .from("riders")
         .select(
-          "id, country_id, first_name, last_name, avatar_profile_key, avatar_seed, height_cm, weight_kg, baseline_weight_kg, physiology_version",
+          "id, country_id, first_name, last_name, avatar_profile_key, avatar_seed, height_cm, weight_kg, baseline_weight_kg, physiology_version, rider_special_abilities(ability_code)",
         )
         .in("id", riderIds)
+        .eq("rider_special_abilities.ability_code", "etapovore")
         .returns<RiderRow[]>(),
       admin
         .from("rider_season_ratings")
@@ -736,6 +739,7 @@ export async function getCurrentTeamHealthOverview(
           fatigue: condition?.fatigue ?? 0,
           morale: toNumber(condition?.morale ?? 60),
           seasonRaceDays: rating?.season_race_days,
+          hasEtapovore: Boolean(rider.rider_special_abilities?.length),
           moraleEvents: moraleEventsByRiderId.get(rider.id) ?? [],
           injury: injury
             ? {

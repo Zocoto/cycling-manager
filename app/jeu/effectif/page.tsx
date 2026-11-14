@@ -24,6 +24,7 @@ import {
 } from "@/components/game/rider-comparison-launcher";
 import { RiderSeasonPlanning } from "../../../components/game/rider-season-planning";
 import { RiderMoraleGauge } from "@/components/game/rider-morale-gauge";
+import { SeasonRaceDaysBadge } from "@/components/game/season-race-days-badge";
 import { SquadStatusEditor, SquadStatusesBulkEditor } from "@/components/game/squad-status-editor";
 import { TeamContractManagement } from "@/components/game/team-contract-management";
 import { EmptyRosterRecovery } from "@/components/game/empty-roster-recovery";
@@ -56,6 +57,7 @@ import {
 } from "@/lib/game/squad-status";
 import type { RiderComparisonOption } from "@/lib/game/rider-comparison";
 import type { RiderMoraleEvent } from "@/lib/game/rider-morale";
+import { RACE_LOAD_START_GAME_YEAR } from "@/lib/game/rider-race-load";
 import { getRiderRatingColorClasses } from "../../../lib/game/rider-rating-colors";
 import {
   getNextRosterSortDirection,
@@ -120,6 +122,8 @@ type RiderRow = {
 type RiderRosterHealth = {
   form: number;
   morale: number;
+  seasonRaceDays?: number;
+  hasEtapovore?: boolean;
   moraleEvents: RiderMoraleEvent[];
   injury: RiderMedicalInjury | null;
   formCamp: RiderFormCamp | null;
@@ -363,12 +367,15 @@ export default async function TeamRosterPage({
       {
         form: rider.form,
         morale: rider.morale,
+        seasonRaceDays: rider.seasonRaceDays,
+        hasEtapovore: rider.hasEtapovore,
         moraleEvents: rider.moraleEvents,
         injury: rider.injury,
         formCamp: rider.formCamp,
       },
     ]),
   );
+  const warnOnOverload = (healthOverview?.gameYear ?? 0) >= RACE_LOAD_START_GAME_YEAR;
 
   if (rosterResult.error) {
     console.error("Impossible de récupérer l’effectif :", {
@@ -627,6 +634,11 @@ export default async function TeamRosterPage({
                   </span>
                 </div>
               </div>
+              {riders.length > 0 && warnOnOverload ? (
+                <p className="border-b border-[#315B3E]/12 bg-[#F3F8F6] px-4 py-2 text-xs font-semibold text-[#48665F] sm:px-6">
+                  Au-delà de 30 JDC, le moral baisse sauf pour les Étapovores.
+                </p>
+              ) : null}
 
               {riders.length > 0 ? (
                 <RiderComparisonRosterProvider options={comparisonOptions}>
@@ -642,6 +654,7 @@ export default async function TeamRosterPage({
                         currentSortKey={currentSortKey}
                         currentDirection={currentSortDirection}
                         availableRatings={ratingColumns}
+                        warnOnOverload={warnOnOverload}
                         riders={sortedRiders.map((rider) => {
                           const health =
                             healthByRiderId.get(rider.rider_id) ?? null;
@@ -659,6 +672,8 @@ export default async function TeamRosterPage({
                             ),
                             form: health?.form ?? 75,
                             morale: health?.morale ?? 60,
+                            seasonRaceDays: health?.seasonRaceDays,
+                            hasEtapovore: health?.hasEtapovore,
                             injuryLabel: health?.injury?.label ?? null,
                             ratings: ratingColumns.map((column) => ({
                               key: column.key,
@@ -697,6 +712,7 @@ export default async function TeamRosterPage({
                               health={
                                 healthByRiderId.get(rider.rider_id) ?? null
                               }
+                              warnOnOverload={warnOnOverload}
                               equipmentBonuses={
                                 equipmentRatingBonusesByRiderId.get(
                                   rider.rider_id,
@@ -810,6 +826,7 @@ export default async function TeamRosterPage({
                               ) ?? riderJersey
                             }
                             health={healthByRiderId.get(rider.rider_id) ?? null}
+                            warnOnOverload={warnOnOverload}
                             equipmentBonuses={
                               equipmentRatingBonusesByRiderId.get(
                                 rider.rider_id,
@@ -1143,12 +1160,14 @@ function RiderMobileCard({
   rider,
   jersey,
   health,
+  warnOnOverload,
   equipmentBonuses,
   returnTo,
 }: {
   rider: RiderRow;
   jersey: RiderJerseyAppearance;
   health: RiderRosterHealth | null;
+  warnOnOverload: boolean;
   equipmentBonuses: Partial<Record<RiderRatingKey, number>>;
   returnTo: string;
 }) {
@@ -1207,8 +1226,16 @@ function RiderMobileCard({
                 {"\u2197"}
               </span>
             </span>
-            <span className="mt-2 inline-flex max-w-full rounded-full bg-[#D7EEE8] px-2.5 py-1 text-[11px] font-extrabold leading-4 text-[#176951]">
-              {riderProfile}
+            <span className="mt-2 flex flex-wrap items-center gap-1.5">
+              <span className="inline-flex max-w-full rounded-full bg-[#D7EEE8] px-2.5 py-1 text-[11px] font-extrabold leading-4 text-[#176951]">
+                {riderProfile}
+              </span>
+              <SeasonRaceDaysBadge
+                seasonRaceDays={health?.seasonRaceDays}
+                hasEtapovore={health?.hasEtapovore}
+                warnOnOverload={warnOnOverload}
+                showThreshold
+              />
             </span>
           </span>
         </Link>
@@ -1309,12 +1336,14 @@ function RiderTableRow({
   rider,
   jersey,
   health,
+  warnOnOverload,
   equipmentBonuses,
   returnTo,
 }: {
   rider: RiderRow;
   jersey: RiderJerseyAppearance;
   health: RiderRosterHealth | null;
+  warnOnOverload: boolean;
   equipmentBonuses: Partial<Record<RiderRatingKey, number>>;
   returnTo: string;
 }) {
@@ -1393,7 +1422,13 @@ function RiderTableRow({
             ) : null}
           </div>
         </Link>
-        <div className="mt-2">
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <SeasonRaceDaysBadge
+            seasonRaceDays={health?.seasonRaceDays}
+            hasEtapovore={health?.hasEtapovore}
+            warnOnOverload={warnOnOverload}
+            showThreshold
+          />
           <RiderComparisonLauncher
             riderId={rider.rider_id}
             riderName={riderName}

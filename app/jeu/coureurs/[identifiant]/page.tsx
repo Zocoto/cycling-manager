@@ -34,6 +34,7 @@ import { RiderClimateProfileCard } from "@/components/game/rider-climate-profile
 import { RiderFavoriteRacesCard } from "@/components/game/rider-favorite-races-card";
 import { RiderEquipmentLoadout } from "@/components/game/rider-equipment-loadout";
 import { RiderSeasonPlanning } from "@/components/game/rider-season-planning";
+import { SeasonRaceDaysBadge } from "@/components/game/season-race-days-badge";
 import { PotentialStars } from "@/components/game/potential-stars";
 import { RankingBadge } from "@/components/game/ranking-badge";
 import { RiderStatsRadar } from "@/components/game/rider-stats-radar";
@@ -50,6 +51,7 @@ import {
   getEquipmentRatingBonusTotals,
 } from "@/lib/game/equipment";
 import { getRiderExperience } from "@/lib/game/rider-experience";
+import { RACE_LOAD_START_GAME_YEAR } from "@/lib/game/rider-race-load";
 import {
   groupRiderCareerHistoryBySeason,
   type RiderCareerTeamPeriod,
@@ -462,9 +464,21 @@ export default async function RiderProfilePage({
                   {riderExperienceScoreFormatter.format(riderExperience.score)}
                   /100
                 </IdentityBadge>
-                <IdentityBadge>
-                  Jours de course · {riderExperience.raceDays}
-                </IdentityBadge>
+                <div className="flex flex-wrap items-center gap-2">
+                  <IdentityBadge>
+                    JDC carrière · {riderExperience.raceDays}
+                  </IdentityBadge>
+                  <SeasonRaceDaysBadge
+                    seasonRaceDays={profile.seasonRaceDays}
+                    hasEtapovore={profile.specialAbilities.includes("etapovore")}
+                    tone="dark"
+                    showThreshold
+                    warnOnOverload={
+                      profile.activeSeason != null &&
+                      profile.activeSeason.gameYear >= RACE_LOAD_START_GAME_YEAR
+                    }
+                  />
+                </div>
                 <Link
                   href={countryHref}
                   target="_blank"

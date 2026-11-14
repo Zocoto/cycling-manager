@@ -80,6 +80,7 @@ export type PublicRiderProfile = {
     physiologyVersion: number;
   } | null;
   careerRaceDays: number;
+  seasonRaceDays: number | null;
   potentialSteps: number | null;
   ratings: RiderRatings | null;
   scoutingReport: TransferScoutingReport | null;
@@ -236,6 +237,7 @@ type SeasonRow = {
 
 type RatingRow = {
   season_id: string;
+  season_race_days: number;
   age: number;
   mountain: number;
   hills: number;
@@ -516,7 +518,7 @@ export async function getPublicRiderProfile({
     supabase
       .from("rider_season_ratings")
       .select(
-        "season_id, age, mountain, hills, flat, time_trial, cobbles, sprint, acceleration, downhill, endurance, resistance, recovery, breakaway, prologue",
+        ["season_id, age, mountain, hills, flat, time_trial, cobbles, sprint, acceleration, downhill, endurance, resistance, recovery, breakaway, prologue", "season_race_days"].join(","),
       )
       .eq("rider_id", rider.id)
       .returns<RatingRow[]>(),
@@ -621,10 +623,11 @@ export async function getPublicRiderProfile({
     : null;
   const currentContract =
     contracts.find((contract) => contract.status === "active") ?? null;
+  const activeRating = activeSeason
+    ? ratings.find((rating) => rating.season_id === activeSeason.id)
+    : null;
   const currentRating =
-    (activeSeason
-      ? ratings.find((rating) => rating.season_id === activeSeason.id)
-      : null) ??
+    activeRating ??
     [...ratings].sort(
       (left, right) =>
         getSeasonYear(seasons, right.season_id) -
@@ -1272,6 +1275,7 @@ export async function getPublicRiderProfile({
           }
         : null,
     careerRaceDays: Number(rider.career_race_days ?? 0),
+    seasonRaceDays: activeRating?.season_race_days ?? null,
     potentialSteps:
       mustUseScoutingReport &&
       !(rider.status === "free_agent" && scoutingVisibility.active)

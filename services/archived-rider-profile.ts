@@ -269,6 +269,7 @@ export async function getArchivedRiderProfile(
     age: archive.retirement_age,
     physique: null,
     careerRaceDays: archive.career_race_days,
+    seasonRaceDays: null,
     potentialSteps: null,
     ratings: null,
     scoutingReport: null,

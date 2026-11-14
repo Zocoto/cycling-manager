@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "@/components/ui/app-link";
+import { SeasonRaceDaysBadge } from "@/components/game/season-race-days-badge";
 import type { RiderRatingImportance } from "@/lib/game/rider-profile";
 import { getRiderRatingColorClasses } from "@/lib/game/rider-rating-colors";
 import {
@@ -42,6 +43,8 @@ export type MobileRosterSummaryRider = {
   profile: string;
   form: number;
   morale: number;
+  seasonRaceDays?: number;
+  hasEtapovore?: boolean;
   injuryLabel?: string | null;
   ratings: MobileRosterSummaryRating[];
 };
@@ -142,6 +145,7 @@ export function MobileRosterSummary({
   availableRatings,
   currentSortKey,
   currentDirection,
+  warnOnOverload,
 }: {
   riders: MobileRosterSummaryRider[];
   availableRatings: Array<
@@ -152,6 +156,7 @@ export function MobileRosterSummary({
   >;
   currentSortKey: RosterSortKey | null;
   currentDirection: RosterSortDirection;
+  warnOnOverload?: boolean;
 }) {
   const selectId = useId();
   const [presetId, setPresetId] = useState<RatingPresetId | "custom">(
@@ -388,6 +393,16 @@ export function MobileRosterSummary({
                       form={rider.form}
                       morale={rider.morale}
                     />
+                    {rider.seasonRaceDays != null ? (
+                      <div className="mt-1 [&>span]:max-w-full [&>span]:whitespace-normal [&>span]:px-1.5 [&>span]:py-0.5 [&>span]:text-[10px] [&>span>span]:flex-wrap [&>span>span]:gap-x-1 [&>span>span]:gap-y-0">
+                        <SeasonRaceDaysBadge
+                          seasonRaceDays={rider.seasonRaceDays}
+                          hasEtapovore={rider.hasEtapovore}
+                          warnOnOverload={warnOnOverload}
+                          showThreshold
+                        />
+                      </div>
+                    ) : null}
                   </td>
                   {paddedVisibleRatings.map((visibleRating, index) => {
                     const rating = visibleRating

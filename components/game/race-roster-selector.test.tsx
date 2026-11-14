@@ -103,6 +103,26 @@ describe("RaceRosterSelector", () => {
     expect(etapovore).not.toContain("Surcharge prévue");
   });
 
+  it("situe les JDC disputés par rapport au seuil de la saison", () => {
+    const renderSeason = (days: number) =>
+      renderToStaticMarkup(<SeasonRaceDaysBadge seasonRaceDays={days} showThreshold />);
+    const etapovore = renderToStaticMarkup(
+      <SeasonRaceDaysBadge seasonRaceDays={31} hasEtapovore showThreshold />,
+    );
+    const beforeRule = renderToStaticMarkup(
+      <SeasonRaceDaysBadge seasonRaceDays={27} warnOnOverload={false} showThreshold />,
+    );
+
+    expect(renderSeason(0)).toContain(">0 / 30</span>");
+    expect(renderSeason(24)).not.toContain("bg-amber-100");
+    expect(renderSeason(25)).toContain("bg-amber-100");
+    expect(renderSeason(30)).toContain("bg-amber-100");
+    expect(renderSeason(31)).toContain("bg-red-100");
+    expect(etapovore).toContain("bg-emerald-100");
+    expect(beforeRule).toContain(">27</span>");
+    expect(beforeRule).not.toContain("bg-amber-100");
+  });
+
   it("permet de modifier la sélection et les rôles existants dans le même formulaire", () => {
     const markup = renderToStaticMarkup(
       <form>
