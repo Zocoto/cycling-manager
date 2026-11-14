@@ -46,6 +46,7 @@ import {
   SPONSOR_MAIN_OBJECTIVE_BUDGET_CAP_START_GAME_YEAR,
   SPONSOR_MAIN_OBJECTIVE_START_GAME_YEAR,
 } from "@/lib/game/sponsor-main-objective";
+import { getSpecialAbilityDefinition } from "@/lib/game/special-abilities";
 import {
   getTrainingDomainWeightGroups,
   TRAINING_DOMAIN_LABELS,
@@ -1450,6 +1451,10 @@ function TeamManagementSection() {
           <p className="mt-4 text-sm font-bold leading-6 text-[#176951]">
             Homme Sandwich accorde +0,5 réputation après une échappée ou une
             victoire.
+          </p>
+          <p className="mt-4 text-sm font-medium leading-7 text-[#60756E]">
+            <strong className="block text-[#176951]">Coqueluche du vestiaire</strong>
+            {getSpecialAbilityDefinition("locker_room_favorite")?.effect}
           </p>
         </article>
       </div>

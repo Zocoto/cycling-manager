@@ -18,7 +18,7 @@ describe("special abilities", () => {
     expect(SPECIAL_ABILITY_CATALOG.map((ability) => ability.code)).toEqual(
       RIDER_SPECIAL_ABILITIES,
     );
-    expect(SPECIAL_ABILITY_CATALOG).toHaveLength(15);
+    expect(SPECIAL_ABILITY_CATALOG).toHaveLength(16);
     expect(
       SPECIAL_ABILITY_CATALOG.find((ability) => ability.code === "sandwich_man")
         ?.effect
@@ -70,6 +70,12 @@ describe("special abilities", () => {
       effect: expect.stringContaining("+0,5 point de moral"),
       icon: "stage_course",
       tone: "amber",
+    });
+    expect(getSpecialAbilityDefinition("locker_room_favorite")).toMatchObject({
+      name: "Coqueluche du vestiaire",
+      effect: expect.stringContaining("+1 point de moral aux coéquipiers"),
+      icon: "team_spirit",
+      tone: "sunrise",
     });
   });
 

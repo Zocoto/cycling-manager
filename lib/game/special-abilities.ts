@@ -14,6 +14,7 @@ export const RIDER_SPECIAL_ABILITIES = [
   "cyclocrossman",
   "metronome",
   "etapovore",
+  "locker_room_favorite",
 ] as const;
 
 export type RiderSpecialAbility =
@@ -38,7 +39,8 @@ export type SpecialAbilityDefinition = {
     | "lungs"
     | "cyclocross"
     | "metronome"
-    | "stage_course";
+    | "stage_course"
+    | "team_spirit";
   tone:
     | "silver"
     | "gold"
@@ -54,7 +56,8 @@ export type SpecialAbilityDefinition = {
     | "lime"
     | "earth_sky"
     | "iridescent"
-    | "amber";
+    | "amber"
+    | "sunrise";
 };
 
 export const PISTARD_SHORT_TIME_TRIAL_MAX_KM = 12;
@@ -171,6 +174,13 @@ export const SPECIAL_ABILITY_CATALOG: SpecialAbilityDefinition[] = [
     effect: "Remplace le malus habituel par +0,5 point de moral par jour de course, dès le 31e de la saison.",
     icon: "stage_course",
     tone: "amber",
+  },
+  {
+    code: "locker_room_favorite",
+    name: "Coqueluche du vestiaire",
+    effect: "À l’arrivée d’une classique ou d’un tour, donne +1 point de moral aux coéquipiers qui ont pris le départ avec lui sur au moins une étape. Le bonus est limité à 1 point par course, même avec plusieurs porteurs.",
+    icon: "team_spirit",
+    tone: "sunrise",
   },
 ];
 

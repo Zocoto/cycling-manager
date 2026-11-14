@@ -20,6 +20,7 @@ const UNLOCKED_TONES: Record<SpecialAbilityDefinition["tone"], string> = {
   earth_sky: "border-[#E0713D] bg-[linear-gradient(145deg,#6EDDEB_0%,#F3B65F_52%,#8B4028_100%)] text-[#32180F] shadow-[#71321E]/35",
   iridescent: "border-[#8B7CF6] bg-[linear-gradient(135deg,#FBCFE8_0%,#C4B5FD_38%,#99F6E4_70%,#BFDBFE_100%)] text-[#25205C] shadow-[#6156C7]/30",
   amber: "border-[#E6833C] bg-[linear-gradient(145deg,#FFE3A1,#E28A36)] text-[#4E220C] shadow-[#C45E23]/30",
+  sunrise: "border-[#E88770] bg-[linear-gradient(145deg,#FFF0BE,#F4A58A_58%,#D66A77)] text-[#532633] shadow-[#AA455E]/30",
 };
 
 export function SpecialAbilityMedallion({
@@ -98,6 +99,17 @@ export function SpecialAbilityMedallion({
 }
 
 function AbilityIcon({ icon }: { icon: SpecialAbilityDefinition["icon"] }) {
+  if (icon === "team_spirit") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 32 32" className="h-7 w-7 fill-none stroke-current" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="16" cy="11" r="3.2" />
+        <circle cx="7.3" cy="14" r="2.4" />
+        <circle cx="24.7" cy="14" r="2.4" />
+        <path d="M9 25v-2a7 7 0 0 1 14 0v2" fill="currentColor" fillOpacity=".15" />
+        <path d="M3 25v-2a4.3 4.3 0 0 1 6-4M29 25v-2a4.3 4.3 0 0 0-6-4M13 4l-1-1m7 1 1-1" />
+      </svg>
+    );
+  }
   if (icon === "stage_course") {
     return (
       <svg aria-hidden="true" viewBox="0 0 32 32" className="h-7 w-7 fill-none stroke-current" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
