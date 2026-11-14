@@ -1,5 +1,15 @@
+import {
+  buildPostRaceEditorialQuestions,
+  type PostRaceInterviewEditorialFacts,
+} from "./post-race-interview-editorial";
+import {
+  buildDetailedRaceInterviewQuestions,
+  TEAM_TIME_TRIAL_INTERVIEW_FALLBACK,
+  type PostRaceInterviewDetailedRaceFacts,
+} from "./post-race-interview-race-questions";
+
 export type PostRaceInterviewQuestionCategory =
-  "result" | "tactics" | "race_fact" | "outlook" | "rivalry" | "event";
+  "result" | "tactics" | "race_fact" | "outlook" | "rivalry" | "event" | "season" | "transfers" | "opponent";
 
 export type ZoneMixteEventRarity = "common" | "notable" | "rare";
 export type ZoneMixteEventRisk = "safe" | "balanced" | "bold";
@@ -36,6 +46,8 @@ export type PostRaceInterviewQuestion = {
   id: string;
   category: PostRaceInterviewQuestionCategory;
   text: string;
+  textEn?: string;
+  topic?: string;
   subjectTeamId?: string;
   sourceInterviewId?: string;
 };
@@ -104,6 +116,8 @@ export type PostRaceInterviewContext = {
   tookBreakaway: boolean;
   tookChase: boolean;
   raceFacts?: PostRaceInterviewRaceFacts;
+  detailedRaceFacts?: PostRaceInterviewDetailedRaceFacts;
+  editorialFacts?: PostRaceInterviewEditorialFacts;
   rivalry?: PostRaceInterviewRivalryContext | null;
   zoneMixteEvent?: ZoneMixteEvent | null;
 };
@@ -455,7 +469,7 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
     {
       id: "tactics-leader",
       category: "tactics",
-      text: "L’équipe a longtemps roulé pour son leader. Était-ce pour contrôler la course ou provoquer une sélection ?",
+      text: "Dans quel scénario auriez-vous demandé à l’équipe de rouler pour son leader ?",
     },
     {
       id: "tactics-hindsight",
@@ -471,7 +485,7 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
     {
       id: "tactics-isolated",
       category: "tactics",
-      text: "Votre leader s’est retrouvé isolé dans le final. Était-ce prévu ou avez-vous perdu des équipiers trop tôt ?",
+      text: "De quel type de soutien votre meilleur coureur aurait-il eu le plus besoin dans le final ?",
     },
     {
       id: "tactics-positioning",
@@ -501,7 +515,7 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
     {
       id: "tactics-plan-b",
       category: "tactics",
-      text: "À quel moment avez-vous abandonné le plan initial pour passer au plan B ?",
+      text: "Quel signal vous aurait décidé à abandonner le plan initial ?",
     },
     {
       id: "tactics-selection",
@@ -587,14 +601,14 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
       category: "race_fact",
       requires: "breakaway",
       raceTypes: ["road"],
-      text: "Votre présence dans l’échappée matinale répondait-elle à un objectif sportif précis ?",
+      text: "Votre présence dans l’échappée répondait-elle à un objectif sportif précis ?",
     },
     {
       id: "fact-team-breakaway-return",
       category: "race_fact",
       requires: "breakaway",
       raceTypes: ["road"],
-      text: "Qu’avez-vous appris de la longue échappée menée par votre équipe aujourd’hui ?",
+      text: "Qu’avez-vous appris en voyant votre équipe prendre part à l’échappée ?",
     },
     {
       id: "fact-team-breakaway-freedom",
@@ -608,7 +622,7 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
       category: "race_fact",
       requires: "race_breakaway",
       raceTypes: ["road"],
-      text: "L’échappée matinale a longtemps animé la course. À quel moment est-elle devenue une vraie menace ?",
+      text: "À partir de quel écart l’échappée devenait-elle une menace pour votre équipe ?",
     },
     {
       id: "fact-race-breakaway-gap",
@@ -938,77 +952,84 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
 export function selectPostRaceInterviewQuestions(
   context: PostRaceInterviewContext,
   seed: string,
+  recentQuestions: readonly Pick<PostRaceInterviewQuestion, "id" | "topic">[] = [],
 ): PostRaceInterviewQuestion[] {
-  const situation = getResultSituation(context.bestRank);
-  const questions = eligibleQuestions(context);
-  const resultQuestions = questions.filter(
-    (question) =>
-      question.category === "result" &&
-      question.situations?.includes(situation),
-  );
-  const middleQuestions = questions.filter(
-    (question) =>
-      question.category === "tactics" || question.category === "race_fact",
-  );
-  const outlookQuestions = questions.filter(
-    (question) => question.category === "outlook",
-  );
-  const rivalryQuestions = questions.filter(
-    (question) => question.category === "rivalry",
-  );
-  const closingQuestions = shouldAskRivalryQuestion(context, seed)
-    ? rivalryQuestions
-    : outlookQuestions;
-
-  if (context.zoneMixteEvent) {
-    const standardQuestions = [resultQuestions, middleQuestions].map(
-      (candidates, index) => {
-        const question =
-          candidates[seededIndex(`${seed}:${index}`, candidates.length)];
-        if (!question) {
-          throw new Error("Aucune question de zone mixte n’est disponible.");
+  const definitions = eligibleQuestions(context);
+  const render = (definition: QuestionDefinition): PostRaceInterviewQuestion => ({
+    id: definition.id,
+    category: definition.category,
+    text: renderQuestion(definition.text, context),
+    ...(definition.category === "rivalry" && context.rivalry
+      ? {
+          subjectTeamId: context.rivalry.teamId,
+          sourceInterviewId: context.rivalry.kind === "rebound"
+            ? context.rivalry.sourceInterviewId
+            : undefined,
         }
-        return {
-          id: question.id,
-          category: question.category,
-          text: renderQuestion(question.text, context),
-        } satisfies PostRaceInterviewQuestion;
-      },
-    );
-    return [
-      ...standardQuestions,
-      {
-        id: `event:${context.zoneMixteEvent.id}`,
-        category: "event",
-        text: context.zoneMixteEvent.title,
-      },
-    ];
+      : {}),
+  });
+  const detailed = buildDetailedRaceInterviewQuestions(context);
+  const editorial = buildPostRaceEditorialQuestions(context);
+  const isTeamTrial = context.stageType === "team_time_trial";
+  const situation = getResultSituation(context.bestRank);
+  const resultFallback = isTeamTrial
+    ? TEAM_TIME_TRIAL_INTERVIEW_FALLBACK.filter(({ category }) => category === "result")
+    : definitions.filter(({ category, situations }) =>
+        category === "result" && situations?.includes(situation),
+      ).map(render);
+  const momentFallback = isTeamTrial
+    ? TEAM_TIME_TRIAL_INTERVIEW_FALLBACK.filter(({ category }) => category === "tactics")
+    : definitions.filter(({ category }) =>
+        category === "tactics" || category === "race_fact",
+      ).map(render);
+
+  const selected: PostRaceInterviewQuestion[] = [];
+  const topicOf = (question: Pick<PostRaceInterviewQuestion, "id" | "topic">) =>
+    question.topic ?? question.id;
+  const recentIds = new Set(recentQuestions.map(({ id }) => id));
+  const recentTopicIndexes = new Map<string, number>();
+  for (const [index, question] of recentQuestions.entries()) {
+    const topic = topicOf(question);
+    if (!recentTopicIndexes.has(topic)) recentTopicIndexes.set(topic, index);
   }
 
-  return [resultQuestions, middleQuestions, closingQuestions].map(
-    (candidates, index) => {
-      const fallback = index === 2 ? outlookQuestions : candidates;
-      const available = candidates.length > 0 ? candidates : fallback;
-      const question =
-        available[seededIndex(`${seed}:${index}`, available.length)];
-      if (!question) {
-        throw new Error("Aucune question de zone mixte n’est disponible.");
-      }
+  function add(preferred: PostRaceInterviewQuestion[], fallback: PostRaceInterviewQuestion[]) {
+    const unused = (candidate: PostRaceInterviewQuestion) =>
+      selected.every((question) => topicOf(question) !== topicOf(candidate));
+    const available = preferred.filter(unused);
+    const candidates = available.length ? available : fallback.filter(unused);
+    const topics = [...new Set(candidates.map(topicOf))];
+    const unseenTopics = topics.filter((topic) => !recentTopicIndexes.has(topic));
+    const nextTopic = unseenTopics.length
+      ? unseenTopics[seededIndex([seed, "topic", selected.length].join(":"), unseenTopics.length)]
+      : topics.sort((a, b) => (recentTopicIndexes.get(b) ?? -1) - (recentTopicIndexes.get(a) ?? -1))[0];
+    const variants = candidates.filter((question) => topicOf(question) === nextTopic);
+    const unusedVariants = variants.filter(({ id }) => !recentIds.has(id));
+    const pool = unusedVariants.length ? unusedVariants : variants;
+    const question = pool[seededIndex([seed, selected.length].join(":"), pool.length)];
+    if (!question) throw new Error("Aucune question de zone mixte n’est disponible.");
+    selected.push(question);
+  }
 
-      const selected: PostRaceInterviewQuestion = {
-        id: question.id,
-        category: question.category,
-        text: renderQuestion(question.text, context),
-      };
-      if (question.category === "rivalry" && context.rivalry) {
-        selected.subjectTeamId = context.rivalry.teamId;
-        if (context.rivalry.kind === "rebound") {
-          selected.sourceInterviewId = context.rivalry.sourceInterviewId;
-        }
-      }
-      return selected;
-    },
-  );
+  add(detailed.filter(({ category }) => category === "result"), resultFallback);
+  add(detailed.filter(({ category }) => category !== "result"), momentFallback);
+
+  if (context.zoneMixteEvent) {
+    selected.push({
+      id: "event:" + context.zoneMixteEvent.id,
+      category: "event",
+      text: context.zoneMixteEvent.title,
+    });
+  } else {
+    const outlook = definitions.filter(({ category }) => category === "outlook").map(render);
+    const rivalry = definitions.filter(({ category }) => category === "rivalry").map(render);
+    add(
+      shouldAskRivalryQuestion(context, seed) ? rivalry : editorial,
+      editorial.length ? editorial : outlook,
+    );
+  }
+
+  return selected;
 }
 
 function eligibleQuestions(context: PostRaceInterviewContext) {
@@ -1025,6 +1046,7 @@ function eligibleQuestions(context: PostRaceInterviewContext) {
     ) {
       return false;
     }
+    if (question.text.includes("{{gapLabel}}") && !context.gapLabel) return false;
     if (question.requires === "breakaway") return context.tookBreakaway;
     if (question.requires === "race_breakaway") {
       return Boolean(context.raceFacts?.breakawayOccurred);
@@ -1069,7 +1091,7 @@ function shouldAskRivalryQuestion(
 ) {
   if (!context.rivalry) return false;
   const frequency = context.rivalry.kind === "season_rivalry"
-    ? 1
+    ? (context.editorialFacts ? 3 : 1)
     : context.rivalry.kind === "opinion"
       ? 4
       : 2;
@@ -1077,7 +1099,7 @@ function shouldAskRivalryQuestion(
 }
 
 function getInterviewRaceType(context: PostRaceInterviewContext) {
-  return context.stageType === "individual_time_trial" ? "itt" : "road";
+  return context.stageType === "individual_time_trial" || context.stageType === "prologue" ? "itt" : "road";
 }
 
 function getResultSituation(bestRank: number | null) {
@@ -1093,7 +1115,7 @@ function renderQuestion(template: string, context: PostRaceInterviewContext) {
     stageName: context.stageName,
     teamName: context.teamName,
     riderName: context.riderName,
-    gapLabel: context.gapLabel ?? "à quelques secondes",
+    gapLabel: context.gapLabel ?? "",
     weatherLabel: context.weatherLabel ?? "des conditions changeantes",
     uciRank: String(context.uciRank ?? "—"),
     uciLeaderName: context.uciLeaderName ?? "le leader UCI",

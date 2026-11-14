@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 
 import { submitPostRaceInterviewAction } from "@/app/jeu/resultats/interview-actions";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
+import { useLocale } from "@/components/i18n/locale-provider";
 import type {
   PostRaceInterviewSnapshot,
   ZoneMixteEvent,
@@ -14,6 +15,7 @@ export function PostRaceInterviewPanel({
 }: {
   initialInterview: PostRaceInterviewSnapshot;
 }) {
+  const { locale } = useLocale();
   const [interview, setInterview] = useState(initialInterview);
   const [answers, setAnswers] = useState(() =>
     initialInterview.questions.map(
@@ -38,22 +40,27 @@ export function PostRaceInterviewPanel({
           </span>
         </div>
         <div className="grid gap-4 px-5 py-5 sm:px-6 lg:grid-cols-3">
-          {interview.answers.map((answer) => (
-            <blockquote
-              key={answer.questionId}
-              className="border-l-2 border-[#C72F5E] pl-4"
-            >
-              <p className="text-xs font-bold leading-5 text-[#6F6650]">
-                {answer.question}
-              </p>
-              <p
-                data-i18n-skip
-                className="mt-2 font-serif text-base font-bold leading-6 text-[#183F37]"
+          {interview.answers.map((answer) => {
+            const translated = locale === "en"
+              ? interview.questions.find(({ id }) => id === answer.questionId)?.textEn
+              : undefined;
+            return (
+              <blockquote
+                key={answer.questionId}
+                className="border-l-2 border-[#C72F5E] pl-4"
               >
-                « {answer.answer} »
-              </p>
-            </blockquote>
-          ))}
+                <p className="text-xs font-bold leading-5 text-[#6F6650]">
+                  {translated ? <span data-i18n-skip>{translated}</span> : answer.question}
+                </p>
+                <p
+                  data-i18n-skip
+                  className="mt-2 font-serif text-base font-bold leading-6 text-[#183F37]"
+                >
+                  « {answer.answer} »
+                </p>
+              </blockquote>
+            );
+          })}
         </div>
         {interview.eventResolution ? (
           <div className="mx-5 mb-5 rounded-xl border border-[#176951]/20 bg-[#E8F5EE] px-4 py-3 text-sm font-bold text-[#174C3E] sm:mx-6">
@@ -128,7 +135,9 @@ export function PostRaceInterviewPanel({
                 <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#183F37] text-[10px] text-[#FFF8DF]">
                   {index + 1}
                 </span>
-                {question.text}
+                {locale === "en" && question.textEn
+                  ? <span data-i18n-skip>{question.textEn}</span>
+                  : question.text}
               </span>
               <textarea
                 value={answers[index]}

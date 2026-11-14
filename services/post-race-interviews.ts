@@ -14,9 +14,13 @@ import {
   selectPostRaceInterviewQuestions,
 } from "@/lib/game/post-race-interview";
 import { selectZoneMixteEvent } from "@/lib/game/post-race-interview-events";
+import { extractDetailedRaceInterviewFacts } from "@/lib/game/post-race-interview-race-questions";
+import type { RaceCourseJournalEntry } from "@/lib/game/race-course-journal";
+import type { StageSimulationResult } from "@/lib/game/race-simulation";
 import type { OfficialRaceEditionResults } from "@/lib/game/race-results";
 import { isPostRaceInterviewWindowOpen } from "@/lib/game/post-race-interview-window";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { loadPostRaceInterviewEditorialFacts } from "@/services/post-race-interview-season-facts";
 import { getUciRankings } from "@/services/uci-rankings";
 
 type DirectorRow = {
@@ -92,6 +96,8 @@ export async function getOrCreatePostRaceInterview({
   sponsorName,
   raceCountryCode,
   officialResults,
+  simulation,
+  courseJournal,
 }: {
   authUserId: string;
   teamId: string | null;
@@ -105,20 +111,21 @@ export async function getOrCreatePostRaceInterview({
   sponsorName: string | null;
   raceCountryCode: string;
   officialResults: OfficialRaceEditionResults;
+  simulation?: StageSimulationResult;
+  courseJournal?: readonly RaceCourseJournalEntry[];
 }): Promise<PostRaceInterviewSnapshot | null> {
   if (!teamId) return null;
 
   const stageResults = officialResults.stages.find(
     (classification) => classification.stageId === stageId,
-  )?.results;
-  const teamResults =
-    stageResults?.filter((result) => result.teamId === teamId) ?? [];
+  )?.results ?? [];
+  const teamResults = stageResults.filter((result) => result.teamId === teamId);
   if (teamResults.length === 0) return null;
 
   const admin = createSupabaseAdminClient();
   if (!(await hasOpenPostRaceInterviewWindow(admin, stageId))) return null;
 
-  const [directorResult, seasonResult, rankings] = await Promise.all([
+  const [directorResult, seasonResult] = await Promise.all([
     admin
       .from("sporting_directors")
       .select("id, display_name, avatar_key")
@@ -130,7 +137,6 @@ export async function getOrCreatePostRaceInterview({
       .select("id")
       .eq("status", "active")
       .maybeSingle<SeasonRow>(),
-    getUciRankings().catch(() => null),
   ]);
 
   if (
@@ -153,19 +159,6 @@ export async function getOrCreatePostRaceInterview({
 
   if (assignmentResult.error || !assignmentResult.data) return null;
 
-  const raceFacts = await loadRaceFactContext(admin, stageId);
-  const uciLeader = rankings?.riders[0] ?? null;
-  const contextEnrichment = {
-    questionVersion: 3,
-    stageType,
-    weatherLabel,
-    sponsorName,
-    raceCountryCode,
-    uciLeaderName: uciLeader?.riderName ?? null,
-    uciLeaderTeamName: uciLeader?.teamName ?? null,
-    raceFacts,
-  } satisfies Partial<PostRaceInterviewContext>;
-
   const existing = await admin
     .from("post_race_interviews")
     .select(INTERVIEW_SELECT)
@@ -178,59 +171,35 @@ export async function getOrCreatePostRaceInterview({
       `Impossible de charger l’interview après-course : ${existing.error.message}`,
     );
   }
-  if (existing.data?.status === "submitted") return mapInterview(existing.data);
-  if (existing.data) {
-    const currentContext = existing.data.context as PostRaceInterviewContext;
-    const rivalry = await loadRivalryContext(admin, {
+  // Keep the recorded question order stable while a director is answering.
+  if (existing.data) return mapInterview(existing.data);
+
+  const [rankings, raceFacts, rivalry, priorQuestions, editorialFacts] = await Promise.all([
+    getUciRankings().catch(() => null),
+    loadRaceFactContext(admin, stageId),
+    loadRivalryContext(admin, {
       stageId,
       currentTeamId: teamId,
-      stageResults: stageResults ?? [],
-    });
-    const rivalryChanged = rivalry
-      ? !sameRivalry(currentContext.rivalry, rivalry)
-      : Boolean(currentContext.rivalry);
-    if (currentContext.questionVersion === 3 && !rivalryChanged) {
-      return mapInterview(existing.data);
-    }
-    const eventSeed = `${editionId}:${stageId}:${teamId}`;
-    const zoneMixteEvent =
-      currentContext.questionVersion === 3
-        ? (currentContext.zoneMixteEvent ?? null)
-        : await selectEventWithoutSeasonRepeat(admin, {
-            context: {
-              ...currentContext,
-              ...contextEnrichment,
-              rivalry,
-            },
-            seed: eventSeed,
-            seasonId: seasonResult.data.id,
-            directorId: directorResult.data.id,
-            excludedInterviewId: existing.data.id,
-          });
-    const refreshedContext: PostRaceInterviewContext = {
-      ...currentContext,
-      ...contextEnrichment,
-      rivalry,
-      zoneMixteEvent,
-    };
-    const refreshedQuestions = selectPostRaceInterviewQuestions(
-      refreshedContext,
-      eventSeed,
-    );
-    const refreshed = await admin
-      .from("post_race_interviews")
-      .update({
-        context: refreshedContext,
-        question_set: refreshedQuestions,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", existing.data.id)
-      .eq("status", "pending")
-      .select(INTERVIEW_SELECT)
-      .single<PostRaceInterviewRow>();
-    if (!refreshed.error && refreshed.data) return mapInterview(refreshed.data);
-    return mapInterview(existing.data);
-  }
+      stageResults: stageType === "team_time_trial" ? [] : stageResults,
+    }),
+    loadRecentInterviewQuestions(admin, seasonResult.data.id, directorResult.data.id),
+    loadPostRaceInterviewEditorialFacts(admin, {
+      teamId,
+      seasonId: seasonResult.data.id,
+      stageId,
+      stageResults,
+    }).catch(() => undefined),
+  ]);
+  const uciLeader = rankings?.riders[0] ?? null;
+  const detailedRaceFacts = extractDetailedRaceInterviewFacts({
+    teamId,
+    stageId,
+    stageType,
+    stageResults,
+    simulation,
+    courseJournal,
+    combativityAwards: officialResults.combativityAwards,
+  });
 
   const bestResult =
     [...teamResults]
@@ -244,13 +213,17 @@ export async function getOrCreatePostRaceInterview({
       participant.teamId === teamId &&
       participant.stageNumbers.includes(stageNumber),
   );
-  const rivalry = await loadRivalryContext(admin, {
-    stageId,
-    currentTeamId: teamId,
-    stageResults: stageResults ?? [],
-  });
   const context: PostRaceInterviewContext = {
-    ...contextEnrichment,
+    questionVersion: 4,
+    stageType,
+    weatherLabel,
+    sponsorName,
+    raceCountryCode,
+    uciLeaderName: uciLeader?.riderName ?? null,
+    uciLeaderTeamName: uciLeader?.teamName ?? null,
+    raceFacts,
+    detailedRaceFacts,
+    editorialFacts,
     raceName,
     stageName,
     teamId,
@@ -259,8 +232,12 @@ export async function getOrCreatePostRaceInterview({
     directorAvatarKey: directorResult.data.avatar_key,
     riderName: bestResult.riderName,
     riderId: bestResult.riderId,
-    bestRank: bestResult.rank,
-    gapLabel: formatGap(bestResult.gapToWinnerMs),
+    bestRank: stageType === "team_time_trial"
+      ? detailedRaceFacts?.teamTimeTrial?.rank ?? null
+      : bestResult.rank,
+    gapLabel: formatGap(stageType === "team_time_trial"
+      ? detailedRaceFacts?.teamTimeTrial?.gapMs ?? null
+      : bestResult.gapToWinnerMs),
     uciRank: teamRanking?.rank ?? null,
     divisionLabel: teamRanking?.division ?? null,
     tookBreakaway: teamAttacks.some(
@@ -272,15 +249,18 @@ export async function getOrCreatePostRaceInterview({
     rivalry,
     zoneMixteEvent: null,
   };
-  context.zoneMixteEvent = await selectEventWithoutSeasonRepeat(admin, {
+  const seed = [editionId, stageId, teamId].join(":");
+  context.zoneMixteEvent = selectZoneMixteEvent({
     context,
-    seed: `${editionId}:${stageId}:${teamId}`,
-    seasonId: seasonResult.data.id,
-    directorId: directorResult.data.id,
+    seed,
+    usedEventIds: priorQuestions.flat().flatMap(({ id }) =>
+      id.startsWith("event:") ? [id.slice("event:".length)] : [],
+    ),
   });
   const questions = selectPostRaceInterviewQuestions(
     context,
-    `${editionId}:${stageId}:${teamId}`,
+    seed,
+    priorQuestions.slice(0, 12).flat(),
   );
 
   const inserted = await admin
@@ -410,10 +390,7 @@ async function loadRaceFactContext(
       breakawayOccurred:
         facts.breakawayOccurred || event.event_kind === "breakaway",
       crashOccurred:
-        facts.crashOccurred ||
-        event.id.endsWith(":crashes") ||
-        event.id.endsWith(":injuries") ||
-        event.id.endsWith(":abandonments"),
+        facts.crashOccurred || event.id.endsWith(":crashes"),
       crosswindOccurred:
         facts.crosswindOccurred || event.id.endsWith(":crosswind"),
     }),
@@ -451,7 +428,7 @@ async function loadRivalryContext(
       const questions = asQuestions(interview.question_set);
       const answers = asAnswers(interview.answers);
       const targeted = questions.find(
-        (question) => question.subjectTeamId === currentTeamId,
+        (question) => question.category === "rivalry" && question.subjectTeamId === currentTeamId,
       );
       const answer = targeted
         ? answers.find((candidate) => candidate.questionId === targeted.id)
@@ -520,7 +497,7 @@ async function loadRivalryContext(
       (result) =>
         result.teamId !== currentTeamId &&
         result.status === "finished" &&
-        result.rank !== null,
+        (result.rank === 1 || result.rank === 2),
     )
     .sort((first, second) => (first.rank ?? 999) - (second.rank ?? 999));
   const distinctCandidates = candidates.filter(
@@ -595,30 +572,6 @@ function truncateQuote(quote: string) {
   return `${quote.slice(0, 257).trimEnd()}…`;
 }
 
-function sameRivalry(
-  current: PostRaceInterviewRivalryContext | null | undefined,
-  next: PostRaceInterviewRivalryContext,
-) {
-  if (
-    !current ||
-    current.kind !== next.kind ||
-    current.teamId !== next.teamId
-  ) {
-    return false;
-  }
-  if (current.kind === "rebound" && next.kind === "rebound") {
-    return current.sourceInterviewId === next.sourceInterviewId;
-  }
-  if (current.kind === "season_rivalry" && next.kind === "season_rivalry") {
-    return (
-      current.ownScore === next.ownScore &&
-      current.rivalScore === next.rivalScore &&
-      current.rivalRank === next.rivalRank
-    );
-  }
-  return current.kind === "opinion" && next.kind === "opinion";
-}
-
 function mapInterview(row: PostRaceInterviewRow): PostRaceInterviewSnapshot {
   return {
     id: row.id,
@@ -634,41 +587,20 @@ function mapInterview(row: PostRaceInterviewRow): PostRaceInterviewSnapshot {
   };
 }
 
-async function selectEventWithoutSeasonRepeat(
+async function loadRecentInterviewQuestions(
   admin: SupabaseAdminClient,
-  {
-    context,
-    seed,
-    seasonId,
-    directorId,
-    excludedInterviewId,
-  }: {
-    context: PostRaceInterviewContext;
-    seed: string;
-    seasonId: string;
-    directorId: string;
-    excludedInterviewId?: string;
-  },
+  seasonId: string,
+  directorId: string,
 ) {
-  const provisional = selectZoneMixteEvent({ context, seed });
-  if (!provisional) return null;
-
-  let query = admin
+  const previous = await admin
     .from("post_race_interviews")
-    .select("id, context")
+    .select("question_set")
     .eq("season_id", seasonId)
     .eq("sporting_director_id", directorId)
     .order("created_at", { ascending: false })
-    .limit(50);
-  if (excludedInterviewId) query = query.neq("id", excludedInterviewId);
-  const previous = await query.returns<Array<{ id: string; context: unknown }>>();
-  const usedEventIds = (previous.data ?? []).flatMap((row) => {
-    const previousContext = row.context as PostRaceInterviewContext;
-    return previousContext.zoneMixteEvent?.id
-      ? [previousContext.zoneMixteEvent.id]
-      : [];
-  });
-  return selectZoneMixteEvent({ context, seed, usedEventIds });
+    .limit(50)
+    .returns<Array<{ question_set: unknown }>>();
+  return (previous.data ?? []).map(({ question_set }) => asQuestions(question_set));
 }
 
 function asEventResolution(

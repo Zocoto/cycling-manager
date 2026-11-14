@@ -292,6 +292,8 @@ export default async function RaceLivePage({
           sponsorName: headerData.teamSponsorIdentity?.sponsor.name ?? null,
           raceCountryCode: edition.countryCode,
           officialResults,
+          simulation: selectedLockedSimulation?.simulation,
+          courseJournal,
         }).catch((error: unknown) => {
           console.error(
             "Impossible de préparer l’interview après-course :",

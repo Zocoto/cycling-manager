@@ -27,6 +27,12 @@ assert.ok(extractUiStrings(artifactFixture, 'components/ordinary-component.ts').
 const powershell = extractUiStrings('function createPcmGraphicsInstaller() { return `Installer les fichiers dans le dossier`; } const error = "Installation impossible.";', 'lib/game/pcm-export/graphics-installer.ts');
 assert.ok(!powershell.has('Installer les fichiers dans le dossier'));
 assert.ok(powershell.has('Installation impossible.'));
+const interviewFixture = 'function addCourseQuestions() { return ["Comment réagit votre coureur ?", "How did your rider respond?"]; } const TEAM_TIME_TRIAL_INTERVIEW_FALLBACK = [{text: "Quel est votre bilan ?", textEn: "How did it go?"}]; const error = "Votre entretien a échoué.";';
+const interview = extractUiStrings(interviewFixture, 'lib/game/post-race-interview-race-questions.ts');
+assert.ok(!interview.has('Comment réagit votre coureur ?'));
+assert.ok(!interview.has('Quel est votre bilan ?'));
+assert.ok(interview.has('Votre entretien a échoué.'));
+assert.ok(extractUiStrings(interviewFixture, 'components/ordinary-component.ts').has('Comment réagit votre coureur ?'));
 const filenames = extractUiStrings('const files = [{name:"PCMAssets_cyclostratege-local_P.pak"},{name:"Installer-graphismes.ps1"}]; const label="Installer les graphismes";');
 assert.ok(!filenames.has('PCMAssets_cyclostratege-local_P.pak'));
 assert.ok(!filenames.has('Installer-graphismes.ps1'));
@@ -36,4 +42,4 @@ assert.equal(extractUiStrings('const view = <h1>Équipe de recette</h1>;', 'comp
 const rpc = extractUiStrings('const action = {rpcName: "open_current_cyclo_stickers_booster", label: "Ouvrir le sachet"};');
 assert.ok(!rpc.has('open_current_cyclo_stickers_booster'));
 assert.ok(rpc.has('Ouvrir le sachet'));
-console.log('I18n scanner: 24 checks passed (component copy, templates, technical identifiers, test fixtures and exact external artifact functions).');
+console.log('I18n scanner checks passed (component copy, templates, technical identifiers, test fixtures, external artifacts and bilingual interview templates).');

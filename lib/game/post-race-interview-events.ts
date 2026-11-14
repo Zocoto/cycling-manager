@@ -12,7 +12,10 @@ export type {
   ZoneMixteEventRisk,
 } from "@/lib/game/post-race-interview";
 
-type EventRequirement = "sponsor" | "rivalry" | "chase" | "podium";
+type EventRequirement =
+  | "sponsor" | "rivalry" | "chase" | "podium"
+  | "rider-crash" | "rider-dropped" | "rider-pursuit" | "leader-drought"
+  | "arrival" | "sale" | "rival-finish";
 
 type ZoneMixteEventDefinition = ZoneMixteEvent & {
   requires?: EventRequirement;
@@ -20,6 +23,206 @@ type ZoneMixteEventDefinition = ZoneMixteEvent & {
 };
 
 const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
+  {
+    id: "verified-crash-debrief",
+    family: "rider_director_relationship",
+    requires: "rider-crash",
+    rarity: "notable",
+    title: "Après la chute",
+    story: "{{riderName}} est tombé au km {{incidentKm}} et a terminé la course. Que lui dites-vous au pied du bus ?",
+    choices: [
+      {
+        id: "ask-for-feelings",
+        label: "Lui demander comment il a vécu la suite",
+        description: "Écouter son récit, du moment où il est remonté sur le vélo jusqu’à l’arrivée.",
+        impactPreview: "Conséquence cachée",
+        risk: "safe",
+        outcomes: [{ weight: 100, riderMoraleDelta: 2, summary: "{{riderName}} se sent écouté après une journée difficile : +2 moral." }],
+      },
+      {
+        id: "value-recovery",
+        label: "Saluer publiquement le fait d’avoir terminé",
+        description: "Remercier le coureur d’avoir rejoint l’arrivée et laisser les questions sur la chute au vestiaire.",
+        impactPreview: "Conséquence cachée",
+        risk: "balanced",
+        outcomes: [
+          { weight: 65, riderMoraleDelta: 3, riderPopularityDelta: 1, summary: "{{riderName}} apprécie que son retour sur le vélo soit remarqué : +3 moral et +1 popularité." },
+          { weight: 35, riderMoraleDelta: -1, summary: "{{riderName}} aurait préféré parler de la chute en privé : −1 moral." },
+        ],
+      },
+    ],
+  },
+  {
+    id: "rider-dropped-debrief",
+    family: "rider_director_relationship",
+    requires: "rider-dropped",
+    rarity: "common",
+    title: "Au moment de perdre la roue",
+    story: "Les images montrent {{riderName}} perdre le contact au km {{dropKm}}. Il vous demande ce que vous avez vu depuis la voiture.",
+    choices: [
+      {
+        id: "review-the-moment",
+        label: "Revoir ensemble le moment du décrochage",
+        description: "Comparer ce qu’il a ressenti avec ce que le staff a vu du placement et du rythme.",
+        impactPreview: "Conséquence cachée",
+        risk: "safe",
+        outcomes: [{ weight: 100, riderMoraleDelta: 2, summary: "Le débriefing donne à {{riderName}} un point de travail concret : +2 moral." }],
+      },
+      {
+        id: "encourage-own-pace",
+        label: "Lui laisser plus de liberté sur son effort",
+        description: "L’inviter à annoncer lui-même quand le rythme devient trop coûteux pour rester dans un groupe.",
+        impactPreview: "Conséquence cachée",
+        risk: "balanced",
+        outcomes: [
+          { weight: 60, riderMoraleDelta: 3, summary: "{{riderName}} apprécie de pouvoir faire remonter son ressenti plus tôt : +3 moral." },
+          { weight: 40, riderMoraleDelta: -1, summary: "{{riderName}} attendait une consigne plus précise de la voiture : −1 moral." },
+        ],
+      },
+    ],
+  },
+  {
+    id: "rider-pursuit-debrief",
+    family: "rider_director_relationship",
+    requires: "rider-pursuit",
+    rarity: "common",
+    title: "Entrer en poursuite",
+    story: "{{riderName}} figurait dans le groupe de poursuite au km {{pursuitKm}}. Que retenez-vous de sa décision de suivre ce mouvement ?",
+    choices: [
+      {
+        id: "acknowledge-the-move",
+        label: "Reconnaître la prise d’initiative",
+        description: "Lui demander ce qu’il avait repéré au moment où la poursuite s’est formée.",
+        impactPreview: "Conséquence cachée",
+        risk: "safe",
+        outcomes: [{ weight: 100, riderMoraleDelta: 2, summary: "{{riderName}} apprécie que sa lecture de course soit prise au sérieux : +2 moral." }],
+      },
+      {
+        id: "set-a-chase-rule",
+        label: "Fixer une consigne plus claire pour la prochaine poursuite",
+        description: "Lui proposer de décider ensemble quels mouvements couvrent un intérêt de l’équipe.",
+        impactPreview: "Conséquence cachée",
+        risk: "balanced",
+        outcomes: [
+          { weight: 65, riderMoraleDelta: 3, summary: "La ligne de conduite convient à {{riderName}} : +3 moral." },
+          { weight: 35, riderMoraleDelta: -1, summary: "{{riderName}} craint d’avoir moins de marge pour lire lui-même la course : −1 moral." },
+        ],
+      },
+    ],
+  },
+  {
+    id: "declared-leader-win-drought",
+    family: "rider_director_relationship",
+    requires: "leader-drought",
+    rarity: "notable",
+    title: "Le compteur laisse des traces",
+    story: "Avant cette course, votre leader {{riderName}} comptait {{leaderDays}} jours en individuel sans victoire d’étape ni de classique cette saison. Il veut savoir comment vous jugez son début de saison.",
+    choices: [
+      {
+        id: "look-beyond-wins",
+        label: "Faire le point sur les occasions déjà créées",
+        description: "Revenir sur les finales et convenir d’un objectif intermédiaire avec lui.",
+        impactPreview: "Conséquence cachée",
+        risk: "safe",
+        outcomes: [{ weight: 100, riderMoraleDelta: 2, summary: "Un objectif intermédiaire redonne un cap à {{riderName}} : +2 moral." }],
+      },
+      {
+        id: "reduce-pressure",
+        label: "Proposer de partager la responsabilité sur une prochaine course",
+        description: "Discuter avec lui de l’intérêt de désigner une deuxième carte sur un parcours adapté.",
+        impactPreview: "Conséquence cachée",
+        risk: "balanced",
+        outcomes: [
+          { weight: 55, riderMoraleDelta: 4, summary: "Le partage de la pression soulage {{riderName}} : +4 moral." },
+          { weight: 45, riderMoraleDelta: -2, summary: "{{riderName}} y voit un signal de défiance : −2 moral." },
+        ],
+      },
+    ],
+  },
+  {
+    id: "confirmed-arrival-role",
+    requires: "arrival",
+    rarity: "common",
+    title: "La première place au briefing",
+    story: "{{arrivalName}} a rejoint {{teamName}} à J{{arrivalDay}}. La presse vous demande comment les rôles seront répartis avec cette arrivée.",
+    choices: [
+      {
+        id: "explain-integration",
+        label: "Décrire son intégration au groupe",
+        description: "Expliquer comment vous ferez évoluer son rôle au fil des courses et des briefings.",
+        impactPreview: "Conséquence cachée",
+        risk: "safe",
+        outcomes: [{ weight: 100, reputationDelta: 1, summary: "La presse salue une intégration présentée sans précipitation : +1 réputation." }],
+      },
+      {
+        id: "open-competition",
+        label: "Annoncer que les places se joueront sur la route",
+        description: "Choisir de présenter l’arrivée comme une concurrence ouverte pour les rôles.",
+        impactPreview: "Conséquence cachée",
+        risk: "balanced",
+        outcomes: [
+          { weight: 60, reputationDelta: 2, summary: "La franchise sur les rôles est bien accueillie : +2 réputation." },
+          { weight: 40, reputationDelta: -1, summary: "Les journalistes y lisent trop tôt une remise en cause de la hiérarchie : −1 réputation." },
+        ],
+      },
+    ],
+  },
+  {
+    id: "confirmed-sale-place-in-squad",
+    requires: "sale",
+    rarity: "common",
+    title: "La place libérée",
+    story: "{{departureName}} a été vendu à J{{departureDay}}. On vous demande si {{teamName}} veut remplacer son profil ou redistribuer son rôle.",
+    choices: [
+      {
+        id: "shout-out-and-redistribute",
+        label: "Remercier le coureur et ouvrir la discussion en interne",
+        description: "Saluer son passage dans l’équipe avant d’expliquer ce que ses anciens équipiers pourraient reprendre.",
+        impactPreview: "Conséquence cachée",
+        risk: "safe",
+        outcomes: [{ weight: 100, reputationDelta: 1, summary: "Les supporters apprécient l’hommage et la confiance accordée à l’effectif : +1 réputation." }],
+      },
+      {
+        id: "describe-next-recruitment",
+        label: "Assumer une nouvelle priorité de recrutement",
+        description: "Décrire le type de coureur que vous aimeriez recruter sans citer de cible.",
+        impactPreview: "Conséquence cachée",
+        risk: "balanced",
+        outcomes: [
+          { weight: 60, reputationDelta: 2, summary: "La presse comprend la logique sportive du départ : +2 réputation." },
+          { weight: 40, reputationDelta: -1, summary: "Vos propos sont lus comme une annonce de recrutement prématurée : −1 réputation." },
+        ],
+      },
+    ],
+  },
+  {
+    id: "opponent-same-time-debrief",
+    requires: "rival-finish",
+    rarity: "common",
+    title: "Même temps à l’arrivée",
+    story: "{{opponentName}}, de {{opponentTeam}}, a devancé {{riderName}} au classement officiel alors qu’ils sont crédités du même temps. Comment réagissez-vous à chaud ?",
+    choices: [
+      {
+        id: "credit-the-opponent",
+        label: "Saluer la place acquise par l’adversaire",
+        description: "Reconnaître son résultat et garder votre analyse du final pour l’équipe.",
+        impactPreview: "Conséquence cachée",
+        risk: "safe",
+        outcomes: [{ weight: 100, reputationDelta: 1, summary: "Le respect affiché pour le classement est apprécié : +1 réputation." }],
+      },
+      {
+        id: "talk-through-the-finish",
+        label: "Raconter comment vous aviez préparé le final",
+        description: "Partager votre lecture des décisions prises avant l’arrivée.",
+        impactPreview: "Conséquence cachée",
+        risk: "balanced",
+        outcomes: [
+          { weight: 60, reputationDelta: 2, summary: "Votre lecture du final intéresse la presse : +2 réputation." },
+          { weight: 40, reputationDelta: -1, summary: "Certains y entendent une justification qui minimise le résultat adverse : −1 réputation." },
+        ],
+      },
+    ],
+  },
   {
     id: "rider-confidence",
     family: "rider_director_relationship",
@@ -1023,7 +1226,33 @@ function meetsRequirement(
   if (event.requires === "podium") {
     return context.bestRank !== null && context.bestRank <= 3;
   }
+  const race = context.detailedRaceFacts;
+  const editorial = context.editorialFacts;
+  if (event.requires === "rider-crash") return Boolean(context.riderId && interviewRiderCrash(context));
+  if (event.requires === "rider-dropped") return Boolean(context.riderId && race?.lostContact?.riderId === context.riderId);
+  if (event.requires === "rider-pursuit") return Boolean(context.riderId && race?.pursuit?.riderId === context.riderId);
+  if (event.requires === "leader-drought") {
+    const leader = editorial?.seasonLeader;
+    return Boolean(context.riderId && leader && leader.riderId === context.riderId && leader.daysRaced >= 5 && leader.wins === 0);
+  }
+  if (event.requires === "arrival") return Boolean(editorial?.recentArrival);
+  if (event.requires === "sale") return Boolean(editorial?.recentDeparture?.isSale);
+  if (event.requires === "rival-finish") {
+    const opponent = editorial?.opponent;
+    return Boolean(opponent?.ownRiderRank && opponent.sameTimeAsOwn && opponent.rank < opponent.ownRiderRank);
+  }
   return true;
+}
+
+function interviewRiderCrash(context: PostRaceInterviewContext) {
+  return context.detailedRaceFacts?.incidents.find((incident) =>
+    (incident.type === "crash_individual" || incident.type === "crash_mass") &&
+    incident.finished && incident.riderId === context.riderId,
+  );
+}
+
+function renderKm(km: number | undefined) {
+  return km === undefined ? "" : new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(km);
 }
 
 function renderEvent(
@@ -1036,6 +1265,16 @@ function renderEvent(
     directorName: context.directorName,
     sponsorName: context.sponsorName ?? "votre sponsor",
     localSpecialty: getLocalSpecialty(context.raceCountryCode),
+    incidentKm: renderKm(interviewRiderCrash(context)?.km),
+    dropKm: renderKm(context.detailedRaceFacts?.lostContact?.km),
+    pursuitKm: renderKm(context.detailedRaceFacts?.pursuit?.km),
+    leaderDays: String(context.editorialFacts?.seasonLeader?.daysRaced ?? ""),
+    arrivalName: context.editorialFacts?.recentArrival?.riderName ?? "",
+    arrivalDay: String(context.editorialFacts?.recentArrival?.gameDay ?? ""),
+    departureName: context.editorialFacts?.recentDeparture?.riderName ?? "",
+    departureDay: String(context.editorialFacts?.recentDeparture?.gameDay ?? ""),
+    opponentName: context.editorialFacts?.opponent?.riderName ?? "",
+    opponentTeam: context.editorialFacts?.opponent?.teamName ?? "",
   };
   const render = (value: string) =>
     value.replace(/{{(\w+)}}/g, (_match, key: string) => values[key] ?? "");

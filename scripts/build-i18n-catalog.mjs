@@ -23,6 +23,14 @@ const NON_UI_ARTIFACT_FUNCTIONS = new Map([
   ["services/pcm-export-package.ts", new Set(["createInstallationGuide"])],
   ["lib/game/pcm-export/graphics-installer.ts", new Set(["createPcmGraphicsInstaller"])],
 ]);
+// These mixed-zone builders provide paired French and English copy directly.
+const BILINGUAL_INTERVIEW_TEMPLATES = new Map([
+  ["lib/game/post-race-interview-editorial.ts", new Set(["buildPostRaceEditorialQuestions"])],
+  ["lib/game/post-race-interview-race-questions.ts", new Set([
+    "position", "addFinishQuestions", "addCourseQuestions", "addIncidentAndWorkQuestions",
+    "INCIDENT_QUESTIONS", "TEAM_TIME_TRIAL_INTERVIEW_FALLBACK",
+  ])],
+]);
 const VISIBLE_PROPERTY_NAMES = new Set([
   "actionLabel",
   "alt",
@@ -164,10 +172,11 @@ function isUiSourceFile(filePath) {
 
 function visit(node, candidates, visibleAncestor = false) {
   if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) return;
-  if (ts.isFunctionDeclaration(node) && node.name) {
+  if ((ts.isFunctionDeclaration(node) || ts.isVariableDeclaration(node)) && node.name && ts.isIdentifier(node.name)) {
     const fileName = node.getSourceFile().fileName;
     const relativePath = (path.isAbsolute(fileName) ? path.relative(ROOT, fileName) : fileName).replaceAll("\\", "/");
-    if (NON_UI_ARTIFACT_FUNCTIONS.get(relativePath)?.has(node.name.text)) return;
+    if (BILINGUAL_INTERVIEW_TEMPLATES.get(relativePath)?.has(node.name.text) ||
+        NON_UI_ARTIFACT_FUNCTIONS.get(relativePath)?.has(node.name.text)) return;
   }
   // Custom component props often contain whole visible lists/cards. Only skip
   // known technical props, not every non-standard HTML attribute.

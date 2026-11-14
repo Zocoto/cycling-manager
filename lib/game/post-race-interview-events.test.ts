@@ -42,17 +42,17 @@ const CONTEXT: PostRaceInterviewContext = {
 };
 
 describe("événements de zone mixte", () => {
-  it("contient les 34 événements validés, avec la bonne répartition", () => {
-    expect(ZONE_MIXTE_EVENT_DEFINITIONS).toHaveLength(34);
+  it("contient les 41 événements validés, avec la bonne répartition", () => {
+    expect(ZONE_MIXTE_EVENT_DEFINITIONS).toHaveLength(41);
     expect(
       new Set(ZONE_MIXTE_EVENT_DEFINITIONS.map(({ id }) => id)).size,
-    ).toBe(34);
+    ).toBe(41);
     expect(
       ZONE_MIXTE_EVENT_DEFINITIONS.filter(({ rarity }) => rarity === "common"),
-    ).toHaveLength(16);
+    ).toHaveLength(21);
     expect(
       ZONE_MIXTE_EVENT_DEFINITIONS.filter(({ rarity }) => rarity === "notable"),
-    ).toHaveLength(12);
+    ).toHaveLength(14);
     expect(
       ZONE_MIXTE_EVENT_DEFINITIONS.filter(({ rarity }) => rarity === "rare"),
     ).toHaveLength(6);
@@ -122,7 +122,7 @@ describe("événements de zone mixte", () => {
       ),
     );
 
-    expect(moraleEvents).toHaveLength(10);
+    expect(moraleEvents).toHaveLength(14);
     expect(
       moraleEvents.every((event) =>
         event.choices.every((choice) => choice.impactPreview === "Conséquence cachée"),
@@ -138,9 +138,39 @@ describe("événements de zone mixte", () => {
   });
 
   it("injecte le contexte de la course dans le texte", () => {
-    const event = findEventWithId("local-specialty");
+    const { event } = findEventWithId("local-specialty");
     expect(event.story).toContain("tiramisu");
     expect(event.story).not.toContain("{{");
+  });
+
+  it("réserve le débriefing de chute au coureur impliqué qui a terminé", () => {
+    const detailedRaceFacts = {
+      starters: 5,
+      finishers: 5,
+      incidents: [{ riderId: CONTEXT.riderId!, name: CONTEXT.riderName, km: 38.4, type: "crash_individual" as const, finished: true, abandoned: false }],
+      primes: [],
+      work: [],
+    };
+    const { seed, event } = findEventWithId("verified-crash-debrief", { ...CONTEXT, detailedRaceFacts });
+    expect(event.story).toContain("Marco Test est tombé au km 38,4");
+    expect(selectZoneMixteEvent({ context: CONTEXT, seed })?.id).not.toBe(event.id);
+    expect(selectZoneMixteEvent({
+      context: { ...CONTEXT, riderId: "same-name-other-rider", detailedRaceFacts },
+      seed,
+    })?.id).not.toBe(event.id);
+  });
+
+  it("pose la question de remplacement après une vente confirmée", () => {
+    const recentDeparture = { riderName: "Milo Test", gameDay: 4, isSale: true };
+    const { seed, event } = findEventWithId("confirmed-sale-place-in-squad", {
+      ...CONTEXT,
+      editorialFacts: { recentDeparture },
+    });
+    expect(event.story).toContain("Milo Test a été vendu à J4");
+    expect(selectZoneMixteEvent({
+      context: { ...CONTEXT, editorialFacts: { recentDeparture: { ...recentDeparture, isSale: false } } },
+      seed,
+    })?.id).not.toBe(event.id);
   });
 });
 
@@ -153,13 +183,14 @@ function findEvent(prefix: string) {
   throw new Error("Aucune graine n’a déclenché d’événement.");
 }
 
-function findEventWithId(id: string) {
+function findEventWithId(id: string, context: PostRaceInterviewContext = CONTEXT) {
   for (let index = 0; index < 20_000; index += 1) {
+    const seed = `event-${id}-${index}`;
     const event = selectZoneMixteEvent({
-      context: CONTEXT,
-      seed: `event-${id}-${index}`,
+      context,
+      seed,
     });
-    if (event?.id === id) return event;
+    if (event?.id === id) return { seed, event };
   }
   throw new Error(`Aucune graine n’a produit l’événement ${id}.`);
 }
