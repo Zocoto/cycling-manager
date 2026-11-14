@@ -11,6 +11,7 @@ const rows=async(sql,args=[])=>(await db.query(sql,args)).rows;
 const scalar=async(sql,args=[])=>Object.values((await rows(sql,args))[0])[0];
 const prepare=year=>scalar('select public.prepare_cyclogazette_season_gala($1)',[id('s'+year)]);
 const awards=year=>rows('select award_key,team_id,stat_value::float8 as stat_value,stat_label from season_awards where season_id=$1 order by award_key',[id('s'+year)]);
+const awardMetadata=year=>rows('select award_key,recipient_name,team_id,rider_id,stat_value::float8 as stat_value,metadata from season_awards where season_id=$1 order by award_key',[id('s'+year)]);
 async function season(year,status='active',day=14){
  await db.query("insert into seasons values($1,$2,$3,$4,$5,'2026-10-01','2026-10-28')",[id('s'+year),'Saison '+year,year,status,day]);
 }
@@ -107,13 +108,121 @@ try{
  await db.query("update seasons set status='completed' where id=$1",[id('s4')]);
  eq(await awards(4),winners,'Completion trigger does not recalculate already frozen awards');
  eq(await scalar('select count(*)::int from season_award_finalizations where season_id=$1',[id('s4')]),1,'One receipt per season');
+ await db.exec(await readFile('scripts/fixtures/season-awards-distinction-sources.sql','utf8'));
+ await db.exec(await readFile('supabase/migrations/20261114150000_expand_season_awards_and_podiums.sql','utf8'));
+ await db.exec(await readFile('supabase/migrations/20261114183000_add_gazette_article_reactions.sql','utf8'));
+ eq((await awardMetadata(4)).every(award=>Object.keys(award.metadata).length===0),true,'Previously awarded rows get no new podiums or details');
+ eq(await awards(4),winners,'The distinctions migration leaves previous winners unchanged');
+ await db.query("update stage_results set stage_id=$1,status='finished' where race_roster_id=$2",[id('stage4'),id('roster0')]);
  await team('Next',3,2,['a','a','b'],'a',5);
+ await team('Second',1,0,['b'],'a',5);
+ await team('Third',1,0,['b'],'a',5);
+ await team('RacingBot',1,0,['b'],'a',5,true);
+ await db.query("insert into race_editions values($1,$2,'completed')",[id('race5'),id('s5')]);
+ for(let stage=0;stage<5;stage++){
+  await db.query("insert into stages values($1,$2,'completed')",[id('stage5-'+stage),id('race5')]);
+ }
+ for(const [club,rider,records] of [
+  ['Next',0,['finished','did_not_finish','finished','did_not_start']],
+  ['Next',1,['finished']],
+  ['Second',0,['finished','finished','did_not_start']],
+  ['Third',0,['finished']],
+  ['RacingBot',0,['finished','finished','finished','finished','finished']],
+  [null,id('riderNext5-0'),[null,null,null,'finished']],
+ ]){
+  const registration=id('reg5-'+club),roster=id('roster5-'+club+'-'+rider);
+  await db.query('insert into race_registrations values($1,$2) on conflict do nothing',[registration,club?id('ts'+club+5):null]);
+  await db.query('insert into race_rosters values($1,$2,$3)',[roster,club?id('rider'+club+'5-'+rider):rider,registration]);
+  for(const [stage,status] of records.entries()){
+   if(status)await db.query('insert into stage_results(race_roster_id,stage_id,status) values($1,$2,$3)',[roster,id('stage5-'+stage),status]);
+  }
+ }
+ for(const [club,points,victories,current,initial,fee,acquisition] of [
+  ['Next',400,5,79,70,500000,'direct_offer'],
+  ['Second',300,4,78,72,300000,'daily_auction'],
+  ['Third',200,3,74,70,200000,'director_auction'],
+  ['RacingBot',100,2,79,78,900000,'draft'],
+ ]){
+  const rider=id('rider'+club+'5-0');
+  await db.query('insert into rider_season_summaries values($1,$2,$3,$4,null)',[rider,id('s5'),points,victories]);
+  await db.query('insert into rider_season_ratings(rider_id,season_id,age,mountain) values($1,$2,22,$3)',[rider,id('s5'),current]);
+  await db.query("insert into rider_training_stat_progress values($1,$2,'mountain',$3)",[id('s5'),rider,initial]);
+  await db.query('update rider_contracts set acquisition_type=$1,transfer_fee=$2 where rider_id=$3',[acquisition,fee,rider]);
+ }
+ await db.query("insert into rider_contracts values($1,$2,$3,$4,$5,$5,'terminated',1,1,'2026-10-10')",
+  [id('record-transfer-seller'),id('riderNext5-0'),id('teamThird'),id('s4'),id('s5')]);
+ await db.query("insert into cyclogazette_editions values($1,$2,'2026-10-10T12:00:00Z')",[id('gazette5'),id('s5')]);
+ for(const [article,club,readers] of [
+  ['Winner','Next',['Second','Third','Alpha']],
+  ['Same writer','Next',['Second','Third']],
+  ['Runner-up','Second',['Next','Third']],
+  ['Third article','Third',['Second']],
+  ['AI article','RacingBot',['Next','Second','Third','Alpha']],
+ ]){
+  await db.query("insert into media_center_articles values($1,$2,$3,$4,$5,$6,'published')",
+   [id(article),article,id('gazette5'),id('ds'+club),id('team'+club),club]);
+  for(const reader of readers){
+   await db.query("insert into cyclogazette_article_reactions values($1,$2,'2026-10-12T12:00:00Z')",[id(article),id('ds'+reader)]);
+  }
+ }
+ await db.query("insert into cyclogazette_article_reactions values($1,$2,'2026-10-31T12:00:00Z')",[id('Runner-up'),id('dsAlpha')]);
+ await db.query("select set_config('test.director_id',$1,false)",[id('dsBravo')]);
+ eq(await scalar('select public.toggle_cyclogazette_article_reaction($1)',[id('Winner')]),{reactionCount:4,viewerReacted:true},'A reader can react to a published Gazette article');
+ eq(await rows('select * from public.get_cyclogazette_article_reaction_context($1) where article_id=$2',[id('gazette5'),id('Winner')]),
+  [{article_id:id('Winner'),reaction_count:4,viewer_reacted:true,viewer_can_react:true}],'The Gazette context includes the updated reaction count and the reader’s state');
+ eq(await scalar('select public.toggle_cyclogazette_article_reaction($1)',[id('Winner')]),{reactionCount:3,viewerReacted:false},'Toggling twice removes the existing reaction');
+ await db.query("select set_config('test.director_id',$1,false)",[id('dsNext')]);
+ await assert.rejects(()=>scalar('select public.toggle_cyclogazette_article_reaction($1)',[id('Winner')]),{code:'42501'});checks++;
+ const canonicalReaction=async(article,emoji,reader)=>db.query(
+  "insert into gazette_article_reactions values($1,$2,$3,'2026-10-12T12:00:00Z')",
+  ['media:'+id(article),emoji,id('ds'+reader)]);
+ await canonicalReaction('Winner','👏','Alpha');
+ await canonicalReaction('Runner-up','🔥','Third');
+ await canonicalReaction('Runner-up','❤️','Third');
+ await canonicalReaction('Runner-up','🤝','Third');
+ await canonicalReaction('Third article','🔥','Second');
+ await db.exec(await readFile('supabase/migrations/20261114190000_use_gazette_reactions_for_season_awards.sql','utf8'));
+ eq(await scalar("select to_regclass('public.cyclogazette_article_reactions')"),null,'The competing reaction table is removed after migration');
+ eq(await scalar("select to_regprocedure('public.toggle_cyclogazette_article_reaction(uuid)')"),null,'The retired Gazette reaction toggle is removed');
+ eq(await rows("select emoji, sporting_director_id from gazette_article_reactions where target_key=$1 order by sporting_director_id",['media:'+id('Winner')]),
+  ['Second','Third','Alpha'].map(reader=>({emoji:'👏',sporting_director_id:id('ds'+reader)}))
+    .sort((left,right)=>left.sporting_director_id.localeCompare(right.sporting_director_id)),
+  'Old reactions carry over as applause and do not duplicate canonical applause');
+ await db.query("update sporting_directors set auth_user_id=$1,status='active' where id=$2",[id('userBravo'),id('dsBravo')]);
+ await db.query("select set_config('test.user_id',$1,false)",[id('userBravo')]);
+ eq(await rows('select * from public.get_gazette_article_reaction_summaries($1)',[JSON.stringify([{kind:'media',id:id('Winner')}])]),
+  [{target_key:'media:'+id('Winner'),emoji:'👏',count:3,reacted_by_viewer:false,can_react:true}],
+  'The canonical Gazette summaries expose the migrated article reactions');
  await db.query("update seasons set status='active',current_day_number=28 where id=$1",[id('s5')]);
- eq((await prepare(5)).ready,true,'The following season automatically runs the same circuit');
+ const nextGala=await prepare(5);
+ eq(nextGala.ready,true,'The following season automatically runs the same circuit');
+ eq(nextGala.awardCount,(await awards(5)).length,'The receipt counts the new and existing awards together');
  const next=Object.fromEntries((await awards(5)).map(a=>[a.award_key,a]));
  eq(Number(next.homegrown_squad.stat_value),66.67,'Percentage keeps two decimal places');
  eq(Number(next.national_identity.stat_value),66.67,'National share keeps two decimal places');
  eq(Number(next.international_squad.stat_value),2,'Next season gets its own diversity award');
+ const distinct=Object.fromEntries((await awardMetadata(5)).map(award=>[award.award_key,award]));
+ const podium=key=>distinct[key].metadata.podium.map(({rank,recipientName,statValue})=>[rank,recipientName,statValue]);
+ eq(distinct.team_race_days.team_id,id('teamNext'),'The most active human club wins; bot clubs are excluded');
+ eq(distinct.team_race_days.stat_value,3,'Club days count one start per stage and exclude DNS and federation starts');
+ eq(podium('team_race_days'),[[2,'Second',2],[3,'Third',1]],'The club participation award includes second and third place');
+ eq(distinct.rider_race_days.rider_id,id('riderRacingBot5-0'),'Professional riders remain eligible on AI teams');
+ eq(distinct.rider_race_days.stat_value,5,'Real starts count per rider');
+ eq(podium('rider_race_days'),[[2,'Next 0',4],[3,'Second 0',2]],'Rider days include DNF and federation starts, exclude DNS and omit prior seasons');
+ eq(podium('rider_of_year'),[[2,'Second 0',300],[3,'Third 0',200]],'The legacy award keeps its winner and gains its established ranking podium');
+ eq(distinct.primary_rating_progression.stat_value,9,'Primary progression measures the actual gain against the season baseline');
+ eq(podium('primary_rating_progression'),[[2,'Second 0',6],[3,'Third 0',4]],'Primary progression ranks eligible riders');
+ eq(distinct.record_transfer.stat_value,500000,'Transfer award excludes higher-priced Draft entries');
+ eq(podium('record_transfer'),[[2,'Second 0',300000],[3,'Third 0',200000]],'Transfer award includes auction routes');
+ eq(distinct.article_reactions.stat_value,3,'The top Gazette article is ranked by one article’s reactions during the season');
+ eq(distinct.article_reactions.metadata.article,{id:id('Winner'),title:'Winner',editionId:id('gazette5')},'Gazette award stores deep-link data for the winning article');
+ eq(podium('article_reactions'),[[2,'Second',2],[3,'Third',1]],'Gazette ranks distinct human authors, counts each reacting director once and omits late reactions');
+ const repeatedGala=await prepare(5);
+ eq(repeatedGala.reason,'already-finalized','Expanded awards use the same frozen finalization receipt');
+ eq(repeatedGala.awardCount,nextGala.awardCount,'Retries return the original award count');
+ await db.query("update stage_results set status='did_not_start' where stage_id=$1",[id('stage5-0')]);
+ await prepare(5);
+ eq(Object.fromEntries((await awardMetadata(5)).map(award=>[award.award_key,award])),distinct,'Official-result changes after the ceremony preserve winners and podiums');
  eq(await awards(4),winners,'A new ceremony preserves previous seasons');
  await db.query("update seasons set status='active',current_day_number=28 where id=$1",[id('s6')]);
  eq(await prepare(6),{ready:true,reason:'ready',pendingStages:0,pendingEditions:0,awardCount:0},'Empty categories do not block publication with an exact award-count requirement');
@@ -130,6 +239,8 @@ try{
   eq(await scalar(`select has_function_privilege('${role}','public.prepare_cyclogazette_season_gala(uuid)','execute')`),false,role+' cannot award honours');
   eq(await scalar(`select has_table_privilege('${role}','public.season_award_finalizations','insert')`),false,role+' cannot forge a receipt');
   eq(await scalar(`select has_function_privilege('${role}','private.create_season_awards_before_roster_identity(uuid)','execute')`),false,role+' cannot bypass finalization');
+  eq(await scalar(`select has_table_privilege('${role}','public.gazette_article_reactions','insert')`),false,role+' cannot forge an article reaction');
+  eq(await scalar(`select has_function_privilege('${role}','private.create_season_awards_before_season_five_distinctions(uuid)','execute')`),false,role+' cannot invoke the previous builder directly');
  }
  if(process.argv[3])await writeFile(process.argv[3],JSON.stringify(await rows(`select n.nspname||'.'||p.proname as name,md5(replace(p.prosrc,E'\\r\\n',E'\\n')) as md5
   from pg_proc p join pg_namespace n on n.oid=p.pronamespace where

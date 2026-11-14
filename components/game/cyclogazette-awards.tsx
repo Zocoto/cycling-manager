@@ -172,6 +172,8 @@ function AwardCard({
         ? `/jeu/equipes/${award.teamId}`
         : null;
   const recipient = <span className={`${compact ? "text-sm" : "text-lg"} font-black ${gala ? "text-[#FFF8E5]" : "text-[#2F2618]"}`}>{award.recipientName}</span>;
+  const article = award.metadata?.article;
+  const numberLocale = locale === "en" ? "en-GB" : "fr-FR";
 
   return (
     <article className={`border ${gala ? "border-[#D6B45A]/45 bg-[#111827]/92 shadow-[0_18px_42px_rgba(0,0,0,.28)]" : "border-[#806C45]/35 bg-[#FFF9E7]"} ${compact ? "p-3" : "p-5"}`}>
@@ -187,7 +189,42 @@ function AwardCard({
       </div>
       {!compact ? <p className={`mt-3 font-serif text-xs italic leading-5 ${gala ? "text-[#C8C4BA]" : "text-[#695D43]"}`}>{copy.description}</p> : null}
       {award.teamName && award.teamName !== award.recipientName ? <p className={`mt-1 truncate text-[9px] font-bold ${gala ? "text-[#AEB4C2]" : "text-[#806C45]"}`}>{award.teamName}</p> : null}
-      {award.statValue !== null && award.statLabel ? <p className={`${compact ? "mt-2 text-[9px]" : `mt-4 border-t ${gala ? "border-[#D6B45A]/25" : "border-[#806C45]/25"} pt-3 text-xs`} font-black uppercase tracking-[0.1em] ${gala ? "text-[#E8CB78]" : "text-[#9A711F]"}`}>{award.statValue.toLocaleString(locale === "en" ? "en-GB" : "fr-FR")} {award.statLabel}</p> : null}
+      {award.statValue !== null && award.statLabel ? <p className={`${compact ? "mt-2 text-[9px]" : `mt-4 border-t ${gala ? "border-[#D6B45A]/25" : "border-[#806C45]/25"} pt-3 text-xs`} font-black uppercase tracking-[0.1em] ${gala ? "text-[#E8CB78]" : "text-[#9A711F]"}`}>{award.statValue.toLocaleString(numberLocale)} {award.statLabel}</p> : null}
+      {award.metadata?.detail ? (
+        <p className={`mt-1.5 text-xs leading-relaxed ${gala ? "text-[#D9D2C0]" : "text-[#695D43]"}`}>
+          {award.metadata.detail}
+        </p>
+      ) : null}
+      {article ? (
+        <Link
+          href={`/jeu/gazette?edition=${encodeURIComponent(article.editionId)}#article-${encodeURIComponent(article.id)}`}
+          className={`mt-1.5 inline-block font-serif text-xs font-bold underline underline-offset-2 ${gala ? "text-[#E8CB78]" : "text-[#A12742]"}`}
+        >
+          {article.title} <span aria-hidden="true">→</span>
+        </Link>
+      ) : null}
+      {award.metadata?.podium?.length ? (
+        <ol
+          start={2}
+          aria-label={locale === "en" ? "Other podium finishers" : "Autres places du podium"}
+          className={`mt-3 grid gap-1 border-t pt-2 text-[11px] leading-4 ${gala ? "border-[#D6B45A]/25 text-[#C8C4BA]" : "border-[#806C45]/25 text-[#695D43]"}`}
+        >
+          {award.metadata.podium.map((place) => (
+            <li key={place.rank} value={place.rank} className="flex items-baseline gap-2">
+              <span className="font-black">
+                {locale === "en" ? (place.rank === 2 ? "2nd" : "3rd") : `${place.rank}e`}
+              </span>
+              <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+                <strong>{place.recipientName}</strong>
+                {place.detail ? <span className="block">{place.detail}</span> : null}
+              </span>
+              <span className="shrink-0 text-right tabular-nums">
+                {place.statValue.toLocaleString(numberLocale)}
+              </span>
+            </li>
+          ))}
+        </ol>
+      ) : null}
       <AwardWinnerComment award={award} compact={compact} gala={gala} />
     </article>
   );

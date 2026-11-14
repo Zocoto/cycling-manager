@@ -21,6 +21,11 @@ export const SEASON_AWARD_KEYS = [
   "homegrown_squad",
   "national_identity",
   "international_squad",
+  "article_reactions",
+  "primary_rating_progression",
+  "team_race_days",
+  "rider_race_days",
+  "record_transfer",
 ] as const;
 
 export type SeasonAwardKey = (typeof SEASON_AWARD_KEYS)[number];
@@ -111,6 +116,27 @@ export const SEASON_AWARD_PRESENTATION: Record<
     fr: { title: "Révélation de l’année", description: "Le meilleur coureur de 23 ans ou moins au classement individuel." },
     en: { title: "Breakthrough rider", description: "The best rider aged 23 or under in the individual ranking." },
   },
+  primary_rating_progression: {
+    tone: "emerald",
+    icon: "spark",
+    order: 51,
+    fr: { title: "La plus forte progression", description: "La plus forte hausse d’une note primaire chez un coureur au cours de la saison." },
+    en: { title: "Biggest improvement", description: "The largest gain in a rider’s primary rating over the season." },
+  },
+  team_race_days: {
+    tone: "teal",
+    icon: "team",
+    order: 52,
+    fr: { title: "L’équipe la plus présente", description: "L’équipe qui a disputé le plus de jours de course." },
+    en: { title: "Most active team", description: "The team that raced the most days this season." },
+  },
+  rider_race_days: {
+    tone: "cobalt",
+    icon: "tactics",
+    order: 53,
+    fr: { title: "Le coureur le plus assidu", description: "Le coureur qui a disputé le plus de jours de course." },
+    en: { title: "Most active rider", description: "The rider who raced the most days this season." },
+  },
   junior_rider_of_year: {
     tone: "cobalt",
     icon: "junior",
@@ -167,6 +193,13 @@ export const SEASON_AWARD_PRESENTATION: Record<
     fr: { title: "Le Négociateur", description: "Le DS qui a adressé le plus d’offres directes à ses homologues." },
     en: { title: "The Negotiator", description: "The sporting director who sent the most direct offers to fellow managers." },
   },
+  record_transfer: {
+    tone: "gold",
+    icon: "handshake",
+    order: 101,
+    fr: { title: "Le transfert record", description: "Le transfert qui a donné lieu à la plus forte indemnité de la saison." },
+    en: { title: "Record transfer", description: "The transfer with the highest fee paid this season." },
+  },
   mixed_zone: {
     tone: "violet",
     icon: "microphone",
@@ -180,6 +213,13 @@ export const SEASON_AWARD_PRESENTATION: Record<
     order: 120,
     fr: { title: "Le Chouchou du paddock", description: "Le DS dont les messages ont reçu le plus de réactions de la communauté." },
     en: { title: "Paddock favourite", description: "The sporting director whose messages received the most community reactions." },
+  },
+  article_reactions: {
+    tone: "rose",
+    icon: "heart",
+    order: 121,
+    fr: { title: "L’article de la saison", description: "L’article de La Cyclogazette qui a reçu le plus de réactions." },
+    en: { title: "Article of the season", description: "The Cyclogazette article that received the most reactions." },
   },
   chatterbox: {
     tone: "teal",

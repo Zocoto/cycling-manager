@@ -694,7 +694,8 @@ export function CyclogazetteNewspaper({
               {mediaArticles.map((article) => (
                 <article
                   key={article.id}
-                  className="border border-[var(--gazette-rule)]/45 bg-[var(--gazette-card)] p-5"
+                  id={`article-${article.id}`}
+                  className="scroll-mt-24 border border-[var(--gazette-rule)]/45 bg-[var(--gazette-card)] p-5"
                 >
                   <p className="text-[9px] font-black uppercase tracking-[.18em] text-[var(--gazette-accent)]">
                     {isEnglish ? "Guest column" : "Carte blanche"} · {article.teamName}

@@ -51,6 +51,39 @@ describe("CyclogazetteAwards", () => {
     expect(markup).toContain("/jeu/coureurs/rider-1");
   });
 
+  it.each(["archive", "day-one", "gala"] as const)(
+    "montre l’article primé et les deux autres places dans la vue %s",
+    (mode) => {
+      const markup = renderToStaticMarkup(
+        <CyclogazetteAwards
+          mode={mode}
+          awards={[{
+            ...award,
+            key: "article_reactions",
+            recipientType: "director",
+            riderId: null,
+            sportingDirectorId: "director-1",
+            statValue: 18,
+            statLabel: "réactions",
+            metadata: {
+              article: { id: "article-5", editionId: "edition-10", title: "Une étape inoubliable" },
+              podium: [
+                { rank: 2, recipientName: "Claude Perrin", statValue: 14 },
+                { rank: 3, recipientName: "Lou Duval", statValue: 11, detail: "La relève" },
+              ],
+            },
+          }]}
+        />,
+      );
+
+      expect(markup).toContain("Une étape inoubliable");
+      expect(markup).toContain("/jeu/gazette?edition=edition-10#article-article-5");
+      expect(markup).toContain("18 réactions");
+      expect(markup).toMatch(/2e<\/span>.*Claude Perrin.*14<\/span>/u);
+      expect(markup).toMatch(/3e<\/span>.*Lou Duval.*La relève.*11<\/span>/u);
+    },
+  );
+
   it("présente une édition spéciale au J1", () => {
     const markup = renderToStaticMarkup(
       <CyclogazetteAwards awards={[award]} mode="day-one" />,

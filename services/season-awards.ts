@@ -20,6 +20,7 @@ type SeasonAwardRow = {
   team_name: string | null;
   stat_value: number | string | null;
   stat_label: string | null;
+  metadata?: unknown;
   awarded_at: string;
   seasons: { name: string; game_year: number } | null;
 };
@@ -47,9 +48,21 @@ export type SeasonAward = {
   teamName: string | null;
   statValue: number | null;
   statLabel: string | null;
+  metadata?: SeasonAwardMetadata;
   awardedAt: string;
   winnerComment?: string | null;
   canViewerComment?: boolean;
+};
+
+export type SeasonAwardMetadata = {
+  detail?: string;
+  article?: { id: string; title: string; editionId: string };
+  podium?: Array<{
+    rank: 2 | 3;
+    recipientName: string;
+    statValue: number;
+    detail?: string;
+  }>;
 };
 
 export async function getSeasonAwards(
@@ -58,7 +71,7 @@ export async function getSeasonAwards(
   const [{ data, error }, commentContextResult] = await Promise.all([
     supabase
       .from("season_awards")
-      .select("id, season_id, award_key, title, description, recipient_type, rider_id, academy_rider_id, team_id, sporting_director_id, recipient_name, team_name, stat_value, stat_label, awarded_at, seasons (name, game_year)")
+      .select("id, season_id, award_key, title, description, recipient_type, rider_id, academy_rider_id, team_id, sporting_director_id, recipient_name, team_name, stat_value, stat_label, awarded_at, seasons (name, game_year), metadata")
       .order("awarded_at", { ascending: false })
       .returns<SeasonAwardRow[]>(),
     supabase
@@ -125,6 +138,44 @@ function mapSeasonAwardRow(row: SeasonAwardRow): SeasonAward {
     teamName: row.team_name,
     statValue: row.stat_value === null ? null : Number(row.stat_value),
     statLabel: row.stat_label,
+    metadata: readSeasonAwardMetadata(row.metadata),
     awardedAt: row.awarded_at,
   };
+}
+
+function readSeasonAwardMetadata(value: unknown): SeasonAwardMetadata | undefined {
+  if (!isRecord(value)) return;
+  const { article, detail, podium } = value;
+  const places = Array.isArray(podium)
+    ? podium.filter(isPodiumPlace).sort((left, right) => left.rank - right.rank)
+    : [];
+
+  return {
+    detail: typeof detail === "string" ? detail : undefined,
+    article:
+      isRecord(article) &&
+      typeof article.id === "string" &&
+      typeof article.title === "string" &&
+      typeof article.editionId === "string"
+        ? { id: article.id, title: article.title, editionId: article.editionId }
+        : undefined,
+    podium: places.length > 0 ? places : undefined,
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isPodiumPlace(
+  place: unknown,
+): place is NonNullable<SeasonAwardMetadata["podium"]>[number] {
+  return (
+    isRecord(place) &&
+    (place.rank === 2 || place.rank === 3) &&
+    typeof place.recipientName === "string" &&
+    typeof place.statValue === "number" &&
+    Number.isFinite(place.statValue) &&
+    (place.detail === undefined || typeof place.detail === "string")
+  );
 }
