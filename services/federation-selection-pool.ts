@@ -5,6 +5,10 @@ import { compactDataCache } from "@/lib/performance/compact-data-cache";
 import { getFederationJuniorBirthYearRange } from "@/lib/game/federation-junior-eligibility";
 import { projectYouthRating } from "@/lib/game/youth-training";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import {
+  collectChunkedPaginatedRows,
+  collectPaginatedRows,
+} from "@/lib/supabase/pagination";
 
 export type FederationSelectionRider = {
   id: string;
@@ -87,6 +91,9 @@ type JuniorRow = {
   prologue: number | string;
 };
 
+const SELECTION_PAGE_SIZE = 250;
+const SELECTION_LOOKUP_OPTIONS = { chunkSize: 150, maxConcurrency: 3 };
+
 const getCachedFederationSelectionPool = compactDataCache(
   (
     countryId: string,
@@ -94,7 +101,7 @@ const getCachedFederationSelectionPool = compactDataCache(
     gameYear: number,
   ) =>
     loadFederationSelectionPool({ countryId, seasonId, gameYear }),
-  ["federation-selection-pool"],
+  ["federation-selection-pool-v2"],
   { revalidate: 60, tags: ["federation-selection-pool"] },
 );
 
@@ -123,63 +130,102 @@ async function loadFederationSelectionPool({
   const { minBirthGameYear, maxBirthGameYear } =
     getFederationJuniorBirthYearRange(gameYear);
   const [ridersResult, juniorsResult] = await Promise.all([
-    admin
-      .from("riders")
-      .select("id, first_name, last_name")
-      .eq("country_id", countryId)
-      .in("status", ["active", "free_agent"])
-      .limit(250)
-      .returns<RiderRow[]>(),
-    admin
-      .from("youth_academy_riders")
-      .select(
-        "id, team_id, first_name, last_name, birth_game_year, mountain, hills, flat, time_trial, cobbles, sprint, acceleration, downhill, endurance, resistance, recovery, breakaway, prologue",
-      )
-      .eq("country_id", countryId)
-      .in("status", ["active", "recruited"])
-      .gte("birth_game_year", minBirthGameYear)
-      .lte("birth_game_year", maxBirthGameYear)
-      .limit(250)
-      .returns<JuniorRow[]>(),
+    collectPaginatedRows({
+      pageSize: SELECTION_PAGE_SIZE,
+      fetchPage: async (from, to) =>
+        admin
+          .from("riders")
+          .select("id, first_name, last_name")
+          .eq("country_id", countryId)
+          .in("status", ["active", "free_agent"])
+          .order("id")
+          .range(from, to)
+          .returns<RiderRow[]>(),
+    }),
+    collectPaginatedRows({
+      pageSize: SELECTION_PAGE_SIZE,
+      fetchPage: async (from, to) =>
+        admin
+          .from("youth_academy_riders")
+          .select(
+            "id, team_id, first_name, last_name, birth_game_year, mountain, hills, flat, time_trial, cobbles, sprint, acceleration, downhill, endurance, resistance, recovery, breakaway, prologue",
+          )
+          .eq("country_id", countryId)
+          .in("status", ["active", "recruited"])
+          .gte("birth_game_year", minBirthGameYear)
+          .lte("birth_game_year", maxBirthGameYear)
+          .order("id")
+          .range(from, to)
+          .returns<JuniorRow[]>(),
+    }),
   ]);
 
   assertSelectionQuery(ridersResult.error, "les coureurs professionnels");
   assertSelectionQuery(juniorsResult.error, "les coureurs juniors");
-  const riders = ridersResult.data ?? [];
-  const juniors = juniorsResult.data ?? [];
+  const riders = ridersResult.data;
+  const juniors = juniorsResult.data;
   const riderIds = riders.map((rider) => rider.id);
   const juniorTeamIds = [...new Set(juniors.map((junior) => junior.team_id))];
   const juniorIds = juniors.map((junior) => junior.id);
 
-  const [ratingsResult, contractsResult, developmentTeamsResult] = await Promise.all([
-    riderIds.length > 0
-      ? admin
-          .from("rider_season_ratings")
-          .select(
-            "rider_id, age, mountain, hills, flat, time_trial, cobbles, sprint, acceleration, downhill, endurance, resistance, recovery, breakaway, prologue",
-          )
-          .eq("season_id", seasonId)
-          .in("rider_id", riderIds)
-          .returns<RatingRow[]>()
-      : Promise.resolve({ data: [] as RatingRow[], error: null }),
-    riderIds.length > 0
-      ? admin
-          .from("rider_contracts")
-          .select("rider_id, team_id")
-          .eq("status", "active")
-          .in("rider_id", riderIds)
-          .returns<ContractRow[]>()
-      : Promise.resolve({ data: [] as ContractRow[], error: null }),
-    juniorTeamIds.length > 0
-      ? admin
-          .from("development_teams")
-          .select("id, team_id, display_name")
-          .eq("season_id", seasonId)
-          .eq("status", "active")
-          .in("team_id", juniorTeamIds)
-          .returns<DevelopmentTeamRow[]>()
-      : Promise.resolve({ data: [] as DevelopmentTeamRow[], error: null }),
-  ]);
+  const [ratingsResult, contractsResult, developmentTeamsResult, developmentRosterResult] =
+    await Promise.all([
+      collectChunkedPaginatedRows({
+        ...SELECTION_LOOKUP_OPTIONS,
+        values: riderIds,
+        fetchPage: async (ids, from, to) =>
+          admin
+            .from("rider_season_ratings")
+            .select(
+              "rider_id, age, mountain, hills, flat, time_trial, cobbles, sprint, acceleration, downhill, endurance, resistance, recovery, breakaway, prologue",
+            )
+            .eq("season_id", seasonId)
+            .in("rider_id", ids)
+            .order("rider_id")
+            .range(from, to)
+            .returns<RatingRow[]>(),
+      }),
+      collectChunkedPaginatedRows({
+        ...SELECTION_LOOKUP_OPTIONS,
+        values: riderIds,
+        fetchPage: async (ids, from, to) =>
+          admin
+            .from("rider_contracts")
+            .select("rider_id, team_id")
+            .eq("status", "active")
+            .in("rider_id", ids)
+            .order("id")
+            .range(from, to)
+            .returns<ContractRow[]>(),
+      }),
+      collectChunkedPaginatedRows({
+        ...SELECTION_LOOKUP_OPTIONS,
+        values: juniorTeamIds,
+        fetchPage: async (ids, from, to) =>
+          admin
+            .from("development_teams")
+            .select("id, team_id, display_name")
+            .eq("season_id", seasonId)
+            .eq("status", "active")
+            .in("team_id", ids)
+            .order("id")
+            .range(from, to)
+            .returns<DevelopmentTeamRow[]>(),
+      }),
+      collectChunkedPaginatedRows({
+        ...SELECTION_LOOKUP_OPTIONS,
+        values: juniorIds,
+        fetchPage: async (ids, from, to) =>
+          admin
+            .from("development_team_roster")
+            .select("development_team_id, academy_rider_id")
+            .in("academy_rider_id", ids)
+            .order("academy_rider_id")
+            .order("development_team_id")
+            .range(from, to)
+            .returns<DevelopmentRosterRow[]>(),
+      }),
+    ]);
 
   assertSelectionQuery(ratingsResult.error, "les statistiques professionnelles");
   assertSelectionQuery(contractsResult.error, "les équipes des professionnels");
@@ -187,53 +233,47 @@ async function loadFederationSelectionPool({
     developmentTeamsResult.error,
     "les équipes de développement des juniors",
   );
-  const contracts = contractsResult.data ?? [];
-  const developmentTeams = developmentTeamsResult.data ?? [];
-  const developmentTeamIds = developmentTeams.map((team) => team.id);
-  const developmentRosterResult =
-    developmentTeamIds.length > 0 && juniorIds.length > 0
-      ? await admin
-          .from("development_team_roster")
-          .select("development_team_id, academy_rider_id")
-          .in("development_team_id", developmentTeamIds)
-          .in("academy_rider_id", juniorIds)
-          .returns<DevelopmentRosterRow[]>()
-      : { data: [] as DevelopmentRosterRow[], error: null };
   assertSelectionQuery(
     developmentRosterResult.error,
     "les affectations en équipe de développement",
   );
+  const contracts = contractsResult.data;
+  const developmentTeams = developmentTeamsResult.data;
   const teamIds = [
     ...new Set([
       ...contracts.map((contract) => contract.team_id),
-      ...juniors.map((junior) => junior.team_id),
+      ...juniorTeamIds,
     ]),
   ];
-  const teamsResult =
-    teamIds.length > 0
-      ? await admin
-          .from("team_seasons")
-          .select("team_id, display_name")
-          .eq("season_id", seasonId)
-          .in("team_id", teamIds)
-          .returns<TeamSeasonRow[]>()
-      : { data: [] as TeamSeasonRow[], error: null };
+  const teamsResult = await collectChunkedPaginatedRows({
+    ...SELECTION_LOOKUP_OPTIONS,
+    values: teamIds,
+    fetchPage: async (ids, from, to) =>
+      admin
+        .from("team_seasons")
+        .select("team_id, display_name")
+        .eq("season_id", seasonId)
+        .in("team_id", ids)
+        .order("team_id")
+        .range(from, to)
+        .returns<TeamSeasonRow[]>(),
+  });
 
   assertSelectionQuery(teamsResult.error, "les noms des équipes");
   const ratingByRiderId = new Map(
-    (ratingsResult.data ?? []).map((rating) => [rating.rider_id, rating]),
+    ratingsResult.data.map((rating) => [rating.rider_id, rating]),
   );
   const teamIdByRiderId = new Map(
     contracts.map((contract) => [contract.rider_id, contract.team_id]),
   );
   const teamNameById = new Map(
-    (teamsResult.data ?? []).map((team) => [team.team_id, team.display_name]),
+    teamsResult.data.map((team) => [team.team_id, team.display_name]),
   );
   const developmentTeamById = new Map(
     developmentTeams.map((team) => [team.id, team]),
   );
   const developmentTeamByJuniorId = new Map(
-    (developmentRosterResult.data ?? []).flatMap((roster) => {
+    developmentRosterResult.data.flatMap((roster) => {
       const developmentTeam = developmentTeamById.get(
         roster.development_team_id,
       );
