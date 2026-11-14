@@ -51,6 +51,12 @@ const shortDateFormatter =
     month: "short",
     timeZone: "UTC",
   });
+const parisDepartureTimeFormatter = new Intl.DateTimeFormat("fr-FR", {
+  timeZone: "Europe/Paris",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
 
 type SeasonCalendarProps = {
   calendar: SeasonRaceCalendar;
@@ -624,7 +630,7 @@ function RaceCalendarList({
 
       <div className="mt-5 overflow-hidden rounded-2xl border border-[#315B3E]/15 bg-white shadow-sm">
         <div className="hidden grid-cols-[105px_minmax(260px,1.4fr)_150px_150px_150px_145px] gap-4 border-b border-[#315B3E]/10 bg-[#F3F8F5] px-5 py-3 text-[10px] font-black uppercase tracking-[0.13em] text-[#60756E] lg:grid">
-          <span>Date</span>
+          <span>Départ</span>
           <span>Épreuve</span>
           <span>Profil</span>
           <span>Participation</span>
@@ -656,6 +662,8 @@ function RaceCalendarList({
             now: new Date(nowIso),
           });
           const startDate = dayByNumber.get(range.startDay)?.calendarDate;
+          const departureAt = firstStage?.status === "cancelled" ? null : firstStage?.departureAt;
+          const departureTimestamp = departureAt ? Date.parse(departureAt) : NaN;
           const isPast = range.endDay < currentDayNumber;
           const isInternationalChampionship =
             isInternationalChampionshipEdition(edition);
@@ -743,6 +751,11 @@ function RaceCalendarList({
                 <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-[#789087]">
                   {startDate ? formatShortDate(startDate) : "Date à venir"}
                 </p>
+                {Number.isFinite(departureTimestamp) ? (
+                  <time dateTime={departureAt ?? undefined} className="mt-0.5 block text-xs font-bold tabular-nums text-[#315B3E]">
+                    {parisDepartureTimeFormatter.format(departureTimestamp)}
+                  </time>
+                ) : null}
               </div>
 
               <div className="min-w-0">
