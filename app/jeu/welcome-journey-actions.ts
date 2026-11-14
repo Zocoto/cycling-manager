@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import type { NewcomerJourneyStepKey } from "@/lib/game/dashboard-assistant";
+import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const ALLOWED_STEP_KEYS = new Set<NewcomerJourneyStepKey>([
@@ -15,6 +17,31 @@ const ALLOWED_STEP_KEYS = new Set<NewcomerJourneyStepKey>([
   "prepare_race",
   "follow_race_live",
 ]);
+
+export async function recordNewcomerReplayStartAction(
+  stageId: string,
+): Promise<boolean> {
+  if (!z.uuid().safeParse(stageId).success) return false;
+
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await getAuthenticatedUser(supabase);
+  if (!user) return false;
+
+  const { data: completed, error } = await supabase.rpc(
+    "record_current_newcomer_replay_visit",
+    { p_stage_id: stageId },
+  );
+  if (error) {
+    console.error("newcomer_replay_visit_failed", error.code);
+    return false;
+  }
+
+  if (completed) {
+    revalidatePath("/jeu");
+    revalidatePath("/jeu/objectifs");
+  }
+  return true;
+}
 
 export async function claimNewcomerJourneyStepAction(
   stepKey: NewcomerJourneyStepKey,

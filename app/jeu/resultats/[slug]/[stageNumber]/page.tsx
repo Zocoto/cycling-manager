@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { after } from "next/server";
 
+import { recordNewcomerReplayStartAction } from "@/app/jeu/welcome-journey-actions";
 import { GameHeader } from "@/components/game/game-header";
 import { NationalChampionshipStageResults } from "@/components/game/national-championship-stage-results";
 import { RaceStageExperience } from "@/components/game/race-stage-experience";
@@ -371,6 +372,7 @@ export default async function RaceLivePage({
             sponsorRaceBrief={sponsorRaceBrief}
             postRaceInterview={postRaceInterview}
             replayRequested={replayRequested}
+            onReplayStartAction={recordNewcomerReplayStartAction.bind(null, stage.id)}
             initialClassification={
               resolvedSearchParams.classement === "general"
                 ? "general"

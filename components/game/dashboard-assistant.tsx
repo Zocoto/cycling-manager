@@ -259,7 +259,7 @@ function getWelcomeJourneyActionLabel(key: NewcomerJourneyStep["key"]) {
     case "prepare_race":
       return "Préparer ma course";
     case "follow_race_live":
-      return "Voir les courses en direct";
+      return "Voir les directs et replays";
   }
 }
 

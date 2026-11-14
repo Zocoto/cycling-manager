@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  startTransition,
   useEffect,
   useMemo,
   useRef,
@@ -132,6 +133,7 @@ export function RaceLiveLab({
   mode,
   nowIso,
   lockedSimulations = [],
+  onReplayStartAction,
   standingsOverride = null,
   standingsBeforeStageOverride = null,
 }: {
@@ -140,6 +142,7 @@ export function RaceLiveLab({
   mode: "live" | "replay";
   nowIso: string;
   lockedSimulations?: LockedOfficialStageSimulation[];
+  onReplayStartAction?: () => Promise<boolean>;
   standingsOverride?: StageRaceStandings | null;
   standingsBeforeStageOverride?: StageRaceStandings | null;
 }) {
@@ -255,6 +258,7 @@ export function RaceLiveLab({
   const [replaySegmentProgress, setReplaySegmentProgress] = useState(0);
   const replaySegmentProgressRef = useRef(0);
   const [isPlaying, setIsPlaying] = useState(mode === "live");
+  const replayStartRequested = useRef(false);
   const [playbackSpeed, setPlaybackSpeed] =
     useState<RaceReplaySpeed>(1);
   const [finalMetersRemaining, setFinalMetersRemaining] = useState(
@@ -493,6 +497,27 @@ export function RaceLiveLab({
     replayTiming.finalKilometerDurationMs,
   ]);
 
+  function startReplay(fromBeginning: boolean) {
+    if (fromBeginning) {
+      setActiveIndex(0);
+      setReplaySegmentProgress(0);
+      setFinalMetersRemaining(finalSegmentMeters);
+      setFinishPassageProgress(0);
+    }
+    setIsPlaying(true);
+
+    if (mode !== "replay" || !onReplayStartAction || replayStartRequested.current) return;
+
+    replayStartRequested.current = true;
+    startTransition(async () => {
+      try {
+        replayStartRequested.current = await onReplayStartAction();
+      } catch {
+        replayStartRequested.current = false;
+      }
+    });
+  }
+
   return (
     <section
       data-tutorial-id="race-live-lab"
@@ -526,11 +551,7 @@ export function RaceLiveLab({
             <button
               type="button"
               onClick={() => {
-                setActiveIndex(0);
-                setReplaySegmentProgress(0);
-                setFinalMetersRemaining(finalSegmentMeters);
-                setFinishPassageProgress(0);
-                setIsPlaying(true);
+                startReplay(true);
                 setTab("live");
               }}
               className="min-h-11 rounded-xl bg-[#F2C94C] px-4 text-xs font-black uppercase tracking-wide text-[#17261E] transition hover:bg-[#F7DA73] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
@@ -646,19 +667,8 @@ export function RaceLiveLab({
               {mode === "replay" ? <button
                 type="button"
                 onClick={() => {
-                  if (
-                    isFinal &&
-                    !isPlaying &&
-                    finishPassageProgress >= 1
-                  ) {
-                    setActiveIndex(0);
-                    setReplaySegmentProgress(0);
-                    setFinalMetersRemaining(finalSegmentMeters);
-                    setFinishPassageProgress(0);
-                    setIsPlaying(true);
-                    return;
-                  }
-                  setIsPlaying((current) => !current);
+                  if (isPlaying) setIsPlaying(false);
+                  else startReplay(isFinal && finishPassageProgress >= 1);
                 }}
                 className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#72D4B7]/45 bg-[#72D4B7]/10 px-4 text-xs font-black uppercase tracking-wide text-[#9BE0CA] transition hover:bg-[#72D4B7]/20"
               >

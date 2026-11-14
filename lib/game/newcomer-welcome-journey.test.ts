@@ -83,7 +83,7 @@ describe("newcomer welcome journey", () => {
       "Voir les enchères",
       "M’inscrire à une course",
       "Préparer ma course",
-      "Voir les courses en direct",
+      "Voir les directs et replays",
     ]) {
       expect(assistant).toContain(actionLabel);
     }

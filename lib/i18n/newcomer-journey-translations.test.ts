@@ -17,6 +17,9 @@ describe("English newcomer journey",()=>{
     }
   });
   it.each([
+    ["Regarder un live ou un replay", "Watch a live race or replay"],
+    ["Suivez une course en direct ou lancez le replay d’une course terminée.", "Watch a race live or play a replay of a completed race."],
+    ["Voir les directs et replays", "Browse live races and replays"],
     ["Faire une offre aux enchères","Place an auction bid"],
     ["S’inscrire à une course","Register for a race"],
     ["Placez une enchère sur un coureur du marché quotidien.","Place a bid on a rider in the daily auction market."],

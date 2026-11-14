@@ -87,6 +87,7 @@ export function RaceStageExperience({
   sponsorRaceBrief = null,
   postRaceInterview,
   replayRequested = false,
+  onReplayStartAction,
   initialClassification,
 }: {
   entry: RaceStageEntry;
@@ -102,6 +103,7 @@ export function RaceStageExperience({
   sponsorRaceBrief?: import("@/lib/game/sponsor-project").SponsorRaceBrief | null;
   postRaceInterview: PostRaceInterviewSnapshot | null;
   replayRequested?: boolean;
+  onReplayStartAction?: () => Promise<boolean>;
   initialClassification?: "general";
 }) {
   const now = useSynchronizedRaceClock(nowIso, 15_000);
@@ -452,6 +454,7 @@ export function RaceStageExperience({
                   : nowIso
               }
               lockedSimulations={lockedSimulations}
+              onReplayStartAction={onReplayStartAction}
               standingsOverride={officialStandings}
               standingsBeforeStageOverride={officialStandingsBeforeStage}
             />

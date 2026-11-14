@@ -40,6 +40,7 @@ export const metadata: Metadata = {
 type RaceResultsPageProps = {
   searchParams: Promise<{
     course?: string | string[];
+    filtre?: string | string[];
   }>;
 };
 
@@ -48,6 +49,7 @@ export default async function RaceResultsPage({
 }: RaceResultsPageProps) {
   const resolvedSearchParams = await searchParams;
   const initialRaceSlug = readSingleSearchParam(resolvedSearchParams.course);
+  const spectatorMode = readSingleSearchParam(resolvedSearchParams.filtre) === "spectateur";
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -207,6 +209,7 @@ export default async function RaceResultsPage({
               <RaceLiveDirectory
                 calendar={spectatorCalendar}
                 nowIso={now.toISOString()}
+                initialScope={spectatorMode ? "unridden" : "team"}
                 pastNationalChampionshipGroups={
                   nationalChampionshipResults.past
                 }
