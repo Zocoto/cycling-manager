@@ -10,6 +10,12 @@
     },
     {
       "code": "belgium",
+      "label": "Belgique et Luxembourg (profil historique)",
+      "minimumFirstNames": 420,
+      "minimumLastNames": 431
+    },
+    {
+      "code": "belgium_national",
       "label": "Belgique",
       "minimumFirstNames": 420,
       "minimumLastNames": 431

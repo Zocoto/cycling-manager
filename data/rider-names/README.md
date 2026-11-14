@@ -4,7 +4,7 @@ Les fichiers JSON alimentent les générations de coureurs côté serveur. Un pr
 
 ## Couverture mondiale
 
-Le catalogue comprend 70 profils, 16 460 prénoms et 18 953 noms. Il impose un socle de 120 prénoms et 160 noms par bibliothèque, avec un seuil propre à chaque profil aligné sur la profondeur réellement validée du corpus. Les deux pays les plus représentés dans le jeu disposent des catalogues les plus profonds : 420 prénoms et 500 noms pour la France, 420 prénoms et 431 noms pour la Belgique.
+Le catalogue comprend 71 profils, 16 880 prénoms et 19 384 noms. Il impose un socle de 120 prénoms et 160 noms par bibliothèque, avec un seuil propre à chaque profil aligné sur la profondeur réellement validée du corpus. Les deux pays les plus représentés dans le jeu disposent des catalogues les plus profonds. La France en compte 420 prénoms et 500 noms, et la Belgique 420 prénoms et 431 noms.
 
 La profondeur n'est jamais obtenue en ajoutant indistinctement les noms de tous les résidents d'un pays. Comme le tirage du jeu est uniforme, cela surreprésenterait fortement les patronymes très minoritaires. Les ajouts privilégient donc les formes locales attestées et les variantes de romanisation pertinentes. Les systèmes naturellement concentrés, notamment coréen et vietnamien, conservent volontairement un corpus plus compact plutôt que des noms étrangers de remplissage.
 
@@ -16,6 +16,12 @@ Vingt-six profils nationaux ont été séparés des anciens regroupements régio
 Les profils régionaux historiques sont conservés pour les pays dont la couverture reste plus fiable à cette échelle et pour assurer la traçabilité des coureurs déjà créés. Une évolution du rattachement d’un pays ne renomme jamais les identités existantes : elle s’applique uniquement aux générations futures.
 
 Les cultures patronymiques sont représentées explicitement. Pour l’Éthiopie et l’Érythrée, les deux champs techniques `firstNames` et `lastNames` contiennent donc des noms personnels utilisables respectivement comme prénom et patronyme, plutôt qu’une fausse liste de noms de famille héréditaires.
+
+## Profil belge
+
+Le code `belgium_national` est réservé à la Belgique. Le vivier s'appuie sur les [prénoms masculins](https://statbel.fgov.be/sites/default/files/files/documents/bevolking/5.10%20Namen%20en%20voornamen/5.10.2%20Voornamen%20van%20vrouwen%20en%20mannen/First%20names_Population_2022.xlsx) et les [noms de famille](https://statbel.fgov.be/sites/default/files/files/documents/bevolking/5.10%20Namen%20en%20voornamen/5.10.1%20Familienamen/Family_names_2022.xlsx) de Statbel pour 2022, transcrits dans les profils [nl_BE](https://github.com/joke2k/faker/blob/master/faker/providers/person/nl_BE/__init__.py) et [fr_BE](https://github.com/joke2k/faker/blob/master/faker/providers/person/fr_BE/__init__.py) de Faker, sous licence MIT.
+
+Le vivier retient les entrées les plus fréquentes de Flandre (244 prénoms et 250 patronymes), puis complète avec les entrées les plus fréquentes de Wallonie qui ne sont pas déjà présentes (176 prénoms et 181 patronymes). Les listes sont dédupliquées sans distinction de casse, préservent les accents et les particules, puis sont triées par ordre alphabétique. Le code `belgium` identifie l'ancien vivier commun à la Belgique et au Luxembourg. Le Luxembourg utilise ce fichier, également conservé pour la traçabilité des anciennes générations.
 
 ## Profil grec
 

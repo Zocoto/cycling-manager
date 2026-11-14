@@ -6,6 +6,7 @@ import arabianPeninsula from "../../data/rider-names/arabian_peninsula.json";
 import balkans from "../../data/rider-names/balkans.json";
 import bangladesh from "../../data/rider-names/bangladesh.json";
 import belgium from "../../data/rider-names/belgium.json";
+import belgiumNational from "../../data/rider-names/belgium_national.json";
 import brazil from "../../data/rider-names/brazil.json";
 import britishIsles from "../../data/rider-names/british_isles.json";
 import cambodia from "../../data/rider-names/cambodia.json";
@@ -88,6 +89,7 @@ export type GeneratedRiderIdentity = {
 const riderNameLibraries = {
   france,
   belgium,
+  belgium_national: belgiumNational,
   netherlands,
   italy,
   spain,

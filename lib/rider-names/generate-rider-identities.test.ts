@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import afghanistan from "@/data/rider-names/afghanistan.json";
 import arabianPeninsula from "@/data/rider-names/arabian_peninsula.json";
+import belgium from "@/data/rider-names/belgium.json";
+import belgiumNational from "@/data/rider-names/belgium_national.json";
+import britishIsles from "@/data/rider-names/british_isles.json";
 import centralAsia from "@/data/rider-names/central_asia.json";
 import centralEurope from "@/data/rider-names/central_europe.json";
 import china from "@/data/rider-names/china.json";
@@ -11,7 +14,6 @@ import eritrea from "@/data/rider-names/eritrea.json";
 import ethiopia from "@/data/rider-names/ethiopia.json";
 import finland from "@/data/rider-names/finland.json";
 import france from "@/data/rider-names/france.json";
-import belgium from "@/data/rider-names/belgium.json";
 import ghana from "@/data/rider-names/ghana.json";
 import greece from "@/data/rider-names/greece.json";
 import iceland from "@/data/rider-names/iceland.json";
@@ -36,7 +38,7 @@ describe("rider name libraries", () => {
     const profileCodes = profilesManifest.profiles.map((profile) => profile.code);
 
     expect(new Set(profileCodes).size).toBe(profileCodes.length);
-    expect(profileCodes).toHaveLength(70);
+    expect(profileCodes).toHaveLength(71);
 
     for (const profileCode of profileCodes) {
       expect(hasRiderNameLibrary(profileCode), profileCode).toBe(true);
@@ -100,14 +102,39 @@ describe("rider name libraries", () => {
   it("gives France and Belgium the deepest high-volume catalogs", () => {
     expect(france.firstNames).toHaveLength(420);
     expect(france.lastNames).toHaveLength(500);
-    expect(belgium.firstNames).toHaveLength(420);
-    expect(belgium.lastNames.length).toBeGreaterThanOrEqual(430);
+    expect(belgiumNational.firstNames).toHaveLength(420);
+    expect(belgiumNational.lastNames).toHaveLength(431);
     expect(
       profilesManifest.profiles.reduce(
         (total, profile) => total + profile.minimumLastNames,
         0,
       ),
     ).toBeGreaterThanOrEqual(18_900);
+  });
+
+  it("draws the Belgian national profile from its own catalog", () => {
+    const identities = generateRiderIdentities(
+      belgiumNational.code,
+      belgiumNational.firstNames.length,
+    );
+    expect(new Set(identities.map((identity) => identity.first_name))).toEqual(
+      new Set(belgiumNational.firstNames),
+    );
+    expect(identities.every((identity) =>
+      belgiumNational.lastNames.includes(identity.last_name),
+    )).toBe(true);
+    expect(belgiumNational.lastNames).toEqual(expect.arrayContaining([
+      "Peeters", "Janssens", "De Smet", "Dubois", "Leclercq",
+    ]));
+    expect(overlapRatio(belgiumNational.lastNames, britishIsles.lastNames))
+      .toBeLessThan(0.12);
+  });
+
+  it("keeps the legacy profile for the Luxembourg mapping", () => {
+    const identities = generateRiderIdentities(belgium.code, belgium.firstNames.length);
+    expect(new Set(identities.map((identity) => identity.first_name))).toEqual(
+      new Set(belgium.firstNames),
+    );
   });
 
   it("keeps East Asian libraries free of unrelated fallback names", () => {
