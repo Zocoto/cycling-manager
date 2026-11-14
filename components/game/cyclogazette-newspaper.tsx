@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "@/components/ui/app-link";
-import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { createContext, useContext, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { toggleCyclogazetteArticleReactionAction } from "@/app/jeu/gazette/actions";
 import { GazetteCommentText, GazetteCommentTranslations } from "@/components/game/gazette-comment-translations";
 import { getGazetteCommentSources, gazetteAnswerCommentKey, gazetteClosingCommentKey, gazetteExcerptCommentKey, gazettePressCommentKey, type GazetteCommentLanguageHints } from "@/lib/game/gazette-comment-translation";
 
@@ -44,6 +45,11 @@ import type {
   PublicGameNewsItem,
   PublicGameNewsTeamVisual,
 } from "@/lib/game/public-game-news";
+import {
+  cyclogazetteArticleReactionKey,
+  type CyclogazetteArticleReactionStates,
+  type CyclogazetteArticleReactionTarget,
+} from "@/lib/game/cyclogazette-article-reactions";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
@@ -221,6 +227,7 @@ export function CyclogazetteNewspaper({
   edition,
   community,
   interviewReactions,
+  articleReactions,
   stickerGift,
   seasonOpeningAwards,
   seasonQuizSection,
@@ -231,6 +238,7 @@ export function CyclogazetteNewspaper({
   edition: CyclogazetteEdition;
   community?: CyclogazetteCommunity;
   interviewReactions?: CyclogazetteInterviewReactionStates;
+  articleReactions?: CyclogazetteArticleReactionStates;
   stickerGift?: ReactNode;
   seasonOpeningAwards?: ReactNode;
   seasonQuizSection?: ReactNode;
@@ -335,6 +343,7 @@ export function CyclogazetteNewspaper({
   const newspaperStyle = getCyclogazetteThemeStyle(gazetteTheme);
 
   return (
+    <ArticleReactionProvider key={edition.id} editionId={edition.id} initial={articleReactions}>
     <GazetteCommentTranslations editionId={edition.id} sources={commentSources} languages={commentLanguages ?? {}} enabled={commentTranslationEnabled}>
     <article
       aria-label={`${newspaperName} ${isEnglish ? "issue" : "numéro"} ${edition.issueNumber}`}
@@ -700,6 +709,7 @@ export function CyclogazetteNewspaper({
                     {isEnglish ? "Column submitted by the SD" : "Tribune proposée par le DS"} · Media Center {isEnglish ? "L" : "N"}
                     {article.buildingLevel}
                   </p>
+                  <ArticleReactions kind="media" id={article.id} />
                 </article>
               ))}
             </div>
@@ -813,6 +823,7 @@ export function CyclogazetteNewspaper({
       </footer>
     </article>
     </GazetteCommentTranslations>
+    </ArticleReactionProvider>
   );
 }
 
@@ -906,6 +917,7 @@ function NationsCupFrontPage({
           </p>
         </div>
       </Link>
+      <ArticleReactions id="feature:nations-cup-champion" />
     </section>
   );
 }
@@ -1181,16 +1193,15 @@ function EditorialFeatureSection({
             </article>
           );
 
-          return story.href ? (
-            <Link
-              key={story.id}
-              href={story.href}
-              className="block min-w-0 no-underline"
-            >
-              {article}
-            </Link>
-          ) : (
-            <div key={story.id}>{article}</div>
+          return (
+            <div key={story.id} className={`min-w-0 ${index === 0 || isHalloweenTeaser ? "md:col-span-2" : ""}`}>
+              {story.href ? (
+                <Link href={story.href} className="block min-w-0 no-underline">
+                  {article}
+                </Link>
+              ) : article}
+              <ArticleReactions id={`${story.jerseyReveal ? "jersey" : "feature"}:${story.id}`} />
+            </div>
           );
         })}
       </div>
@@ -1234,6 +1245,7 @@ function ItalianGazettaChronicle({
             <p className="mt-3 font-serif text-sm leading-5 text-[var(--gazette-body)]">
               {incident.copy}
             </p>
+            <ArticleReactions id={`joke:italy:${index}`} />
           </article>
         ))}
       </div>
@@ -1320,6 +1332,7 @@ function FrenchTourChronicle({
             <p className="mt-3 font-serif text-sm leading-5 text-[var(--gazette-body)]">
               {brief.copy}
             </p>
+            <ArticleReactions id={`joke:france:${index}`} />
           </article>
         ))}
       </div>
@@ -1410,6 +1423,7 @@ function SpanishVueltaChronicle({
             <p className="mt-3 font-serif text-sm leading-5 text-[var(--gazette-body)]">
               {brief.copy}
             </p>
+            <ArticleReactions id={`joke:spain:${index}`} />
           </article>
         ))}
       </div>
@@ -1691,6 +1705,7 @@ function LeadStory({ item }: { item: PublicGameNewsItem }) {
           <p className="mt-4 text-[10px] font-black uppercase tracking-[0.16em] text-[var(--gazette-muted)]">
             {formatNewsTime(localizedItem.happenedAt, locale)} · {isEnglish ? "By the newsroom" : "Par la rédaction"}
           </p>
+          <ArticleReactions id={`race:${item.id}`} />
         </div>
       </div>
     </section>
@@ -1731,6 +1746,7 @@ function WinnerCard({ item }: { item: PublicGameNewsItem }) {
         {localizedItem.detail}
       </p>
       <NewsEntityLinks item={localizedItem} />
+      <ArticleReactions id={`race:${item.id}`} />
     </article>
   );
 }
@@ -2072,6 +2088,97 @@ function PreRacePressCard({
   );
 }
 
+type ArticleReactionContextValue = {
+  editionId: string;
+  canReact: boolean;
+  blockedArticleKeys: ReadonlySet<string>;
+  articles: CyclogazetteArticleReactionStates["articles"];
+  pending: ReadonlySet<string>;
+  errors: ReadonlySet<string>;
+  toggle: (target: CyclogazetteArticleReactionTarget, emoji: CyclogazetteInterviewReactionEmoji) => void;
+};
+
+const ArticleReactionContext = createContext<ArticleReactionContextValue | null>(null);
+
+function ArticleReactionProvider({ editionId, initial, children }: {
+  editionId: string;
+  initial?: CyclogazetteArticleReactionStates;
+  children: ReactNode;
+}) {
+  const canReact = initial?.canReact ?? false;
+  const blockedArticleKeys = useMemo(() => new Set(initial?.blockedArticleKeys), [initial?.blockedArticleKeys]);
+  const [articles, setArticles] = useState(initial?.articles ?? {});
+  const [pending, setPending] = useState(() => new Set<string>());
+  const [errors, setErrors] = useState(() => new Set<string>());
+  const inFlight = useRef(new Set<string>());
+
+  async function toggle(target: CyclogazetteArticleReactionTarget, emoji: CyclogazetteInterviewReactionEmoji) {
+    const key = cyclogazetteArticleReactionKey(target);
+    if (!canReact || blockedArticleKeys.has(key) || inFlight.current.has(key)) return;
+    inFlight.current.add(key);
+    setPending((current) => new Set(current).add(key));
+    setErrors((current) => new Set([...current].filter((item) => item !== key)));
+
+    const previous = articles[key] ?? [];
+    const active = !previous.some((reaction) => reaction.emoji === emoji && reaction.reactedByViewer);
+    setArticles((current) => ({
+      ...current,
+      [key]: applyCyclogazetteInterviewReactionState(previous, emoji, active),
+    }));
+
+    try {
+      const result = await toggleCyclogazetteArticleReactionAction(target, emoji);
+      if (!result.success) throw new Error(result.error);
+      setArticles((current) => ({
+        ...current,
+        [key]: applyCyclogazetteInterviewReactionState(previous, emoji, result.active, result.count),
+      }));
+    } catch {
+      setArticles((current) => ({ ...current, [key]: previous }));
+      setErrors((current) => new Set(current).add(key));
+    } finally {
+      inFlight.current.delete(key);
+      setPending((current) => new Set([...current].filter((item) => item !== key)));
+    }
+  }
+
+  return (
+    <ArticleReactionContext.Provider value={{ editionId, canReact, blockedArticleKeys, articles, pending, errors, toggle }}>
+      {children}
+    </ArticleReactionContext.Provider>
+  );
+}
+
+function ArticleReactions({ id, kind = "edition" }: { id: string; kind?: "media" | "edition" }) {
+  const interaction = useContext(ArticleReactionContext);
+  const { locale } = useLocale();
+  if (!interaction) return null;
+  const target: CyclogazetteArticleReactionTarget = kind === "media"
+    ? { kind, id }
+    : { kind, id, editionId: interaction.editionId };
+  const key = cyclogazetteArticleReactionKey(target);
+  const isEnglish = locale === "en";
+
+  return (
+    <>
+      <InterviewAnswerReactionBar
+        questionId={key}
+        reactions={interaction.articles[key] ?? []}
+        canReact={interaction.canReact && !interaction.blockedArticleKeys.has(key)}
+        pending={interaction.pending.has(key)}
+        isEnglish={isEnglish}
+        onToggle={(_, emoji) => interaction.toggle(target, emoji)}
+        article
+      />
+      {interaction.errors.has(key) ? (
+        <p role="alert" className="mt-2 text-xs font-bold text-[var(--gazette-accent)]">
+          {isEnglish ? "Unable to save this reaction." : "La réaction n’a pas pu être enregistrée."}
+        </p>
+      ) : null}
+    </>
+  );
+}
+
 function InterviewAnswerReactionBar({
   questionId,
   reactions,
@@ -2079,12 +2186,14 @@ function InterviewAnswerReactionBar({
   pending,
   isEnglish,
   onToggle,
+  article = false,
 }: {
   questionId: string;
   reactions: readonly CyclogazetteAnswerReactionSummary[];
   canReact: boolean;
   pending: boolean;
   isEnglish: boolean;
+  article?: boolean;
   onToggle: (
     questionId: string,
     emoji: CyclogazetteInterviewReactionEmoji,
@@ -2094,7 +2203,8 @@ function InterviewAnswerReactionBar({
 
   return (
     <div
-      data-interview-answer-reactions={questionId}
+      data-interview-answer-reactions={article ? undefined : questionId}
+      data-gazette-article-reactions={article ? questionId : undefined}
       className="mt-2 flex flex-wrap items-center gap-1.5"
     >
       <span className="mr-1 text-[9px] font-black uppercase tracking-[0.1em] text-[var(--gazette-muted)]">
@@ -2102,6 +2212,8 @@ function InterviewAnswerReactionBar({
           ? isEnglish
             ? "Your impression"
             : "Votre impression"
+          : article
+            ? (isEnglish ? "Reactions" : "Réactions")
           : isEnglish
             ? "SD reactions"
             : "Réactions des DS"}
@@ -2111,7 +2223,9 @@ function InterviewAnswerReactionBar({
           (reaction) => reaction.emoji === definition.emoji,
         );
         if (!canReact && !summary?.count) return null;
-        const label = isEnglish ? definition.labelEn : definition.labelFr;
+        const label = article && definition.emoji === "🔥"
+          ? (isEnglish ? "Striking article" : "Article marquant")
+          : isEnglish ? definition.labelEn : definition.labelFr;
         const isNegative = definition.sentiment === "negative";
         return (
           <button
@@ -2185,6 +2299,7 @@ function NewsBrief({
           </p>
         </div>
       </div>
+      <ArticleReactions id={`race:${item.id}`} />
     </article>
   );
 }

@@ -87,6 +87,11 @@ export function MediaCenterComposer({
                   {isEnglish ? `1 every ${overview.publicationIntervalDays} days` : `1 tous les ${overview.publicationIntervalDays} jours`}
                 </span>
               </div>
+              <p className="mt-3 text-sm font-semibold text-[#60756E]">
+                {isEnglish
+                  ? "Your team earns €1,000 for each reader who reacts to your article."
+                  : "Chaque lecteur qui réagit à votre article rapporte 1 000 € à votre équipe."}
+              </p>
               <input
                 name="title"
                 required

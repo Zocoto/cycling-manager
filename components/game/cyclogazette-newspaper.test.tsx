@@ -9,6 +9,7 @@ import { CyclogazetteStickerGift } from "./cyclogazette-sticker-gift";
 
 vi.mock("@/app/jeu/gazette/actions", () => ({
   claimCyclogazetteBoosterGiftAction: vi.fn(),
+  toggleCyclogazetteArticleReactionAction: vi.fn(),
 }));
 
 const teamVisual = {
@@ -316,6 +317,55 @@ describe("CyclogazetteNewspaper", () => {
   it("équilibre les articles sans grande colonne latérale vide", () => {
     const markup = renderToStaticMarkup(<CyclogazetteNewspaper edition={edition} />);
     expect(markup.match(/flex-\[1_1_290px\]/g)?.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("affiche les réactions propres à chaque article et respecte les restrictions du lecteur", () => {
+    const articleEdition = {
+      ...edition,
+      content: {
+        ...edition.content,
+        mediaArticles: [{
+          id: "media-1",
+          title: "Tribune du DS",
+          body: "Le peloton est prêt.",
+          teamName: "Veloria",
+          sponsorName: null,
+          buildingLevel: 1,
+        }],
+        featureStories: [{
+          id: "feature-1",
+          kind: "injury" as const,
+          kicker: "Le carnet",
+          kickerEn: "The notebook",
+          title: "Retour prochain",
+          titleEn: "Coming back soon",
+          body: "Le coureur reprend l’entraînement.",
+          bodyEn: "The rider is training again.",
+          href: "/jeu/coureurs/rider-1",
+        }],
+      },
+    };
+    const markup = renderToStaticMarkup(
+      <CyclogazetteNewspaper
+        edition={articleEdition}
+        articleReactions={{
+          canReact: true,
+          articles: {
+            "edition:edition-1:race:victory-1": [{ emoji: "👏", count: 4, reactedByViewer: true }],
+            "media:media-1": [{ emoji: "❤️", count: 2, reactedByViewer: false }],
+          },
+          blockedArticleKeys: ["media:media-1"],
+        }}
+      />,
+    );
+
+    expect(markup).toContain('data-gazette-article-reactions="edition:edition-1:race:victory-1"');
+    expect(markup).toContain('aria-label="Bravo · 4" aria-pressed="true"');
+    expect(markup).toContain('data-gazette-article-reactions="edition:edition-1:joke:italy:0"');
+    expect(markup).toContain('data-gazette-article-reactions="edition:edition-1:feature:feature-1"');
+    expect(markup).toContain('data-gazette-article-reactions="media:media-1"');
+    expect(markup).toContain('disabled="" aria-label="J’adore · 2"');
+    expect(markup).not.toMatch(/<a\b[^>]*>(?:(?!<\/a>)[\s\S])*data-gazette-article-reactions=/);
   });
 
   it("affiche la question et permet de déplier toutes les réponses du DS", () => {

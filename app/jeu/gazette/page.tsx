@@ -35,6 +35,7 @@ import {
   getCyclogazetteEditionById,
   getLatestCyclogazetteEdition,
 } from "@/services/cyclogazette";
+import { getCyclogazetteArticleReactions } from "@/services/cyclogazette-article-reactions";
 import { getCyclogazetteGamesOverview } from "@/services/cyclogazette-games";
 import { getCyclogazetteSeasonQuizOverview } from "@/services/cyclogazette-season-quiz";
 import { getGameHeaderData } from "@/services/game-header-data";
@@ -118,7 +119,7 @@ export default async function CyclogazettePage({
         .sort((left, right) => right.issueNumber - left.issueNumber)[0]
         ?? null
     : null;
-  const [community, gamesOverview, seasonQuizOverview, stickerGift] =
+  const [community, gamesOverview, seasonQuizOverview, stickerGift, articleReactions] =
     edition && latestEdition
       ? await Promise.all([
           getCyclogazetteCommunity(
@@ -141,8 +142,9 @@ export default async function CyclogazettePage({
           CYCLO_STICKERS_RELEASE.publicReady && isStickerGiftEdition
             ? supabase.rpc("get_current_cyclogazette_booster_gift", { p_edition_id: edition.id })
             : null,
+          getCyclogazetteArticleReactions(supabase, edition),
         ])
-      : [null, null, null, null];
+      : [null, null, null, null, undefined];
   const stickerGiftState = stickerGift?.error ? null : stickerGift?.data;
   const isItalianGrandTourEdition = isItalianGrandTourGazetteDay(
     edition?.dayNumber ?? 0,
@@ -222,6 +224,7 @@ export default async function CyclogazettePage({
                   commentLanguages={getGazetteCommentLanguageHints(edition.content)}
                   community={community ?? undefined}
                   interviewReactions={community?.interviewReactions}
+                  articleReactions={articleReactions}
                   stickerGift={
                     stickerGiftState === "available" || stickerGiftState === "claimed" ? (
                       <CyclogazetteStickerGift

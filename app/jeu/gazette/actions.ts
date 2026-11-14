@@ -3,6 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import type { CyclogazetteArticleReactionTarget } from "@/lib/game/cyclogazette-article-reactions";
+import {
+  isCyclogazetteInterviewReactionEmoji,
+  type CyclogazetteInterviewReactionEmoji,
+} from "@/lib/game/cyclogazette-interview-reactions";
+
 import {
   isCyclogazetteGameAnswerCorrect,
   isCyclogazetteGameType,
@@ -11,6 +17,7 @@ import { isCyclogazetteSeasonTwoGalaEdition } from "@/lib/game/cyclogazette-seas
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getGazetteReactionRpcTarget } from "@/services/cyclogazette-article-reactions";
 import {
   getCyclogazetteSeasonQuizCorrectOptionIds,
   validateAndScoreCyclogazetteSeasonQuiz,
@@ -69,6 +76,31 @@ export async function claimCyclogazetteBoosterGiftAction(
   revalidatePath("/jeu/gazette");
   revalidatePath("/jeu/album");
   return "claimed";
+}
+
+export async function toggleCyclogazetteArticleReactionAction(
+  target: CyclogazetteArticleReactionTarget,
+  emoji: CyclogazetteInterviewReactionEmoji,
+): Promise<{ success: true; active: boolean; count: number } | { success: false; error: string }> {
+  const rpcTarget = getGazetteReactionRpcTarget(target);
+  const failure = { success: false, error: "unavailable" } as const;
+  if (!rpcTarget || !isCyclogazetteInterviewReactionEmoji(emoji)) return failure;
+
+  const supabase = await createSupabaseServerClient();
+  const { data: { user }, error: authError } = await getAuthenticatedUser(supabase);
+  if (authError || !user) return failure;
+
+  const { data, error } = await supabase.rpc("toggle_gazette_article_reaction", {
+    p_target_kind: rpcTarget.kind,
+    p_target_id: rpcTarget.id,
+    p_edition_id: rpcTarget.editionId,
+    p_emoji: emoji,
+  });
+  if (error || typeof data?.active !== "boolean" || !Number.isSafeInteger(data?.count)) {
+    return failure;
+  }
+
+  return { success: true, active: data.active, count: data.count };
 }
 
 export async function publishMediaCenterArticleAction(formData: FormData) {

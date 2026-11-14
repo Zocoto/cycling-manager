@@ -19003,5 +19003,10 @@
   "Derniers choix": "Latest picks",
   "Voir tous les choix": "View all picks",
   "Choix n°": "Pick no.",
-  "Un budget projeté négatif ne bloque pas le recrutement de draft. Le salaire normal reste à la charge de votre équipe.": "A negative projected budget does not block a draft signing. Your team remains responsible for the normal salary."
+  "Un budget projeté négatif ne bloque pas le recrutement de draft. Le salaire normal reste à la charge de votre équipe.": "A negative projected budget does not block a draft signing. Your team remains responsible for the normal salary.",
+  "Cet article publié est introuvable.": "This published article could not be found.",
+  "Chaque lecteur qui réagit à votre article rapporte 1 000 € à votre équipe.": "Your team earns €1,000 for each reader who reacts to your article.",
+  "Échec du chargement des réactions aux articles de la Gazette": "Failed to load Gazette article reactions",
+  "Vous ne pouvez pas réagir à une tribune de votre équipe.": "You can’t react to a column by your own team.",
+  "Réactions": "Reactions"
 }
