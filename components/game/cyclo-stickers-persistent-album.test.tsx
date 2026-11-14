@@ -4,6 +4,8 @@ import { createCycloStickersFinalSnapshot } from "@/lib/game/cyclo-stickers-fina
 import { createFinalCycloStickersSourceFixture } from "@/lib/game/cyclo-stickers-final-snapshot.fixture";
 import { createCycloStickersPersistentStateFixture } from "@/lib/game/cyclo-stickers-persistence.fixture";
 import { CycloStickersPersistentAlbum } from "./cyclo-stickers-persistent-album";
+import { CycloStickersTrades } from "./cyclo-stickers-trades";
+import { LocaleProvider } from "@/components/i18n/locale-provider";
 
 it("renders the authenticated owner and empty server stock without demonstration grants", () => {
   const html = renderToStaticMarkup(<CycloStickersPersistentAlbum snapshot={createCycloStickersFinalSnapshot(createFinalCycloStickersSourceFixture())} initialState={createCycloStickersPersistentStateFixture()} initialTab="boosters" />);
@@ -35,9 +37,46 @@ it("renders only real collectors and protects already pasted special cards", () 
   state.owned = [{ cardNumber: 68, quantity: 1, pasted: true, reserved: 0 }];
   const html = renderToStaticMarkup(<CycloStickersPersistentAlbum snapshot={createCycloStickersFinalSnapshot(createFinalCycloStickersSourceFixture())} initialState={state} initialTab="trades" />);
   expect(html).toContain("Propositions reçues");
+  expect(html).toContain("Tu n’as aucune vignette libre à proposer.");
+  expect(html).not.toContain("Trouver des échanges");
   expect(html).not.toContain("Collectionneur démo");
   expect(html).not.toContain("Simuler l’acceptation");
   expect(html).not.toContain("Décoller pour le test");
+});
+
+it("starts from unreserved loose copies and carries the book's requested sticker into the search", () => {
+  const snapshot = createCycloStickersFinalSnapshot(createFinalCycloStickersSourceFixture());
+  const state = createCycloStickersPersistentStateFixture();
+  state.owned = [
+    { cardNumber: 1, quantity: 4, pasted: true, reserved: 1 },
+    { cardNumber: 2, quantity: 1, pasted: false, reserved: 1 },
+  ];
+  const html = renderToStaticMarkup(<CycloStickersTrades snapshot={snapshot} state={state} busy={false} mutate={async () => null} initialTarget={3} wanted={[4, 5]} />);
+  const first = snapshot.cards.find(card => card.number === 1)!;
+  const second = snapshot.cards.find(card => card.number === 2)!;
+  expect(html).toContain("Tes vignettes à proposer");
+  expect(html).toContain(`aria-label="Ajouter ${first.name}"`);
+  expect(html).toContain("×2");
+  expect(html).not.toContain(`aria-label="Ajouter ${second.name}"`);
+  expect(html).toContain('value="selected" selected=""');
+  expect(html).toContain("Ma liste de recherche (2)");
+  expect(html).toContain("Chercher un DS par son nom");
+  expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Trouver des échanges<\/button>/);
+});
+
+it("renders each requested copy on a multi-sticker incoming offer in English", () => {
+  const snapshot = createCycloStickersFinalSnapshot(createFinalCycloStickersSourceFixture());
+  const state = createCycloStickersPersistentStateFixture();
+  state.incomingOffers = [{
+    id: "trade-1", fromDirectorId: "collector-1", fromName: "Collector One",
+    toDirectorId: state.directorId, toName: state.owner.displayName,
+    give: [1], receive: 2, receiveCards: [2, 2, 3], status: "pending", createdAt: "2026-11-14", expiresAt: "2026-11-16",
+  }];
+  const html = renderToStaticMarkup(<LocaleProvider initialLocale="en"><CycloStickersPersistentAlbum snapshot={snapshot} initialState={state} initialTab="trades" /></LocaleProvider>);
+  expect(html).toContain("Sticker trades");
+  expect(html).toContain("Collector One");
+  expect(html).toContain(`2 × ${snapshot.cards.find(card => card.number === 2)?.name} + ${snapshot.cards.find(card => card.number === 3)?.name}`);
+  expect(html).toContain("Accept this trade");
 });
 
 it("offers a direct paste after opening and counts a second copy as a duplicate", () => {

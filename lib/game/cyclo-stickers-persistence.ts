@@ -3,7 +3,7 @@ export type CycloStickersInventorySource = "login" | "referral" | "edition";
 export type CycloStickersTradeStatus = "pending" | "accepted" | "cancelled" | "declined" | "expired";
 export type CycloStickersTrade = {
   id: string; fromDirectorId: string; fromName: string; toDirectorId: string; toName: string;
-  give: number[]; receive: number; status: CycloStickersTradeStatus; createdAt: string; expiresAt: string;
+  give: number[]; receive: number; receiveCards?: number[]; status: CycloStickersTradeStatus; createdAt: string; expiresAt: string;
 };
 export type CycloStickersPersistentState = {
   edition: {
@@ -34,4 +34,7 @@ export type CycloStickersClaimResult = CycloStickersMutationResult & {
 };
 export type CycloStickersCollector = {
   directorId: string; displayName: string; availableCards: {cardNumber: number; quantity: number}[];
+};
+export type CycloStickersCollectorMatch = CycloStickersCollector & {
+  wantedOfferCards: number[];
 };

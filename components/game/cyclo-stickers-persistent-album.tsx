@@ -5,17 +5,18 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { ALBUM_ACHIEVEMENTS, getAlbumAchievementProgress, type AlbumPilotAction, type CollectorAlbumSnapshot } from "@/lib/game/collector-album";
 import { notifyCycloStickersBoostersChanged } from "@/lib/game/cyclo-stickers-booster-sync";
 import { getCycloStickersLeaderboard, type StickerAlbumLeaderboard } from "@/lib/game/cyclo-stickers-leaderboard";
-import { createCycloStickersTradeRequestIds, getCycloStickersActionRpc, getCycloStickersOpenRpc, toCycloStickersAlbumView } from "@/lib/game/cyclo-stickers-persistent-view";
-import type { CycloStickersCollector, CycloStickersPersistentState, CycloStickersTrade } from "@/lib/game/cyclo-stickers-persistence";
+import { getCycloStickersActionRpc, getCycloStickersOpenRpc, toCycloStickersAlbumView } from "@/lib/game/cyclo-stickers-persistent-view";
+import type { CycloStickersPersistentState } from "@/lib/game/cyclo-stickers-persistence";
 import type { WeeklyLoginBoosterProgress } from "@/lib/game/weekly-login-boosters";
 import { CollectorAlbum, type CollectorAlbumTab } from "./collector-album";
 import { CollectorCardFace } from "./collector-card-face";
 import { AlbumBoosterArtwork } from "./collector-album-artwork";
 import { WeeklyLoginBoostersPanel } from "./weekly-login-boosters-panel";
+import { CycloStickersTrades } from "./cyclo-stickers-trades";
 import styles from "./collector-album-retro.module.css";
 import collection from "./cyclo-stickers-collection.module.css";
 
-type Mutation = (name: string, args: Record<string, unknown>, message: string) => Promise<CycloStickersPersistentState | null>;
+type Mutation = (name: string, args: Record<string, unknown>, message: string | ((next: CycloStickersPersistentState) => string)) => Promise<CycloStickersPersistentState | null>;
 const BOOSTER_SOURCE_LABELS = { login: "Connexion", referral: "Parrainage", edition: "Événement" };
 const BOOSTER_ACQUISITION_LABELS = new Map([
   ["gazette", "Cadeau Cyclogazette"],
@@ -66,7 +67,7 @@ export function CycloStickersPersistentAlbum({
       if (result.error) throw new Error(result.error.message);
       const next = result.data?.state as CycloStickersPersistentState | undefined;
       if (!next || next.edition.id !== state.edition.id || next.directorId !== state.directorId) throw new Error("La réponse du serveur ne correspond pas à ta collection.");
-      setState(next); setNotice(message); return next;
+      setState(next); setNotice(typeof message === "function" ? message(next) : message); return next;
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "L’action n’a pas pu être confirmée. Recharge la page pour retrouver ta collection.");
       return null;
@@ -87,10 +88,9 @@ export function CycloStickersPersistentAlbum({
     boosters: <PersistentBoosters snapshot={snapshot} state={state} busy={busy} mutate={mutate} loginBoosterProgress={loginBoosterProgress} onPaste={card => send({ type: "paste", card })} />,
     duplicates: <PersistentDuplicates snapshot={snapshot} owned={state.owned} />,
     achievements: <PersistentAchievements snapshot={snapshot} state={state} busy={busy} onAction={send} />,
-    trades: requestedCard => <PersistentTrades key={requestedCard ?? "desk"} snapshot={snapshot} state={state} busy={busy} mutate={mutate} initialTarget={requestedCard} />,
+    trades: (requestedCard, wanted) => <CycloStickersTrades key={requestedCard ?? "desk"} snapshot={snapshot} state={state} busy={busy} mutate={mutate} initialTarget={requestedCard} wanted={wanted} />,
   }} />;
 }
-
 function PersistentBoosters({ snapshot, state, busy, mutate, loginBoosterProgress, onPaste }: {
   snapshot: CollectorAlbumSnapshot;
   state: CycloStickersPersistentState;
@@ -223,48 +223,5 @@ function PersistentAchievements({ snapshot, state, busy, onAction }: { snapshot:
         <button type="button" disabled={busy || claimed || progress.value < progress.target} onClick={() => onAction({ type: "claim-achievement", id: achievement.id })}>{claimed ? "Récompense reçue" : "Recevoir la récompense"}</button>
       </article>;
     })}</div>
-  </section>;
-}
-
-function PersistentTrades({ snapshot, state, busy, mutate, initialTarget }: { snapshot: CollectorAlbumSnapshot; state: CycloStickersPersistentState; busy: boolean; mutate: Mutation; initialTarget: number | null }) {
-  const [query, setQuery] = useState("");
-  const [wanted, setWanted] = useState(initialTarget ?? 0);
-  const [collectors, setCollectors] = useState<CycloStickersCollector[]>([]);
-  const [recipient, setRecipient] = useState("");
-  const [receive, setReceive] = useState(initialTarget ?? 0);
-  const [give, setGive] = useState([0]);
-  const [searching, setSearching] = useState(false);
-  const [error, setError] = useState("");
-  const request = useRef(createCycloStickersTradeRequestIds());
-  const cardName = (number: number) => snapshot.cards.find(card => card.number === number)?.name ?? String(number);
-  const available = state.owned.filter(row => row.quantity - Number(row.pasted) - row.reserved > 0);
-  const selected = collectors.find(row => row.directorId === recipient);
-  const valid = Boolean(selected?.availableCards.some(row => row.cardNumber === receive) && give.length && give.every(number => number > 0 && number !== receive && available.some(row => row.cardNumber === number && row.quantity - Number(row.pasted) - row.reserved >= give.filter(value => value === number).length)));
-  const respond = (offer: CycloStickersTrade, response: "accept" | "decline" | "cancel") => void mutate("respond_current_cyclo_stickers_trade", { p_edition: state.edition.id, p_offer_id: offer.id, p_response: response }, response === "accept" ? "Échange accepté. Les cartes ont été transférées." : "Proposition close. Les cartes réservées sont libérées.");
-  return <section className={styles.tradeWindow} aria-label="Échanges entre collectionneurs" data-album-trade-composer="" tabIndex={-1}>
-    <header className={styles.sectionHeading}><p>LE COIN DES COLLECTIONNEURS</p><h2>Une rencontre pour la prochaine vignette.</h2><span>Les exemplaires collés et réservés restent protégés. Un transfert nécessite l’accord du destinataire.</span></header>
-    <form onSubmit={async event => {
-      event.preventDefault(); setSearching(true); setError("");
-      try {
-        const result = await createSupabaseBrowserClient().rpc("search_current_cyclo_stickers_collectors", { p_edition: state.edition.id, p_query: query, p_card_number: wanted || null, p_limit: 20 });
-        if (result.error) throw new Error(result.error.message);
-        setCollectors((result.data ?? []) as CycloStickersCollector[]); setRecipient("");
-      } catch (failure) { setError(failure instanceof Error ? failure.message : "La recherche est indisponible."); }
-      finally { setSearching(false); }
-    }}><label>Nom du DS<input value={query} maxLength={80} onChange={event => setQuery(event.target.value)} /></label><label>Vignette recherchée<select value={wanted} onChange={event => setWanted(Number(event.target.value))}><option value={0}>Toutes les vignettes</option>{snapshot.cards.map(card => <option key={card.number} value={card.number}>N°{card.number} · {card.name}</option>)}</select></label><button type="submit" disabled={searching || busy}>Chercher un collectionneur</button></form>
-    {error ? <p role="alert">{error}</p> : null}
-    {collectors.length ? <div className={styles.searchFields}><label>Le collectionneur<select value={recipient} onChange={event => { setRecipient(event.target.value); setReceive(wanted); }}><option value="">Choisir un DS…</option>{collectors.map(row => <option key={row.directorId} value={row.directorId}>{row.displayName}</option>)}</select></label>
-      <label>Sa vignette<select value={receive} disabled={!selected} onChange={event => setReceive(Number(event.target.value))}><option value={0}>Choisir une vignette…</option>{selected?.availableCards.map(row => <option key={row.cardNumber} value={row.cardNumber}>N°{row.cardNumber} · {cardName(row.cardNumber)}</option>)}</select></label>
-      {give.map((number, index) => <label key={index}>Vignette proposée {index + 1}<select value={number} onChange={event => setGive(previous => previous.map((value, offset) => offset === index ? Number(event.target.value) : value))}><option value={0}>Choisir une vignette…</option>{available.map(row => <option key={row.cardNumber} value={row.cardNumber}>N°{row.cardNumber} · {cardName(row.cardNumber)}</option>)}</select></label>)}
-      {give.length < 3 ? <button type="button" onClick={() => setGive(previous => [...previous, 0])}>Ajouter une vignette</button> : null}{give.length > 1 ? <button type="button" onClick={() => setGive(previous => previous.slice(0, -1))}>Retirer la dernière vignette</button> : null}
-      <button type="button" disabled={busy || !valid} onClick={() => {
-        const signature = JSON.stringify({ recipient, give, receive });
-        const requestId = request.current.forOffer(signature);
-        void mutate("propose_current_cyclo_stickers_trade", { p_edition: state.edition.id, p_request_id: requestId, p_recipient_id: recipient, p_give: give, p_receive: receive }, "Proposition envoyée. Tes exemplaires sont réservés.").then(confirmed => { if (confirmed) request.current.confirmed(requestId); });
-      }}>Proposer et réserver ces vignettes</button>
-    </div> : null}
-    <h3>Propositions reçues · {state.incomingOffers.length}</h3>{state.incomingOffers.map(offer => <article key={offer.id}><p>{offer.fromName} te propose {offer.give.map(cardName).join(" + ")} contre {cardName(offer.receive)}.</p><button type="button" disabled={busy} onClick={() => respond(offer, "accept")}>Accepter cet échange</button><button type="button" disabled={busy} onClick={() => respond(offer, "decline")}>Refuser</button></article>)}
-    <h3>Propositions envoyées · {state.outgoingOffers.length}</h3>{state.outgoingOffers.map(offer => <article key={offer.id}><p>{offer.toName} · {offer.give.map(cardName).join(" + ")} contre {cardName(offer.receive)}</p><button type="button" disabled={busy} onClick={() => respond(offer, "cancel")}>Annuler ma proposition</button></article>)}
-    {state.history.length ? <><h3>Historique</h3>{state.history.map(offer => <p key={offer.id}>{offer.give.map(cardName).join(" + ")} ⇄ {cardName(offer.receive)} · {offer.status === "accepted" ? "Accepté" : offer.status === "declined" ? "Refusé" : offer.status === "expired" ? "Expiré" : "Annulé"}</p>)}</> : null}
   </section>;
 }

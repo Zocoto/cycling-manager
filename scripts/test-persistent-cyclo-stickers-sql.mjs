@@ -28,8 +28,12 @@ const state=()=>rpc('get_current_cyclo_stickers_state',[edition]);
 const leaderboard=()=>rpc('get_current_cyclo_stickers_leaderboard',[edition]);
 const open=(source,key)=>rpc('open_current_cyclo_stickers_booster',[edition,source,id(key)]);
 const paste=n=>rpc('paste_current_cyclo_stickers_card',[edition,n]);
-const propose=(key,give,receive,to='b')=>rpc('propose_current_cyclo_stickers_trade',[edition,id(`request-${key}`),id(to),give,receive]);
+const propose=(key,give,receive,to='b')=>scalar(
+  'select public.propose_current_cyclo_stickers_trade($1,$2,$3,$4,$5::integer)',
+  [edition,id(`request-${key}`),id(to),give,receive],
+);
 const respond=(offer,response)=>rpc('respond_current_cyclo_stickers_trade',[edition,offer,response]);
+const matches=(give,wanted=[],query='',limit=20)=>rpc('search_current_cyclo_stickers_trade_matches',[edition,give,wanted,query,limit]);
 const claim=key=>rpc('claim_current_cyclo_stickers_achievement',[edition,key]);
 const profiles=['tours','mountain','hills','sprint','cobbles','timeTrial','breakaway'];
 const cards=Array.from({length:50},(_,i)=>({id:`rider:${id(`rider-${i}`)}`,number:i+1,rank:i+1,name:`Synthetic rider ${i+1}`,profileKey:profiles[i%7],jersey:{status:'team'}}));
@@ -93,6 +97,8 @@ try{
   await db.exec(await read('20261107100000_add_cyclo_stickers_leaderboard'));
   await db.exec(table(await read('20260801093000_create_cyclogazette_and_post_race_interviews'),'cyclogazette_editions'));
   await db.exec(await read('20261107152000_add_cyclogazette_booster_gift'));
+  await db.exec(await read('20261114193000_allow_multi_sided_cyclo_stickers_trades'));
+  await db.exec(await read('20261114203000_match_cyclo_stickers_trades'));
   eq(await scalar('select count(*)::int from cyclo_stickers_editions'),0,'migration seeds no editions');
   eq(await scalar('select count(*)::int from cyclo_stickers_card_inventory'),0,'migration grants no demonstration cards');
   eq(await scalar('select count(*)::int from reward_events'),0,'migration pays no rewards');
@@ -115,6 +121,7 @@ try{
   eq(await rpc('get_current_cyclo_stickers_catalogue',[]),null,'disabled final catalogue stays inaccessible');
   await rejects(()=>state(),/pas encore disponible/,'final snapshot alone does not launch');
   await rejects(()=>leaderboard(),/pas encore disponible/,'disabled edition has no leaderboard');
+  await rejects(()=>matches([1]),/pas encore disponible/,'disabled edition exposes no trading matches');
   await service();await install({enabled:true});
   await as('a');await rejects(()=>state(),/pas encore disponible/,'public approval is independent of enabled flag');
   await service();await install({enabled:true,publicApproved:true});
@@ -154,6 +161,90 @@ try{
   eq(crowded.viewer,{...tied,rank:22,isViewer:true},'own rank is returned outside the bounded list');
   await admin();
   await db.exec('rollback');
+
+  // Matching reads the same real inventory and live reservations as the
+  // existing proposal flow. Use separate synthetic stocks for this projection.
+  await db.exec('begin');
+  await seedCard('a',1,3,true);
+  await seedCard('a',3,2);
+  await seedCard('a',4,1,true);
+  await seedCard('a',12,1);
+  await seedCard('b',1,1);
+  await seedCard('b',9,3,true);
+  await seedCard('b',10,1);
+  await seedCard('b',12,2);
+  await seedCard('c',3,1);
+  await seedCard('c',9,2);
+  await seedCard('c',13,3,true);
+  await seedCard('inactive',9,4);
+  await db.query("insert into sporting_directors(id,status,display_name) values($1,'active','No account')",[id('no-account')]);
+  await seedCard('no-account',9,4);
+
+  await as('a');
+  const reciprocal = await matches([1,3], [9]);
+  eq(reciprocal.map(row=>row.directorId).sort(),[id('b'),id('c')].sort(),'only active, authenticated, reciprocal collectors match');
+  const matchB=reciprocal.find(row=>row.directorId===id('b'));
+  const matchC=reciprocal.find(row=>row.directorId===id('c'));
+  eq(matchB.wantedOfferCards,[3],'an unpasted owned card is not missing from the other collection');
+  eq(matchC.wantedOfferCards,[1],'different recipients need different offered cards');
+  eq(matchB.availableCards,[{cardNumber:9,quantity:2}],'explicit card filter is respected and a pasted copy is retained');
+  eq(matchC.availableCards,[{cardNumber:9,quantity:1}],'the first unpasted copy is retained');
+  eq((await matches([3],[],'Synthetic b'))[0].availableCards,[{cardNumber:9,quantity:2}],'automatic search omits owned cards and single copies');
+  eq((await matches([1,3],[12],'Synthetic b')).length,1,'explicit search may request an already owned card');
+  eq(await matches([1],[9],'Synthetic b'),[],'target must be missing an offered sticker');
+  eq(await matches([3],[13],'Synthetic b'),[],'target must have an available requested sticker');
+  eq((await matches([1,3],[9],'',1)).length,1,'limit bounds candidate results');
+
+  await as('b');
+  const reservedMatchStock=await propose('match-live-reservation',[9,9],3,'a');
+  await as('a');
+  eq(await matches([3],[9],'Synthetic b'),[],'live reservations prevent suggestions with no available surplus');
+  await admin();
+  await db.query("update cyclo_stickers_trade_offers set created_at=now()-interval '3 days',expires_at=now()-interval '1 day' where id=$1",[reservedMatchStock.offerId]);
+  await as('a');
+  const restoredMatch=(await matches([3],[9],'Synthetic b'))[0];
+  eq(restoredMatch.availableCards,[{cardNumber:9,quantity:2}],'expired reservation no longer hides valid duplicates');
+  await admin();
+  eq(await scalar('select status from cyclo_stickers_trade_offers where id=$1',[reservedMatchStock.offerId]),'pending','read-only matches do not settle expired offers');
+  eq(await scalar('select reserved from cyclo_stickers_card_inventory where edition_id=$1 and sporting_director_id=$2 and card_number=9',[edition,id('b')]),2,'read-only matches do not write reservations');
+  for(let index=0;index<21;index++){
+    const key=`match-limit-${index}`;
+    await db.query("insert into sporting_directors(id,auth_user_id,status,display_name) values($1,$2,'active',$3)",[id(key),id(`account-${key}`),`Cap ${String(index).padStart(2,'0')}`]);
+    await seedCard(key,9,2);
+  }
+  await as('a');
+  const cappedMatches=await matches([3],[9],'cap',500);
+  eq(cappedMatches.map(row=>row.displayName),Array.from({length:20},(_,i)=>`Cap ${String(i).padStart(2,'0')}`),'ranking is stable and matches never return over twenty collectors');
+
+  const partnerCard=restoredMatch.availableCards[0];
+  const giveCopies=restoredMatch.wantedOfferCards;
+  const receiveCopies=Array(partnerCard.quantity).fill(partnerCard.cardNumber);
+  const matchedOffer=await scalar(`select public.propose_current_cyclo_stickers_trade(
+    p_edition=>$1, p_request_id=>$2, p_recipient_id=>$3, p_give=>$4, p_receive_cards=>$5)`,
+    [edition,id('request-matched-offer'),restoredMatch.directorId,giveCopies,receiveCopies]);
+  eq(matchedOffer.state.outgoingOffers[0].receiveCards,[9,9],'an actual match composes a multiple-copy request');
+  eq(matchedOffer.state.owned.find(card=>card.cardNumber===3).reserved,1,'matched proposal reserves the offered copy');
+  await as('b');
+  const acceptedMatch=await rpc('respond_current_cyclo_stickers_trade',[edition,matchedOffer.offerId,'accept',receiveCopies]);
+  eq(acceptedMatch.status,'accepted','partner can accept the exchange suggested by matching');
+  eq(acceptedMatch.state.owned.find(card=>card.cardNumber===9).quantity,1,'matched exchange retains the partner’s pasted copy');
+  await as('a');
+  eq((await state()).owned.find(card=>card.cardNumber===9).quantity,2,'matched exchange receives both requested copies');
+
+  await admin();
+  await db.exec('rollback');
+
+  await as('a');
+  await rejects(()=>matches([1],[9]),/indisponibles|collés/,'unavailable offered stock cannot reveal matching information');
+  await rejects(()=>matches([1,2,3,4],[9]),/Recherche invalide/,'match offers accept at most three copies');
+  await rejects(()=>matches([[1,3]],[9]),/Recherche invalide/,'match offer must be a one-dimensional list');
+  await rejects(()=>matches([1],[[9,12]]),/Recherche invalide/,'wanted cards must be a one-dimensional list');
+  await admin();
+  await db.exec('set role anon');
+  await rejects(()=>matches([3],[9]),/permission denied/,'matching is unavailable to anonymous users');
+  await as('inactive');
+  await rejects(()=>matches([3],[9]),/directeur actif/,'matching is unavailable to inactive users');
+
   await as('a');
   eq((await rpc('get_current_cyclo_stickers_catalogue',[])).snapshot,snapshot,'route reads the frozen snapshot');
   await rejects(()=>db.exec("update cyclo_stickers_editions set configuration='{}'"),/permission denied/,'no client configuration writes');
