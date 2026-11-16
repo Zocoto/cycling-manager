@@ -147,6 +147,9 @@ describe("RiderTrainingPlanFields", () => {
     expect(markup).toContain("Statut dans l’équipe");
     expect(markup).toContain("Nom du coureur");
     expect(markup).toContain("Ordre habituel de la page Effectif.");
+    expect(markup).toContain('<option value="" selected="">Tous les secteurs</option>');
+    expect(markup).toContain('<option value="climber">Montagne · Grimpeur</option>');
+    expect(markup).toContain('<option value="puncheur">Vallons · Puncheur</option>');
   });
 
   it("n’envoie jamais un entraîneur périmé dissimulé derrière Sans entraîneur", () => {

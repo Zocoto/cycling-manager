@@ -65,6 +65,16 @@ const TrainingPlansEditorContext =
 
 type TrainingRosterSortKey = "default" | "squad_status" | "rider";
 
+const TRAINING_SECTOR_LABELS: Record<TrainingDomain, string> = {
+  climber: "Montagne · Grimpeur",
+  puncheur: "Vallons · Puncheur",
+  stage_racer: "Coureur de tour",
+  northern_classics: "Pavés · Classiques du Nord",
+  rouleur: "Plaine et chrono · Rouleur",
+  breakaway: "Baroudeur",
+  sprinter: "Sprint · Sprinteur",
+};
+
 export type TrainingRosterSortRider = {
   id: string;
   firstName: string;
@@ -84,12 +94,21 @@ export function TrainingRosterList({
 }) {
   const [sortKey, setSortKey] = useState<TrainingRosterSortKey>("default");
   const [unscheduledOnly, setUnscheduledOnly] = useState(initialUnscheduledOnly);
+  const [sector, setSector] = useState<TrainingDomain | "">("");
+  const editor = useContext(TrainingPlansEditorContext);
   const childRows = Children.toArray(children);
   const rows = riders.map((rider, index) => ({
     rider,
     child: childRows[index] ?? null,
   }));
-  const filteredRows = unscheduledOnly ? rows.filter(({ rider }) => rider.intensity === 0) : rows;
+  const filteredRows = unscheduledOnly || sector
+    ? rows.filter(({ rider }) => {
+        const plan = editor?.plansByRiderId[rider.id];
+        return unscheduledOnly
+          ? (plan?.intensity ?? rider.intensity) === 0
+          : plan?.domain === sector && plan.intensity > 0;
+      })
+    : rows;
   const sortedRows =
     sortKey === "default"
       ? filteredRows
@@ -123,8 +142,35 @@ export function TrainingRosterList({
             <option value="rider">Nom du coureur</option>
           </select>
         </label>
+        <label className="flex min-w-0 items-center gap-3">
+          <span className="shrink-0 text-[10px] font-black uppercase tracking-[0.14em] text-[#60756E]">
+            Secteur d’entraînement
+          </span>
+          <select
+            value={sector}
+            onChange={(event) => {
+              const domain = event.target.value;
+              setSector(isTrainingDomain(domain) ? domain : "");
+              if (domain) setUnscheduledOnly(false);
+            }}
+            className="min-h-10 min-w-0 rounded-xl border border-[#315B3E]/15 bg-[#F7FAF8] px-3 text-xs font-black text-[#183F37] outline-none transition focus:border-[#278B70] focus:ring-2 focus:ring-[#278B70]/15"
+          >
+            <option value="">Tous les secteurs</option>
+            {TRAINING_DOMAINS.map((domain) => (
+              <option key={domain} value={domain}>{TRAINING_SECTOR_LABELS[domain]}</option>
+            ))}
+          </select>
+        </label>
         <label className="flex min-h-11 items-center gap-2 text-xs font-bold text-[#315B3E]">
-          <input type="checkbox" checked={unscheduledOnly} onChange={event => setUnscheduledOnly(event.target.checked)} className="h-4 w-4 accent-[#176951]" />
+          <input
+            type="checkbox"
+            checked={unscheduledOnly}
+            onChange={(event) => {
+              setUnscheduledOnly(event.target.checked);
+              if (event.target.checked) setSector("");
+            }}
+            className="h-4 w-4 accent-[#176951]"
+          />
           Sans entraînement programmé
         </label>
         <p className="text-[10px] font-bold text-[#60756E]">
@@ -137,7 +183,13 @@ export function TrainingRosterList({
       </div>
 
       <div className="space-y-4">
-        {unscheduledOnly && !sortedRows.length ? <p className="rounded-2xl bg-white p-5 text-sm font-bold text-[#176951]">Aucun coureur sans entraînement programmé.</p> : null}
+        {(unscheduledOnly || sector) && !sortedRows.length ? (
+          <p className="rounded-2xl bg-white p-5 text-sm font-bold text-[#176951]">
+            {unscheduledOnly
+              ? "Aucun coureur sans entraînement programmé."
+              : "Aucun coureur dans ce secteur d’entraînement."}
+          </p>
+        ) : null}
         {sortedRows.map(({ rider, child }) => (
           <Fragment key={rider.id}>{child}</Fragment>
         ))}
