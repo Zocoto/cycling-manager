@@ -14,6 +14,13 @@ import {
   isCyclogazetteGameType,
 } from "@/lib/game/cyclogazette-games";
 import { isCyclogazetteSeasonTwoGalaEdition } from "@/lib/game/cyclogazette-season-quiz";
+import {
+  getMediaCenterArticlePlainText,
+  MEDIA_CENTER_MAX_BODY_LENGTH,
+  MEDIA_CENTER_MIN_BODY_LENGTH,
+  parseMediaCenterArticleBlocks,
+  type MediaCenterArticleActionState,
+} from "@/lib/game/media-center-article";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -103,34 +110,38 @@ export async function toggleCyclogazetteArticleReactionAction(
   return { success: true, active: data.active, count: data.count };
 }
 
-export async function publishMediaCenterArticleAction(formData: FormData) {
+export async function publishMediaCenterArticleAction(
+  _previousState: MediaCenterArticleActionState,
+  formData: FormData,
+): Promise<MediaCenterArticleActionState> {
   const title = String(formData.get("title") ?? "").trim();
-  const body = String(formData.get("body") ?? "").trim();
+  const rawBlocks = formData.get("blocks");
   const includeSponsor = formData.get("includeSponsor") === "on";
-  if (
-    title.length < 5 ||
-    title.length > 100 ||
-    body.length < 40 ||
-    body.length > 1600
-  ) {
-    redirect(
-      "/jeu/gazette?erreur=" +
-        encodeURIComponent(
-          "Le titre doit contenir 5 à 100 caractères et la tribune 40 à 1 600 caractères.",
-        ),
-    );
+  if (typeof rawBlocks !== "string" || rawBlocks.length > 160_000) {
+    return { error: "La mise en page de la tribune est invalide." };
   }
+  let blocks;
+  try {
+    blocks = parseMediaCenterArticleBlocks(JSON.parse(rawBlocks));
+  } catch {
+    return { error: "La mise en page de la tribune est invalide." };
+  }
+  if (!blocks) return { error: "La mise en page de la tribune est invalide." };
+
+  const length = getMediaCenterArticlePlainText(blocks).length;
+  if (title.length < 5 || title.length > 100
+    || length < MEDIA_CENTER_MIN_BODY_LENGTH || length > MEDIA_CENTER_MAX_BODY_LENGTH) {
+    return { error: "Le titre doit contenir 5 à 100 caractères et la tribune 40 à 6 000 caractères." };
+  }
+
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.rpc("publish_current_team_media_article", {
+  const { error } = await supabase.rpc("publish_current_team_rich_media_article", {
     p_title: title,
-    p_body: body,
+    p_blocks: blocks,
     p_include_sponsor: includeSponsor,
   });
-  if (error) {
-    redirect(
-      `/jeu/gazette?erreur=${encodeURIComponent(error.message.slice(0, 300))}`,
-    );
-  }
+  if (error) return { error: error.message.slice(0, 300) };
+
   revalidatePath("/jeu/gazette");
   revalidatePath("/jeu");
   revalidatePath("/jeu/profil");

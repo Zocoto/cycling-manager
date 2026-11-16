@@ -1,15 +1,16 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ rpc: vi.fn(), publish: vi.fn(), authorize: vi.fn(), cleanup: vi.fn(), events: [] as string[] }));
+const mocks = vi.hoisted(() => ({ rpc: vi.fn(), publish: vi.fn(), authorize: vi.fn(), cleanup: vi.fn(), mediaCleanup: vi.fn(), events: [] as string[] }));
 vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({ rpc: mocks.rpc }) }));
 vi.mock("@/lib/security/cron-authorization", () => ({ isAuthorizedCronRequest: mocks.authorize }));
 vi.mock("@/services/chat-image-maintenance", () => ({ pruneChatImages: mocks.cleanup }));
+vi.mock("@/services/media-center-image-maintenance", () => ({ pruneMediaCenterImages: mocks.mediaCleanup }));
 vi.mock("@/services/cyclo-stickers-publication", () => ({ publishDueCycloStickersAlbum: mocks.publish }));
 import { GET } from "./route";
 beforeEach(() => {
   vi.clearAllMocks(); mocks.events.length = 0;
   vi.useFakeTimers(); vi.setSystemTime(new Date("2026-11-05T23:05:00Z"));
   vi.spyOn(console, "info").mockImplementation(() => {}); vi.spyOn(console, "error").mockImplementation(() => {});
-  mocks.authorize.mockReturnValue(true); mocks.cleanup.mockResolvedValue(undefined);
+  mocks.authorize.mockReturnValue(true); mocks.cleanup.mockResolvedValue(undefined); mocks.mediaCleanup.mockResolvedValue(undefined);
   mocks.rpc.mockImplementation(async name => { mocks.events.push(name); return { data: null, error: null }; });
   mocks.publish.mockImplementation(async () => { mocks.events.push("publish_album"); return { status: "published" }; });
 });
@@ -23,6 +24,7 @@ it("publishes only after the rollover call finishes and continues all existing m
   expect((await GET(new Request("https://example.test/api/cron/game-maintenance"))).status).toBe(200);
   expect(mocks.events.indexOf("publish_album")).toBe(mocks.events.indexOf("settle_due_season_rollovers") + 1);
   expect(mocks.events.at(-1)).toBe("purge_expired_director_messages"); expect(mocks.cleanup).toHaveBeenCalledOnce();
+  expect(mocks.mediaCleanup).toHaveBeenCalledOnce();
 });
 it("isolates publication failure from the following gameplay maintenance", async () => {
   mocks.publish.mockRejectedValue(new Error("Temporary album error"));

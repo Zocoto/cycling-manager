@@ -2,6 +2,7 @@ import type { PublicGameNewsItem } from "@/lib/game/public-game-news";
 import type { CyclogazetteJerseyReveal } from "@/lib/game/cyclogazette-jerseys";
 import type { PostRaceInterviewAnswer } from "@/lib/game/post-race-interview";
 import type { CyclogazetteInterviewReactionStates } from "@/lib/game/cyclogazette-interview-reactions";
+import type { MediaCenterArticleBlock } from "@/lib/game/media-center-article";
 import type {
   PreRaceAmbition,
   PreRaceIntent,
@@ -74,6 +75,7 @@ export type CyclogazetteMediaArticle = {
   id: string;
   title: string;
   body: string;
+  blocks?: MediaCenterArticleBlock[];
   teamName: string;
   sponsorName: string | null;
   buildingLevel: number;

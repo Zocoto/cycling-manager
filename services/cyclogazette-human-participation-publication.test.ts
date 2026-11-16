@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { MediaCenterArticleBlock } from "@/lib/game/media-center-article";
 const mocks=vi.hoisted(()=>({admin:vi.fn(),news:vi.fn()}));
 vi.mock("@/lib/supabase/admin",()=>({createSupabaseAdminClient:mocks.admin}));
 vi.mock("@/services/public-game-news",()=>({getCyclogazetteNewsItems:mocks.news}));
@@ -6,7 +7,7 @@ vi.mock("@/services/cyclogazette-editorial",()=>({loadCyclogazetteFeatureStories
 vi.mock("@/services/cyclogazette-jerseys",()=>({loadCyclogazetteJerseyStories:async()=>[]}));
 import { publishCyclogazetteEdition, recoverCyclogazetteSeasonFinale } from "./cyclogazette";
 type Row=Record<string,unknown>;
-function fixture(humanIds:string[],{dayNumber=13,gameYear=4}:{dayNumber?:number;gameYear?:number}={}){
+function fixture(humanIds:string[],{dayNumber=13,gameYear=4,mediaBlocks=null}:{dayNumber?:number;gameYear?:number;mediaBlocks?:MediaCenterArticleBlock[]|null}={}){
  let edition:Row|null=null;
  const records:Record<string,Row[]>={
   seasons:[{id:"season",name:`Saison ${gameYear}`,game_year:gameYear,current_day_number:dayNumber,status:"active"}],
@@ -15,14 +16,14 @@ function fixture(humanIds:string[],{dayNumber=13,gameYear=4}:{dayNumber?:number;
   race_results:["mixed","ai-only"].map(id=>({race_edition_id:id,race_roster_id:`roster-${id}`,final_rank:1})),
   race_rosters:["mixed","ai-only"].map(id=>({id:`roster-${id}`,rider_id:`rider-${id}`})),
   riders:["mixed","ai-only"].map(id=>({id:`rider-${id}`,first_name:"Vainqueur IA",last_name:id})),
-  media_center_articles:[{id:"article",season_id:"season",status:"queued",day_number:13,title:"Tribune conservée",body:"Une actualité générale.",team_name:"Équipe",sponsor_name:null,building_level:1}],
+  media_center_articles:[{id:"article",season_id:"season",status:"queued",day_number:13,title:"Tribune conservée",body:"Une actualité générale.",content_blocks:mediaBlocks,team_name:"Équipe",sponsor_name:null,building_level:1}],
  };
  const rpc=vi.fn(async(name:string)=>({data:name==="prepare_cyclogazette_season_gala"?{ready:true,awardCount:22}:name==="get_cyclogazette_human_race_editions"?humanIds.map(race_edition_id=>({race_edition_id})):0,error:null}));
  const inserted=vi.fn();
  const from=(table:string)=>{
   const filters:Array<(row:Row)=>boolean>=[];
   const rows=()=> (table==="cyclogazette_editions"?(edition?[edition]:[]):records[table]??[]).filter(row=>filters.every(fn=>fn(row)));
-  const query={select:()=>query,order:()=>query,limit:()=>query,gte:()=>query,lte:()=>query,update:()=>query,
+  const query={select:()=>query,order:()=>query,limit:()=>query,gte:()=>query,lte:()=>query,not:()=>query,update:()=>query,
    eq:(key:string,value:unknown)=>{filters.push(row=>row[key]===value);return query;},
    neq:(key:string,value:unknown)=>{filters.push(row=>row[key]!==value);return query;},
    in:(key:string,values:unknown[])=>{filters.push(row=>values.includes(row[key]));return query;},
@@ -81,6 +82,21 @@ describe("Gazette publication scoped to human races",()=>{
   expect(result.status).toBe("published");expect(result.edition?.content.tourSummaries).toEqual([]);
   expect(result.edition?.content.raceStories).toEqual([]);expect(result.edition?.content.lead?.id).toBe("movement");
   expect(result.edition?.content.mediaArticles).toHaveLength(1);
+ });
+ it("archives the formatted blocks of a published media center article", async () => {
+  const mediaBlocks: MediaCenterArticleBlock[] = [{
+   type: "text", font: "sans", content: [{ text: "Une actualité générale.", bold: true }],
+  }];
+  fixture([], { mediaBlocks });
+  const publicationTime = new Date("2026-10-21T18:01:00Z");
+  const published = await publishCyclogazetteEdition(publicationTime);
+  const archived = await publishCyclogazetteEdition(publicationTime);
+
+  expect(published.status).toBe("published");
+  expect(archived.status).toBe("already-published");
+  expect(archived.edition?.content.mediaArticles?.[0]).toMatchObject({
+   body: "Une actualité générale.", blocks: mediaBlocks,
+  });
  });
  it("never inserts an unfiltered edition when participation verification fails",async()=>{
   const f=fixture([]);f.rpc.mockImplementation(async(name:string)=>({data:0,error:name==="get_cyclogazette_human_race_editions"?{message:"offline"}:null}) as never);

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-for (const route of ["chat", "news"]) {
+for (const route of ["chat", "news", "media-center"]) {
   const tracePath = resolve(`.next/server/app/api/game/${route}/images/route.js.nft.json`);
   const { files } = JSON.parse(readFileSync(tracePath, "utf8"));
   const normalized = files.map((file) => file.replaceAll("\\", "/"));

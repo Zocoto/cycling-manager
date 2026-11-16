@@ -388,8 +388,41 @@ describe("CyclogazetteNewspaper", () => {
     expect(markup).toContain('data-gazette-article-reactions="edition:edition-1:joke:italy:0"');
     expect(markup).toContain('data-gazette-article-reactions="edition:edition-1:feature:feature-1"');
     expect(markup).toContain('data-gazette-article-reactions="media:media-1"');
+    expect(markup).toContain("Le peloton est prêt.");
     expect(markup).toContain('disabled="" aria-label="J’adore · 2"');
     expect(markup).not.toMatch(/<a\b[^>]*>(?:(?!<\/a>)[\s\S])*data-gazette-article-reactions=/);
+  });
+
+  it("conserve la mise en forme et l’ordre des blocs d’une tribune illustrée", () => {
+    const assetId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    const src = `/api/game/media-center/images/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/${assetId}.webp`;
+    const illustratedEdition: CyclogazetteEdition = {
+      ...edition,
+      content: {
+        ...edition.content,
+        mediaArticles: [{
+          id: "media-illustrated",
+          title: "Notre équipe à l’entraînement",
+          body: "Texte brut de secours.",
+          teamName: "Veloria",
+          sponsorName: null,
+          buildingLevel: 1,
+          blocks: [
+            { type: "text", font: "mono", content: [{ text: "Le départ", bold: true }] },
+            { type: "image", assetId, src, width: 800, height: 400, alt: "Les coureurs au départ", caption: "La sortie du samedi", align: "right" },
+            { type: "text", font: "default", content: [{ text: "Le retour <au club>", italic: true }] },
+          ],
+        }],
+      },
+    };
+    const markup = renderToStaticMarkup(<CyclogazetteNewspaper edition={illustratedEdition} />);
+
+    expect(markup).toContain('id="article-media-illustrated"');
+    expect(markup).toContain('font-family:var(--font-geist-mono), monospace');
+    expect(markup).toContain(`<figure class="ml-auto w-full sm:w-3/4"><img alt="Les coureurs au départ"`);
+    expect(markup).toContain(`src="${src}"`);
+    expect(markup).toMatch(/<strong>Le départ<\/strong>[\s\S]*<figcaption[^>]*>La sortie du samedi<\/figcaption>[\s\S]*<em>Le retour &lt;au club&gt;<\/em>/);
+    expect(markup).not.toContain("Texte brut de secours.");
   });
 
   it("affiche la question et permet de déplier toutes les réponses du DS", () => {

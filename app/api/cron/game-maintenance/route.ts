@@ -1,6 +1,7 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isAuthorizedCronRequest } from "@/lib/security/cron-authorization";
 import { pruneChatImages } from "@/services/chat-image-maintenance";
+import { pruneMediaCenterImages } from "@/services/media-center-image-maintenance";
 import { isCycloStickersPublicationWindow } from "@/lib/game/cyclo-stickers-publication-window";
 
 export const maxDuration = 300;
@@ -75,6 +76,14 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("chat_image_cleanup_failed", error);
     results.push({ task: "prune_global_chat_images", ok: false, error: "Nettoyage des images indisponible", durationMs: Date.now() - imageCleanupStartedAt });
+  }
+  const mediaCenterCleanupStartedAt = Date.now();
+  try {
+    await pruneMediaCenterImages(admin);
+    results.push({ task: "prune_media_center_images", ok: true, error: null, durationMs: Date.now() - mediaCenterCleanupStartedAt });
+  } catch (error) {
+    console.error("media_center_image_cleanup_failed", error);
+    results.push({ task: "prune_media_center_images", ok: false, error: "Nettoyage des images indisponible", durationMs: Date.now() - mediaCenterCleanupStartedAt });
   }
   const failedTasks = results.filter((result) => !result.ok);
 

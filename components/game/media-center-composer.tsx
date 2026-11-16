@@ -1,11 +1,19 @@
 "use client";
 
 import Image from "next/image";
+import { useActionState, useState } from "react";
 
 import { publishMediaCenterArticleAction } from "@/app/jeu/gazette/actions";
 import Link from "@/components/ui/app-link";
 import type { TeamMediaCenterOverview } from "@/services/team-media-center";
 import { useLocale } from "@/components/i18n/locale-provider";
+import {
+  getMediaCenterArticlePlainText,
+  MEDIA_CENTER_MAX_BODY_LENGTH,
+  MEDIA_CENTER_MIN_BODY_LENGTH,
+  type MediaCenterArticleActionState,
+} from "@/lib/game/media-center-article";
+import { MediaCenterArticleEditor, type MediaCenterDraftBlock } from "./media-center-article-editor";
 
 export function MediaCenterComposer({
   overview,
@@ -18,6 +26,23 @@ export function MediaCenterComposer({
 }) {
   const { locale } = useLocale();
   const isEnglish = locale === "en";
+  const [state, action, pending] = useActionState<MediaCenterArticleActionState, FormData>(
+    publishMediaCenterArticleAction,
+    { error: null },
+  );
+  const [title, setTitle] = useState("");
+  const [includeSponsor, setIncludeSponsor] = useState(false);
+  const [draft, setDraft] = useState<MediaCenterDraftBlock[]>([
+    { id: 0, block: { type: "text", font: "default", content: [] } },
+  ]);
+  const [uploading, setUploading] = useState(false);
+  const blocks = draft.map(({ block }) => block).filter((block) =>
+    block.type === "image" || block.content.some(({ text }) => text.trim()),
+  );
+  const bodyLength = getMediaCenterArticlePlainText(blocks).length;
+  const canSend = !pending && !uploading && title.trim().length >= 5
+    && bodyLength >= MEDIA_CENTER_MIN_BODY_LENGTH && bodyLength <= MEDIA_CENTER_MAX_BODY_LENGTH;
+  const formError = state.error ?? errorMessage;
   return (
     <section className="mx-auto mb-5 max-w-[1380px] overflow-hidden rounded-[1.7rem] border border-[#315B3E]/15 bg-[#F8FBF9] shadow-[0_16px_44px_rgba(36,31,24,.12)]">
       <div className="grid lg:grid-cols-[320px_1fr]">
@@ -54,7 +79,7 @@ export function MediaCenterComposer({
                   : "Tribune transmise à la rédaction. Réputation et popularité des coureurs ont été créditées. Les nouveaux supporters nécessitent un Siège du Fan Club."}
             </Alert>
           ) : null}
-          {errorMessage ? <Alert tone="error">{errorMessage}</Alert> : null}
+          {formError ? <Alert tone="error">{formError}</Alert> : null}
           {overview.buildingLevel < 1 ? (
             <div>
               <h3 className="text-2xl font-black text-[#183F37]">
@@ -73,7 +98,8 @@ export function MediaCenterComposer({
               </Link>
             </div>
           ) : overview.canSubmit ? (
-            <form action={publishMediaCenterArticleAction}>
+            <form action={action} onSubmit={(event) => { if (!canSend) event.preventDefault(); }}>
+              <input type="hidden" name="blocks" value={JSON.stringify(blocks)} />
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[.16em] text-[#278B70]">
@@ -94,20 +120,26 @@ export function MediaCenterComposer({
               </p>
               <input
                 name="title"
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                disabled={pending}
                 required
                 minLength={5}
                 maxLength={100}
+                aria-label={isEnglish ? "Your column title" : "Titre de votre tribune"}
                 placeholder={isEnglish ? "Your column title" : "Titre de votre tribune"}
                 className="mt-5 w-full rounded-xl border border-[#315B3E]/20 bg-white px-4 py-3 text-sm font-bold"
               />
-              <textarea
-                name="body"
-                required
-                minLength={40}
-                maxLength={1600}
-                rows={5}
-                placeholder={isEnglish ? "Your analysis, team project or view of the peloton…" : "Votre analyse, votre projet d’équipe ou votre regard sur le peloton…"}
-                className="mt-3 w-full resize-y rounded-xl border border-[#315B3E]/20 bg-white px-4 py-3 text-sm font-semibold leading-6"
+              <MediaCenterArticleEditor
+                draft={draft}
+                setDraft={setDraft}
+                title={title}
+                isEnglish={isEnglish}
+                bodyLength={bodyLength}
+                bodyMinimum={MEDIA_CENTER_MIN_BODY_LENGTH}
+                bodyMaximum={MEDIA_CENTER_MAX_BODY_LENGTH}
+                disabled={pending}
+                onUploadingChange={setUploading}
               />
               <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
                 {overview.canIncludeSponsor ? (
@@ -115,6 +147,9 @@ export function MediaCenterComposer({
                     <input
                       type="checkbox"
                       name="includeSponsor"
+                      checked={includeSponsor}
+                      onChange={(event) => setIncludeSponsor(event.target.checked)}
+                      disabled={pending}
                       className="h-4 w-4 accent-[#176951]"
                     />
                     {isEnglish ? "Add a feature for" : "Ajouter un encart pour"} {overview.sponsorName}
@@ -124,8 +159,10 @@ export function MediaCenterComposer({
                     {isEnglish ? "Sponsor features unlock at level 3." : "Les encarts sponsor se débloquent au niveau 3."}
                   </span>
                 )}
-                <button className="rounded-xl bg-[#176951] px-5 py-3 text-sm font-black text-white hover:bg-[#0B302B]">
-                  {isEnglish ? "Send to the newsroom" : "Envoyer à la rédaction"}
+                <button type="submit" disabled={!canSend} className="rounded-xl bg-[#176951] px-5 py-3 text-sm font-black text-white hover:bg-[#0B302B] disabled:cursor-not-allowed disabled:opacity-50">
+                  {pending
+                    ? isEnglish ? "Sending…" : "Envoi en cours…"
+                    : isEnglish ? "Send to the newsroom" : "Envoyer à la rédaction"}
                 </button>
               </div>
               {!overview.hasFanClub ? (
@@ -170,6 +207,7 @@ function Alert({
 }) {
   return (
     <div
+      role={tone === "error" ? "alert" : "status"}
       className={`mb-4 rounded-xl border px-4 py-3 text-sm font-bold ${tone === "success" ? "border-emerald-300 bg-emerald-50 text-emerald-900" : "border-red-300 bg-red-50 text-red-900"}`}
     >
       {children}

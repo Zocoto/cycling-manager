@@ -9,6 +9,7 @@ import {
   type CyclogazetteCommunity,
   type CyclogazetteContent,
   type CyclogazetteEdition,
+  type CyclogazetteMediaArticle,
   type CyclogazettePreRacePressConference,
   type CyclogazetteReaction,
   type CyclogazetteTourSummary,
@@ -19,6 +20,7 @@ import {
   selectLatestCyclogazetteTourSummaries,
   sortCyclogazetteStoriesByPrestige,
 } from "@/lib/game/cyclogazette";
+import { parseMediaCenterArticleBlocks } from "@/lib/game/media-center-article";
 import {
   isPreRaceAmbition,
   isPreRaceIntent,
@@ -94,6 +96,7 @@ type MediaArticleRow = {
   id: string;
   title: string;
   body: string;
+  content_blocks: unknown;
   team_name: string;
   sponsor_name: string | null;
   building_level: number;
@@ -348,7 +351,7 @@ export async function publishCyclogazetteEdition(
       loadDailyTourSummaries(admin, seasonDay.id, humanRaceEditionIds),
       admin
         .from("media_center_articles")
-        .select("id,title,body,team_name,sponsor_name,building_level")
+        .select("id,title,body,content_blocks,team_name,sponsor_name,building_level")
         .eq("season_id", season.id)
         .eq("status", "queued")
         .lte("day_number", dayNumber)
@@ -378,10 +381,11 @@ export async function publishCyclogazetteEdition(
       `Impossible de charger les tribunes du Média Center : ${mediaArticlesResult.error.message}`,
     );
   }
-  const mediaArticles = (mediaArticlesResult.data ?? []).map((article) => ({
+  const mediaArticles = (mediaArticlesResult.data ?? []).map((article): CyclogazetteMediaArticle => ({
     id: article.id,
     title: article.title,
     body: article.body,
+    blocks: parseMediaCenterArticleBlocks(article.content_blocks) ?? undefined,
     teamName: article.team_name,
     sponsorName: article.sponsor_name,
     buildingLevel: Number(article.building_level),
@@ -1143,7 +1147,10 @@ function normalizeGazetteContent(
     ? selectLatestCyclogazetteTourSummaries(content.tourSummaries)
     : [];
   const mediaArticles = Array.isArray(content.mediaArticles)
-    ? content.mediaArticles
+    ? content.mediaArticles.map((article) => ({
+        ...article,
+        blocks: parseMediaCenterArticleBlocks(article.blocks) ?? undefined,
+      }))
     : [];
   const featureStories = includeCyclingHollowTeaserStory(
     Array.isArray(content.featureStories) ? content.featureStories : [],

@@ -13,6 +13,7 @@ import { RiderAvatar } from "@/components/game/rider-avatar";
 import { CyclogazetteJerseyReveal } from "@/components/game/cyclogazette-jersey-reveal";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import { CyclogazetteCommunityPanel } from "@/components/game/cyclogazette-community";
+import { MediaCenterArticleContent } from "@/components/game/media-center-article-content";
 import {
   isFrenchGrandTourGazetteDay,
   isItalianGrandTourGazetteDay,
@@ -263,6 +264,7 @@ export function CyclogazetteNewspaper({
     featureStories = [],
     nationsCupSpecial,
   } = edition.content;
+  const hasFormattedMediaArticles = mediaArticles.some((article) => article.blocks?.length);
   const winnerStories = uniqueStories(
     [lead, ...raceStories].filter(
       (item): item is PublicGameNewsItem => item?.kind === "victory",
@@ -695,7 +697,7 @@ export function CyclogazetteNewspaper({
               title={isEnglish ? "The teams have their say" : "La parole aux équipes"}
               sportsDaily={isSportsDailyEdition}
             />
-            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <div className={`mt-4 grid gap-4 ${hasFormattedMediaArticles ? "mx-auto max-w-3xl" : "lg:grid-cols-2"}`}>
               {mediaArticles.map((article) => (
                 <article
                   key={article.id}
@@ -705,12 +707,14 @@ export function CyclogazetteNewspaper({
                   <p className="text-[9px] font-black uppercase tracking-[.18em] text-[var(--gazette-accent)]">
                     {isEnglish ? "Guest column" : "Carte blanche"} · {article.teamName}
                   </p>
-                  <h3 className="mt-2 font-serif text-2xl font-black leading-6">
+                  <h3 className="mt-2 font-serif text-2xl font-black leading-6 [overflow-wrap:anywhere]">
                     {article.title}
                   </h3>
-                  <p className="mt-4 whitespace-pre-line font-serif text-sm font-medium leading-6 text-[var(--gazette-body)]">
-                    {article.body}
-                  </p>
+                  <MediaCenterArticleContent
+                    blocks={article.blocks}
+                    body={article.body}
+                    className="mt-4 text-sm font-medium leading-6 text-[var(--gazette-body)]"
+                  />
                   <p className="mt-4 border-t border-[var(--gazette-rule)]/35 pt-3 text-[9px] font-black uppercase tracking-[.14em] text-[var(--gazette-muted)]">
                     {isEnglish ? "Column submitted by the SD" : "Tribune proposée par le DS"} · Media Center {isEnglish ? "L" : "N"}
                     {article.buildingLevel}
