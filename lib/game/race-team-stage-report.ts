@@ -205,6 +205,22 @@ function describeRacePersonalityEvent(event: RacePersonalityEvent, riderName: st
       return targetName
         ? { title: "Solidaire", detail: `${riderName} se porte volontaire pour épauler ${targetName} après son décrochage.` }
         : { title: "Solidaire", detail: `${riderName} se porte volontaire pour épauler son leader distancé.` };
+    case "finish_fluctuation":
+      return event.effect === "positive"
+        ? { title: "Imprévisible", detail: `${riderName} trouve un petit sursaut dans le final.` }
+        : { title: "Imprévisible", detail: `${riderName} connaît un léger creux dans le final.` };
+    case "seized_counterattack":
+      return { title: "Fonceur", detail: `${riderName} dépense un peu plus d’énergie pour saisir une occasion de contre-attaque.` };
+    case "cooperative_relay":
+      return { title: "Coopératif", detail: `${riderName} se porte volontaire pour relayer dans son groupe.` };
+    case "steady_relay":
+      return { title: "Régulier", detail: `${riderName} régularise ses relais et économise un peu d’énergie dans le chrono collectif.` };
+    case "sustained_pursuit":
+      return { title: "Tenace", detail: `${riderName} prolonge sa poursuite pour limiter l’écart avec le groupe devant lui.` };
+    case "cautious_descent":
+      return { title: "Prudent", detail: `${riderName} cède un peu de temps pour garder de la marge dans une descente mouillée.` };
+    case "avoided_wet_crash":
+      return { title: "Prudent", detail: `${riderName} évite une chute grâce à sa prudence sur la route mouillée.` };
   }
 }
 

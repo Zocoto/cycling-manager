@@ -210,6 +210,9 @@ export async function getOrCreatePostRaceInterview({
     teamResults[0];
   const teamRanking =
     rankings?.teams.find((team) => team.teamId === teamId) ?? null;
+  const interviewRider = simulation?.stageId === stageId
+    ? simulation.resolvedRiders.find(({ id }) => id === bestResult.riderId)
+    : undefined;
   const teamAttacks = officialResults.attackParticipants.filter(
     (participant) =>
       participant.teamId === teamId &&
@@ -234,6 +237,10 @@ export async function getOrCreatePostRaceInterview({
     directorAvatarKey: directorResult.data.avatar_key,
     riderName: bestResult.riderName,
     riderId: bestResult.riderId,
+    riderPersonalityKey: interviewRider?.personalityKey,
+    wasTeamLeader: interviewRider
+      ? ["leader", "leader_sprinter", "sprinter"].includes(interviewRider.role)
+      : false,
     bestRank: stageType === "team_time_trial"
       ? detailedRaceFacts?.teamTimeTrial?.rank ?? null
       : bestResult.rank,

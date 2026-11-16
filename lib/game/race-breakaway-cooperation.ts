@@ -11,6 +11,7 @@ export type BreakawayRelayCandidate = {
   hasLocomotive: boolean;
   locomotiveAbilityMultiplier?: number;
   hasPanache: boolean;
+  volunteersForRelays?: boolean;
 };
 
 export type BreakawayCooperationState = {
@@ -18,6 +19,7 @@ export type BreakawayCooperationState = {
   paceTimeMultiplier: number;
   activeRelayRiderIds: string[];
   relayLoadByRiderId: Record<string, number>;
+  volunteerRelayRiderIds?: string[];
 };
 
 export const INITIAL_BREAKAWAY_COOPERATION_STATE = {
@@ -106,6 +108,11 @@ export function evolveBreakawayCooperation({
           : 0.025;
   const weatherPenalty = isWet ? 0.025 : 0;
   const uncontestedPenalty = frontGroupIsUncontested ? 0.18 : 0;
+  const volunteers = new Set(orderedCandidates.length > 1 && !frontGroupIsUncontested
+    ? orderedCandidates
+      .filter(({ volunteersForRelays, energy }) => volunteersForRelays && energy >= 24)
+      .map(({ riderId }) => riderId)
+    : []);
   const targetCooperation = clamp(
     0.08 +
       optimalGroupSize * 0.22 +
@@ -117,7 +124,8 @@ export function evolveBreakawayCooperation({
       comfortableGapPenalty -
       finaleDistrust -
       weatherPenalty -
-      uncontestedPenalty,
+      uncontestedPenalty +
+      Math.min(0.045, volunteers.size / orderedCandidates.length * 0.09),
     0.08,
     0.94,
   );
@@ -162,6 +170,7 @@ export function evolveBreakawayCooperation({
           clamp(candidate.enduranceRating / 100, 0, 1) * 0.18 +
           rotationPriority * 0.2 +
           roleWillingness +
+          (volunteers.has(candidate.riderId) ? 0.12 : 0) +
           (candidate.hasLocomotive ? 0.1 * (candidate.locomotiveAbilityMultiplier ?? 1) : 0) +
           (candidate.hasPanache ? 0.055 : 0),
       };
@@ -203,6 +212,9 @@ export function evolveBreakawayCooperation({
     paceTimeMultiplier,
     activeRelayRiderIds,
     relayLoadByRiderId,
+    ...(volunteers.size ? {
+      volunteerRelayRiderIds: activeRelayRiderIds.filter((id) => volunteers.has(id)),
+    } : {}),
   };
 }
 

@@ -4,9 +4,21 @@ import { createDemoSimulationInput } from "./race-simulation-demo";
 import { selectStageAttackPlan, simulateRaceStage, type RiderSimulationInput } from "./race-simulation";
 import { DEFAULT_RACE_TEAM_STRATEGY } from "./race-strategy";
 import type { RaceStageSegment } from "./race-profiles";
+import type { RiderPersonalityKey } from "./rider-personalities";
 
 const resultFor = (simulation: ReturnType<typeof simulateRaceStage>, riderId: string) =>
   simulation.results.find((rider) => rider.riderId === riderId)!;
+
+function withPersonality(
+  input: Parameters<typeof simulateRaceStage>[0],
+  riderId: string,
+  personalityKey: RiderPersonalityKey,
+) {
+  return {
+    ...input,
+    riders: input.riders.map((rider) => rider.id === riderId ? { ...rider, personalityKey } : rider),
+  };
+}
 
 describe("race personality effects", () => {
   it.each([
@@ -107,5 +119,77 @@ describe("race personality effects", () => {
     const changed = simulateRaceStage({ ...input, riders: input.riders.map((rider, index) => ({ ...rider, personalityKey: keys[index % keys.length] })) });
     expect(changed.results).toEqual(original.results);
     expect(changed.personalityEvents).toBeUndefined();
+  });
+
+  it("uses one deterministic finish fluctuation on the chosen road stage", () => {
+    const riderId = "lumen-2";
+    const input = { ...createDemoSimulationInput("sprint-littoral", 1), isStageRace: true };
+    const neutral = simulateRaceStage(input);
+    const earlier = simulateRaceStage(withPersonality({ ...input, isFinalRoadStage: false }, riderId, "imprevisible"));
+    const chosenInput = withPersonality({ ...input, isFinalRoadStage: true }, riderId, "imprevisible");
+    const changed = simulateRaceStage(chosenInput);
+
+    expect(earlier.results).toEqual(neutral.results);
+    expect(earlier.personalityEvents).toBeUndefined();
+    expect(changed.personalityEvents).toEqual([
+      { kind: "finish_fluctuation", riderId, distanceKm: 154, effect: "negative" },
+    ]);
+    expect(resultFor(changed, riderId).rank).toBeGreaterThan(resultFor(neutral, riderId).rank!);
+    expect(simulateRaceStage(chosenInput).results).toEqual(changed.results);
+  });
+
+  it("lets Fonceur commit to a valid counterattack at an energy cost", () => {
+    const riderId = "veloria-6";
+    const input = createDemoSimulationInput("collines-ardennes", 7);
+    const neutral = simulateRaceStage(input);
+    const changed = simulateRaceStage(withPersonality(input, riderId, "fonceur"));
+
+    expect(changed.personalityEvents).toEqual([{ kind: "seized_counterattack", riderId, distanceKm: 141 }]);
+    expect(resultFor(changed, riderId).energyAfter).toBeLessThan(resultFor(neutral, riderId).energyAfter);
+    const midAttackGroup = (simulation: typeof changed) => simulation.visualTimeline
+      ?.find((frame) => frame.completedDistanceKm >= 141)
+      ?.groups.find(({ riderIds }) => riderIds.includes(riderId))?.type;
+    expect(midAttackGroup(neutral)).toBe("peloton");
+    expect(["chase", "breakaway"]).toContain(midAttackGroup(changed));
+  });
+
+  it("lets Régulier preserve energy while completing the same team relay", () => {
+    const riderId = "veloria-1";
+    const input = { ...createDemoSimulationInput("chrono-algarve", 1), stageType: "team_time_trial" as const };
+    const neutral = simulateRaceStage(input);
+    const changed = simulateRaceStage(withPersonality(input, riderId, "metronome"));
+
+    expect(changed.personalityEvents).toEqual([{ kind: "steady_relay", riderId, distanceKm: 0 }]);
+    expect(resultFor(changed, riderId).energyAfter).toBeGreaterThan(resultFor(neutral, riderId).energyAfter);
+    expect(resultFor(changed, riderId).elapsedTimeSeconds).toBe(resultFor(neutral, riderId).elapsedTimeSeconds);
+  });
+
+  it("lets Tenace cut a realistic gap at the expense of remaining energy", () => {
+    const riderId = "veloria-6";
+    const input = createDemoSimulationInput("haute-montagne", 1);
+    const neutral = simulateRaceStage(input);
+    const changed = simulateRaceStage(withPersonality(input, riderId, "tenace"));
+
+    expect(changed.personalityEvents).toEqual([{ kind: "sustained_pursuit", riderId, distanceKm: 160 }]);
+    expect(resultFor(changed, riderId).gapToWinnerSeconds).toBeLessThan(resultFor(neutral, riderId).gapToWinnerSeconds);
+    expect(resultFor(changed, riderId).energyAfter).toBeLessThan(resultFor(neutral, riderId).energyAfter);
+  });
+
+  it("lets Prudent avoid an individual crash on a wet technical sector", () => {
+    const riderId = "sol-del-sur-1";
+    const demo = createDemoSimulationInput("paves-zelande", 14);
+    const input = {
+      ...demo,
+      weather: { ...demo.weather!, isWet: true, condition: "rain", rainIntensity: "steady" } as const,
+    };
+    const neutral = simulateRaceStage(input);
+    const changed = simulateRaceStage(withPersonality(input, riderId, "prudent"));
+    const crashes = (simulation: typeof changed) => simulation.timeline.flatMap((frame) => frame.incidents)
+      .filter((incident) => incident.type === "crash_individual" && incident.riderIds.includes(riderId));
+
+    expect(changed.personalityEvents).toContainEqual({ kind: "avoided_wet_crash", riderId, distanceKm: 150 });
+    expect(crashes(neutral)).toHaveLength(1);
+    expect(crashes(changed)).toHaveLength(0);
+    expect(resultFor(changed, riderId).energyAfter).toBeGreaterThan(resultFor(neutral, riderId).energyAfter);
   });
 });

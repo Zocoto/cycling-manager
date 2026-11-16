@@ -2,6 +2,7 @@ import {
   buildPostRaceEditorialQuestions,
   type PostRaceInterviewEditorialFacts,
 } from "./post-race-interview-editorial";
+import type { RiderPersonalityKey } from "./rider-personalities";
 import {
   buildDetailedRaceInterviewQuestions,
   TEAM_TIME_TRIAL_INTERVIEW_FALLBACK,
@@ -105,6 +106,8 @@ export type PostRaceInterviewContext = {
   directorAvatarKey: string | null;
   riderName: string;
   riderId?: string | null;
+  riderPersonalityKey?: RiderPersonalityKey | null;
+  wasTeamLeader?: boolean;
   sponsorName?: string | null;
   raceCountryCode?: string | null;
   bestRank: number | null;

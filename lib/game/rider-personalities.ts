@@ -35,6 +35,70 @@ export const RIDER_PERSONALITIES = {
     label: "Assidu",
     description: "Progresse de 5 % de plus à l’entraînement, dans la limite de ses paliers habituels.",
   },
+  imprevisible: {
+    label: "Imprévisible",
+    description: "Peut avoir un léger sursaut ou un petit creux dans un final sur route, au plus une fois par course.",
+  },
+  fonceur: {
+    label: "Fonceur",
+    description: "Saisit plus volontiers une occasion de contre-attaquer au prix d’un effort supplémentaire.",
+  },
+  cooperatif: {
+    label: "Coopératif",
+    description: "Prend plus volontiers sa part des relais dans une échappée ou un gruppetto.",
+  },
+  metronome: {
+    label: "Régulier",
+    description: "Cadence plus régulièrement ses relais en chrono par équipes pour aider son groupe à rester ensemble.",
+  },
+  tenace: {
+    label: "Tenace",
+    description: "Prolonge un peu son effort pour recoller tant que la jonction reste à portée.",
+  },
+  prudent: {
+    label: "Prudent",
+    description: "Se ménage une marge dans les descentes sur route mouillée, quitte à céder quelques longueurs.",
+  },
+  fidele: {
+    label: "Fidèle",
+    description: "Apprécie particulièrement une prolongation et vit moins bien un départ après plusieurs saisons dans le même club.",
+  },
+  mentor: {
+    label: "Mentor",
+    description: "Gagne du moral lorsqu’un jeune qu’il a aidé en course signe son premier top 10.",
+  },
+  collectif: {
+    label: "Collectif",
+    description: "Tire davantage de satisfaction de la victoire d’un équipier lorsqu’il a contribué à sa course.",
+  },
+  globe_trotteur: {
+    label: "Globe-trotteur",
+    description: "Gagne du moral en courant dans un pays qu’il découvre, avec un nombre limité de bonus par saison.",
+  },
+  meticuleux: {
+    label: "Méticuleux",
+    description: "Apprécie de prendre le départ d’une course dont il a reconnu le parcours.",
+  },
+  perfectionniste: {
+    label: "Perfectionniste",
+    description: "Apprécie de franchir un palier et se lasse de répéter le même entraînement quand il a atteint ses plafonds.",
+  },
+  force_tranquille: {
+    label: "Force tranquille",
+    description: "Encaisse plus sereinement une contre-performance et perd un point de moral de moins.",
+  },
+  discret: {
+    label: "Discret",
+    description: "Apprécie qu’un débrief difficile se fasse en privé et vit moins bien une mise en cause publique.",
+  },
+  franc_parleur: {
+    label: "Franc-parleur",
+    description: "Apprécie que son DS reconnaisse franchement ses erreurs de stratégie en zone mixte.",
+  },
+  chambreur: {
+    label: "Chambreur",
+    description: "Une pique adressée à un rival en zone mixte peut rapporter un peu plus de réputation ou mal retomber.",
+  },
 } as const;
 
 export type RiderPersonalityKey = keyof typeof RIDER_PERSONALITIES;

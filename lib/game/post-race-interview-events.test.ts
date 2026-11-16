@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { PostRaceInterviewContext } from "./post-race-interview";
+import { concealZoneMixteEventOutcomes, type PostRaceInterviewContext } from "./post-race-interview";
 import {
   selectZoneMixteEvent,
   ZONE_MIXTE_EVENT_DEFINITIONS,
@@ -42,17 +42,17 @@ const CONTEXT: PostRaceInterviewContext = {
 };
 
 describe("événements de zone mixte", () => {
-  it("contient les 41 événements validés, avec la bonne répartition", () => {
-    expect(ZONE_MIXTE_EVENT_DEFINITIONS).toHaveLength(41);
+  it("contient les 44 événements validés, avec la bonne répartition", () => {
+    expect(ZONE_MIXTE_EVENT_DEFINITIONS).toHaveLength(44);
     expect(
       new Set(ZONE_MIXTE_EVENT_DEFINITIONS.map(({ id }) => id)).size,
-    ).toBe(41);
+    ).toBe(44);
     expect(
       ZONE_MIXTE_EVENT_DEFINITIONS.filter(({ rarity }) => rarity === "common"),
     ).toHaveLength(21);
     expect(
       ZONE_MIXTE_EVENT_DEFINITIONS.filter(({ rarity }) => rarity === "notable"),
-    ).toHaveLength(14);
+    ).toHaveLength(17);
     expect(
       ZONE_MIXTE_EVENT_DEFINITIONS.filter(({ rarity }) => rarity === "rare"),
     ).toHaveLength(6);
@@ -122,7 +122,7 @@ describe("événements de zone mixte", () => {
       ),
     );
 
-    expect(moraleEvents).toHaveLength(14);
+    expect(moraleEvents).toHaveLength(16);
     expect(
       moraleEvents.every((event) =>
         event.choices.every((choice) => choice.impactPreview === "Conséquence cachée"),
@@ -141,6 +141,50 @@ describe("événements de zone mixte", () => {
     const { event } = findEventWithId("local-specialty");
     expect(event.story).toContain("tiramisu");
     expect(event.story).not.toContain("{{");
+  });
+
+  it("propose la réponse du Franc-parleur uniquement pour un leader qui termine hors du top 10", () => {
+    const context = { ...CONTEXT, riderPersonalityKey: "franc_parleur", wasTeamLeader: true, bestRank: 13 } as const;
+    const { event, seed } = findEventWithId("personality-franc-parleur-debrief", context);
+    expect(event.choices.map(({ outcomes }) => outcomes[0].riderMoraleDelta)).toEqual([2, -2]);
+    for (const ineligible of [
+      { ...context, riderPersonalityKey: "sociable" as const },
+      { ...context, bestRank: 8 },
+      { ...context, wasTeamLeader: false },
+    ]) {
+      expect(selectZoneMixteEvent({ context: ineligible, seed })?.id).not.toBe(event.id);
+    }
+    const hidden = concealZoneMixteEventOutcomes({ ...context, zoneMixteEvent: event });
+    expect(hidden.zoneMixteEvent?.choices.every(({ outcomes }) => outcomes.length === 0)).toBe(true);
+  });
+
+  it("réserve le débrief du Discret au coureur concerné et l’utilise une fois", () => {
+    const context: PostRaceInterviewContext = {
+      ...CONTEXT,
+      riderPersonalityKey: "discret",
+      detailedRaceFacts: {
+        starters: 5,
+        finishers: 5,
+        incidents: [],
+        primes: [],
+        work: [],
+        lostContact: { riderId: CONTEXT.riderId!, name: CONTEXT.riderName, km: 38 },
+      },
+    };
+    const { event, seed } = findEventWithId("personality-discret-debrief", context);
+    expect(event.choices.map(({ outcomes }) => outcomes[0].riderMoraleDelta)).toEqual([2, -2]);
+    expect(selectZoneMixteEvent({ seed, context: { ...CONTEXT, riderPersonalityKey: "discret" } })?.id).not.toBe(event.id);
+    expect(selectZoneMixteEvent({
+      seed, context, usedEventIds: [event.id],
+    })?.id).not.toBe(event.id);
+  });
+
+  it("propose un pari de réputation au Chambreur en présence d’un rival", () => {
+    const context = { ...CONTEXT, riderPersonalityKey: "chambreur" } as const;
+    const { event, seed } = findEventWithId("personality-chambreur-rivalry", context);
+    expect(event.story).toContain("Rivale");
+    expect(event.choices[1].outcomes.map(({ reputationDelta }) => reputationDelta)).toEqual([3, -2]);
+    expect(selectZoneMixteEvent({ seed, context: { ...context, rivalry: null } })?.id).not.toBe(event.id);
   });
 
   it("réserve le débriefing de chute au coureur impliqué qui a terminé", () => {

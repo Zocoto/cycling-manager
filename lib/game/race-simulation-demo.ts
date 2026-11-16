@@ -287,6 +287,9 @@ export function createCalendarSimulationInput({
     isStageRace: edition.raceFormat === "stage_race",
     stageNumber: stage.stageNumber,
     stageCount: edition.stages.length,
+    isFinalRoadStage: stage.stageType === "road" && !edition.stages.some(
+      (candidate) => candidate.stageType === "road" && candidate.stageNumber > stage.stageNumber,
+    ),
     seed,
     weather: getRaceWeather(getRaceStageWeatherSeed({
       seasonGameYear: getStageSeasonGameYear(stage),

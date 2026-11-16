@@ -1,4 +1,5 @@
 import { seededInterviewIndex } from "@/lib/game/post-race-interview";
+import type { RiderPersonalityKey } from "@/lib/game/rider-personalities";
 import type {
   PostRaceInterviewContext,
   ZoneMixteEvent,
@@ -16,14 +17,98 @@ export type {
 type EventRequirement =
   | "sponsor" | "road-rivalry" | "rival-sprint" | "road-race" | "podium"
   | "rider-crash" | "rider-dropped" | "rider-pursuit" | "leader-drought"
-  | "arrival" | "sale" | "rival-finish";
+  | "arrival" | "sale" | "rival-finish" | "rider-setback" | "leader-finish-outside-top-ten";
 
 type ZoneMixteEventDefinition = ZoneMixteEvent & {
   requires?: EventRequirement;
   family?: "general" | "rider_director_relationship";
+  personality?: RiderPersonalityKey;
 };
 
 const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
+  {
+    id: "personality-discret-debrief",
+    family: "rider_director_relationship",
+    personality: "discret",
+    requires: "rider-setback",
+    rarity: "notable",
+    title: "Un débrief loin des micros",
+    story: "Les journalistes veulent revenir sur la course difficile de {{riderName}}. Il vous attend au bus. Comment gérez-vous le débrief ?",
+    choices: [
+      {
+        id: "private-debrief",
+        label: "En parler d’abord au bus",
+        description: "Garder vos observations pour un échange en tête-à-tête.",
+        impactPreview: "Conséquence cachée",
+        risk: "safe",
+        outcomes: [{ weight: 100, riderMoraleDelta: 2, summary: "Le débrief en privé met {{riderName}} à l’aise : +2 moral." }],
+      },
+      {
+        id: "name-rider-publicly",
+        label: "Débriefer son incident devant les micros",
+        description: "Expliquer ce que vous auriez aimé voir de sa part.",
+        impactPreview: "Conséquence cachée",
+        risk: "balanced",
+        outcomes: [{ weight: 100, riderMoraleDelta: -2, summary: "{{riderName}} se sent exposé par la critique publique : −2 moral." }],
+      },
+    ],
+  },
+  {
+    id: "personality-franc-parleur-debrief",
+    family: "rider_director_relationship",
+    personality: "franc_parleur",
+    requires: "leader-finish-outside-top-ten",
+    rarity: "notable",
+    title: "Mettre les choses au clair",
+    story: "{{riderName}} a terminé hors du top 10 alors que l’équipe lui avait confié un rôle de leader. Il vous écoute répondre à une question sur le plan de course.",
+    choices: [
+      {
+        id: "own-tactical-decision",
+        label: "Assumer ce que vous changeriez",
+        description: "Donner un exemple de décision que vous prendriez autrement.",
+        impactPreview: "Conséquence cachée",
+        risk: "safe",
+        outcomes: [{ weight: 100, riderMoraleDelta: 2, summary: "{{riderName}} apprécie que vous assumiez vos décisions : +2 moral." }],
+      },
+      {
+        id: "shift-blame",
+        label: "Mettre l’accent sur les erreurs du coureur",
+        description: "Lui demander publiquement de revoir sa façon de courir.",
+        impactPreview: "Conséquence cachée",
+        risk: "balanced",
+        outcomes: [{ weight: 100, riderMoraleDelta: -2, summary: "{{riderName}} regrette que vous lui renvoyiez la responsabilité : −2 moral." }],
+      },
+    ],
+  },
+  {
+    id: "personality-chambreur-rivalry",
+    personality: "chambreur",
+    requires: "road-rivalry",
+    rarity: "notable",
+    title: "La petite phrase",
+    story: "On vous relance sur {{rivalTeamName}}. {{riderName}} vous tend le micro avec un sourire. Est-ce le moment d’envoyer une pique ?",
+    choices: [
+      {
+        id: "stay-on-the-race",
+        label: "Rester sur l’analyse de la course",
+        description: "Parler de ce que vous avez observé chez les deux équipes.",
+        impactPreview: "Conséquence cachée",
+        risk: "safe",
+        outcomes: [{ weight: 100, reputationDelta: 1, summary: "Votre analyse est bien reçue : +1 réputation." }],
+      },
+      {
+        id: "playful-dig",
+        label: "Lancer une petite pique sportive",
+        description: "Défier le rival avant votre prochain rendez-vous.",
+        impactPreview: "Conséquence cachée",
+        risk: "bold",
+        outcomes: [
+          { weight: 60, reputationDelta: 3, summary: "Le chambrage fait sourire et relance la rivalité : +3 réputation." },
+          { weight: 40, reputationDelta: -2, summary: "La pique passe mal auprès des supporters : −2 réputation." },
+        ],
+      },
+    ],
+  },
   {
     id: "verified-crash-debrief",
     family: "rider_director_relationship",
@@ -1209,6 +1294,8 @@ export function selectZoneMixteEvent({
       meetsRequirement(event, context),
   );
   if (eligible.length === 0) return null;
+  const personalityEvent = eligible.find((event) => event.personality);
+  if (personalityEvent) return renderEvent(personalityEvent, context);
 
   const rarityRoll = seededInterviewIndex(`${seed}:event-rarity`, 100);
   const rarity: ZoneMixteEventRarity =
@@ -1223,6 +1310,7 @@ function meetsRequirement(
   event: ZoneMixteEventDefinition,
   context: PostRaceInterviewContext,
 ) {
+  if (event.personality && event.personality !== context.riderPersonalityKey) return false;
   const isRoadRace = !context.stageType || context.stageType === "road";
   const race = context.detailedRaceFacts;
   const editorial = context.editorialFacts;
@@ -1239,6 +1327,12 @@ function meetsRequirement(
     return context.bestRank !== null && context.bestRank >= 1 && context.bestRank <= 3;
   }
   if (event.requires === "rider-crash") return Boolean(context.riderId && interviewRiderCrash(context));
+  if (event.requires === "rider-setback") {
+    return Boolean(context.riderId && (interviewRiderCrash(context) || race?.lostContact?.riderId === context.riderId));
+  }
+  if (event.requires === "leader-finish-outside-top-ten") {
+    return isRoadRace && Boolean(context.riderId && context.wasTeamLeader && context.bestRank !== null && context.bestRank > 10);
+  }
   if (event.requires === "rider-dropped") return Boolean(context.riderId && race?.lostContact?.riderId === context.riderId);
   if (event.requires === "rider-pursuit") return Boolean(context.riderId && race?.pursuit?.riderId === context.riderId);
   if (event.requires === "leader-drought") {
@@ -1285,6 +1379,7 @@ function renderEvent(
     departureDay: String(context.editorialFacts?.recentDeparture?.gameDay ?? ""),
     opponentName: context.editorialFacts?.opponent?.riderName ?? "",
     opponentTeam: context.editorialFacts?.opponent?.teamName ?? "",
+    rivalTeamName: context.rivalry?.teamName ?? "",
   };
   const render = (value: string) =>
     value.replace(/{{(\w+)}}/g, (_match, key: string) => values[key] ?? "");

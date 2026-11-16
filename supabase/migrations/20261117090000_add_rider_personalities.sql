@@ -9,8 +9,11 @@ set search_path = ''
 as $$
   select (array[
     'franc_tireur', 'opportuniste', 'calculateur', 'solidaire', 'sociable',
-    'ambitieux', 'colerique', 'charismatique', 'assidu'
-  ])[1 + (('x' || left(md5('rider-personality-v1:' || p_identity::text), 8))::bit(32)::bigint % 9)::integer];
+    'ambitieux', 'colerique', 'charismatique', 'assidu',
+    'imprevisible', 'fonceur', 'cooperatif', 'metronome', 'tenace', 'prudent',
+    'fidele', 'mentor', 'collectif', 'globe_trotteur', 'meticuleux', 'perfectionniste',
+    'force_tranquille', 'discret', 'franc_parleur', 'chambreur'
+  ])[1 + (('x' || left(md5('rider-personality-v1:' || p_identity::text), 8))::bit(32)::bigint % 25)::integer];
 $$;
 
 alter table public.riders add column personality_key text;
@@ -53,21 +56,30 @@ alter table public.riders
   alter column personality_key set not null,
   add constraint riders_personality_allowed check (personality_key in (
     'franc_tireur', 'opportuniste', 'calculateur', 'solidaire', 'sociable',
-    'ambitieux', 'colerique', 'charismatique', 'assidu'
+    'ambitieux', 'colerique', 'charismatique', 'assidu',
+    'imprevisible', 'fonceur', 'cooperatif', 'metronome', 'tenace', 'prudent',
+    'fidele', 'mentor', 'collectif', 'globe_trotteur', 'meticuleux', 'perfectionniste',
+    'force_tranquille', 'discret', 'franc_parleur', 'chambreur'
   ));
 
 alter table public.youth_scouting_candidates
   alter column personality_key set not null,
   add constraint youth_scouting_candidates_personality_allowed check (personality_key in (
     'franc_tireur', 'opportuniste', 'calculateur', 'solidaire', 'sociable',
-    'ambitieux', 'colerique', 'charismatique', 'assidu'
+    'ambitieux', 'colerique', 'charismatique', 'assidu',
+    'imprevisible', 'fonceur', 'cooperatif', 'metronome', 'tenace', 'prudent',
+    'fidele', 'mentor', 'collectif', 'globe_trotteur', 'meticuleux', 'perfectionniste',
+    'force_tranquille', 'discret', 'franc_parleur', 'chambreur'
   ));
 
 alter table public.youth_academy_riders
   alter column personality_key set not null,
   add constraint youth_academy_riders_personality_allowed check (personality_key in (
     'franc_tireur', 'opportuniste', 'calculateur', 'solidaire', 'sociable',
-    'ambitieux', 'colerique', 'charismatique', 'assidu'
+    'ambitieux', 'colerique', 'charismatique', 'assidu',
+    'imprevisible', 'fonceur', 'cooperatif', 'metronome', 'tenace', 'prudent',
+    'fidele', 'mentor', 'collectif', 'globe_trotteur', 'meticuleux', 'perfectionniste',
+    'force_tranquille', 'discret', 'franc_parleur', 'chambreur'
   ));
 
 -- Cover every insertion path, including new auctions, seasonal generation,

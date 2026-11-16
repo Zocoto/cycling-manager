@@ -30,6 +30,34 @@ function candidates(count: number): BreakawayRelayCandidate[] {
 }
 
 describe("evolveBreakawayCooperation", () => {
+  it("uses a willing Coopératif to take a real relay and increase the group's pace", () => {
+    const baseGroup = candidates(6);
+    const context = {
+      previousState: INITIAL_BREAKAWAY_COOPERATION_STATE,
+      candidates: baseGroup,
+      tickIndex: 0,
+      raceProgress: 0.45,
+      gapSeconds: 180,
+      chasePressure: 0.62,
+      segment: flatSegment,
+      isWet: false,
+      frontGroupIsYielding: false,
+      frontGroupIsUncontested: false,
+    };
+    const neutral = evolveBreakawayCooperation(context);
+    const volunteerId = "rider-4";
+    const changed = evolveBreakawayCooperation({
+      ...context,
+      candidates: baseGroup.map((candidate) => candidate.riderId === volunteerId
+        ? { ...candidate, volunteersForRelays: true } : candidate),
+    });
+
+    expect(neutral.activeRelayRiderIds).not.toContain(volunteerId);
+    expect(changed.activeRelayRiderIds).toContain(volunteerId);
+    expect(changed.volunteerRelayRiderIds).toEqual([volunteerId]);
+    expect(changed.relayLoadByRiderId[volunteerId]).toBeGreaterThan(neutral.relayLoadByRiderId[volunteerId]);
+    expect(changed.paceTimeMultiplier).toBeLessThan(neutral.paceTimeMultiplier);
+  });
   it("does not assign relays to exhausted riders while capable riders keep working", () => {
     const context = {
       previousState: INITIAL_BREAKAWAY_COOPERATION_STATE,

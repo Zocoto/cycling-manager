@@ -544,6 +544,7 @@ async function settleEditionRaceResults({
       // Une tentative interrompue peut avoir écrit tous les résultats avant
       // de marquer l'étape comme terminée. La reprise doit aussi réparer ce
       // statut, même lorsqu'aucune ligne de résultat n'est à réécrire.
+      if (!resultsOnly) await settleStagePersonalityTeamMorale(admin, stage, simulation);
       const { error: stageStatusError } = await admin
         .from("stages")
         .update({ status: "completed" })
@@ -1432,6 +1433,7 @@ async function persistStageResult({
       conditionSettlementError,
       `condition settlement before HT withdrawal for ${stage.name}`,
     );
+    await settleStagePersonalityTeamMorale(admin, stage, simulation);
   }
 
   if (edition.raceFormat === "stage_race") {
@@ -1481,6 +1483,20 @@ async function persistStageResult({
     .update({ status: "completed" })
     .eq("id", stage.id);
   assertQuery(stageError, `la clôture de ${stage.name}`);
+}
+
+async function settleStagePersonalityTeamMorale(
+  admin: AdminClient,
+  stage: RaceCalendarStage,
+  simulation: StageSimulationResult,
+) {
+  const hasRelevantRider = simulation.resolvedRiders.some(({ personalityKey }) =>
+    personalityKey === "mentor" || personalityKey === "collectif" ||
+    personalityKey === "globe_trotteur" || personalityKey === "meticuleux",
+  );
+  if (!hasRelevantRider) return;
+  const { error } = await admin.rpc("settle_stage_personality_team_morale", { p_stage_id: stage.id });
+  assertQuery(error, `le moral lié au caractère après ${stage.name}`);
 }
 
 async function persistStageAttackParticipants({
