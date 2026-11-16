@@ -41,6 +41,7 @@ export type CollectorAlbumTab = "album" | "trades" | "boosters" | "achievements"
 
 export type CollectorAlbumRuntime = {
   state: AlbumPilotState; ready: boolean; boosterCount: number; tradeCount: number; ownerName: string;
+  achievementReadyCount?: number;
   notice: string; onAction: (action: AlbumPilotAction) => void;
   boosters: ReactNode; achievements: ReactNode; trades: (requestedCard: number | null, wanted: readonly number[], offeredCard: number | null, onViewBoosters: () => void) => ReactNode;
   duplicates?: (onOffer: (number: number) => void) => ReactNode;
@@ -51,6 +52,7 @@ export function CollectorAlbum({ snapshot, storageOwnerId, initialTab = "album",
   const isPersistent = Boolean(runtime);
   const privatePreview = !isPersistent;
   const ownerName = runtime?.ownerName ?? "Abbaye du Lion";
+  const achievementReadyCount = runtime?.achievementReadyCount ?? 0;
   const [localStore, dispatch] = useReducer(reducer, {ready: false, state: runtime?.state ?? createAlbumPilotState(snapshot.collectionSeason,snapshot.cards), cards: snapshot.cards});
   const store = useMemo(() => runtime ? { ...localStore, ready: runtime.ready, state: runtime.state } : localStore, [localStore, runtime]);
   const [tab, setTab] = useState(initialTab);
@@ -284,7 +286,11 @@ export function CollectorAlbum({ snapshot, storageOwnerId, initialTab = "album",
         {runtime?.duplicates !== undefined && (
           <button type="button" aria-pressed={tab === "duplicates"} onClick={() => setTab("duplicates")}>Mes doubles</button>
         )}
-        <button type="button" aria-pressed={tab === "achievements"} onClick={() => setTab("achievements")}>Vitrine & succès</button>
+        <button type="button" aria-pressed={tab === "achievements"} onClick={() => setTab("achievements")}
+          className={achievementReadyCount > 0 ? styles.unclaimedTab : undefined}>
+          Vitrine & succès
+          {achievementReadyCount > 0 ? <span className={styles.claimCount} title="Récompenses à récupérer">{achievementReadyCount}</span> : null}
+        </button>
         {leaderboard !== undefined && (
           <button ref={leaderboardButton} type="button" aria-pressed={tab === "leaderboard"} onClick={openLeaderboard}>Classement</button>
         )}

@@ -26,14 +26,14 @@ export async function getCurrentGameObjectives(
 }
 
 export type RewardsPageObjective = GameObjective & {
-  album?: { editionId: string; achievementId: string; trophy: boolean };
+  album?: { editionId: string; sourceSeason: number; achievementId: string; trophy: boolean };
 };
 
 type CycloStickersRewardObjectiveRow = Omit<
   GameObjectiveRow,
   "objective_key" | "objective_type" | "objective_group" | "description" |
     "reward_item_name" | "reward_item_kind"
-> & { edition_id: string; achievement_id: string; trophy: boolean };
+> & { edition_id: string; source_season: number; achievement_id: string; trophy: boolean };
 
 const albumAchievementDescriptions = new Map(
   ALBUM_ACHIEVEMENTS.map(({ id, description }) => [id, description]),
@@ -60,6 +60,11 @@ export async function getCurrentCycloStickersRewardObjectives(
       reward_item_name: null,
       reward_item_kind: null,
     }),
-    album: { editionId: row.edition_id, achievementId: row.achievement_id, trophy: row.trophy },
+    album: {
+      editionId: row.edition_id,
+      sourceSeason: row.source_season,
+      achievementId: row.achievement_id,
+      trophy: row.trophy,
+    },
   }));
 }

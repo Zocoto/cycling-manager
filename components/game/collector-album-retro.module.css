@@ -25,3 +25,32 @@
 @media(max-width:480px){.albumPage.albumPage{background:repeating-linear-gradient(0deg,transparent 0 4px,#8d704306 4px 5px),linear-gradient(90deg,#eaddbe,#fbf2dc 12%,#f3e7cb 100%)}}
 .returnToAlbum{display:block;margin:24px auto 0;border:1px solid #a33f2d;background:#a94935;color:#fbefd0;padding:12px 18px;font-size:12px;font-weight:800}
 @media(prefers-reduced-motion:no-preference){.openPackButton .pack{transition:transform .2s}.openPackButton:hover:not(:disabled) .pack{transform:rotate(0) translateY(-4px)}.revealedCards>div{animation:unpack .35s ease-out both}@keyframes unpack{from{opacity:0;translate:0 10px}to{opacity:1;translate:0 0}}}
+
+.tabButtons .unclaimedTab[aria-pressed=false] {
+  border-color: #ae771d;
+  background: #fff0bc;
+  color: #5f3d19;
+}
+.tabButtons button > .claimCount {
+  background: #f5cf66;
+  color: #513010;
+}
+.achievementPending {
+  border-color: #a87320;
+  background: #fff7dd;
+  box-shadow: 0 0 0 2px #c38c302a;
+}
+.achievementPending > button {
+  border-color: #a87320;
+  background: #f5cf66;
+  color: #513010;
+}
+.claimStatus {
+  align-self: flex-start;
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: #f5cf66;
+  color: #513010;
+  font-size: 10px;
+  font-weight: 800;
+}

@@ -546,5 +546,57 @@ try{
   await rejects(()=>state(),/directeur actif/,'the migration preserves the active director requirement');
   await admin();await db.exec('set role anon');
   await rejects(()=>state(),/permission denied/,'the migration preserves anonymous denial');
+  await admin();
+  await db.exec(`create function public.get_current_game_objective_summary_cached()
+    returns table(total_count integer,ready_count integer) language sql as $$ values (200,2) $$;`);
+  await db.exec(await read('20261116230000_list_cyclo_stickers_reward_objectives'));
+  await db.exec(await read('20261116231000_award_cyclo_stickers_trophy_per_season'));
+  // Install a synthetic approved S5 edition to exercise the shared claim path.
+  const nextEdition = 'cyclo-stickers-s5-isolated';
+  await db.exec("update seasons set status=case when game_year=6 then 'active' else 'completed' end");
+  await db.exec("select set_config('test.cm_strength','0',false)");
+  await db.query('insert into team_seasons(id,team_id,season_id) values($1,$2,$3)', [id('ts-a-s6'),id('team-a'),id('s6')]);
+  await db.query('insert into season_days values($1,$2,1)', [id('day-s6'),id('s6')]);
+  await db.query(`insert into cyclo_stickers_editions
+    (edition_id,source_season_id,collection_season_id,snapshot_sha256,snapshot,configuration)
+    select $1,$2,$3,snapshot_sha256,snapshot,configuration
+    from cyclo_stickers_editions where edition_id=$4`, [nextEdition,id('s5'),id('s6'),edition]);
+  await db.query(`insert into cyclo_stickers_cards
+    select $1,card_number,card_id,rarity,profile_key,kind from cyclo_stickers_cards where edition_id=$2`, [nextEdition,edition]);
+  await db.query('insert into cyclo_stickers_collections(edition_id,sporting_director_id) values($1,$2)', [nextEdition,id('a')]);
+  await db.query(`insert into cyclo_stickers_card_inventory(edition_id,sporting_director_id,card_number,quantity,pasted)
+    select edition_id,$2,card_number,1,true from cyclo_stickers_cards where edition_id=$1`, [nextEdition,id('a')]);
+  const previousXp = await scalar('select experience_points from sporting_directors where id=$1', [id('a')]);
+  const previousReputation = await scalar('select reputation_points::int from sporting_directors where id=$1', [id('a')]);
+  await as('a');
+  const list = () => rows('select * from public.get_current_cyclo_stickers_reward_objectives()');
+  const summary = () => rows('select * from public.get_current_game_objective_summary_with_album()');
+  const objectivesBefore = await list();
+  eq(objectivesBefore.length,38,'objective catalogue includes 19 successes for each owned published edition');
+  const nextCompletion = objectivesBefore.find(row => row.edition_id === nextEdition && row.achievement_id === 'count-50');
+  eq([nextCompletion.source_season,nextCompletion.current_value,nextCompletion.target_value,nextCompletion.is_completed,nextCompletion.claimed_at,nextCompletion.trophy],
+    [5,69,69,true,null,true],'new edition completion has its own ready objective at the real album size');
+  eq(objectivesBefore.some(row => row.edition_id === edition && row.achievement_id === 'count-5' && row.is_completed && !row.claimed_at),
+    true,'unclaimed older edition objective remains visible');
+  const [summaryBefore] = await summary();
+  eq(summaryBefore.total_count,238,'desktop summary reuses the general count and includes both albums');
+  const claimNext = () => rpc('claim_current_cyclo_stickers_achievement', [nextEdition,'count-50']);
+  eq((await claim('count-50')).alreadyClaimed,true,'the previously claimed S4 reward remains paid');
+  eq((await claimNext()).alreadyClaimed,false,'the completed S5 album has its own reward');
+  eq((await claimNext()).alreadyClaimed,true,'the S5 completion also pays only once');
+  eq((await list()).some(row => row.edition_id === nextEdition && row.achievement_id === 'count-50' && row.claimed_at !== null),
+    true,'a collection claim clears only its own pending objective');
+  eq((await summary())[0].ready_count,summaryBefore.ready_count-1,'desktop badge drops by one after collection');
+  await as('inactive');
+  eq(await list(),[],'inactive DS gets no collection objectives');
+  await admin();await db.exec('set role anon');
+  await rejects(()=>list(),/permission denied/,'anonymous rewards catalogue access is denied');
+  await admin();
+  eq(await rows("select trophy_key from sporting_director_trophies where trophy_key like 'cyclo_stickers_s%' order by trophy_key"),
+    [{trophy_key:'cyclo_stickers_s4'},{trophy_key:'cyclo_stickers_s5'}],'each album awards its own source-season trophy');
+  eq(await scalar("select count(*)::int from sporting_director_trophy_notifications where trophy_key='cyclo_stickers_s5'"),1,'one notification is produced for the S5 trophy');
+  eq(await scalar('select cash_balance::int from team_seasons where id=$1', [id('ts-a-s6')]),250000,'the completion pays the S5 edition cash in the current season');
+  eq(await scalar('select experience_points from sporting_directors where id=$1', [id('a')]),previousXp+1000,'the S5 edition pays its own XP');
+  eq(await scalar('select reputation_points::int from sporting_directors where id=$1', [id('a')]),previousReputation+100,'the S5 edition pays its own reputation');
   console.log(JSON.stringify({isolatedPostgresChecks:checks,productionAccess:false,editionSeeds:0,realStockSources:3,atomicCopyConservation:true,rewardsPaidOnce:true}));
 }finally{await db.close();}

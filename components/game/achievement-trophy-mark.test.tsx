@@ -32,6 +32,29 @@ describe("AchievementTrophyMark", () => {
     });
     expect(getLockedTrophyTargets([]).some(trophy => trophy.title === definition.title)).toBe(false);
   });
+  it("records a completion for every edition’s source season in the same gallery trophy", () => {
+    const gallery = buildTrophyGallery({
+      raceWins: [],
+      teamUciTitles: [],
+      riderUciTitles: [],
+      specialAwards: [
+        { id: "s4", trophyKey: "cyclo_stickers_s4", availableAt: "2026-11-28T12:00:00Z",
+          claimedAt: "2026-11-28T12:00:00Z", href: null },
+        { id: "s5", trophyKey: "cyclo_stickers_s5", availableAt: "2026-12-28T12:00:00Z",
+          claimedAt: "2026-12-28T12:00:00Z", href: null },
+      ],
+    });
+    const trophy = gallery.trophies.find(trophy => trophy.title === "Mémoire du peloton");
+    expect(trophy).toMatchObject({
+      visualVariant: "collector-album",
+      seasonNames: ["Saison 4", "Saison 5"],
+      wins: [
+        { id: "achievement:s4", seasonName: "Saison 4" },
+        { id: "achievement:s5", seasonName: "Saison 5" },
+      ],
+    });
+  });
+
   it("renders every catalogue identity as a lightweight flat SVG", () => {
     const markup = variants
       .map((variant) =>

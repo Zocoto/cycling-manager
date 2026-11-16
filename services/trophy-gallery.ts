@@ -1,7 +1,8 @@
 import "server-only";
 
 import {
-  ACHIEVEMENT_TROPHY_DEFINITIONS,
+  getAchievementTrophyDefinition,
+  getAlbumTrophySourceSeason,
   isAchievementTrophyKey,
 } from "@/lib/game/achievement-trophies";
 import { isMedicalTrophyKey } from "@/lib/game/medical-trophies";
@@ -556,7 +557,7 @@ function mapSpecialTrophies({
       }
 
       if (!isAchievementTrophyKey(entitlement.trophy_key)) return [];
-      const definition = ACHIEVEMENT_TROPHY_DEFINITIONS[entitlement.trophy_key];
+      const definition = getAchievementTrophyDefinition(entitlement.trophy_key);
 
       return [
         {
@@ -564,7 +565,7 @@ function mapSpecialTrophies({
           trophyKey: entitlement.trophy_key,
           availableAt: entitlement.available_at,
           claimedAt: entitlement.claimed_at,
-          seasonName: entitlement.trophy_key === "cyclo_stickers_s4"
+          seasonName: getAlbumTrophySourceSeason(entitlement.trophy_key) !== null
             ? definition.seasonName
             : getTrophyAwardSeasonName(entitlement.available_at, seasons),
           href: includeClaimable ? definition.href : null,

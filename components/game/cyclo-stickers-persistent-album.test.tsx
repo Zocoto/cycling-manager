@@ -124,3 +124,19 @@ it("shows available and reserved duplicate copies while excluding single sticker
   expect(html).toContain("<b>1</b> en réservation");
   expect(html).toContain("Échanger ce double");
 });
+
+it("keeps the album reward highlighted and counted until it has been claimed", () => {
+  const snapshot = createCycloStickersFinalSnapshot(createFinalCycloStickersSourceFixture());
+  const state = createCycloStickersPersistentStateFixture();
+  state.owned = [{ cardNumber: 1, quantity: 1, pasted: true, reserved: 0 }];
+  const render = () => renderToStaticMarkup(
+    <CycloStickersPersistentAlbum snapshot={snapshot} initialState={state} initialTab="achievements" />,
+  );
+
+  expect(render()).toMatch(/title="Récompenses à récupérer">1/);
+  expect(render()).toContain(">À récupérer</span>");
+  state.claimedAchievements = ["count-1"];
+  expect(render()).not.toContain("Récompenses à récupérer");
+  expect(render()).not.toContain(">À récupérer</span>");
+  expect(render()).toContain("Récompense reçue");
+});

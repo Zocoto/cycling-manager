@@ -250,21 +250,49 @@ export const ACHIEVEMENT_TROPHY_DEFINITIONS = {
   },
 } as const;
 
-export type AchievementTrophyKey = keyof typeof ACHIEVEMENT_TROPHY_DEFINITIONS;
+type CataloguedAchievementTrophyKey = keyof typeof ACHIEVEMENT_TROPHY_DEFINITIONS;
+export type AchievementTrophyKey = CataloguedAchievementTrophyKey | `cyclo_stickers_s${number}`;
+
+export function getAlbumTrophySourceSeason(key: string): number | null {
+  const season = Number(/^cyclo_stickers_s([1-9][0-9]*)$/.exec(key)?.[1]);
+  return Number.isSafeInteger(season) ? season : null;
+}
+
+export function getAlbumCompletionTrophy(sourceSeason: number) {
+  const original = ACHIEVEMENT_TROPHY_DEFINITIONS.cyclo_stickers_s4;
+  if (sourceSeason === 4) return original;
+
+  return {
+    ...original,
+    seasonName: `Saison ${sourceSeason}`,
+    inscription: `S${sourceSeason} · Album complet`,
+    description: "Décerné au collectionneur qui complète l’album de cette saison.",
+    href: "/jeu/objectifs?groupe=cyclo_stickers",
+  };
+}
+
+function isCataloguedAchievementTrophyKey(key: string): key is CataloguedAchievementTrophyKey {
+  return Object.hasOwn(ACHIEVEMENT_TROPHY_DEFINITIONS, key);
+}
+
+export function getAchievementTrophyDefinition(key: AchievementTrophyKey) {
+  if (isCataloguedAchievementTrophyKey(key)) return ACHIEVEMENT_TROPHY_DEFINITIONS[key];
+  return getAlbumCompletionTrophy(Number(key.slice("cyclo_stickers_s".length)));
+}
 
 const objectiveTrophyKeyByObjective = Object.fromEntries(
   Object.entries(ACHIEVEMENT_TROPHY_DEFINITIONS).flatMap(
     ([trophyKey, definition]) =>
       definition.objectiveKey
-        ? [[definition.objectiveKey, trophyKey as AchievementTrophyKey]]
+        ? [[definition.objectiveKey, trophyKey as CataloguedAchievementTrophyKey]]
         : [],
   ),
-) as Record<string, AchievementTrophyKey>;
+) as Record<string, CataloguedAchievementTrophyKey>;
 
 export function isAchievementTrophyKey(
   value: string,
 ): value is AchievementTrophyKey {
-  return value in ACHIEVEMENT_TROPHY_DEFINITIONS;
+  return isCataloguedAchievementTrophyKey(value) || getAlbumTrophySourceSeason(value) !== null;
 }
 
 export function getAchievementTrophyForObjective(objectiveKey: string) {

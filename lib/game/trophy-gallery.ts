@@ -8,6 +8,7 @@ import {
 } from "@/lib/game/race-prestige";
 import {
   ACHIEVEMENT_TROPHY_DEFINITIONS,
+  getAchievementTrophyDefinition,
   NIGHT_AUCTION_TROPHY_KEY,
   type AchievementTrophyKey,
   type AchievementTrophyVisualVariant,
@@ -818,7 +819,7 @@ export function buildTrophyGallery({
       };
     }
 
-    const definition = ACHIEVEMENT_TROPHY_DEFINITIONS[award.trophyKey];
+    const definition = getAchievementTrophyDefinition(award.trophyKey);
     return {
       id: `achievement:${award.id}`,
       kind: "achievement",

@@ -95,14 +95,59 @@ export function CycloStickersPersistentAlbum({
     } catch (error) { setNotice(error instanceof Error ? error.message : "Action indisponible."); }
   };
   const view = toCycloStickersAlbumView(state);
+  const achievements = state.edition.achievements.flatMap(config => {
+    const definition = ALBUM_ACHIEVEMENTS.find(row => row.id === config.id);
+    if (!definition) return [];
+    const achievement = {
+      ...definition,
+      name: config.name,
+      target: config.target ?? definition.target,
+      cash: config.cash,
+      xp: config.xp,
+      reputation: config.reputation,
+      trophy: config.trophy,
+    };
+    const progress = getAlbumAchievementProgress(achievement, view, snapshot.cards);
+    const claimed = state.claimedAchievements.includes(achievement.id);
+    return [{ achievement, progress, claimed, ready: !claimed && progress.value >= progress.target }];
+  }).sort((left, right) => Number(right.ready) - Number(left.ready));
+
   return <CollectorAlbum snapshot={snapshot} storageOwnerId={state.directorId} initialTab={initialTab} runtime={{
     state: view, ready: !busy, ownerName: state.owner.displayName,
     boosterCount: state.boosterCount, tradeCount: state.incomingOffers.length + state.outgoingOffers.length,
+    achievementReadyCount: achievements.filter(objective => objective.ready).length,
     notice, onAction: send,
     leaderboard, onViewLeaderboard: () => void refreshLeaderboard(),
     boosters: <PersistentBoosters snapshot={snapshot} state={state} busy={busy} mutate={mutate} loginBoosterProgress={loginBoosterProgress} onPaste={card => send({ type: "paste", card })} />,
     duplicates: onOffer => <PersistentDuplicates snapshot={snapshot} owned={state.owned} busy={busy} onOffer={onOffer} />,
-    achievements: <PersistentAchievements snapshot={snapshot} state={state} busy={busy} onAction={send} />,
+    achievements: (
+      <section className={styles.achievementDesk}>
+        <header className={styles.sectionHeading}>
+          <p>LE LIVRE D’OR</p>
+          <h2>Les souvenirs de ta collection.</h2>
+          <span>Chaque récompense est attribuée une seule fois pour cette édition.</span>
+        </header>
+        <div className={styles.achievementGrid}>
+          {achievements.map(({ achievement, progress, claimed, ready }) => (
+            <article className={`${styles.achievement}${ready ? ` ${styles.achievementPending}` : claimed ? ` ${styles.claimed}` : ""}`} key={achievement.id}>
+              {ready ? <span className={styles.claimStatus}>À récupérer</span> : null}
+              <h3>{achievement.name}</h3>
+              <p>{achievement.description}</p>
+              <progress aria-label={achievement.name} value={Math.min(progress.value, progress.target)} max={progress.target} />
+              <p>{Math.min(progress.value, progress.target)} / {progress.target}</p>
+              <div className={styles.rewardLine}>
+                <strong>{achievement.cash.toLocaleString("fr-FR")} €</strong>
+                <span>{achievement.xp} XP · {achievement.reputation} réputation</span>
+                {achievement.trophy ? <span>Trophée{" · S"}{state.edition.sourceSeason}</span> : null}
+              </div>
+              <button type="button" disabled={busy || !ready} onClick={() => send({ type: "claim-achievement", id: achievement.id })}>
+                {claimed ? "Récompense reçue" : ready ? "Récupérer la récompense" : "À compléter"}
+              </button>
+            </article>
+          ))}
+        </div>
+      </section>
+    ),
     trades: (requestedCard, wanted, offeredCard, onViewBoosters) => <CycloStickersTrades
       key={`${requestedCard ?? ""}:${offeredCard ?? ""}`}
       snapshot={snapshot}
@@ -245,21 +290,4 @@ function PersistentDuplicates({ snapshot, owned, busy, onOffer }: {
       )}
     </section>
   );
-}
-
-function PersistentAchievements({ snapshot, state, busy, onAction }: { snapshot: CollectorAlbumSnapshot; state: CycloStickersPersistentState; busy: boolean; onAction: (action: AlbumPilotAction) => void }) {
-  const view = toCycloStickersAlbumView(state);
-  return <section className={styles.achievementDesk}><header className={styles.sectionHeading}><p>LE LIVRE D’OR</p><h2>Les souvenirs de ta collection.</h2><span>Chaque récompense est attribuée une seule fois pour cette édition.</span></header>
-    <div className={styles.achievementGrid}>{state.edition.achievements.map(config => {
-      const definition = ALBUM_ACHIEVEMENTS.find(row => row.id === config.id);
-      if (!definition) return null;
-      const achievement = { ...definition, name: config.name, target: config.target ?? definition.target, cash: config.cash, xp: config.xp, reputation: config.reputation };
-      const progress = getAlbumAchievementProgress(achievement, view, snapshot.cards);
-      const claimed = state.claimedAchievements.includes(achievement.id);
-      return <article className={styles.achievement} key={achievement.id}><h3>{achievement.name}</h3><p>{achievement.description}</p><progress aria-label={achievement.name} value={Math.min(progress.value, progress.target)} max={progress.target} /><p>{Math.min(progress.value, progress.target)} / {progress.target}</p>
-        <div className={styles.rewardLine}><strong>{achievement.cash.toLocaleString("fr-FR")} €</strong><span>{achievement.xp} XP · {achievement.reputation} réputation</span></div>
-        <button type="button" disabled={busy || claimed || progress.value < progress.target} onClick={() => onAction({ type: "claim-achievement", id: achievement.id })}>{claimed ? "Récompense reçue" : "Recevoir la récompense"}</button>
-      </article>;
-    })}</div>
-  </section>;
 }

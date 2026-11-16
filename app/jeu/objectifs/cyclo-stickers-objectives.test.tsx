@@ -35,6 +35,7 @@ import ObjectivesPage from "./page";
 const editionId = "cyclo-stickers-s4-v1";
 const finalObjective = {
   edition_id: editionId,
+  source_season: 4,
   achievement_id: "count-50",
   title: "Mémoire du peloton",
   current_value: 72,

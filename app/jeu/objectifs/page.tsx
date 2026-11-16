@@ -19,8 +19,8 @@ import Link from "@/components/ui/app-link";
 import { DAILY_REWARD_CYCLE_LENGTH } from "@/lib/game/daily-rewards";
 import { buildObjectivesReturnPath } from "@/lib/game/filtered-page-paths";
 import {
-  ACHIEVEMENT_TROPHY_DEFINITIONS,
   getAchievementTrophyForObjective,
+  getAlbumCompletionTrophy,
 } from "@/lib/game/achievement-trophies";
 import { PATRIOT_OBJECTIVE_KEY } from "@/lib/game/patriot-achievement";
 import { getProspectiveAchievement } from "@/lib/game/prospective-achievements";
@@ -465,7 +465,7 @@ function ObjectiveCard({
       : /^journey_(community_days|private_contacts)_/.test(objective.key) ? { href: "/jeu/chat", label: "Ouvrir le chat et les MP" }
       : groupLinks[objective.group];
   const trophyReward = objective.album?.trophy
-    ? ACHIEVEMENT_TROPHY_DEFINITIONS.cyclo_stickers_s4
+    ? getAlbumCompletionTrophy(objective.album.sourceSeason)
     : getAchievementTrophyForObjective(objective.key);
   const nationalFlagReward = objective.key === PATRIOT_OBJECTIVE_KEY;
   const achievement = getProspectiveAchievement(objective.key);
@@ -513,6 +513,7 @@ function ObjectiveCard({
           </span>
           <span className="rounded-full bg-[#EFF4F1] px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#60756E]">
             {groupLabels[objective.group] ?? objective.group}
+            {objective.album ? ` · S${objective.album.sourceSeason}` : null}
           </span>
           {longTermTier ? (
             <span
