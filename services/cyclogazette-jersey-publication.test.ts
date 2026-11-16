@@ -19,7 +19,7 @@ function fixture({ gameYear = 4, dayNumber = 10, calendarDate = "2026-10-18", ho
   const inserts = vi.fn();
   const from = vi.fn((table: string) => {
     const chain = {
-      select: () => chain, eq: () => chain, in: () => chain, gte: () => chain, lte: () => chain, order: () => chain, limit: () => chain,
+      select: () => chain, eq: () => chain, not: () => chain, in: () => chain, gte: () => chain, lte: () => chain, order: () => chain, limit: () => chain,
       returns: async () => ({ data: table === "national_federation_hosting_decisions" ? hostingDecisions : [], error: null }),
       maybeSingle: async () => ({ data: table === "seasons" ? { id: "season", name: `Saison ${gameYear}`, game_year: gameYear, current_day_number: dayNumber } : table === "season_days" ? { id: "day", day_number: dayNumber, calendar_date: calendarDate } : edition, error: null }),
       insert: (values: Record<string, unknown>) => { inserts(values); edition = { ...values, id: "77777777-7777-4777-8777-777777777777", season_days: { day_number: dayNumber } }; return chain; },
@@ -60,6 +60,7 @@ it("archives the hosting announcement once alongside the existing Gazette featur
   const decision = {
     target_game_year: 6, event_key: "world_championship_pro", event_type: "world_championship_pro",
     continent_code: null, decision: "hosted", countries: { name: "Belgique", iso_alpha2: "BE" },
+    award: { candidacy: { submitter: { automation: null } } },
   };
   const f = fixture({ gameYear: 5, dayNumber: 21, calendarDate: "2026-11-26", hostingDecisions: [decision] });
   const issue = await publishCyclogazetteEdition(new Date("2026-11-26T19:01:00Z"));

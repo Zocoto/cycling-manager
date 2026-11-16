@@ -30,6 +30,11 @@ type HostingDecisionRow = {
   continent_code: string | null;
   decision: "hosted" | "neutral";
   countries: { name: string; iso_alpha2: string } | null;
+  award: {
+    candidacy: {
+      submitter: { automation: { id: string } | null } | null;
+    } | null;
+  } | null;
 };
 
 export async function loadCyclogazetteHostingStories(
@@ -46,7 +51,11 @@ export async function loadCyclogazetteHostingStories(
 
   const result = await admin
     .from("national_federation_hosting_decisions")
-    .select("target_game_year, event_key, event_type, continent_code, decision, countries(name, iso_alpha2)")
+    .select(
+      "target_game_year, event_key, event_type, continent_code, decision, countries(name, iso_alpha2), award:national_federation_hosting_awards!inner(candidacy:national_federation_hosting_candidacies!inner(submitter:sporting_directors!inner(automation:alpha_bot_managers(id))))",
+    )
+    .eq("decision", "hosted")
+    .not("award.candidacy.submitter.auth_user_id", "is", null)
     .eq("gazette_date", calendarDate)
     .gte("target_game_year", Math.max(6, gameYear))
     .lte("target_game_year", gameYear + 1)
@@ -63,18 +72,19 @@ export async function loadCyclogazetteHostingStories(
   const seasons = new Map<number, NonNullable<CyclogazetteFeatureStory["hostingDecisions"]>>();
   for (const row of result.data ?? []) {
     const event = EVENT_LABELS[row.event_type];
-    if (!event || (row.decision !== "hosted" && row.decision !== "neutral") || (row.decision === "hosted" && !row.countries)) continue;
+    const submitter = row.award?.candidacy?.submitter;
+    const country = row.countries;
+    if (!event || row.decision !== "hosted" || !country || !submitter || submitter.automation) continue;
     const continent = row.continent_code ? CONTINENT_LABELS.get(row.continent_code) : null;
-    const country = row.decision === "hosted" ? row.countries : null;
-    const alpha2 = country?.iso_alpha2.toUpperCase();
+    const alpha2 = country.iso_alpha2.toUpperCase();
     const countryCode = alpha2 && /^[A-Z]{2}$/.test(alpha2) ? alpha2 : undefined;
     const decisions = seasons.get(row.target_game_year) ?? [];
     decisions.push({
       eventKey: row.event_key,
       eventName: continent ? `${event[0]} · ${continent[0]}` : event[0],
       eventNameEn: continent ? `${event[1]} · ${continent[1]}` : event[1],
-      hostName: country?.name ?? "Terrain neutre",
-      hostNameEn: (countryCode ? englishCountryNames.of(countryCode) : undefined) ?? country?.name ?? "Neutral venue",
+      hostName: country.name,
+      hostNameEn: (countryCode ? englishCountryNames.of(countryCode) : undefined) ?? country.name,
       countryCode: countryCode?.toLowerCase(),
     });
     seasons.set(row.target_game_year, decisions);

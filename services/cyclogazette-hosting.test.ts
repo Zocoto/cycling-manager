@@ -13,6 +13,7 @@ function fixture(data: unknown[] = []) {
   const query = {
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
+    not: vi.fn().mockReturnThis(),
     gte: vi.fn().mockReturnThis(),
     lte: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
@@ -31,7 +32,7 @@ describe("Gazette hosting announcements", () => {
     expect(from).not.toHaveBeenCalled();
   });
 
-  it("reads one bounded issue projection and freezes official hosted and neutral outcomes in both languages", async () => {
+  it("announces only player hosts in a mixed jury result, in both languages", async () => {
     const { admin, from, query } = fixture([
       {
         target_game_year: 6,
@@ -40,6 +41,7 @@ describe("Gazette hosting announcements", () => {
         continent_code: "europe",
         decision: "hosted",
         countries: { name: "Allemagne", iso_alpha2: "DE" },
+        award: { candidacy: { submitter: { automation: null } } },
       },
       {
         target_game_year: 6,
@@ -48,11 +50,23 @@ describe("Gazette hosting announcements", () => {
         continent_code: null,
         decision: "neutral",
         countries: null,
+        award: null,
+      },
+      {
+        target_game_year: 6,
+        event_key: "nations_cup_pro",
+        event_type: "nations_cup_pro",
+        continent_code: null,
+        decision: "hosted",
+        countries: { name: "Italie", iso_alpha2: "IT" },
+        award: { candidacy: { submitter: { automation: { id: "bot" } } } },
       },
     ]);
     const stories = await loadCyclogazetteHostingStories(admin, context);
     expect(from).toHaveBeenCalledExactlyOnceWith("national_federation_hosting_decisions");
-    expect(query.eq).toHaveBeenCalledExactlyOnceWith("gazette_date", "2026-11-26");
+    expect(query.eq).toHaveBeenCalledWith("decision", "hosted");
+    expect(query.eq).toHaveBeenCalledWith("gazette_date", "2026-11-26");
+    expect(query.not).toHaveBeenCalledWith("award.candidacy.submitter.auth_user_id", "is", null);
     expect(query.gte).toHaveBeenCalledExactlyOnceWith("target_game_year", 6);
     expect(query.lte).toHaveBeenCalledWith("target_game_year", 6);
     expect(query.lte).toHaveBeenCalledWith("decided_at", context.now.toISOString());
@@ -69,9 +83,21 @@ describe("Gazette hosting announcements", () => {
           hostNameEn: "Germany",
           countryCode: "de",
         },
-        expect.objectContaining({ hostName: "Terrain neutre", hostNameEn: "Neutral venue", countryCode: undefined }),
       ],
     })]);
+  });
+
+  it("skips the article when no player was selected and uses the jury day of later seasons", async () => {
+    const { admin, query } = fixture();
+    expect(await loadCyclogazetteHostingStories(admin, {
+      gameYear: 12,
+      dayNumber: 21,
+      calendarDate: "2027-06-18",
+      now: new Date("2027-06-18T18:01:00Z"),
+    })).toEqual([]);
+    expect(query.eq).toHaveBeenCalledWith("gazette_date", "2027-06-18");
+    expect(query.eq).toHaveBeenCalledWith("decision", "hosted");
+    expect(query.lte).toHaveBeenCalledWith("target_game_year", 13);
   });
 
   it("allows the first issue after rollover to announce decisions that arrived after the last closing", async () => {
