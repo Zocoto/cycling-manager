@@ -94,7 +94,10 @@ try {
     update staff_member_talents set talent_code = 'educator_parallel_training'
     where staff_member_id = '${educatorId}' and talent_code = 'educator_training_cost';
   `);
-  await expectOpportunity(1, 1);
+  await db.exec(readFileSync(new URL("../supabase/migrations/20261116203000_enforce_staff_academy_level_one_capacity.sql", import.meta.url), "utf8"));
+  await expectOpportunity(0, 0);
+  await db.exec("update team_infrastructures set level = 2");
+  await expectOpportunity(2, 1);
   console.log("Staff Academy dashboard opportunity checks passed on isolated PGlite.");
 } finally {
   await db.close();

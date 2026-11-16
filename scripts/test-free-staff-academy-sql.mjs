@@ -239,7 +239,34 @@ try {
     insert into staff_contracts values('${id(18)}','${id(17)}','${id(2)}','active'),('${id(20)}','${id(19)}','${id(2)}','active');
     insert into staff_member_talents(staff_member_id,talent_code,slot_number)
     values('${id(17)}','educator_parallel_training',1),('${id(19)}','educator_parallel_training',1);`);
-  assert.equal(Number((await scalar(`select get_team_staff_academy_educator_bonuses('${id(2)}')`)).extraCapacity),1);
+  await db.exec("update seasons set current_day_number=1");
+  const existingFirst = (await start("level", 5)).rows[0].id;
+  await start("level", 7);
+  const readActive = () => db.query("select id, status, completes_game_day_index from staff_academy_trainings where status='active' order by id");
+  const oldTrainings = (await readActive()).rows;
+  assert.equal(oldTrainings.length, 2);
+  const capacityBonus = async () => Number((await scalar(
+    "select get_team_staff_academy_educator_bonuses('" + id(2) + "')",
+  )).extraCapacity);
+
+  await db.exec(readFileSync("supabase/migrations/20261116203000_enforce_staff_academy_level_one_capacity.sql", "utf8"));
+  assert.deepEqual((await readActive()).rows, oldTrainings);
+  assert.equal(await capacityBonus(), 0);
+  await assert.rejects(start("level", 14), /Les 1 emplacement/);
+
+  await db.query("update staff_academy_trainings set status='completed' where id=$1", [existingFirst]);
+  await assert.rejects(start("level", 14), /Les 1 emplacement/);
+  await db.exec("update seasons set current_day_number=28");
+  await settle();
+  await start("level", 18);
+  await assert.rejects(start("level", 5), /Les 1 emplacement/);
+
+  await db.exec("update team_infrastructures set level=2");
+  assert.equal(await capacityBonus(), 1);
+  await start("level", 5);
+  await start("level", 7);
+  await assert.rejects(start("level", 14), /Les 3 emplacement/);
+  await clearNew();
   await db.exec(`update staff_contracts set status='inactive' where staff_member_id in ('${id(13)}','${id(17)}','${id(19)}')`);
   await assert.rejects(start("level",7),/formateur actif/);
   assert.equal(Number(await scalar("select cash_balance from team_seasons")),-402000);

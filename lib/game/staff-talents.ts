@@ -428,7 +428,7 @@ export const STAFF_TALENT_DEFINITIONS: Record<
     label: "Double cursus",
     minimumLevel: 3,
     description: () =>
-      "Ajoute une place de formation simultanée à l’Académie des métiers",
+      "Ajoute une place de formation simultanée à partir du niveau 2 de l’Académie des métiers",
   },
   educator_training_effectiveness: {
     role: "educator",
