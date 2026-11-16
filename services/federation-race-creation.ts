@@ -279,7 +279,10 @@ function parseScore(value: unknown, fallback: FederationRaceCreationScore): Fede
     objectivePoints: number("objectivePoints") ?? fallback.objectivePoints,
     existingRaceCount: number("existingRaceCount") ?? fallback.existingRaceCount,
     calendarPenaltyPerRace: number("calendarPenaltyPerRace") ?? fallback.calendarPenaltyPerRace,
-    calendarPenalty: number("calendarPenalty") ?? fallback.calendarPenalty, total, threshold,
+    calendarPenalty: number("calendarPenalty") ?? fallback.calendarPenalty,
+    organizationPrestige: number("organizationPrestige") ?? undefined,
+    organizationPrestigeBonus: number("organizationPrestigeBonus") ?? undefined,
+    total, threshold,
     continentalThreshold: number("continentalThreshold") ?? fallback.continentalThreshold,
     eligible: typeof score.eligible === "boolean" ? score.eligible : total >= threshold,
   };

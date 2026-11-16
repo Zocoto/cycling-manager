@@ -182,6 +182,7 @@ type StageRow = {
 };
 type RenownRow = {
   score: number;
+  legacy_score?: number | null;
   uci_history_points: number;
   team_legacy_points: number;
   rider_legacy_points: number;
@@ -486,7 +487,7 @@ export async function getFederationCoursesState({
       : { data: [] as CountryRow[], error: null };
     if (countriesResult.error) throw countriesResult.error;
 
-    const renown = parseRenown(renownResult.data, gameYear);
+    const { renown, legacyScore } = parseRenown(renownResult.data, gameYear);
     const categoryById = new Map(
       (categoriesResult.data ?? []).map((category) => [category.id, category]),
     );
@@ -698,7 +699,7 @@ export async function getFederationCoursesState({
           : calculateFederationHostingAttendance({
               eventType: event.type,
               participationRate: rate,
-              renown: renown.score,
+              renown: legacyScore,
               hostingCost,
               revenueBonusPercentage: officeEffects.internationalHostingRevenueBonusPercentage,
             });
@@ -905,18 +906,21 @@ async function loadRacePastWinners(
   return result;
 }
 
-function parseRenown(value: unknown, gameYear: number): FederationRenownState {
+function parseRenown(value: unknown, gameYear: number): { renown: FederationRenownState; legacyScore: number } {
   const row = (Array.isArray(value) ? value[0] : value) as RenownRow | null;
-  if (!row || typeof row.score !== "number") return emptyRenown(gameYear);
+  if (!row || typeof row.score !== "number") return { renown: emptyRenown(gameYear), legacyScore: 0 };
   return {
-    score: row.score,
-    label: getFederationRenownLabel(row.score),
-    sourceThroughGameYear: row.source_through_game_year,
-    breakdown: {
-      uciHistory: row.uci_history_points,
-      teamLegacy: row.team_legacy_points,
-      riderLegacy: row.rider_legacy_points,
-      hostingLegacy: row.hosting_legacy_points,
+    legacyScore: row.legacy_score ?? row.score,
+    renown: {
+      score: row.score,
+      label: getFederationRenownLabel(row.score),
+      sourceThroughGameYear: row.source_through_game_year,
+      breakdown: {
+        uciHistory: row.uci_history_points,
+        teamLegacy: row.team_legacy_points,
+        riderLegacy: row.rider_legacy_points,
+        hostingLegacy: row.hosting_legacy_points,
+      },
     },
   };
 }

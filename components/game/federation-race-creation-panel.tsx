@@ -622,6 +622,8 @@ function ScoreBreakdown({
   state: FederationRaceCreationState;
   gameYear: number;
 }) {
+  const { organizationPrestige, organizationPrestigeBonus } = state.score;
+  const hasOrganizationBonus = organizationPrestige !== undefined && organizationPrestigeBonus !== undefined;
   const items = [
     {
       label: "Classement national",
@@ -638,6 +640,11 @@ function ScoreBreakdown({
       value: `−${state.score.calendarPenalty}`,
       detail: `${state.score.existingRaceCount} course${state.score.existingRaceCount > 1 ? "s" : ""} du pays`,
     },
+    ...(hasOrganizationBonus ? [{
+      label: "Prestige d’organisation",
+      value: `+${organizationPrestigeBonus}`,
+      detail: `${organizationPrestige}/200`,
+    }] : []),
     {
       label: "Bureau d’organisation",
       value: `Niv. ${state.officeLevel}`,
@@ -646,7 +653,7 @@ function ScoreBreakdown({
   ];
   return (
     <div>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className={`grid gap-3 sm:grid-cols-2 ${hasOrganizationBonus ? "xl:grid-cols-5" : "xl:grid-cols-4"}`}>
         {items.map((item) => (
           <article
             key={item.label}
@@ -664,7 +671,9 @@ function ScoreBreakdown({
       </div>
       <p className="mt-3 text-xs font-semibold leading-5 text-[#60756E]">
         Formule : classement (40 points maximum) + 15 points par objectif − {state.score.calendarPenaltyPerRace}
-        {" "}points par course existante. Seuil {state.score.threshold} pour les rangs régional et national,
+        {" "}points par course existante.
+        {hasOrganizationBonus ? <>{" "}Le prestige d’organisation ajoute 1 point par tranche de 20, jusqu’à 10 points.</> : null}
+        {" "}Seuil {state.score.threshold} pour les rangs régional et national,
         {" "}{state.score.continentalThreshold} pour le rang continental. Une seule homologation par fédération et par saison, à partir de S
         {FEDERATION_RACE_CREATION_START_GAME_YEAR}
         {gameYear < FEDERATION_RACE_CREATION_START_GAME_YEAR ? " (verrouillée actuellement)" : ""}.

@@ -92,6 +92,8 @@ export type FederationRaceCreationScore = {
   existingRaceCount: number;
   calendarPenaltyPerRace: number;
   calendarPenalty: number;
+  organizationPrestige?: number;
+  organizationPrestigeBonus?: number;
   total: number;
   threshold: number;
   continentalThreshold: number;

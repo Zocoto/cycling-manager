@@ -107,7 +107,8 @@ describe("FederationCoursesPanel", () => {
     expect(markup).toContain("Nation reconnue");
     expect(markup).toContain("Classements UCI · 10 saisons");
     expect(markup).toContain("Prestige d’organisation · 5 saisons");
-    expect(markup).toContain("5 % l’affluence de référence");
+    expect(markup).toContain("6/100");
+    expect(markup).not.toContain("jusqu’à 10 points à l’indice");
     expect(markup).not.toContain("Nations Cup juniors");
     expect(markup).toContain("Jeux quadriennaux professionnels");
     expect(markup).not.toContain("Nations Cup professionnelle");
@@ -115,6 +116,23 @@ describe("FederationCoursesPanel", () => {
     expect(markup).toContain("Coût si retenu");
     expect(markup).toContain("Déposer la candidature");
     expect(markup).toContain('name="eventType"');
+  });
+
+  it("shows the new national renown weights from Season 6", () => {
+    const markup = renderToStaticMarkup(
+      <FederationCoursesPanel
+        countryCode="FR"
+        gameYear={6}
+        state={{ ...state, renown: { ...state.renown, sourceThroughGameYear: 6 } }}
+        raceCreationState={null}
+      />,
+    );
+
+    expect(markup).toContain("260/500");
+    expect(markup).toContain("90/150");
+    expect(markup).toContain("62/150");
+    expect(markup).toContain("6/200");
+    expect(markup).toContain("jusqu’à 10 points à l’indice");
   });
 
   it("shows submitted bids and the jury calendar to an affiliated member without judging criteria", () => {

@@ -64,6 +64,31 @@ describe("FederationRaceCreationPanel", () => {
     expect(markup).toContain("Débitée à partir de la deuxième édition");
     expect(markup).toContain('min="2"');
     expect(markup).toContain("J27, heure de Paris");
+    expect(markup).not.toContain("Le prestige d’organisation ajoute");
+  });
+
+  it("shows the organization contribution in the homologation breakdown", () => {
+    const markup = renderToStaticMarkup(
+      <FederationRaceCreationPanel
+        countryCode="BE"
+        gameYear={6}
+        state={{
+          ...eligibleState,
+          targetGameYear: 7,
+          score: {
+            ...eligibleState.score,
+            total: 65,
+            organizationPrestige: 110,
+            organizationPrestigeBonus: 5,
+          },
+        }}
+      />,
+    );
+
+    expect(markup).toContain("Prestige d’organisation");
+    expect(markup).toContain("110/200");
+    expect(markup).toContain(">+5<");
+    expect(markup).toContain("1 point par tranche de 20");
   });
 
   it("replaces the form with the public next-season summary after homologation", () => {

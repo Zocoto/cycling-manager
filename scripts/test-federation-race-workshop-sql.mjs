@@ -10,6 +10,7 @@ const migration = (name) => readFileSync(`supabase/migrations/${name}.sql`, "utf
 const projects = migration("20260904150000_create_federation_race_workshop");
 const workflow = migration("20260914100000_rebuild_federation_race_workflow");
 const settlement = migration("20261110120020_finalize_federation_race_workshop");
+const homologation = migration("20261116184000_add_organization_prestige_to_race_homologation");
 
 const id = (number) => `00000000-0000-4000-8000-${String(number).padStart(12, "0")}`;
 const value = async (query, params = []) => (await db.query(query, params)).rows[0];
@@ -70,8 +71,19 @@ try {
     create function public.get_current_federation_identity(text) returns table(country_id uuid, sporting_director_id uuid, team_id uuid)
       language sql as $$select t.country_id, t.president_director_id, a.team_id from public.national_federation_terms t
         join public.team_manager_assignments a on a.sporting_director_id=t.president_director_id where t.president_director_id=auth.uid()$$;
-    create function public.get_national_federation_race_creation_score(uuid,uuid) returns jsonb language sql as $$select '{"total":80,"threshold":60}'::jsonb$$;
-    create function public.ensure_transfer_next_season(uuid) returns uuid language sql as $$select '${id(16)}'::uuid$$;
+    create table test_homologation(country_id uuid primary key, ranking_points int, objective_points int,
+      existing_races int, organization_prestige int, calendar_penalty int, threshold int);
+    create function public.get_national_federation_race_creation_score_base(uuid,uuid) returns jsonb
+      language sql stable as $$select jsonb_build_object('rankingPoints',coalesce(data.ranking_points,35),
+        'objectivePoints',coalesce(data.objective_points,45),'existingRaceCount',coalesce(data.existing_races,0),
+        'completedObjectiveCount',3) from (select 1) seed left join public.test_homologation data on data.country_id=$1$$;
+    create function public.get_national_federation_race_organization_effects(uuid)
+      returns table(calendar_penalty_per_existing_race int,regional_national_homologation_threshold int)
+      language sql stable as $$select data.calendar_penalty,data.threshold from public.test_homologation data where data.country_id=$1$$;
+    create function private.get_national_federation_organization_prestige(uuid,int) returns integer
+      language sql stable as $$select data.organization_prestige from public.test_homologation data where data.country_id=$1$$;
+    create function public.ensure_transfer_next_season(uuid) returns uuid language sql as $$
+      select next.id from public.seasons current join public.seasons next on next.game_year=current.game_year+1 where current.id=$1$$;
     create function public.initialize_due_national_federation_accounts() returns integer language sql as $$select 0$$;
     create function private.get_national_federation_reserved_hosting_amount(uuid,uuid) returns numeric
       language sql as $$select coalesce(sum(amount),0) from public.test_hosting where country_id=$1 and season_id=$2$$;
@@ -82,6 +94,7 @@ try {
     ${projects.slice(projects.indexOf("create table public.national_federation_race_projects"), projects.indexOf("create or replace function"))}
     ${workflow.slice(workflow.indexOf("alter table public.national_federation_race_projects"), workflow.indexOf("create or replace function private.get_national_federation_race_costs"))}
   `);
+  await db.exec(homologation);
   for (const name of [
     "private.get_national_federation_race_costs", "private.validate_national_federation_race_blueprint",
     "private.materialize_national_federation_race", "public.save_national_federation_race_draft",
@@ -183,13 +196,53 @@ try {
   assert.equal(await reputation(4), 200);
   await db.exec(`
     update seasons set status='completed' where game_year=6;
-    insert into seasons values ('${id(17)}',7,'active',1,current_date+80);
+    insert into seasons values ('${id(17)}',7,'active',1,current_date+24), ('${id(18)}',8,'planned',1,current_date+52);
     insert into national_federation_accounts values ('${id(701)}','${id(101)}','${id(17)}',1000000,now());
   `);
   assert.deepEqual((await value("select public.settle_due_national_federation_race_maintenance() as result")).result, { paid: 1, cancelled: 0 });
   assert.equal(await balance(701), 550_000);
   assert.deepEqual((await value("select public.settle_due_national_federation_race_maintenance() as result")).result, { paid: 0, cancelled: 0 });
-  console.log("Atelier fédéral isolé : devis, calendrier, votes, échecs, remboursement et maintenance vérifiés.");
+
+  await db.exec(`
+    insert into season_days(season_id,day_number,calendar_date)
+      select '${id(18)}', day, current_date+24+day from generate_series(1,28) as day;
+    update national_federation_terms set end_game_year=7 where country_id='${id(102)}';
+    insert into team_seasons values ('${id(702)}','${id(17)}','${id(202)}','${id(102)}','active');
+    insert into national_federation_accounts values ('${id(802)}','${id(102)}','${id(17)}',1000000,now());
+    insert into test_homologation values ('${id(102)}',20,30,0,199,null,null);
+  `);
+  const score = async (season) => (await value("select public.get_national_federation_race_creation_score($1,$2) as result", [id(102), id(season)])).result;
+  const s5Score = await score(15);
+  assert.equal(s5Score.total, 50);
+  assert.equal(s5Score.organizationPrestigeBonus, undefined);
+  assert.equal((await score(16)).organizationPrestigeBonus, undefined, "historic S6 budget paths omit the live prestige read");
+  assert.equal((await score(17)).organizationPrestigeBonus, 9);
+  assert.equal((await score(17)).total, 59);
+  await assert.rejects(addDraft(2, 12, "regional", [stage("Classique")]), /indice d’homologation/);
+
+  await db.exec("update test_homologation set organization_prestige=225");
+  const eligible = await score(17);
+  assert.equal(eligible.organizationPrestige, 200);
+  assert.equal(eligible.organizationPrestigeBonus, 10);
+  assert.equal(eligible.total, 60);
+  assert.equal(eligible.eligible, true);
+  assert.equal(eligible.continentalThreshold, 60);
+  const prestigeDraft = await addDraft(2, 12, "regional", [stage("Classique")]);
+  assert.equal((await project(prestigeDraft)).score_snapshot.organizationPrestigeBonus, 10);
+  await db.exec("update test_homologation set organization_prestige=180");
+  await assert.rejects(submit(2, prestigeDraft), /indice d’homologation/);
+  assert.equal(await balance(802), 1_000_000);
+
+  await db.exec("update test_homologation set organization_prestige=200, existing_races=1, calendar_penalty=7, threshold=52");
+  const territorial = await score(17);
+  assert.equal(territorial.calendarPenalty, 7);
+  assert.equal(territorial.total, 53);
+  assert.equal(territorial.threshold, 52);
+  assert.equal(territorial.eligible, true);
+  await submit(2, prestigeDraft);
+  assert.equal((await project(prestigeDraft)).status, "voting");
+  assert.equal(await balance(802), 700_000);
+  console.log("Atelier fédéral isolé : prestige, homologation, devis, calendrier, votes, remboursement et maintenance vérifiés.");
 } catch (error) {
   console.error(error instanceof Error ? error.stack?.split("\n").slice(0, 7).join("\n") : error);
   if (error?.where) console.error(error.where);

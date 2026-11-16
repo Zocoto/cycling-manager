@@ -340,11 +340,13 @@ function HostingRevenueBreakdown({ economics, breakdown }: {
 }
 
 function RenownPanel({ state }: { state: FederationCoursesState }) {
+  const { breakdown, sourceThroughGameYear } = state.renown;
+  const rebalanced = sourceThroughGameYear >= 6;
   const metrics = [
-    { label: "Classements UCI · 10 saisons", value: state.renown.breakdown.uciHistory, maximum: 600 },
-    { label: "Palmarès des équipes", value: state.renown.breakdown.teamLegacy, maximum: 180 },
-    { label: "Palmarès des coureurs", value: state.renown.breakdown.riderLegacy, maximum: 170 },
-    { label: "Prestige d’organisation · 5 saisons", value: state.renown.breakdown.hostingLegacy, maximum: 100 },
+    { label: "Classements UCI · 10 saisons", value: breakdown.uciHistory, maximum: rebalanced ? 500 : 600 },
+    { label: "Palmarès des équipes", value: breakdown.teamLegacy, maximum: rebalanced ? 150 : 180 },
+    { label: "Palmarès des coureurs", value: breakdown.riderLegacy, maximum: rebalanced ? 150 : 170 },
+    { label: "Prestige d’organisation · 5 saisons", value: breakdown.hostingLegacy, maximum: rebalanced ? 200 : 100 },
   ];
   return (
     <section className="overflow-hidden rounded-[2rem] border border-[var(--federation-secondary)]/30 bg-[linear-gradient(135deg,var(--federation-primary)_0%,var(--federation-secondary)_100%)] p-6 text-white shadow-[0_20px_55px_rgba(19,60,46,0.18)] sm:p-8">
@@ -359,11 +361,9 @@ function RenownPanel({ state }: { state: FederationCoursesState }) {
           </div>
           <p className="mt-2 text-lg font-black text-[#F2C94C]">{state.renown.label}</p>
           <p className="mt-3 max-w-xl text-sm font-semibold leading-6 text-[#D6E9E2]">
-            Cette valeur conserve la mémoire sportive du pays : résultats
-            récents, grandes équipes, podiums de ses coureurs et compétitions
-            accueillies. Le prestige d’organisation cumule les cinq dernières
-            saisons, jusqu’à 100 points. À son maximum, il augmente d’environ
-            5 % l’affluence de référence.
+            La renommée reflète les résultats du pays, le palmarès de ses équipes et de ses coureurs, et les compétitions accueillies.
+            {" "}Le prestige d’organisation cumule les cinq dernières saisons.
+            {rebalanced ? <>{" "}Il peut aussi ajouter jusqu’à 10 points à l’indice d’homologation d’une nouvelle course.</> : null}
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">

@@ -1,4 +1,10 @@
 {
+  "Il peut aussi ajouter jusqu’à 10 points à l’indice d’homologation d’une nouvelle course.": "It can also add up to 10 points to the approval score for a new race.",
+  "La renommée reflète les résultats du pays, le palmarès de ses équipes et de ses coureurs, et les compétitions accueillies.": "National renown reflects the country's results, the achievements of its teams and riders, and the events it has hosted.",
+  "Le prestige d’organisation ajoute 1 point par tranche de 20, jusqu’à 10 points.": "Every 20 points of hosting prestige adds 1 point to the approval score, up to 10 points.",
+  "Le prestige d’organisation cumule les cinq dernières saisons.": "Hosting prestige covers the last five seasons.",
+  "points par course existante.": "points per existing race.",
+  "Seuil": "Threshold",
   "var(--font-geist-sans), Arial, sans-serif": "var(--font-geist-sans), Arial, sans-serif",
   "Contenu de la tribune": "Column content",
   "Revenir à l’édition": "Return to editing",
