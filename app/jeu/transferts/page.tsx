@@ -5,6 +5,7 @@ import { DirectTransferOfferTerms } from "@/components/game/direct-transfer-offe
 import { ScheduledDirectTransfers } from "@/components/game/scheduled-direct-transfers";
 
 import {
+  cancelDirectorListingAction,
   placeTransferBidAction,
   respondToDirectTransferOfferAction,
   signFreeAgentAction,
@@ -568,6 +569,13 @@ function RiderSearch({ riders, countries, query, filters, currency, currentTeamI
 
 function AuctionCard({ listing, jersey, leaderSponsor, teamId, availableBudget, rosterIsFull, returnPath }: { listing: TransferMarketListing; jersey: RiderJerseyAppearance; leaderSponsor: Sponsor | null; teamId: string; availableBudget: number; rosterIsFull: boolean; returnPath: string }) {
   const isFinished = listing.status !== "open";
+  const isOwnOpenListing = listing.type === "director" &&
+    listing.sellerTeamId === teamId &&
+    !isFinished;
+  const hasReceivedBid = listing.hasReceivedBid || listing.bidCount > 0;
+  const canCancelListing = isOwnOpenListing &&
+    !hasReceivedBid &&
+    new Date(listing.closesAt) > new Date();
   const canBid =
     listing.status === "open" &&
     listing.sellerTeamId !== teamId &&
@@ -681,7 +689,21 @@ function AuctionCard({ listing, jersey, leaderSponsor, teamId, availableBudget, 
             <label className="text-[10px] font-black uppercase tracking-wider text-[#48665F]">Votre offre<input name="amount" type="number" min={listing.minimumNextBid} step="100" required defaultValue={listing.minimumNextBid} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 px-3 text-sm font-black" /></label>
             <div className="self-end"><TransferSubmitButton pendingLabel="Offre…" disabled={bidCapacity < listing.minimumNextBid}>Enchérir</TransferSubmitButton></div>
           </form>
-        ) : listing.sellerTeamId === teamId && listing.status === "open" ? <p className="mt-4 text-center text-xs font-black uppercase tracking-wider text-[#60756E]">Votre mise en vente</p> : rosterIsFull && listing.status === "open" ? <p className="mt-4 rounded-xl bg-[#FFF0EE] px-4 py-3 text-center text-xs font-black text-[#8A2F2F]">Capacité de recrutement atteinte</p> : null}
+        ) : canCancelListing ? (
+          <form action={cancelDirectorListingAction} className="mt-4 flex justify-end">
+            <input type="hidden" name="listingId" value={listing.id} />
+            <input type="hidden" name="returnPath" value={returnPath} />
+            <TransferSubmitButton pendingLabel="Annulation…" tone="dark">
+              Annuler la mise en vente
+            </TransferSubmitButton>
+          </form>
+        ) : isOwnOpenListing && hasReceivedBid ? (
+          <p className="mt-4 text-xs font-semibold leading-5 text-[#60756E]">
+            Une offre a déjà été déposée. La mise en vente ne peut plus être annulée.
+          </p>
+        ) : !isOwnOpenListing && rosterIsFull && !isFinished ? (
+          <p className="mt-4 rounded-xl bg-[#FFF0EE] px-4 py-3 text-center text-xs font-black text-[#8A2F2F]">Capacité de recrutement atteinte</p>
+        ) : null}
         <p className="mt-3 text-[10px] font-semibold leading-4 text-[#60756E]">Contrat proposé : saison actuelle + saison suivante · salaire saisonnier {formatMoney(listing.salaryPerSeason, listing.currency)}</p>
       </div>
     </article>

@@ -3,8 +3,12 @@
 import Link from "@/components/ui/app-link";
 import { useFormStatus } from "react-dom";
 
-import { createDirectorListingAction } from "@/app/jeu/transferts/actions";
+import {
+  cancelDirectorListingAction,
+  createDirectorListingAction,
+} from "@/app/jeu/transferts/actions";
 import { TransferCountdown } from "@/components/game/transfer-countdown";
+import { TransferSubmitButton } from "@/components/game/transfer-submit-button";
 import type { RiderTransferManagement } from "@/services/transfer-market";
 
 export function RiderTransferListingCard({
@@ -59,6 +63,20 @@ export function RiderTransferListingCard({
           >
             Voir l’enchère
           </Link>
+          {management.activeListing.canCancel ? (
+            <form action={cancelDirectorListingAction} className="mt-3">
+              <input type="hidden" name="listingId" value={management.activeListing.id} />
+              <input type="hidden" name="riderId" value={riderId} />
+              <input type="hidden" name="returnPath" value={`/jeu/coureurs/${riderId}`} />
+              <TransferSubmitButton pendingLabel="Annulation…" tone="dark">
+                Annuler la mise en vente
+              </TransferSubmitButton>
+            </form>
+          ) : management.activeListing.hasReceivedBid ? (
+            <p className="mt-3 text-sm font-semibold text-[#557184]">
+              Une offre a déjà été déposée. La mise en vente ne peut plus être annulée.
+            </p>
+          ) : null}
         </div>
       ) : management.canListRider ? (
         <form action={createDirectorListingAction} className="mt-5">

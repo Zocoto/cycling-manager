@@ -66,7 +66,7 @@ describe("RiderTransferListingCard", () => {
     expect(markup).toContain("Mettre en vente pendant 24 h");
   });
 
-  it("affiche l’enchère existante au lieu d’un second formulaire", () => {
+  it.each([false, true])("affiche l’enchère et permet son retrait sans offre (offre reçue : %s)", (hasReceivedBid) => {
     const markup = renderToStaticMarkup(
       <RiderTransferListingCard
         riderId="11111111-1111-4111-8111-111111111111"
@@ -79,6 +79,8 @@ describe("RiderTransferListingCard", () => {
             id: "22222222-2222-4222-8222-222222222222",
             minimumBid: 20_000,
             closesAt: "2026-08-31T18:00:00.000Z",
+            canCancel: !hasReceivedBid,
+            hasReceivedBid,
           },
         }}
       />,
@@ -90,5 +92,7 @@ describe("RiderTransferListingCard", () => {
       "/jeu/transferts?onglet=quotidiennes#enchere-22222222-2222-4222-8222-222222222222",
     );
     expect(markup).not.toContain('name="minimumBid"');
+    expect(markup.includes("Annuler la mise en vente")).toBe(!hasReceivedBid);
+    expect(markup.includes("Une offre a déjà été déposée.")).toBe(hasReceivedBid);
   });
 });

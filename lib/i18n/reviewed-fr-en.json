@@ -3866,5 +3866,11 @@
   "Ton premier exemplaire reste dans ta collection. Les doubles libres apparaîtront ici.": "Your first copy stays in your collection. Available spares will appear here.",
   "Propositions d’échange reçues": "Received trade offers",
   "Vignette de la Gazette": "Gazette sticker",
-  "Booster ajouté à ton album.": "Booster added to your album."
+  "Booster ajouté à ton album.": "Booster added to your album.",
+  "Annuler la mise en vente": "Cancel the listing",
+  "Cette mise en vente n’est pas accessible à votre équipe.": "This listing is not available to your team.",
+  "Cette mise en vente n’est plus ouverte.": "This listing is no longer open.",
+  "Impossible d’annuler la mise en vente.": "Could not cancel the listing.",
+  "La mise en vente a été annulée. Le coureur reste dans votre effectif.": "The listing was cancelled. The rider stays on your roster.",
+  "Une offre a déjà été déposée. La mise en vente ne peut plus être annulée.": "A bid has already been placed. The listing can no longer be cancelled."
 }

@@ -12,6 +12,7 @@ vi.mock("@/services/push-notifications", () => ({ dispatchDuePushNotifications: 
 vi.mock("@/services/transfer-market", () => ({ getCurrentTeamDirectTransferTradeCandidates: mocks.candidates }));
 
 import {
+  cancelDirectorListingAction,
   cancelDirectTransferOfferAction,
   loadDirectTransferTradeCandidatesAction,
   respondToDirectTransferOfferAction,
@@ -38,6 +39,41 @@ beforeEach(() => {
   mocks.from.mockReturnValue(query);
   mocks.client.mockResolvedValue({ auth: { getUser: mocks.auth }, rpc: mocks.rpc, from: mocks.from });
   mocks.candidates.mockResolvedValue([{ id: outgoing, firstName: "Jean", lastName: "Sortant", currentSalary: 5000, salaryPerSeason: 7000 }]);
+});
+
+describe("director auction withdrawal", () => {
+  it("cancels through the RPC and refreshes the market and authoritative rider", async () => {
+    mocks.rpc.mockResolvedValue({ data: target, error: null });
+    const returnPath = `/jeu/coureurs/${target}`;
+
+    await expect(cancelDirectorListingAction(form({ listingId: offerId, riderId: forged, returnPath })))
+      .rejects.toThrow(`${returnPath}?succes=`);
+
+    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("cancel_director_transfer_listing", {
+      p_listing_id: offerId,
+    });
+    expect(mocks.path).toHaveBeenCalledWith(returnPath);
+    expect(mocks.path).toHaveBeenCalledWith("/jeu/transferts");
+    expect(mocks.path).not.toHaveBeenCalledWith(`/jeu/coureurs/${forged}`);
+    expect(mocks.after).not.toHaveBeenCalled();
+  });
+
+  it("returns to the seller tab when the database reports a bid", async () => {
+    const message = "Une offre a déjà été déposée. La mise en vente ne peut plus être annulée.";
+    mocks.rpc.mockResolvedValue({ data: null, error: { message } });
+    await expect(cancelDirectorListingAction(form({ listingId: offerId, returnPath: "/jeu/transferts?onglet=directeurs" })))
+      .rejects.toThrow("/jeu/transferts?onglet=directeurs&erreur=");
+    expect(new URL(mocks.redirect.mock.calls[0][0], "https://cyclostratege.fr").searchParams.get("erreur"))
+      .toBe(message);
+    expect(mocks.path).not.toHaveBeenCalled();
+  });
+
+  it("rejects an invalid ID or an unauthenticated request before sending a mutation", async () => {
+    await expect(cancelDirectorListingAction(form({ listingId: "invalid" }))).rejects.toThrow("erreur=");
+    mocks.auth.mockResolvedValue({ data: { user: null }, error: null });
+    await expect(cancelDirectorListingAction(form({ listingId: offerId }))).rejects.toThrow("/connexion");
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
 });
 
 describe("direct transfer offers, cash and rider exchange", () => {

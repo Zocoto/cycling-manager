@@ -82,6 +82,36 @@ export async function createDirectorListingAction(formData: FormData) {
   redirectWithMessage(returnPath, "succes", "Le coureur est proposé pendant 24 heures.");
 }
 
+export async function cancelDirectorListingAction(formData: FormData) {
+  const listingId = readValue(formData, "listingId");
+  const requestedReturnPath = readValue(formData, "returnPath");
+  const requestedRiderId = readValue(formData, "riderId");
+  const marketReturnPath = sanitizeTransferMarketReturnPath(requestedReturnPath);
+  const errorReturnPath = isUuid(requestedRiderId)
+    ? resolveTransferOrRiderReturnPath(requestedReturnPath, requestedRiderId)
+    : marketReturnPath;
+  if (!isUuid(listingId)) {
+    redirectWithMessage(errorReturnPath, "erreur", "La mise en vente est invalide.");
+  }
+
+  const supabase = await authenticatedClient();
+  const { data: riderId, error } = await supabase.rpc("cancel_director_transfer_listing", {
+    p_listing_id: listingId,
+  });
+  if (error) redirectWithMessage(errorReturnPath, "erreur", error.message);
+  if (typeof riderId !== "string" || !isUuid(riderId)) {
+    redirectWithMessage(errorReturnPath, "erreur", "Impossible d’annuler la mise en vente.");
+  }
+
+  revalidateTransferPaths();
+  revalidatePath(`/jeu/coureurs/${riderId}`);
+  redirectWithMessage(
+    resolveTransferOrRiderReturnPath(requestedReturnPath, riderId),
+    "succes",
+    "La mise en vente a été annulée. Le coureur reste dans votre effectif.",
+  );
+}
+
 export async function signFreeAgentAction(formData: FormData) {
   const riderId = readValue(formData, "riderId");
   const returnPath = resolveTransferOrRiderReturnPath(

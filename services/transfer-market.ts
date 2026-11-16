@@ -85,6 +85,7 @@ type ListingRow = {
   winning_bid: number | string | null;
   settled_at: string | null;
   created_at: string;
+  has_received_bid: boolean;
 };
 type BidRow = {
   id: string;
@@ -209,6 +210,7 @@ export type TransferMarketListing = {
   currentBid: number | null;
   minimumNextBid: number;
   bidCount: number;
+  hasReceivedBid: boolean;
   leaderTeamName: string | null;
   leaderTeamId: string | null;
   ownBid: number | null;
@@ -359,6 +361,8 @@ export type RiderTransferManagement = {
     id: string;
     minimumBid: number;
     closesAt: string;
+    canCancel: boolean;
+    hasReceivedBid: boolean;
   } | null;
   canDismiss: boolean;
   dismissalCost: number | null;
@@ -427,7 +431,7 @@ export async function getTransferMarketOverview(
     admin
       .from("transfer_market_listings")
       .select(
-        "id, rider_id, season_id, listing_type, seller_team_id, market_date, daily_slot, is_national_day_bonus, minimum_bid, salary_per_season, currency_code, opens_at, closes_at, status, winning_team_id, winning_bid, settled_at, created_at",
+        "id, rider_id, season_id, listing_type, seller_team_id, market_date, daily_slot, is_national_day_bonus, minimum_bid, salary_per_season, currency_code, opens_at, closes_at, status, winning_team_id, winning_bid, settled_at, created_at, has_received_bid",
       )
       .eq("season_id", context.season.id)
       .or(
@@ -655,6 +659,7 @@ export async function getTransferMarketOverview(
             ? toNumber(listing.minimum_bid)
             : calculateMinimumNextBid(currentBid),
         bidCount: listingBids.length,
+        hasReceivedBid: listing.has_received_bid || listingBids.length > 0,
         leaderTeamName: visibleLeaderTeamId
           ? (teamNames.get(visibleLeaderTeamId) ?? "Équipe inconnue")
           : null,
@@ -921,13 +926,18 @@ export async function getRiderTransferManagement(
       .returns<ContractRow[]>(),
     admin
       .from("transfer_market_listings")
-      .select("id, minimum_bid, closes_at")
+      .select("id, minimum_bid, opens_at, closes_at, listing_type, seller_team_id, season_id, has_received_bid")
       .eq("rider_id", riderId)
       .eq("status", "open")
       .maybeSingle<{
         id: string;
         minimum_bid: number | string;
+        opens_at: string;
         closes_at: string;
+        listing_type: ListingRow["listing_type"];
+        seller_team_id: string | null;
+        season_id: string;
+        has_received_bid: boolean;
       }>(),
     admin
       .from("rider_contracts")
@@ -1235,6 +1245,15 @@ export async function getRiderTransferManagement(
           id: listingResult.data.id,
           minimumBid: toNumber(listingResult.data.minimum_bid),
           closesAt: listingResult.data.closes_at,
+          canCancel:
+            ownsRider &&
+            listingResult.data.listing_type === "director" &&
+            listingResult.data.seller_team_id === context.teamSeason.team_id &&
+            listingResult.data.season_id === context.season.id &&
+            !listingResult.data.has_received_bid &&
+            new Date(listingResult.data.opens_at).getTime() <= Date.now() &&
+            new Date(listingResult.data.closes_at).getTime() > Date.now(),
+          hasReceivedBid: listingResult.data.has_received_bid,
         }
       : null,
     canDismiss: Boolean(ownsRider && activeContract && !hasDeferredDeparture),
