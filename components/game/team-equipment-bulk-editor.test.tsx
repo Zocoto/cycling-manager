@@ -46,6 +46,20 @@ describe("raccourci compact d’équipementier", () => {
     expect(html).toContain("uniquement les emplacements vides");
   });
 
+  it("affiche et présélectionne uniquement l’accessoire débloqué", () => {
+    const extra = { ...catalog[0], id: "partner-helmet", name: "Casque du contrat", slot: "helmet" } as const;
+    const lockedExtra = { ...extra, id: "locked-shoes", name: "Chaussures du contrat", slot: "shoes", isUnlimited: false } as const;
+    const html = render({ catalog: [...catalog, extra, lockedExtra] });
+    const shortcut = html.slice(html.indexOf('aria-describedby="partner-bulk-help"'), html.indexOf("</fieldset>"));
+    const checkboxes = [...shortcut.matchAll(/<input\b[^>]*type="checkbox"[^>]*>/g)].map(([input]) => input);
+    expect(checkboxes).toHaveLength(4);
+    expect(checkboxes.every((input) => /\schecked=/.test(input))).toBe(true);
+    expect(shortcut).toContain('title="Casque du contrat"');
+    expect(shortcut).toContain(">Casque<span");
+    expect(shortcut).not.toContain("Chaussures du contrat");
+    expect(shortcut).toContain("Préparer 4 attributions");
+  });
+
   it("ne soumet rien tant que le DS n’a pas préparé puis validé", () => {
     const html = render();
     expect(html).toContain('name="assignments" value="[]"');

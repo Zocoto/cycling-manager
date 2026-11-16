@@ -1325,7 +1325,7 @@ function TeamManagementSection() {
             "Cadre",
             "Bonus de notes, de chrono, de protection ou de réputation",
             "Hors dotation équipementier, un exemplaire ne peut équiper qu’un seul coureur",
-            "Équiper les coureurs : cochez cadre et/ou roues pour compléter en masse les emplacements vides des coureurs affichés, puis validez les affectations. Le matériel équipé ou programmé est conservé.",
+            "Équiper les coureurs : cochez les pièces disponibles de votre équipementier pour compléter en masse les emplacements vides des coureurs affichés, puis validez les affectations. Le matériel équipé ou programmé est conservé.",
           ]}
         />
         <FeatureCard

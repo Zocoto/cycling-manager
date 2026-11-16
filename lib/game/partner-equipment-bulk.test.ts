@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
+import type { EquipmentSlot } from "@/lib/game/equipment";
 import type { TeamEquipmentCatalogItem } from "@/services/team-equipment";
 import {
   buildPartnerBulkEquipmentAssignments,
   getPartnerBulkEquipmentItems,
   PARTNER_BULK_EQUIPMENT_SLOTS,
-  type PartnerBulkEquipmentSlot,
 } from "./partner-equipment-bulk";
 
 const catalog = PARTNER_BULK_EQUIPMENT_SLOTS.map((slot) => ({
@@ -22,17 +22,34 @@ function build(overrides: Partial<Parameters<typeof buildPartnerBulkEquipmentAss
 }
 
 describe("équipementier : affectation groupée aux emplacements vides", () => {
-  it("ne propose que les cadres et roues disponibles du contrat actif", () => {
+  it("ne propose que les pièces disponibles du contrat actif", () => {
     const unavailable = { ...catalog[0], id: "unavailable", isUnlimited: false };
     const commercial = { ...catalog[0], id: "commercial", channel: "commercial", ownedQuantity: 100 };
     const prototype = { ...catalog[0], id: "prototype", channel: "research_prototype" };
-    const otherSlot = { ...catalog[0], id: "shoes", slot: "shoes" };
+    const otherSlot = { ...catalog[0], id: "shoes", slot: "shoes", isUnlimited: false };
     const result = getPartnerBulkEquipmentItems([
       unavailable, commercial, prototype, otherSlot, ...catalog,
     ] as TeamEquipmentCatalogItem[]);
     expect(result).toEqual(itemsBySlot);
     expect(getPartnerBulkEquipmentItems([unavailable, commercial] as TeamEquipmentCatalogItem[])).toEqual({});
   });
+
+  it.each(["helmet", "gloves", "bib_shorts", "glasses", "shoes"] as const)(
+    "équipe l’accessoire débloqué dans son emplacement : %s",
+    (slot) => {
+      const accessory = { ...catalog[0], id: "extra", slot };
+      const offeredItems = getPartnerBulkEquipmentItems([...catalog, accessory]);
+      expect(build({
+        itemsBySlot: offeredItems,
+        slots: [...PARTNER_BULK_EQUIPMENT_SLOTS, slot],
+      })).toHaveLength(8);
+      expect(build({
+        itemsBySlot: offeredItems,
+        slots: [slot],
+        initialValues: { [`a:${slot}`]: "already-equipped" },
+      })).toEqual([{ riderId: "b", slot, equipmentItemId: accessory.id }]);
+    },
+  );
 
   it("complète les trois emplacements de tous les coureurs ciblés", () => {
     expect(build()).toEqual(riders.flatMap(({ id }) => PARTNER_BULK_EQUIPMENT_SLOTS.map((slot) => ({
@@ -44,10 +61,10 @@ describe("équipementier : affectation groupée aux emplacements vides", () => {
     [], ["frame"], ["front_wheel"], ["rear_wheel"],
     ["frame", "front_wheel"], ["frame", "rear_wheel"],
     ["front_wheel", "rear_wheel"], [...PARTNER_BULK_EQUIPMENT_SLOTS],
-  ] as PartnerBulkEquipmentSlot[][])("respecte chaque combinaison de cases cochées : %j", (...slots) => {
+  ] as EquipmentSlot[][])("respecte chaque combinaison de cases cochées : %j", (...slots) => {
     const result = build({ slots });
     expect(result).toHaveLength(riders.length * slots.length);
-    expect(result.every((assignment) => slots.includes(assignment.slot as PartnerBulkEquipmentSlot))).toBe(true);
+    expect(result.every((assignment) => slots.includes(assignment.slot))).toBe(true);
   });
 
   it("préserve les pièces actives ou programmées et les réglages manuels", () => {

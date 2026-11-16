@@ -20,7 +20,6 @@ import {
   buildPartnerBulkEquipmentAssignments,
   getPartnerBulkEquipmentItems,
   PARTNER_BULK_EQUIPMENT_SLOTS,
-  type PartnerBulkEquipmentSlot,
 } from "@/lib/game/partner-equipment-bulk";
 import type {
   TeamEquipmentAssignment,
@@ -73,13 +72,15 @@ export function TeamEquipmentBulkEditor({
   const [valuesByKey, setValuesByKey] = useState(() => initialValues);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [partnerBulkSlots, setPartnerBulkSlots] = useState<PartnerBulkEquipmentSlot[]>(
-    [...PARTNER_BULK_EQUIPMENT_SLOTS],
-  );
+  const [partnerBulkSlots, setPartnerBulkSlots] = useState<EquipmentSlot[]>([...EQUIPMENT_SLOTS]);
   const partnerItemsBySlot = useMemo(
     () => getPartnerBulkEquipmentItems(catalog),
     [catalog],
   );
+  const offeredPartnerSlots = new Set<EquipmentSlot>([
+    ...PARTNER_BULK_EQUIPMENT_SLOTS,
+    ...EQUIPMENT_SLOTS.filter((slot) => partnerItemsBySlot[slot]),
+  ]);
   const itemById = useMemo(
     () => new Map(catalog.map((item) => [item.id, item])),
     [catalog],
@@ -285,7 +286,7 @@ export function TeamEquipmentBulkEditor({
             </legend>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap gap-2">
-                {PARTNER_BULK_EQUIPMENT_SLOTS.map((slot) => {
+                {[...offeredPartnerSlots].map((slot) => {
                   const item = partnerItemsBySlot[slot];
                   return (
                     <label
@@ -307,7 +308,7 @@ export function TeamEquipmentBulkEditor({
                         }}
                         className="h-4 w-4 accent-[#176951]"
                       />
-                      {slot === "front_wheel" ? "Roue avant" : slot === "rear_wheel" ? "Roue arrière" : "Cadre"}
+                      {slotLabel(slot)}
                       <span className="sr-only"> · {item?.name ?? "indisponible"}</span>
                     </label>
                   );

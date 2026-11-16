@@ -1,3 +1,4 @@
+import type { EquipmentSlot } from "@/lib/game/equipment";
 import type {
   TeamEquipmentAssignment,
   TeamEquipmentCatalogItem,
@@ -10,19 +11,14 @@ export const PARTNER_BULK_EQUIPMENT_SLOTS = [
   "frame",
 ] as const;
 
-export type PartnerBulkEquipmentSlot =
-  (typeof PARTNER_BULK_EQUIPMENT_SLOTS)[number];
-
 export function getPartnerBulkEquipmentItems(
   catalog: readonly TeamEquipmentCatalogItem[],
-): Partial<Record<PartnerBulkEquipmentSlot, TeamEquipmentCatalogItem>> {
-  const items: Partial<Record<PartnerBulkEquipmentSlot, TeamEquipmentCatalogItem>> = {};
-  for (const slot of PARTNER_BULK_EQUIPMENT_SLOTS) {
-    const item = catalog.find(
-      (candidate) => candidate.slot === slot &&
-        candidate.channel === "equipment_partner" && candidate.isUnlimited,
-    );
-    if (item) items[slot] = item;
+): Partial<Record<EquipmentSlot, TeamEquipmentCatalogItem>> {
+  const items: Partial<Record<EquipmentSlot, TeamEquipmentCatalogItem>> = {};
+  for (const item of catalog) {
+    if (item.channel === "equipment_partner" && item.isUnlimited && !items[item.slot]) {
+      items[item.slot] = item;
+    }
   }
   return items;
 }
@@ -35,16 +31,15 @@ export function buildPartnerBulkEquipmentAssignments({
   valuesByKey,
 }: {
   riders: readonly Pick<TeamEquipmentRider, "id">[];
-  itemsBySlot: Partial<Record<PartnerBulkEquipmentSlot, TeamEquipmentCatalogItem>>;
-  slots: readonly PartnerBulkEquipmentSlot[];
+  itemsBySlot: Partial<Record<EquipmentSlot, TeamEquipmentCatalogItem>>;
+  slots: readonly EquipmentSlot[];
   initialValues: Readonly<Record<string, string>>;
   valuesByKey: Readonly<Record<string, string>>;
 }): TeamEquipmentAssignment[] {
   const assignments: TeamEquipmentAssignment[] = [];
   const selectedSlots = new Set(slots);
   for (const riderId of new Set(riders.map((rider) => rider.id))) {
-    for (const slot of PARTNER_BULK_EQUIPMENT_SLOTS) {
-      if (!selectedSlots.has(slot)) continue;
+    for (const slot of selectedSlots) {
       const item = itemsBySlot[slot];
       // Les montages actifs, programmés ou déjà réglés dans le brouillon
       // restent intacts, même si le DS prépare une dépose à côté.
