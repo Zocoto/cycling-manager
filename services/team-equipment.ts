@@ -78,8 +78,7 @@ type PendingRow = EquippedRow & { effective_at: string };
 type PartnerContractRow = {
   id: string;
   supplier_key: string;
-  start_season_id: string;
-  end_season_id: string;
+  reputation_extra_item_id: string | null;
 };
 type PartnerEffectRow = {
   equipment_item_id: string;
@@ -393,7 +392,7 @@ async function loadEquipmentContext(
       .returns<PendingRow[]>(),
     admin
       .from("equipment_partner_contracts")
-      .select("id, supplier_key, start_season_id, end_season_id")
+      .select("id, supplier_key, reputation_extra_item_id")
       .eq("team_id", teamSeason.team_id)
       .eq("status", "active")
       .maybeSingle<PartnerContractRow>(),
@@ -493,7 +492,11 @@ async function loadEquipmentContext(
   );
   const partnerAvailableItemIds = new Set(
     (partnerProductsResult.data ?? [])
-      .filter((product) => product.offer_type === "core")
+      .filter(
+        (product) =>
+          product.offer_type === "core" ||
+          product.equipment_item_id === partnerContractResult.data?.reputation_extra_item_id,
+      )
       .map((product) => product.equipment_item_id),
   );
   const catalog = (catalogResult.data ?? []).map((row) => {

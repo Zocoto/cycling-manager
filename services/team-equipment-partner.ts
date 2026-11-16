@@ -142,6 +142,7 @@ export async function getCurrentTeamEquipmentPartnerOverview(
       .from("equipment_partner_products")
       .select("supplier_key, equipment_item_id, display_order, offer_type")
       .order("display_order", { ascending: true })
+      .order("equipment_item_id", { ascending: true })
       .returns<ProductRow[]>(),
   ]);
 

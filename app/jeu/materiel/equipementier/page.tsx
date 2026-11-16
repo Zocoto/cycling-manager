@@ -10,7 +10,10 @@ import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-butt
 import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
 import Link from "@/components/ui/app-link";
 import { getEquipmentCategory } from "@/lib/game/equipment";
-import { EQUIPMENT_PARTNER_CONTRACT_SEASONS } from "@/lib/game/equipment-partner";
+import {
+  EQUIPMENT_PARTNER_CONTRACT_SEASONS,
+  EQUIPMENT_PARTNER_CORE_SLOTS,
+} from "@/lib/game/equipment-partner";
 import {
   EQUIPMENT_PARTNER_EXTRA_COST,
   isReputationFeatureEnabled,
@@ -381,9 +384,12 @@ function ActiveContractSection({
   supplier: EquipmentPartnerSupplierOption;
 }) {
   const contract = overview.activeContract!;
-  const reputationExtra = supplier.products.find(
-    (product) => product.offerType === "rare",
-  ) ?? null;
+  const reputationExtra = supplier.products.find((product) =>
+    contract.reputationExtraItemId
+      ? product.id === contract.reputationExtraItemId
+      : product.offerType === "rare" &&
+        !EQUIPMENT_PARTNER_CORE_SLOTS.some((slot) => slot === product.slot),
+  );
   const reputationExtraUnlocked =
     overview.reputationPoints >= REPUTATION_FEATURE_THRESHOLDS.equipmentPartnerExtra;
 
