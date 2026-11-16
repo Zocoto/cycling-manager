@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { claimGameObjectiveAction } from "@/app/jeu/objectifs/actions";
+import {
+  claimCycloStickersObjectiveAction,
+  claimGameObjectiveAction,
+} from "@/app/jeu/objectifs/actions";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { DailyRewardsPanel } from "@/components/game/daily-rewards-panel";
 import { GameHeader } from "@/components/game/game-header";
@@ -15,7 +18,10 @@ import { TrophyGallery } from "@/components/game/trophy-gallery";
 import Link from "@/components/ui/app-link";
 import { DAILY_REWARD_CYCLE_LENGTH } from "@/lib/game/daily-rewards";
 import { buildObjectivesReturnPath } from "@/lib/game/filtered-page-paths";
-import { getAchievementTrophyForObjective } from "@/lib/game/achievement-trophies";
+import {
+  ACHIEVEMENT_TROPHY_DEFINITIONS,
+  getAchievementTrophyForObjective,
+} from "@/lib/game/achievement-trophies";
 import { PATRIOT_OBJECTIVE_KEY } from "@/lib/game/patriot-achievement";
 import { getProspectiveAchievement } from "@/lib/game/prospective-achievements";
 import {
@@ -30,7 +36,11 @@ import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { TUTORIAL_CENTER_ROUTE } from "@/lib/tutorial/tutorial-center-route";
 import { getGameHeaderData } from "@/services/game-header-data";
-import { getCurrentGameObjectives } from "@/services/game-objectives";
+import {
+  getCurrentCycloStickersRewardObjectives,
+  getCurrentGameObjectives,
+  type RewardsPageObjective,
+} from "@/services/game-objectives";
 import { getCurrentDailyRewardOverview } from "@/services/daily-rewards";
 import { getSportingDirectorTrophyGallery } from "@/services/trophy-gallery";
 
@@ -74,6 +84,7 @@ const groupLabels: Record<string, string> = {
   fan_club: "Fan Club",
   championships: "Championnats",
   gazette_games: "Jeux de La Cyclogazette",
+  cyclo_stickers: "Album de Cyclo-Stickers",
 };
 
 const groupLinks: Record<string, { href: string; label: string }> = {
@@ -120,6 +131,7 @@ const groupLinks: Record<string, { href: string; label: string }> = {
   fan_club: { href: "/jeu/fan-club", label: "Ouvrir le Fan Club" },
   championships: { href: "/jeu/resultats", label: "Voir les championnats" },
   gazette_games: { href: "/jeu/gazette", label: "Jouer dans la Gazette" },
+  cyclo_stickers: { href: "/jeu/album?onglet=succes", label: "Ouvrir l’album" },
 };
 
 export default async function ObjectivesPage({
@@ -141,13 +153,20 @@ export default async function ObjectivesPage({
     redirect("/connexion");
   }
 
-  const [headerData, objectives, trophyGallery, dailyRewards] =
+  const [headerData, careerObjectives, trophyGallery, dailyRewards, albumObjectives] =
     await Promise.all([
       getGameHeaderData(supabase, user.id),
-      selectedTab === "objectifs" ? getCurrentGameObjectives(supabase) : Promise.resolve([] as GameObjective[]),
+      selectedTab === "objectifs" ? getCurrentGameObjectives(supabase) : Promise.resolve([]),
       selectedTab === "trophees" ? getSportingDirectorTrophyGallery(user.id) : Promise.resolve(null),
       selectedTab === "quotidiennes" ? getCurrentDailyRewardOverview(supabase) : Promise.resolve(null),
+      getCurrentCycloStickersRewardObjectives(supabase),
     ]);
+  const albumReadyCount = summarizeGameObjectiveRewards(albumObjectives).readyCount;
+  const objectives: RewardsPageObjective[] = selectedTab === "objectifs"
+    ? [...careerObjectives, ...albumObjectives].sort((left, right) =>
+        Number(right.completed && !right.claimedAt) - Number(left.completed && !left.claimedAt),
+      )
+    : [];
 
   const availableGroups = Array.from(
     new Set(objectives.map((objective) => objective.group)),
@@ -247,7 +266,10 @@ export default async function ObjectivesPage({
           <GameSectionTabLink
             href="/jeu/objectifs?onglet=objectifs"
             label="Objectifs & récompenses"
-            description="Suivre les paliers et récupérer les gains"
+            description={albumReadyCount > 0
+              ? "Récompenses Cyclo-Stickers à récupérer"
+              : "Suivre les paliers et récupérer les gains"}
+            badge={selectedTab === "objectifs" ? readyCount : albumReadyCount}
             active={selectedTab === "objectifs"}
           />
           <GameSectionTabLink
@@ -295,12 +317,22 @@ export default async function ObjectivesPage({
                     </p>
                   </div>
                 </div>
-                <Link
-                  href="/jeu/objectifs?onglet=objectifs&statut=completed#objectives-list"
-                  className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#F2C94C] px-5 text-xs font-black uppercase tracking-[0.12em] text-[#4A3A00] transition hover:bg-[#E8BC32]"
-                >
-                  Afficher et récupérer →
-                </Link>
+                <div className="flex flex-wrap items-center gap-3">
+                  {albumReadyCount > 0 ? (
+                    <Link
+                      href="/jeu/objectifs?onglet=objectifs&groupe=cyclo_stickers&statut=completed#objectives-list"
+                      className="inline-flex min-h-11 items-center rounded-xl border border-[#D6A600]/35 px-4 text-xs font-black text-[#4A3A00] hover:bg-[#FFF0AF]"
+                    >
+                      Cyclo-Stickers{" "}({albumReadyCount})
+                    </Link>
+                  ) : null}
+                  <Link
+                    href="/jeu/objectifs?onglet=objectifs&statut=completed#objectives-list"
+                    className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#F2C94C] px-5 text-xs font-black uppercase tracking-[0.12em] text-[#4A3A00] transition hover:bg-[#E8BC32]"
+                  >
+                    Afficher et récupérer →
+                  </Link>
+                </div>
               </aside>
             ) : null}
 
@@ -363,7 +395,7 @@ function ObjectiveSection({
   eyebrow: string;
   title: string;
   description: string;
-  objectives: GameObjective[];
+  objectives: RewardsPageObjective[];
   returnPath: string;
   featured?: boolean;
 }) {
@@ -417,7 +449,7 @@ function ObjectiveCard({
   featured,
   returnPath,
 }: {
-  objective: GameObjective;
+  objective: RewardsPageObjective;
   featured: boolean;
   returnPath: string;
 }) {
@@ -432,7 +464,9 @@ function ObjectiveCard({
       : objective.group === "transfers" ? { href: "/jeu/transferts", label: "Voir les transferts" }
       : /^journey_(community_days|private_contacts)_/.test(objective.key) ? { href: "/jeu/chat", label: "Ouvrir le chat et les MP" }
       : groupLinks[objective.group];
-  const trophyReward = getAchievementTrophyForObjective(objective.key);
+  const trophyReward = objective.album?.trophy
+    ? ACHIEVEMENT_TROPHY_DEFINITIONS.cyclo_stickers_s4
+    : getAchievementTrophyForObjective(objective.key);
   const nationalFlagReward = objective.key === PATRIOT_OBJECTIVE_KEY;
   const achievement = getProspectiveAchievement(objective.key);
   // Les dates de mise en service sont internes au suivi des succès.
@@ -570,8 +604,15 @@ function ObjectiveCard({
 
       <div className="mt-auto pt-5">
         {ready ? (
-          <form action={claimGameObjectiveAction}>
-            <input type="hidden" name="objectiveKey" value={objective.key} />
+          <form action={objective.album ? claimCycloStickersObjectiveAction : claimGameObjectiveAction}>
+            {objective.album ? (
+              <>
+                <input type="hidden" name="editionId" value={objective.album.editionId} />
+                <input type="hidden" name="achievementId" value={objective.album.achievementId} />
+              </>
+            ) : (
+              <input type="hidden" name="objectiveKey" value={objective.key} />
+            )}
             <input type="hidden" name="returnPath" value={returnPath} />
             <ObjectiveClaimButton />
           </form>
@@ -610,7 +651,7 @@ function ObjectiveStatus({ objective }: { objective: GameObjective }) {
 
   if (objective.completed) {
     return (
-      <span className="shrink-0 animate-pulse rounded-full bg-[#F2C94C] px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#071A17]">
+      <span className="shrink-0 motion-safe:animate-pulse rounded-full bg-[#F2C94C] px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#071A17]">
         À récupérer
       </span>
     );

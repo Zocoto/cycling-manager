@@ -32,6 +32,7 @@ describe("dashboard business data and deferred objective counts", () => {
     expect(core).toEqual({ ...original, objectiveTotalCount: 0, objectiveReadyCount: 0 });
     const objectives = client({ total_count: 50, ready_count: 3 });
     expect(await getCurrentDashboardObjectiveSummary(objectives.supabase)).toEqual({ totalCount: 50, readyCount: 3 });
+    expect(objectives.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_objective_summary_with_album");
   });
   it("keeps unavailable contexts and RPC failures explicit", async () => {
     expect(await getCurrentDashboardFastSummary(client(null).supabase)).toBeNull();

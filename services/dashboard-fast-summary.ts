@@ -104,7 +104,7 @@ export type DashboardObjectiveSummary = { totalCount: number; readyCount: number
 export async function getCurrentDashboardObjectiveSummary(
   supabase: SupabaseServerClient,
 ): Promise<DashboardObjectiveSummary> {
-  const result = await supabase.rpc("get_current_game_objective_summary_cached")
+  const result = await supabase.rpc("get_current_game_objective_summary_with_album")
     .abortSignal(AbortSignal.timeout(3000))
     .maybeSingle<{ total_count: number; ready_count: number }>();
   if (result.error) throw new Error(`Impossible de charger les compteurs d’objectifs : ${result.error.message}`);

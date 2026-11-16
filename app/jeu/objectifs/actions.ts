@@ -88,6 +88,40 @@ export async function claimGameObjectiveAction(formData: FormData) {
     "Récompense récupérée : les gains ont été ajoutés à votre carrière."
   );
 }
+export async function claimCycloStickersObjectiveAction(formData: FormData) {
+  const editionId = readValue(formData, "editionId");
+  const achievementId = readValue(formData, "achievementId");
+  const returnPath = sanitizeObjectivesReturnPath(readValue(formData, "returnPath"));
+
+  if (!/^[a-z0-9-]{1,100}$/.test(editionId) || !/^[a-z0-9-]{1,80}$/.test(achievementId)) {
+    redirectWithMessage(returnPath, "erreur", "L’objectif transmis est invalide.");
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data: { user }, error: authenticationError } = await supabase.auth.getUser();
+  if (authenticationError || !user) redirect("/connexion");
+
+  const { data, error } = await supabase.rpc("claim_current_cyclo_stickers_achievement", {
+    p_edition: editionId,
+    p_achievement_id: achievementId,
+  });
+  if (error) redirectWithMessage(returnPath, "erreur", error.message);
+
+  revalidatePath("/jeu/objectifs");
+  revalidatePath("/jeu/album");
+  revalidatePath("/jeu");
+  revalidatePath("/jeu/finances");
+  revalidatePath("/jeu/directeur-sportif");
+
+  redirectWithMessage(
+    returnPath,
+    "succes",
+    data?.alreadyClaimed
+      ? "Cette récompense a déjà été récupérée."
+      : "Récompense récupérée : les gains ont été ajoutés à votre carrière.",
+  );
+}
+
 export async function claimDailyRewardAction(formData: FormData) {
   const rewardKey = readValue(formData, "rewardKey");
 
