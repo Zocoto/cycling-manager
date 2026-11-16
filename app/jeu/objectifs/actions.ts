@@ -93,7 +93,7 @@ export async function claimCycloStickersObjectiveAction(formData: FormData) {
   const achievementId = readValue(formData, "achievementId");
   const returnPath = sanitizeObjectivesReturnPath(readValue(formData, "returnPath"));
 
-  if (!/^[a-z0-9][a-z0-9_-]{2,100}$/.test(editionId) || !/^[a-z0-9-]{1,80}$/.test(achievementId)) {
+  if (!/^[a-z0-9][a-z0-9_-]{2,100}$/.test(editionId) || !/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/.test(achievementId)) {
     redirectWithMessage(returnPath, "erreur", "L’objectif transmis est invalide.");
   }
 

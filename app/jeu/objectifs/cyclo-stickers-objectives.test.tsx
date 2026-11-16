@@ -29,6 +29,8 @@ vi.mock("@/services/game-header-data", () => ({ getGameHeaderData: async () => (
 vi.mock("@/services/daily-rewards", () => ({ getCurrentDailyRewardOverview: async () => null }));
 vi.mock("@/services/trophy-gallery", () => ({ getSportingDirectorTrophyGallery: async () => null }));
 
+import { ALBUM_ACHIEVEMENTS } from "@/lib/game/collector-album";
+
 import { claimCycloStickersObjectiveAction } from "./actions";
 import ObjectivesPage from "./page";
 
@@ -49,10 +51,10 @@ const finalObjective = {
   is_completed: true,
 };
 
-function claim() {
+function claim(achievementId: string) {
   const form = new FormData();
   form.set("editionId", editionId);
-  form.set("achievementId", "count-50");
+  form.set("achievementId", achievementId);
   form.set("returnPath", "/jeu/objectifs?groupe=cyclo_stickers&statut=completed#objectives-list");
   return claimCycloStickersObjectiveAction(form);
 }
@@ -97,9 +99,23 @@ describe("Cyclo-Stickers objectives", () => {
     expect(html).toContain("Trophée · Mémoire du peloton");
   });
 
+  it.each(ALBUM_ACHIEVEMENTS.map(({ id }) => id))("passes the catalogue key %s verbatim to the claim RPC", async (id) => {
+    mocks.rpc.mockResolvedValue({ data: { alreadyClaimed: false }, error: null });
+    await expect(claim(id)).rejects.toThrow(/succes=/);
+    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("claim_current_cyclo_stickers_achievement", {
+      p_edition: editionId,
+      p_achievement_id: id,
+    });
+  });
+
+  it("rejects an invalid identifier before calling the claim RPC", async () => {
+    await expect(claim("profile/timeTrial")).rejects.toThrow(/erreur=/);
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+
   it("uses the existing album claim and refreshes both screens", async () => {
     mocks.rpc.mockResolvedValue({ data: { alreadyClaimed: false }, error: null });
-    await expect(claim()).rejects.toThrow(/redirect:\/jeu\/objectifs\?.+succes=.+#objectives-list/);
+    await expect(claim("count-50")).rejects.toThrow(/redirect:\/jeu\/objectifs\?.+succes=.+#objectives-list/);
     expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("claim_current_cyclo_stickers_achievement", {
       p_edition: editionId,
       p_achievement_id: "count-50",

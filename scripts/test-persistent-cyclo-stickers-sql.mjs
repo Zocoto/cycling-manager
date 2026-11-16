@@ -598,5 +598,22 @@ try{
   eq(await scalar('select cash_balance::int from team_seasons where id=$1', [id('ts-a-s6')]),250000,'the completion pays the S5 edition cash in the current season');
   eq(await scalar('select experience_points from sporting_directors where id=$1', [id('a')]),previousXp+1000,'the S5 edition pays its own XP');
   eq(await scalar('select reputation_points::int from sporting_directors where id=$1', [id('a')]),previousReputation+100,'the S5 edition pays its own reputation');
+  await as('a');
+  const s4Objectives = (await list()).filter(row => row.edition_id === edition);
+  eq(s4Objectives.length,19,'all S4 successes are in the public catalogue');
+  for (const objective of s4Objectives) {
+    const key = objective.achievement_id;
+    eq(objective.is_completed,true,`completed S4 fixture unlocks ${key}`);
+    const receipt = await claim(key);
+    eq(receipt.alreadyClaimed,objective.claimed_at !== null,`claim status matches the catalogue for ${key}`);
+    eq(receipt.reward,{
+      cash:Number(objective.reward_cash),
+      xp:objective.reward_experience,
+      reputation:objective.reward_reputation,
+    },`claim pays the published reward for ${key}`);
+    eq((await claim(key)).alreadyClaimed,true,`claim replay pays nothing for ${key}`);
+  }
+  eq((await list()).filter(row => row.edition_id === edition && row.claimed_at !== null).length,
+    19,'each of the 19 S4 rewards is collected exactly once');
   console.log(JSON.stringify({isolatedPostgresChecks:checks,productionAccess:false,editionSeeds:0,realStockSources:3,atomicCopyConservation:true,rewardsPaidOnce:true}));
 }finally{await db.close();}
