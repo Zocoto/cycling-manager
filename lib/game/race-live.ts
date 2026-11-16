@@ -174,9 +174,10 @@ export function getRaceGroupLayoutDensity(groupCount: number) {
 export function getRaceResultsHref(
   raceSlug: string,
   stageNumber?: number,
+  { replay = false }: { replay?: boolean } = {},
 ) {
   if (Number.isInteger(stageNumber) && (stageNumber ?? 0) > 0) {
-    return `/jeu/resultats/${encodeURIComponent(raceSlug)}/${stageNumber}`;
+    return `/jeu/resultats/${encodeURIComponent(raceSlug)}/${stageNumber}${replay ? "?replay=1" : ""}`;
   }
 
   return `/jeu/resultats?course=${encodeURIComponent(raceSlug)}#course-live`;

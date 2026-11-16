@@ -24,6 +24,7 @@ import {
 } from "@/lib/game/race-calendar";
 import {
   canSimulateRaceEdition,
+  getRaceResultsHref,
   getStageLiveState,
 } from "@/lib/game/race-live";
 
@@ -417,7 +418,7 @@ function StageDirectoryCard({
         />
       </div>
       <Link
-        href={"/jeu/resultats/" + edition.slug + "/" + stage.stageNumber}
+        href={getRaceResultsHref(edition.slug, stage.stageNumber, { replay: true })}
         prefetch={false}
         className="grid w-full gap-3 px-4 py-4 text-left transition hover:bg-white sm:grid-cols-[minmax(140px,0.72fr)_minmax(180px,1.28fr)] sm:items-center"
       >
@@ -613,7 +614,7 @@ function StageSummaryPopover({
             return (
               <li key={stage.id}>
                 <Link
-                  href={`/jeu/resultats/${edition.slug}/${stage.stageNumber}`}
+                  href={getRaceResultsHref(edition.slug, stage.stageNumber, { replay: true })}
                   prefetch={false}
                   className="grid grid-cols-[auto_1fr_auto] items-center gap-2 rounded-xl px-2 py-2 text-left normal-case tracking-normal transition hover:bg-[#EAF5F0]"
                 >
@@ -693,7 +694,7 @@ function OneDayDirectoryCard({
         />
       </div>
       <Link
-        href={`/jeu/resultats/${edition.slug}/${stage.stageNumber}`}
+        href={getRaceResultsHref(edition.slug, stage.stageNumber, { replay: true })}
         prefetch={false}
         className="grid w-full gap-3 px-4 py-4 text-left transition hover:bg-white sm:grid-cols-[minmax(140px,0.72fr)_minmax(180px,1.28fr)] sm:items-center"
       >

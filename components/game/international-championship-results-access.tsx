@@ -7,7 +7,7 @@ import {
   type RaceCalendarStage,
   type SeasonRaceCalendar,
 } from "@/lib/game/race-calendar";
-import { getStageLiveState } from "@/lib/game/race-live";
+import { canSimulateRaceEdition, getRaceResultsHref, getStageLiveState } from "@/lib/game/race-live";
 
 type ChampionshipAccessGroup = {
   title: string;
@@ -84,17 +84,15 @@ export function InternationalChampionshipResultsAccess({
               {group.entries.sort((a, b) => compareRaceDaySlots(a.stage.daySlot, b.stage.daySlot)).map(({ edition, stage }) => {
                 const liveState = getStageLiveState(stage, now);
                 const discipline = stage.stageType === "road" ? "Route" : "CLM";
-                const actionLabel = stage.status === "completed" || edition.status === "completed"
-                  ? "Résultats"
+                const actionLabel = liveState.status === "finished" || edition.status === "completed"
+                  ? canSimulateRaceEdition(edition) ? "Replay" : "Résultats"
                   : liveState.status === "live"
                     ? "En direct"
-                    : liveState.status === "finished"
-                      ? "Direct / résultats"
-                      : RACE_DAY_SLOT_CONFIG[stage.daySlot].shortLabel;
+                    : RACE_DAY_SLOT_CONFIG[stage.daySlot].shortLabel;
                 return (
                   <Link
                     key={stage.id}
-                    href={`/jeu/resultats/${edition.slug}/${stage.stageNumber}`}
+                    href={getRaceResultsHref(edition.slug, stage.stageNumber, { replay: true })}
                     prefetch={false}
                     aria-label={`${edition.name} · ${discipline} · ${actionLabel}`}
                     className="flex min-h-12 items-center justify-between gap-2 rounded-xl bg-[#EAF5F0] px-3 py-2 text-[#12503E] transition hover:bg-[#D7EEE8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176951]"

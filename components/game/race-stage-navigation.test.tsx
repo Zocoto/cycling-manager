@@ -34,6 +34,20 @@ describe("RaceStageNavigation", () => {
 
     expect(markup).toContain('href="/jeu/resultats/tour-test/3"');
   });
+
+  it("conserve le replay en passant d’une étape à l’autre", () => {
+    const markup = renderToStaticMarkup(
+      <RaceStageNavigation
+        edition={createTour()}
+        currentStageNumber={2}
+        currentDayNumber={5}
+        replayRequested
+      />,
+    );
+
+    expect(markup).toContain('href="/jeu/resultats/tour-test/1?replay=1"');
+    expect(markup).toContain('href="/jeu/resultats/tour-test/3?replay=1"');
+  });
 });
 
 function createTour(): RaceCalendarEdition {

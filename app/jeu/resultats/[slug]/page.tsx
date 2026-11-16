@@ -13,7 +13,7 @@ import {
   getRaceProfileLabel,
   type RaceCalendarStage,
 } from "@/lib/game/race-calendar";
-import { getStageLiveState } from "@/lib/game/race-live";
+import { getRaceResultsHref, getStageLiveState } from "@/lib/game/race-live";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
@@ -66,7 +66,7 @@ export default async function RaceTourPage({ params }: RaceTourPageProps) {
   if (edition.raceFormat !== "stage_race") {
     const stage = availableStages.at(-1);
     if (stage) {
-      redirect(`/jeu/resultats/${edition.slug}/${stage.stageNumber}`);
+      redirect(getRaceResultsHref(edition.slug, stage.stageNumber, { replay: true }));
     }
     redirect("/jeu/resultats");
   }
@@ -220,7 +220,7 @@ function TourStageCard({
 
   return (
     <Link
-      href={`/jeu/resultats/${editionSlug}/${stage.stageNumber}`}
+      href={getRaceResultsHref(editionSlug, stage.stageNumber, { replay: true })}
       prefetch={false}
       className="group overflow-hidden rounded-2xl border border-[#315B3E]/15 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-[#176951]/35 hover:shadow-lg"
     >

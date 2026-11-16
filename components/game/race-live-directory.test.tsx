@@ -47,7 +47,8 @@ describe("RaceLiveDirectory", () => {
     expect(markup).toContain("Courses passées");
     expect(markup).toContain("Classique passée");
     expect(markup).not.toContain("Course de demain");
-    expect(markup).toContain('href="/jeu/resultats/tour-en-cours/2"');
+    expect(markup).toContain('href="/jeu/resultats/tour-en-cours/2?replay=1"');
+    expect(markup).toContain('href="/jeu/resultats/course-passee/1?replay=1"');
     expect(markup).not.toContain("Résumé des étapes");
   });
 
@@ -75,10 +76,10 @@ describe("RaceLiveDirectory", () => {
     expect(markup).toContain('data-stage-number="1"');
     expect(markup).toContain('data-stage-number="2"');
     expect(markup).toContain(
-      'href="/jeu/resultats/ruta-de-las-sierras/1"',
+      'href="/jeu/resultats/ruta-de-las-sierras/1?replay=1"',
     );
     expect(markup).toContain(
-      'href="/jeu/resultats/ruta-de-las-sierras/2"',
+      'href="/jeu/resultats/ruta-de-las-sierras/2?replay=1"',
     );
     expect(markup).toContain("E1 · Étape 1");
     expect(markup).toContain("E2 · Étape 2");
@@ -118,7 +119,7 @@ describe("RaceLiveDirectory", () => {
     expect(markup).toContain("Courses non courues");
     expect(markup).toContain("Course à suivre");
     expect(markup).toContain(
-      'href="/jeu/resultats/course-non-courue/1"',
+      'href="/jeu/resultats/course-non-courue/1?replay=1"',
     );
     expect(markup).not.toContain("Course de mon équipe");
   });
@@ -244,7 +245,7 @@ describe("RaceLiveDirectory", () => {
     expect(raceDayMarkup).toContain('data-race-period="today"');
     expect(raceDayMarkup).toContain(nationsCupEdition.name);
     expect(raceDayMarkup).toContain(
-      'href="/jeu/resultats/nations-cup-vallee-division-2-groupe-b/1"',
+      'href="/jeu/resultats/nations-cup-vallee-division-2-groupe-b/1?replay=1"',
     );
     expect(historyMarkup).toContain('data-race-period="past"');
     expect(historyMarkup).toContain("Courses passées");
@@ -284,7 +285,7 @@ describe("RaceLiveDirectory", () => {
           />,
         );
         expect(markup).toContain("Courses passées");
-        expect(markup).toContain(`href="/jeu/resultats/${edition.slug}/1"`);
+        expect(markup).toContain(`href="/jeu/resultats/${edition.slug}/1?replay=1"`);
         expect(markup).not.toContain('id="championnats-internationaux-resultats"');
       }
     },
@@ -307,9 +308,9 @@ describe("RaceLiveDirectory", () => {
 
       expect(renderAccess(3, "2026-07-28T20:00:00Z")).toBe("");
       const raceDay = renderAccess(4, "2026-07-29T14:00:00Z");
-      expect(raceDay).toContain(`href="/jeu/resultats/${clm.slug}/1"`);
-      expect(raceDay).toContain(`href="/jeu/resultats/${road.slug}/1"`);
-      expect(raceDay).toContain("Résultats");
+      expect(raceDay).toContain(`href="/jeu/resultats/${clm.slug}/1?replay=1"`);
+      expect(raceDay).toContain(`href="/jeu/resultats/${road.slug}/1?replay=1"`);
+      expect(raceDay).toContain(">Replay<");
       expect(raceDay).toContain("18 h");
       expect(raceDay.match(/<h3/g)).toHaveLength(1);
 
@@ -317,7 +318,7 @@ describe("RaceLiveDirectory", () => {
       road.status = "completed";
       road.stages[0].status = "completed";
       const evening = renderAccess(4, "2026-07-29T21:59:00Z");
-      expect(evening.match(/>Résultats</g)).toHaveLength(2);
+      expect(evening.match(/>Replay</g)).toHaveLength(2);
       expect(renderAccess(5, "2026-07-30T06:00:00Z")).toBe("");
     },
   );
@@ -332,8 +333,8 @@ describe("RaceLiveDirectory", () => {
         now={new Date("2026-07-30T14:00:00Z")}
       />,
     );
-    expect(markup).toContain(`href="/jeu/resultats/${road.slug}/1"`);
-    expect(markup).not.toContain(`href="/jeu/resultats/${clm.slug}/1"`);
+    expect(markup).toContain(`href="/jeu/resultats/${road.slug}/1?replay=1"`);
+    expect(markup).not.toContain(`href="/jeu/resultats/${clm.slug}/1?replay=1"`);
   });
 
   it("écarte du raccourci les épreuves annulées, juniors et ordinaires", () => {
@@ -367,7 +368,7 @@ describe("RaceLiveDirectory", () => {
       const filtersStart = markup.indexOf("Portée des résultats et directs");
       expect(panelStart).toBeGreaterThanOrEqual(0);
       expect(panelStart).toBeLessThan(filtersStart);
-      expect(markup.slice(panelStart, filtersStart)).toContain(`href="/jeu/resultats/${edition.slug}/1"`);
+      expect(markup.slice(panelStart, filtersStart)).toContain(`href="/jeu/resultats/${edition.slug}/1?replay=1"`);
     }
   });
 });

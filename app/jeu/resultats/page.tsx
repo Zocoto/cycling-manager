@@ -11,7 +11,7 @@ import {
 } from "@/components/game/national-championship-results-directory";
 import { RaceLiveDirectory } from "@/components/game/race-live-directory";
 import Link from "@/components/ui/app-link";
-import { selectRaceStageForLiveAccess } from "@/lib/game/race-live";
+import { getRaceResultsHref, selectRaceStageForLiveAccess } from "@/lib/game/race-live";
 import {
   CRITERIUM_DISCOVERY_KEY,
   CRITERIUM_DISCOVERY_RESULTS_ROUTE,
@@ -127,7 +127,7 @@ export default async function RaceResultsPage({
       ? selectRaceStageForLiveAccess(edition.stages, now)
       : null;
     if (edition && stage && stage.dayNumber <= calendar.currentDayNumber) {
-      redirect(`/jeu/resultats/${edition.slug}/${stage.stageNumber}`);
+      redirect(getRaceResultsHref(edition.slug, stage.stageNumber, { replay: true }));
     }
   }
 

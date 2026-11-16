@@ -1,4 +1,5 @@
 import { RACE_DAY_SLOT_CONFIG, type RaceCalendarEdition } from "@/lib/game/race-calendar";
+import { getRaceResultsHref } from "@/lib/game/race-live";
 
 import Link from "@/components/ui/app-link";
 
@@ -6,10 +7,12 @@ export function RaceStageNavigation({
   edition,
   currentStageNumber,
   currentDayNumber,
+  replayRequested = false,
 }: {
   edition: RaceCalendarEdition;
   currentStageNumber: number;
   currentDayNumber: number;
+  replayRequested?: boolean;
 }) {
   if (edition.raceFormat !== "stage_race") {
     return null;
@@ -39,6 +42,7 @@ export function RaceStageNavigation({
         editionSlug={edition.slug}
         stage={previousStage}
         currentDayNumber={currentDayNumber}
+        replayRequested={replayRequested}
       />
 
       <Link
@@ -53,6 +57,7 @@ export function RaceStageNavigation({
         editionSlug={edition.slug}
         stage={nextStage}
         currentDayNumber={currentDayNumber}
+        replayRequested={replayRequested}
       />
     </nav>
   );
@@ -63,11 +68,13 @@ function StageNavigationItem({
   editionSlug,
   stage,
   currentDayNumber,
+  replayRequested,
 }: {
   direction: "previous" | "next";
   editionSlug: string;
   stage: RaceCalendarEdition["stages"][number] | null;
   currentDayNumber: number;
+  replayRequested: boolean;
 }) {
   const isPrevious = direction === "previous";
   const alignment = isPrevious ? "items-start text-left" : "items-end text-right";
@@ -118,7 +125,7 @@ function StageNavigationItem({
 
   return (
     <Link
-      href={`/jeu/resultats/${editionSlug}/${stage.stageNumber}`}
+      href={getRaceResultsHref(editionSlug, stage.stageNumber, { replay: replayRequested })}
       prefetch={false}
       className={`inline-flex min-h-12 flex-col justify-center rounded-xl border border-[#176951]/20 bg-white px-3 text-[#176951] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:px-4 ${alignment}`}
     >

@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -33,11 +34,19 @@ export function RaceLiveChat({
     useState<RaceLiveMessage[]>(initialMessages);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [isReplayChatOpen, setIsReplayChatOpen] = useState(false);
+  const chatContentId = useId();
+  const isChatOpen = mode === "live" || isReplayChatOpen;
   const [isPending, startTransition] = useTransition();
   const messagesViewportRef = useRef<HTMLDivElement>(null);
   const hasPositionedInitialMessagesRef = useRef(false);
 
   useEffect(() => {
+    if (!isChatOpen) {
+      hasPositionedInitialMessagesRef.current = false;
+      return;
+    }
+
     const frame = window.requestAnimationFrame(() => {
       const viewport = messagesViewportRef.current;
       if (!viewport) return;
@@ -52,7 +61,7 @@ export function RaceLiveChat({
     });
 
     return () => window.cancelAnimationFrame(frame);
-  }, [messages.length]);
+  }, [isChatOpen, messages.length]);
 
   useEffect(() => {
     const channel = supabase
@@ -117,7 +126,9 @@ export function RaceLiveChat({
           ? "Chat de la course en direct"
           : "Chat du replay"
       }
-      className="flex h-[26rem] min-h-0 flex-col overflow-hidden rounded-[2rem] border border-[#1D5145]/20 bg-[#071A17] text-white shadow-[0_24px_70px_rgba(7,26,23,0.22)] sm:h-[32rem] xl:sticky xl:top-4 xl:h-[min(48rem,calc(100vh_-_2rem))] xl:min-h-[38rem]"
+      className={`flex min-h-0 flex-col overflow-hidden rounded-[2rem] border border-[#1D5145]/20 bg-[#071A17] text-white shadow-[0_24px_70px_rgba(7,26,23,0.22)] xl:sticky xl:top-4 ${
+        isChatOpen ? "h-[26rem] sm:h-[32rem] xl:h-[min(48rem,calc(100vh_-_2rem))] xl:min-h-[38rem]" : ""
+      }`}
     >
       <header className="border-b border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(66,185,154,0.28),transparent_58%)] px-5 py-5">
         <div className="flex items-start justify-between gap-3">
@@ -136,129 +147,153 @@ export function RaceLiveChat({
             <h2 className="mt-2 text-lg font-black">
               Le peloton réagit
             </h2>
-            <p className="mt-1 text-xs font-semibold leading-5 text-[#AFC6BB]">
-              {mode === "live"
-                ? "Vos messages rejoignent aussi le chat général avec le contexte de la course."
-                : "Les réactions restent visibles ici et dans le chat général."}
-            </p>
+            {isChatOpen ? (
+              <p className="mt-1 text-xs font-semibold leading-5 text-[#AFC6BB]">
+                {mode === "live"
+                  ? "Vos messages rejoignent aussi le chat général avec le contexte de la course."
+                  : "Les réactions restent visibles ici et dans le chat général."}
+              </p>
+            ) : null}
           </div>
-          <span className="shrink-0 rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-black text-[#D9E7E0]">
-            {messages.length}
-          </span>
+          {mode === "replay" ? (
+            <button
+              type="button"
+              aria-expanded={isChatOpen}
+              aria-controls={chatContentId}
+              onClick={() => setIsReplayChatOpen((open) => !open)}
+              className="min-h-11 shrink-0 rounded-xl border border-white/15 bg-white/10 px-3 text-xs font-black text-[#D9E7E0] transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#72D4B7]"
+            >
+              {isChatOpen ? "Masquer le chat" : "Afficher le chat"}
+            </button>
+          ) : (
+            <span className="shrink-0 rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-black text-[#D9E7E0]">
+              {messages.length}
+            </span>
+          )}
         </div>
       </header>
 
       <div
-        ref={messagesViewportRef}
-        className="min-h-0 flex-1 space-y-3 overflow-y-scroll overscroll-contain bg-[#0B2521] px-4 py-4 [scrollbar-color:#72D4B7_#0B2521] [scrollbar-gutter:stable] [scrollbar-width:thin]"
-        aria-label="Messages du chat de course"
-        aria-live="polite"
-        aria-relevant="additions"
-        tabIndex={0}
+        id={chatContentId}
+        hidden={!isChatOpen}
+        className={isChatOpen ? "flex min-h-0 flex-1 flex-col" : undefined}
       >
-        {messages.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-[#72D4B7]/30 bg-[#72D4B7]/5 px-4 py-8 text-center">
-            <span
-              aria-hidden="true"
-              className="mx-auto grid h-10 w-10 place-items-center rounded-full bg-[#72D4B7]/10 text-lg"
+        {isChatOpen ? (
+          <>
+            <div
+              ref={messagesViewportRef}
+              className="min-h-0 flex-1 space-y-3 overflow-y-scroll overscroll-contain bg-[#0B2521] px-4 py-4 [scrollbar-color:#72D4B7_#0B2521] [scrollbar-gutter:stable] [scrollbar-width:thin]"
+              aria-label="Messages du chat de course"
+              aria-live="polite"
+              aria-relevant="additions"
+              tabIndex={0}
             >
-              💬
-            </span>
-            <p className="mt-3 text-sm font-black text-[#DCE9E3]">
-              La discussion est ouverte
-            </p>
-            <p className="mt-1 text-xs font-semibold leading-5 text-[#8FA99D]">
-              Lancez les réactions avec les autres Directeurs Sportifs.
-            </p>
-          </div>
-        ) : null}
-        {messages.map((message) => {
-          const isCurrentDirector =
-            message.sportingDirectorId === currentDirectorId;
-          return (
-            <article
-              key={message.id}
-              className={`flex items-start gap-2.5 ${
-                isCurrentDirector ? "flex-row-reverse" : ""
-              }`}
-            >
-              <span
-                aria-hidden="true"
-                className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-[10px] font-black uppercase shadow-sm ${
-                  isCurrentDirector
-                    ? "bg-[#F2C94C] text-[#17261E]"
-                    : "bg-[#296F5F] text-white"
-                }`}
-              >
-                {getAuthorInitials(message.authorDisplayName)}
-              </span>
-              <div
-                className={`min-w-0 max-w-[calc(100%_-_2.625rem)] rounded-2xl px-3 py-2.5 ${
-                  isCurrentDirector
-                    ? "rounded-tr-sm bg-[#176951] text-white"
-                    : "rounded-tl-sm bg-white text-[#0B302B]"
-                }`}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <p className="truncate text-[10px] font-black">
-                    {isCurrentDirector
-                      ? "Vous"
-                      : message.authorDisplayName}
+              {messages.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-[#72D4B7]/30 bg-[#72D4B7]/5 px-4 py-8 text-center">
+                  <span
+                    aria-hidden="true"
+                    className="mx-auto grid h-10 w-10 place-items-center rounded-full bg-[#72D4B7]/10 text-lg"
+                  >
+                    💬
+                  </span>
+                  <p className="mt-3 text-sm font-black text-[#DCE9E3]">
+                    La discussion est ouverte
                   </p>
-                  <time
-                    className={`shrink-0 text-[9px] font-bold ${
-                      isCurrentDirector
-                        ? "text-white/60"
-                        : "text-[#789087]"
+                  <p className="mt-1 text-xs font-semibold leading-5 text-[#8FA99D]">
+                    Lancez les réactions avec les autres Directeurs Sportifs.
+                  </p>
+                </div>
+              ) : null}
+              {messages.map((message) => {
+                const isCurrentDirector =
+                  message.sportingDirectorId === currentDirectorId;
+                return (
+                  <article
+                    key={message.id}
+                    className={`flex items-start gap-2.5 ${
+                      isCurrentDirector ? "flex-row-reverse" : ""
                     }`}
                   >
-                    {formatMessageTime(message.createdAt)}
-                  </time>
-                </div>
-                <p data-i18n-skip className="mt-1 break-words text-xs font-semibold leading-5">
-                  {message.message}
+                    <span
+                      aria-hidden="true"
+                      className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-[10px] font-black uppercase shadow-sm ${
+                        isCurrentDirector
+                          ? "bg-[#F2C94C] text-[#17261E]"
+                          : "bg-[#296F5F] text-white"
+                      }`}
+                    >
+                      {getAuthorInitials(message.authorDisplayName)}
+                    </span>
+                    <div
+                      className={`min-w-0 max-w-[calc(100%_-_2.625rem)] rounded-2xl px-3 py-2.5 ${
+                        isCurrentDirector
+                          ? "rounded-tr-sm bg-[#176951] text-white"
+                          : "rounded-tl-sm bg-white text-[#0B302B]"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="truncate text-[10px] font-black">
+                          {isCurrentDirector
+                            ? "Vous"
+                            : message.authorDisplayName}
+                        </p>
+                        <time
+                          className={`shrink-0 text-[9px] font-bold ${
+                            isCurrentDirector
+                              ? "text-white/60"
+                              : "text-[#789087]"
+                          }`}
+                        >
+                          {formatMessageTime(message.createdAt)}
+                        </time>
+                      </div>
+                      <p data-i18n-skip className="mt-1 break-words text-xs font-semibold leading-5">
+                        {message.message}
+                      </p>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            <form
+              onSubmit={submitMessage}
+              className="border-t border-[#315B3E]/15 bg-[#F8FCFA] p-3"
+            >
+              <label htmlFor="race-live-message" className="sr-only">
+                Votre commentaire
+              </label>
+              <div className="flex gap-2">
+                <input
+                  id="race-live-message"
+                  value={draft}
+                  onChange={(event) =>
+                    setDraft(event.target.value.slice(0, 280))
+                  }
+                  placeholder="Réagir à la course…"
+                  className="min-h-11 min-w-0 flex-1 rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-semibold text-[#0B302B] outline-none focus:border-[#176951] focus:ring-2 focus:ring-[#176951]/15"
+                />
+                <button
+                  type="submit"
+                  disabled={isPending || draft.trim().length === 0}
+                  className="grid min-h-11 min-w-11 place-items-center rounded-xl bg-[#F2C94C] px-3 text-sm font-black text-[#17261E] transition hover:bg-[#F7DA73] disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-label="Envoyer le message"
+                >
+                  {isPending ? "…" : "↑"}
+                </button>
+              </div>
+              <div className="mt-1 flex min-h-4 items-center justify-between gap-3">
+                <p className="text-[10px] font-semibold text-red-700">
+                  {error}
+                </p>
+                <p className="ml-auto text-[9px] font-bold text-[#789087]">
+                  {draft.length}/280
                 </p>
               </div>
-            </article>
-          );
-        })}
+            </form>
+          </>
+        ) : null}
       </div>
-
-      <form
-        onSubmit={submitMessage}
-        className="border-t border-[#315B3E]/15 bg-[#F8FCFA] p-3"
-      >
-        <label htmlFor="race-live-message" className="sr-only">
-          Votre commentaire
-        </label>
-        <div className="flex gap-2">
-          <input
-            id="race-live-message"
-            value={draft}
-            onChange={(event) =>
-              setDraft(event.target.value.slice(0, 280))
-            }
-            placeholder="Réagir à la course…"
-            className="min-h-11 min-w-0 flex-1 rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-semibold text-[#0B302B] outline-none focus:border-[#176951] focus:ring-2 focus:ring-[#176951]/15"
-          />
-          <button
-            type="submit"
-            disabled={isPending || draft.trim().length === 0}
-            className="grid min-h-11 min-w-11 place-items-center rounded-xl bg-[#F2C94C] px-3 text-sm font-black text-[#17261E] transition hover:bg-[#F7DA73] disabled:cursor-not-allowed disabled:opacity-50"
-            aria-label="Envoyer le message"
-          >
-            {isPending ? "…" : "↑"}
-          </button>
-        </div>
-        <div className="mt-1 flex min-h-4 items-center justify-between gap-3">
-          <p className="text-[10px] font-semibold text-red-700">
-            {error}
-          </p>
-          <p className="ml-auto text-[9px] font-bold text-[#789087]">
-            {draft.length}/280
-          </p>
-        </div>
-      </form>
     </aside>
   );
 }

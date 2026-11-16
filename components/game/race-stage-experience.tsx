@@ -19,6 +19,7 @@ import {
 } from "@/lib/game/race-calendar";
 import {
   canSimulateRaceEdition,
+  getRaceResultsHref,
   getStageLiveState,
 } from "@/lib/game/race-live";
 import { getFrozenRaceFavoriteRiders } from "@/lib/game/race-favorites";
@@ -147,7 +148,7 @@ export function RaceStageExperience({
       ? "results"
       : "live"
   );
-  const replayHref = `/jeu/resultats/${encodeURIComponent(entry.edition.slug)}/${entry.stage.stageNumber}?replay=1`;
+  const replayHref = getRaceResultsHref(entry.edition.slug, entry.stage.stageNumber, { replay: true });
   const officialStandings = buildOfficialStandings(
     entry,
     officialResults,
@@ -347,6 +348,15 @@ export function RaceStageExperience({
               Vous pouvez continuer à naviguer : aucun rechargement manuel
               n’est nécessaire.
             </p>
+            {state.status === "finished" && resultAvailable ? (
+              <Link
+                href={getRaceResultsHref(entry.edition.slug, entry.stage.stageNumber)}
+                prefetch={false}
+                className="mt-4 inline-flex min-h-10 items-center rounded-xl bg-white px-3 text-xs font-black text-[#176951]"
+              >
+                ▤ Résultats officiels
+              </Link>
+            ) : null}
           </div>
         </div>
       </section>

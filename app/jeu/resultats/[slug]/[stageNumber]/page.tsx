@@ -352,6 +352,7 @@ export default async function RaceLivePage({
             edition={edition}
             currentStageNumber={stage.stageNumber}
             currentDayNumber={calendar.currentDayNumber}
+            replayRequested={replayRequested}
           />
         ) : null}
 

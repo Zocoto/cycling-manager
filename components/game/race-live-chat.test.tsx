@@ -14,35 +14,35 @@ vi.mock("@/app/jeu/resultats/chat-actions", () => ({
 }));
 
 describe("RaceLiveChat", () => {
-  it("affiche en permanence les réactions des DS à côté du replay", () => {
-    const messages: RaceLiveMessage[] = [
-      {
-        id: "message-1",
-        stageId: "stage-1",
-        raceEditionId: "edition-1",
-        sportingDirectorId: "director-2",
-        authorDisplayName: "Camille Martin",
-        message: "L’échappée commence à prendre le large.",
-        createdAt: "2026-07-27T08:15:00.000Z",
-      },
-      {
-        id: "message-2",
-        stageId: "stage-1",
-        raceEditionId: "edition-1",
-        sportingDirectorId: "director-1",
-        authorDisplayName: "Alex Dupont",
-        message: "Mon leader reste bien placé.",
-        createdAt: "2026-07-27T08:16:00.000Z",
-      },
-    ];
+  const messages: RaceLiveMessage[] = [
+    {
+      id: "message-1",
+      stageId: "stage-1",
+      raceEditionId: "edition-1",
+      sportingDirectorId: "director-2",
+      authorDisplayName: "Camille Martin",
+      message: "L’échappée commence à prendre le large.",
+      createdAt: "2026-07-27T08:15:00.000Z",
+    },
+    {
+      id: "message-2",
+      stageId: "stage-1",
+      raceEditionId: "edition-1",
+      sportingDirectorId: "director-1",
+      authorDisplayName: "Alex Dupont",
+      message: "Mon leader reste bien placé.",
+      createdAt: "2026-07-27T08:16:00.000Z",
+    },
+  ];
 
+  it("affiche les messages et la zone de saisie pendant le direct", () => {
     const markup = renderToStaticMarkup(
       <RaceLiveChat
         stageId="stage-1"
         raceEditionId="edition-1"
         currentDirectorId="director-1"
         initialMessages={messages}
-        mode="replay"
+        mode="live"
       />,
     );
     expect(markup).toContain("h-[26rem]");
@@ -55,13 +55,32 @@ describe("RaceLiveChat", () => {
     expect(markup).toContain('data-race-live-chat="persistent"');
     expect(markup).toContain('data-race-chat-centralized="true"');
     expect(markup).toContain('data-race-chat-room="edition-1"');
-    expect(markup).toContain('aria-label="Chat du replay"');
+    expect(markup).toContain('aria-label="Chat de la course en direct"');
     expect(markup).toContain("Le peloton réagit");
-    expect(markup).toContain("dans le chat général");
+    expect(markup).toContain("Vos messages rejoignent aussi le chat général");
     expect(markup).toContain("Camille Martin");
     expect(markup).toContain("L’échappée commence à prendre le large.");
     expect(markup).toContain("Mon leader reste bien placé.");
     expect(markup).toContain("Réagir à la course");
     expect(markup).toContain("xl:sticky");
+  });
+
+  it("replie le chat du replay et n’affiche aucun message avant son ouverture", () => {
+    const markup = renderToStaticMarkup(
+      <RaceLiveChat
+        stageId="stage-1"
+        raceEditionId="edition-1"
+        currentDirectorId="director-1"
+        initialMessages={messages}
+        mode="replay"
+      />,
+    );
+
+    expect(markup).toContain('aria-label="Chat du replay"');
+    expect(markup).toContain('aria-expanded="false"');
+    expect(markup).toContain("Afficher le chat");
+    expect(markup).not.toContain("Camille Martin");
+    expect(markup).not.toContain("L’échappée commence à prendre le large.");
+    expect(markup).not.toContain("Réagir à la course");
   });
 });
