@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "@/components/ui/app-link";
+import { RiderPersonalityBadge } from "@/components/game/rider-personality";
 import { SeasonRaceDaysBadge } from "@/components/game/season-race-days-badge";
+import type { RiderPersonalityKey } from "@/lib/game/rider-personalities";
 import type { RiderRatingImportance } from "@/lib/game/rider-profile";
 import { getRiderRatingColorClasses } from "@/lib/game/rider-rating-colors";
 import {
@@ -41,6 +43,7 @@ export type MobileRosterSummaryRider = {
   riderId: string;
   riderName: string;
   profile: string;
+  personalityKey?: RiderPersonalityKey | null;
   form: number;
   morale: number;
   seasonRaceDays?: number;
@@ -388,6 +391,11 @@ export function MobileRosterSummary({
                           ? `Blessé · ${rider.injuryLabel}`
                           : rider.profile}
                       </span>
+                      {rider.personalityKey ? (
+                        <span className="mt-0.5 block [&>span]:max-w-full [&>span]:[overflow-wrap:anywhere]">
+                          <RiderPersonalityBadge personality={rider.personalityKey} compact />
+                        </span>
+                      ) : null}
                     </Link>
                     <CompactHealthGauges
                       form={rider.form}

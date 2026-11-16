@@ -685,6 +685,7 @@ export default async function TeamRosterPage({
                             profile: getRiderSportingProfile(
                               toRiderRatings(rider),
                             ),
+                            personalityKey: health?.personalityKey,
                             form: health?.form ?? 75,
                             morale: health?.morale ?? 60,
                             seasonRaceDays: health?.seasonRaceDays,

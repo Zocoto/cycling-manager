@@ -40,6 +40,7 @@ describe("mobile roster summary", () => {
             profile: "Grimpeur",
             form: 82,
             morale: 71,
+            personalityKey: "force_tranquille",
             seasonRaceDays: 0,
             ratings,
           },
@@ -54,6 +55,7 @@ describe("mobile roster summary", () => {
     expect(markup).toContain("data-mobile-roster-summary");
     expect(markup).toContain("table-fixed");
     expect(markup.match(/data-summary-rating=/g)).toHaveLength(6);
+    expect(markup).toContain(">Force tranquille<");
     expect(markup).toContain("Augusto Silva");
     expect(markup).toContain("Santé : forme 82 %, moral 71 %");
     expect(markup).toContain("JDC saison");
