@@ -7,6 +7,7 @@ import {
 } from "@/app/jeu/federations/governance-actions";
 import { FederationRaceCreationPanel } from "@/components/game/federation-race-creation-panel";
 import { NationalChampionshipRoutePanel } from "@/components/game/national-championship-route-panel";
+import { useLocale } from "@/components/i18n/locale-provider";
 import Link from "@/components/ui/app-link";
 import { initialFederationGovernanceActionState } from "@/lib/game/federation-action-states";
 import { getFederationHostingEvent } from "@/lib/game/federation-hosting";
@@ -19,7 +20,8 @@ import {
   type RaceCategoryCode,
   type RaceProfileType,
 } from "@/lib/game/race-calendar";
-import type { FederationCountryRace, FederationCoursesState, FederationHostingReport } from "@/services/federation-courses";
+import { getIntlLocale, type AppLocale } from "@/lib/i18n/config";
+import type { FederationCountryRace, FederationCoursesState, FederationHostingCandidacy, FederationHostingReport } from "@/services/federation-courses";
 import type { FederationRaceCreationState } from "@/services/federation-race-creation";
 
 const moneyFormatter = new Intl.NumberFormat("fr-FR", {
@@ -27,6 +29,10 @@ const moneyFormatter = new Intl.NumberFormat("fr-FR", {
   currency: "EUR",
   maximumFractionDigits: 0,
 });
+const hostingDateFormatters: Record<AppLocale, Intl.DateTimeFormat> = {
+  fr: new Intl.DateTimeFormat(getIntlLocale("fr"), { dateStyle: "long", timeZone: "Europe/Paris" }),
+  en: new Intl.DateTimeFormat(getIntlLocale("en"), { dateStyle: "long", timeZone: "Europe/Paris" }),
+};
 
 const PROFILE_COLORS: Record<RaceProfileType, string> = {
   flat: "#59AFC9",
@@ -44,14 +50,17 @@ export function FederationCoursesPanel({
   gameYear,
   state,
   raceCreationState,
+  viewerIsAffiliated = false,
   nationalChampionshipRouteChoice = null,
 }: {
   countryCode: string;
   gameYear: number;
   state: FederationCoursesState;
   raceCreationState: FederationRaceCreationState | null;
+  viewerIsAffiliated?: boolean;
   nationalChampionshipRouteChoice?: NationalChampionshipRouteChoice | null;
 }) {
+  const { locale } = useLocale();
   const [actionState, action, pending] = useActionState(
     manageFederationHostingCandidacyAction,
     initialFederationGovernanceActionState,
@@ -59,11 +68,13 @@ export function FederationCoursesPanel({
   const availableBalance = state.hosting.balance === null
     ? null
     : Math.max(0, state.hosting.balance - state.hosting.reservedAmount);
+  const dateFormatter = hostingDateFormatters[locale];
 
   return (
     <div className="space-y-7">
       <nav aria-label="Gestion des courses" className="flex flex-wrap gap-2 text-sm font-bold">
         <a href="#accueil-international" className="rounded-xl bg-white px-4 py-2">Accueil international</a>
+        <a href="#candidatures-internationales" className="rounded-xl bg-white px-4 py-2">Candidatures déposées</a>
         {nationalChampionshipRouteChoice ? <a href="#championnat-national" className="rounded-xl bg-white px-4 py-2">Championnat national</a> : null}
         {raceCreationState ? <a href="#creation-course" className="rounded-xl bg-white px-4 py-2">Créer une course</a> : null}
         <a href="#courses-du-pays" className="rounded-xl bg-white px-4 py-2">Courses du pays</a>
@@ -79,14 +90,22 @@ export function FederationCoursesPanel({
               Candidater à l’accueil d’une compétition
             </h2>
             <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#D6E9E2]">
-              Dépôt jusqu’à la fin de J{state.hosting.applicationCloseDay}, attribution
-              automatique à partir de J{state.hosting.decisionDay}, dès que le calendrier est prêt.
-            </p>
-            <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#D6E9E2]">
               Toute fédération peut candidater, même sans Bureau d’organisation.
-              Le score privilégie le temps écoulé depuis le dernier accueil international (60 %).
-              Le classement UCI (20 %), la renommée (15 %) et le niveau du Bureau (5 %) complètent le barème.
             </p>
+            <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-3">
+              <div>
+                <dt className="text-xs font-bold text-[#B8DDCF]">Fin des dépôts</dt>
+                <dd className="mt-1 text-sm font-black">
+                  <HostingDate value={state.hosting.applicationCloseDate} formatter={dateFormatter} fallback={`J${state.hosting.applicationCloseDay}`} />
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-bold text-[#B8DDCF]">Décision du jury à partir du</dt>
+                <dd className="mt-1 text-sm font-black">
+                  <HostingDate value={state.hosting.decisionDate} formatter={dateFormatter} fallback={`J${state.hosting.decisionDay}`} />
+                </dd>
+              </div>
+            </dl>
           </div>
           <div className="rounded-2xl border border-white/15 bg-white/10 px-5 py-4 text-right">
             <p className="text-[10px] font-black uppercase tracking-[0.13em] text-[#B8DDCF]">
@@ -104,6 +123,12 @@ export function FederationCoursesPanel({
         </div>
 
         <div className="space-y-6 p-6 sm:p-8">
+          <HostingCandidacies
+            hosting={state.hosting}
+            ownCountryCode={viewerIsAffiliated ? countryCode : null}
+            dateFormatter={dateFormatter}
+          />
+
           <div className="rounded-2xl border border-[#D5AC18]/30 bg-[#FFF9DE] px-5 py-4 text-sm font-bold leading-6 text-[#66520D]">
             Le dépôt réserve le coût affiché. Le pays retenu paie à l’attribution.
             Les recettes dépendent des départs effectifs, des places ouvertes et
@@ -159,11 +184,13 @@ export function FederationCoursesPanel({
                 </dl>
 
                 <div className="mt-5 flex-1 rounded-xl border border-[#315B3E]/10 bg-white p-4 text-sm font-bold text-[#536B63]">
-                  {opportunity.selectedHostName
-                    ? `Pays hôte désigné : ${opportunity.selectedHostName}.`
-                    : opportunity.candidacy?.status === "pending"
-                      ? `Candidature déposée · score ${opportunity.candidacy.selectionScore}/1000.`
-                      : opportunity.unavailableReason ?? "La fédération peut déposer sa candidature."}
+                  {opportunity.isNeutralHost ? (
+                    "Terrain neutre"
+                  ) : opportunity.selectedHostName ? (
+                    <><span>Pays hôte désigné</span>{" · "}{opportunity.selectedHostName}</>
+                  ) : opportunity.candidacy && opportunity.candidacy.status !== "withdrawn" ? (
+                    <><span>Candidature</span>{" · "}{getCandidacyStatusLabel(opportunity.candidacy.status)}</>
+                  ) : opportunity.unavailableReason ?? "La fédération peut déposer sa candidature."}
                 </div>
 
                 {opportunity.canWithdraw && opportunity.candidacy ? (
@@ -175,7 +202,7 @@ export function FederationCoursesPanel({
                       Retirer la candidature
                     </button>
                   </form>
-                ) : !opportunity.selectedHostName && (!opportunity.candidacy || opportunity.candidacy.status === "withdrawn") ? (
+                ) : state.hosting.viewerIsPresident && !opportunity.isNeutralHost && !opportunity.selectedHostName && (!opportunity.candidacy || opportunity.candidacy.status === "withdrawn") ? (
                   <form action={action} className="mt-4">
                     <input type="hidden" name="countryCode" value={countryCode} />
                     <input type="hidden" name="eventType" value={opportunity.eventType} />
@@ -192,7 +219,6 @@ export function FederationCoursesPanel({
             ))}
           </div>
 
-          <CandidacyRanking state={state} />
           {state.hosting.reports.length ? <HostingReports reports={state.hosting.reports} /> : null}
         </div>
       </section>
@@ -272,9 +298,8 @@ function RenownPanel({ state }: { state: FederationCoursesState }) {
             Cette valeur conserve la mémoire sportive du pays : résultats
             récents, grandes équipes, podiums de ses coureurs et compétitions
             accueillies. Le prestige d’organisation cumule les cinq dernières
-            saisons, jusqu’à 100 points. À son maximum, il apporte jusqu’à 15
-            points aux candidatures internationales et environ 5 % d’affluence
-            de référence supplémentaire.
+            saisons, jusqu’à 100 points. À son maximum, il augmente d’environ
+            5 % l’affluence de référence.
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -465,58 +490,84 @@ function RaceProfileTags({ profiles }: { profiles: FederationCountryRace["profil
   );
 }
 
-function CandidacyRanking({ state }: { state: FederationCoursesState }) {
+function HostingCandidacies({ hosting, ownCountryCode, dateFormatter }: {
+  hosting: FederationCoursesState["hosting"];
+  ownCountryCode: string | null;
+  dateFormatter: Intl.DateTimeFormat;
+}) {
+  const candidaciesByEvent = new Map<string, FederationHostingCandidacy[]>();
+  for (const candidacy of hosting.candidacies) {
+    const candidacies = candidaciesByEvent.get(candidacy.eventKey);
+    if (candidacies) candidacies.push(candidacy);
+    else candidaciesByEvent.set(candidacy.eventKey, [candidacy]);
+  }
+
+  const eventGroups = hosting.opportunities.filter((opportunity) =>
+    candidaciesByEvent.has(opportunity.eventKey) || opportunity.isNeutralHost || opportunity.selectedHostName,
+  );
+
   return (
-    <div className="rounded-2xl border border-[#315B3E]/14 bg-[#F8FBF9] p-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--federation-secondary)]">Transparence de l’attribution</p>
-          <h3 className="mt-1 text-xl font-black text-[#183F37]">Candidatures déposées</h3>
-        </div>
-        <p className="text-xs font-bold text-[#60756E]">Toutes les équipes affiliées consultent le même classement.</p>
-      </div>
-      {state.hosting.candidacies.length ? (
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[860px] text-left text-sm">
-            <thead className="text-[10px] font-black uppercase tracking-[0.1em] text-[#60756E]">
-              <tr>
-                <th className="px-3 py-2">Pays / épreuve</th>
-                <th className="px-3 py-2">Dernier accueil international</th>
-                <th className="px-3 py-2">UCI</th>
-                <th className="px-3 py-2">Renommée</th>
-                <th className="px-3 py-2">Détail du score</th>
-                <th className="px-3 py-2">Statut</th>
-                <th className="px-3 py-2 text-right">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {state.hosting.candidacies.map((candidate) => (
-                <tr key={candidate.id} className="border-t border-[#315B3E]/10 font-bold text-[#183F37]">
-                  <td className="px-3 py-3">
-                    <span className="mr-2 rounded bg-[#E5F4ED] px-2 py-1 text-[10px] font-black text-[var(--federation-secondary)]">{candidate.countryCode}</span>
-                    {candidate.countryName} · {getFederationHostingEvent(candidate.eventType).shortLabel}
-                  </td>
-                  <td className="px-3 py-3">{candidate.lastHostedGameYear ? `S${candidate.lastHostedGameYear}` : "Jamais"}</td>
-                  <td className="px-3 py-3">#{candidate.uciRank}</td>
-                  <td className="px-3 py-3">{candidate.renownScore}/1000</td>
-                  <td className="px-3 py-3 text-xs text-[#60756E]">
-                    {candidate.recencyPoints} + {candidate.rankingPoints} + {candidate.renownPoints} + {candidate.organizationPoints}
-                    {candidate.specializationBonusPoints > 0
-                      ? ` + ${candidate.specializationBonusPoints} orientation`
-                      : ""}
-                  </td>
-                  <td className="px-3 py-3">{getCandidacyStatusLabel(candidate.status)}</td>
-                  <td className="px-3 py-3 text-right font-black">{candidate.selectionScore}/1000</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+    <section id="candidatures-internationales" className="scroll-mt-24 rounded-2xl border border-[#315B3E]/14 bg-[#F8FBF9] p-4 sm:p-5">
+      <h3 className="text-xl font-black text-[#183F37]">Candidatures déposées</h3>
+      {eventGroups.length ? (
+        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          {eventGroups.map((opportunity) => {
+            const candidacies = candidaciesByEvent.get(opportunity.eventKey) ?? [];
+            candidacies.sort((left, right) =>
+              Number(right.countryCode === ownCountryCode) - Number(left.countryCode === ownCountryCode) ||
+              left.countryName.localeCompare(right.countryName, "fr"),
+            );
+
+            return (
+              <article key={opportunity.eventKey} className="min-w-0 rounded-xl border border-[#315B3E]/12 bg-white">
+                <div className="px-4 py-3">
+                  <h4 className="text-sm font-black text-[#183F37]">{opportunity.label}</h4>
+                  {opportunity.isNeutralHost ? (
+                    <p className="mt-1 text-xs font-bold text-[#536B63]">Terrain neutre</p>
+                  ) : opportunity.selectedHostName ? (
+                    <p className="mt-1 text-xs font-bold text-[#536B63]"><span>Pays hôte désigné</span>{" · "}{opportunity.selectedHostName}</p>
+                  ) : null}
+                </div>
+                {candidacies.length ? (
+                  <ul className="border-t border-[#315B3E]/10">
+                    {candidacies.map((candidacy) => {
+                      const isOwnCandidacy = candidacy.countryCode === ownCountryCode;
+                      return (
+                        <li key={candidacy.id} className={`flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-[#315B3E]/10 px-4 py-2.5 last:border-0 ${isOwnCandidacy ? "bg-[#EAF5EF] last:rounded-b-xl" : ""}`}>
+                          <div className="min-w-0">
+                            <p className="break-words text-sm font-black text-[#183F37]">{candidacy.countryName}</p>
+                            <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs font-semibold text-[#536B63]">
+                              {isOwnCandidacy ? <span className="font-bold text-[#205D4A]">Votre fédération</span> : null}
+                              <HostingDate value={candidacy.submittedAt} formatter={dateFormatter} />
+                            </p>
+                          </div>
+                          <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${candidacy.status === "selected" ? "bg-[#D5EDDD] text-[#20513B]" : "bg-[#EEF2F0] text-[#3B574C]"}`}>
+                            {getCandidacyStatusLabel(candidacy.status)}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : null}
+              </article>
+            );
+          })}
         </div>
       ) : (
         <p className="mt-4 rounded-xl bg-white p-4 text-sm font-bold text-[#60756E]">Aucune candidature déposée pour la saison suivante.</p>
       )}
-    </div>
+    </section>
   );
+}
+
+function HostingDate({ value, formatter, fallback = null }: {
+  value?: string | null;
+  formatter: Intl.DateTimeFormat;
+  fallback?: string | null;
+}) {
+  const date = value ? new Date(value) : null;
+  if (!date || Number.isNaN(date.getTime())) return fallback;
+  return <time dateTime={value ?? undefined}>{formatter.format(date)}</time>;
 }
 
 function getCandidacyStatusLabel(

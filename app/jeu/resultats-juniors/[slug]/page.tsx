@@ -85,7 +85,7 @@ export default async function JuniorChampionshipResultsPage({
                 {snapshot.race.name}
               </h1>
               <p className="mt-3 text-sm font-semibold text-[#C7DBD2]">
-                J{snapshot.race.startDayNumber} · {snapshot.race.locationName} ·{" "}
+                J{snapshot.race.startDayNumber} · {snapshot.race.isNeutralHost ? "Terrain neutre" : snapshot.race.locationName} ·{" "}
                 {RACE_PROFILE_LABELS[snapshot.race.profileType]}
               </p>
             </div>

@@ -473,15 +473,14 @@ export async function RaceProfileContent({
 
             <div className="relative flex flex-wrap items-start justify-between gap-7">
               <div className="flex min-w-0 items-start gap-5">
-                <span
-                  className={`fi fi-${edition.countryCode.toLowerCase()} mt-1 shrink-0 rounded shadow-lg`}
-                  style={{
-                    fontSize: "3.25rem",
-                    lineHeight: 1,
-                  }}
-                  role="img"
-                  aria-label={`Drapeau ${edition.countryName}`}
-                />
+                {!edition.isNeutralHost ? (
+                  <span
+                    className={`fi fi-${edition.countryCode.toLowerCase()} mt-1 shrink-0 rounded shadow-lg`}
+                    style={{ fontSize: "3.25rem", lineHeight: 1 }}
+                    role="img"
+                    aria-label={`Drapeau ${edition.countryName}`}
+                  />
+                ) : null}
 
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
@@ -499,7 +498,7 @@ export async function RaceProfileContent({
                     {edition.name}
                   </h1>
                   <p className="mt-3 text-sm font-bold text-white/80 sm:text-base">
-                    {edition.countryName} · J{startDay}
+                    {edition.isNeutralHost ? "Terrain neutre" : edition.countryName} · J{startDay}
                     {endDay > startDay ? ` à J${endDay}` : ""}
                   </p>
                 </div>

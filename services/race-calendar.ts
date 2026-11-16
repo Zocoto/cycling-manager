@@ -221,6 +221,7 @@ type RaceEditionRow = {
   id: string;
   race_id: string;
   host_country_id: string | null;
+  is_neutral_host: boolean;
   race_category_id: string;
   display_name: string;
   status: string;
@@ -280,6 +281,7 @@ type JuniorChampionshipEditionRow = {
   short_name: string;
   location_name: string;
   country_code: string;
+  is_neutral_host: boolean;
   start_day_number: number;
   end_day_number: number;
   profile_type: RaceProfileType;
@@ -958,6 +960,7 @@ export async function getActiveSeasonRaceCalendar(
           id,
           race_id,
           host_country_id,
+          is_neutral_host,
           race_category_id,
           display_name,
           status,
@@ -1864,8 +1867,9 @@ export async function getActiveSeasonRaceCalendar(
         return null;
       }
 
-      const homeAdvantageLevel =
-        federationInfrastructureLevelByCountryAndCode.get(
+      const homeAdvantageLevel = edition.is_neutral_host
+        ? 0
+        : federationInfrastructureLevelByCountryAndCode.get(
           `${country.id}:home_advantage_program`,
         ) ?? 0;
       const homeAdvantageSpecializationCode =
@@ -1880,6 +1884,7 @@ export async function getActiveSeasonRaceCalendar(
         shortName: race.short_name,
         countryName: country.name,
         countryCode: country.iso_alpha2,
+        isNeutralHost: edition.is_neutral_host || undefined,
         continentCode: country.continent_code,
         categoryCode: category.code,
         categoryName: category.name,
@@ -2051,7 +2056,7 @@ async function loadJuniorChampionshipCalendarEditions(
   const editionsResult = await supabase
     .from("development_race_editions")
     .select(
-      "id, slug, name, short_name, location_name, country_code, start_day_number, end_day_number, profile_type, race_format, competition_type, selection_minimum, selection_maximum, status",
+      "id, slug, name, short_name, location_name, country_code, is_neutral_host, start_day_number, end_day_number, profile_type, race_format, competition_type, selection_minimum, selection_maximum, status",
     )
     .eq("season_id", seasonId)
     .in("competition_type", [
@@ -2147,6 +2152,7 @@ async function loadJuniorChampionshipCalendarEditions(
       shortName: edition.short_name,
       countryName: edition.location_name,
       countryCode: edition.country_code,
+      isNeutralHost: edition.is_neutral_host || undefined,
       categoryCode: isWorld ? "world" : "continental",
       categoryName: isNationsCup
         ? "Nations Cup juniors"

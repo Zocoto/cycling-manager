@@ -359,6 +359,7 @@ export function NationalFederationView({
               countryCode={country.code}
               gameYear={snapshot.season.gameYear}
               state={coursesState}
+              viewerIsAffiliated={snapshot.viewer.isAffiliated}
               nationalChampionshipRouteChoice={nationalChampionshipRouteChoice}
               raceCreationState={raceCreationState}
             />

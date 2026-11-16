@@ -40,6 +40,7 @@ import {
   loadCyclogazetteFeatureStories,
   loadCyclogazetteNationsCupSpecial,
 } from "@/services/cyclogazette-editorial";
+import { loadCyclogazetteHostingStories } from "@/services/cyclogazette-hosting";
 import { getCyclogazetteNewsItems } from "@/services/public-game-news";
 import { loadCyclogazetteJerseyStories } from "@/services/cyclogazette-jerseys";
 import { loadCyclogazetteHumanRaceEditionIds } from "@/services/cyclogazette-participation";
@@ -339,6 +340,7 @@ export async function publishCyclogazetteEdition(
     featureStories,
     nationsCupSpecial,
     jerseyStories,
+    hostingStories,
   ] = await Promise.all([
       getCyclogazetteNewsItems(humanRaceEditionIds),
       loadDailyReactions(seasonDay.calendar_date),
@@ -364,6 +366,12 @@ export async function publishCyclogazetteEdition(
         calendarDate: seasonDay.calendar_date,
       }),
       loadCyclogazetteJerseyStories(admin, seasonDay.calendar_date, now),
+      loadCyclogazetteHostingStories(admin, {
+        gameYear: season.game_year,
+        dayNumber,
+        calendarDate: seasonDay.calendar_date,
+        now,
+      }),
     ]);
   if (mediaArticlesResult.error) {
     throw new Error(
@@ -416,7 +424,7 @@ export async function publishCyclogazetteEdition(
     mercatoStories[0] ??
     null;
   const eveningFeatureStories = includeCyclingHollowTeaserStory(
-    [...featureStories, ...jerseyStories],
+    [...hostingStories, ...featureStories, ...jerseyStories],
     seasonDay.calendar_date,
   );
   const content: CyclogazetteContent = {

@@ -175,7 +175,7 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
     summary:
       "Professionnalise les courses du pays, augmente leur contribution au budget fédéral et développe son rayonnement international.",
     principle:
-      "Les recettes nationales alimentent le budget de la saison suivante. Chaque niveau du Bureau ajoute 10 points au score d’une candidature internationale. Les remises d’accueil sont figées au dépôt.",
+      "Les recettes nationales alimentent le budget de la saison suivante. Les remises d’accueil sont figées au dépôt.",
     illustration: {
       src: "/images/infrastructure/media-center.webp",
       alt: "Bureau organisant les courses cyclistes du pays",

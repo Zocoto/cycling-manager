@@ -349,6 +349,12 @@ export default async function RaceLivePage({
           />
         ) : null}
 
+        {edition.isNeutralHost ? (
+          <p className="mb-4 inline-flex rounded-full bg-[#E5F4ED] px-3 py-1 text-xs font-black text-[#315B3E]">
+            Terrain neutre
+          </p>
+        ) : null}
+
         {isNationalChampionship ? (
           <NationalChampionshipStageResults
             edition={edition}

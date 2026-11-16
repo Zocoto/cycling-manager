@@ -131,6 +131,7 @@ type EditionRow = {
   display_name: string;
   status: string;
   host_country_id: string | null;
+  is_neutral_host: boolean;
 };
 
 type CategoryRow = {
@@ -547,7 +548,7 @@ export async function getFanClubLiveData({
       const result = await admin
         .from("race_editions")
         .select(
-          "id, race_id, season_id, race_category_id, display_name, status, host_country_id",
+          "id, race_id, season_id, race_category_id, display_name, status, host_country_id, is_neutral_host",
         )
         .in("id", chunk)
         .order("id", { ascending: true })
@@ -844,6 +845,7 @@ function buildSportingEvents({
       prestigeRank: category?.prestige_rank ?? 4,
       forCurrentTeam: teamSeason?.team_id === currentTeamId,
       homeRace:
+        !edition?.is_neutral_host &&
         Boolean(teamSeason?.registration_country_id) &&
         (edition?.host_country_id ?? race?.country_id) ===
           teamSeason?.registration_country_id,

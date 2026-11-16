@@ -20,6 +20,7 @@ type EditionRow = {
   short_name: string;
   location_name: string;
   country_code: string;
+  is_neutral_host: boolean;
   start_day_number: number;
   end_day_number: number;
   profile_type: DevelopmentRaceProfile;
@@ -71,6 +72,7 @@ export type JuniorChampionshipResultPage = {
     shortName: string;
     locationName: string;
     countryCode: string;
+    isNeutralHost: boolean;
     startDayNumber: number;
     endDayNumber: number;
     profileType: DevelopmentRaceProfile;
@@ -103,7 +105,7 @@ export async function getJuniorChampionshipResultPage(
   const editionResult = await admin
     .from("development_race_editions")
     .select(
-      "id, slug, name, short_name, location_name, country_code, start_day_number, end_day_number, profile_type, competition_type, status",
+      "id, slug, name, short_name, location_name, country_code, is_neutral_host, start_day_number, end_day_number, profile_type, competition_type, status",
     )
     .eq("season_id", season.id)
     .eq("slug", slug)
@@ -174,6 +176,7 @@ export async function getJuniorChampionshipResultPage(
       shortName: edition.short_name,
       locationName: edition.location_name,
       countryCode: edition.country_code,
+      isNeutralHost: edition.is_neutral_host,
       startDayNumber: edition.start_day_number,
       endDayNumber: edition.end_day_number,
       profileType: edition.profile_type,

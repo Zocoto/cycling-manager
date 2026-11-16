@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { FederationCoursesPanel } from "@/components/game/federation-courses-panel";
-import type { FederationCoursesState } from "@/services/federation-courses";
+import type { FederationCoursesState, FederationHostingCandidacy } from "@/services/federation-courses";
 
 const state: FederationCoursesState = {
   renown: {
@@ -57,6 +57,8 @@ const state: FederationCoursesState = {
     targetGameYear: 4,
     applicationCloseDay: 20,
     decisionDay: 21,
+    applicationCloseDate: "2026-11-25",
+    decisionDate: "2026-11-26",
     viewerIsPresident: true,
     balance: 4_000_000,
     reservedAmount: 0,
@@ -75,6 +77,7 @@ const state: FederationCoursesState = {
         projectedNetReturn: [100_000, 660_000],
         candidacy: null,
         selectedHostName: null,
+        isNeutralHost: false,
         canApply: true,
         canWithdraw: false,
         unavailableReason: null,
@@ -104,7 +107,7 @@ describe("FederationCoursesPanel", () => {
     expect(markup).toContain("Nation reconnue");
     expect(markup).toContain("Classements UCI · 10 saisons");
     expect(markup).toContain("Prestige d’organisation · 5 saisons");
-    expect(markup).toContain("jusqu’à 15");
+    expect(markup).toContain("5 % l’affluence de référence");
     expect(markup).not.toContain("Nations Cup juniors");
     expect(markup).toContain("Jeux quadriennaux professionnels");
     expect(markup).not.toContain("Nations Cup professionnelle");
@@ -112,6 +115,71 @@ describe("FederationCoursesPanel", () => {
     expect(markup).toContain("Coût si retenu");
     expect(markup).toContain("Déposer la candidature");
     expect(markup).toContain('name="eventType"');
+  });
+
+  it("shows submitted bids and the jury calendar to an affiliated member without judging criteria", () => {
+    const [opportunity] = state.hosting.opportunities;
+    const ownCandidacy: FederationHostingCandidacy = {
+      id: "fr-bid",
+      countryId: "france",
+      countryCode: "FR",
+      countryName: "France",
+      eventType: opportunity.eventType,
+      eventKey: opportunity.eventKey,
+      riderCategory: opportunity.riderCategory,
+      targetGameYear: 4,
+      status: "pending",
+      hostingCost: 2_400_000,
+      submittedAt: "2026-11-19T19:00:00Z",
+    };
+    const otherCandidacy: FederationHostingCandidacy = {
+      ...ownCandidacy,
+      id: "de-bid",
+      countryId: "germany",
+      countryCode: "DE",
+      countryName: "Allemagne",
+    };
+    const markup = renderToStaticMarkup(
+      <FederationCoursesPanel
+        countryCode="FR"
+        gameYear={3}
+        state={{
+          ...state,
+          hosting: {
+            ...state.hosting,
+            viewerIsPresident: false,
+            candidacies: [otherCandidacy, ownCandidacy],
+            opportunities: [
+              { ...opportunity, candidacy: ownCandidacy, canApply: false },
+              {
+                ...opportunity,
+                eventKey: "world_championship_pro",
+                eventType: "world_championship_pro",
+                label: "Championnats du monde professionnels",
+                shortLabel: "CM Pro",
+                isNeutralHost: true,
+                canApply: false,
+              },
+            ],
+          },
+        }}
+        viewerIsAffiliated
+        raceCreationState={null}
+      />,
+    );
+
+    expect(markup).toContain('href="#candidatures-internationales"');
+    expect(markup).toContain('dateTime="2026-11-25">25 novembre 2026');
+    expect(markup).toContain('dateTime="2026-11-26">26 novembre 2026');
+    expect(markup).toContain("Votre fédération");
+    expect(markup.indexOf(">France<")).toBeLessThan(markup.indexOf(">Allemagne<"));
+    expect(markup).toContain("19 novembre 2026");
+    expect(markup).toContain("Déposée");
+    expect(markup).toContain("Terrain neutre");
+    expect(markup).not.toContain("Détail du score");
+    expect(markup).not.toContain("complètent le barème");
+    expect(markup).not.toContain("Déposer la candidature");
+    expect(markup).not.toContain("Retirer la candidature");
   });
 
   it("groups races from local to elite, with counts and stage profiles", () => {

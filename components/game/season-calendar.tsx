@@ -760,7 +760,7 @@ function RaceCalendarList({
 
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className={`fi fi-${edition.countryCode.toLowerCase()} rounded shadow-sm`} role="img" aria-label={`Drapeau ${edition.countryName}`} />
+                  {!edition.isNeutralHost ? <RaceCountryFlag countryCode={edition.countryCode} countryName={edition.countryName} /> : null}
                   <span
                     className="rounded px-2 py-1 text-[9px] font-black uppercase tracking-wider"
                     style={{ backgroundColor: style.background, color: style.foreground }}
@@ -781,7 +781,7 @@ function RaceCalendarList({
                 </div>
                 <h3 className="mt-2 truncate text-base font-black text-[#0B302B]">{displayName}</h3>
                 <p className="mt-1 text-xs font-semibold text-[#688176]">
-                  {edition.calendarGroup?.locationLabel ?? edition.countryName}
+                  {edition.isNeutralHost ? "Terrain neutre" : edition.calendarGroup?.locationLabel ?? edition.countryName}
                 </p>
               </div>
 
@@ -1191,7 +1191,7 @@ function DesktopCalendarWeek({
                   data-federation-selection={
                     isFederationSelection ? "true" : undefined
                   }
-                  title={`${displayName} — ${segment.edition.countryName}${stageLabel ? ` · ${stageLabel}` : ""}${editionIsPast ? " · Voir les résultats" : registrationClosed ? " · Inscriptions closes" : ""}`}
+                  title={`${displayName} — ${segment.edition.isNeutralHost ? "Terrain neutre" : segment.edition.countryName}${stageLabel ? ` · ${stageLabel}` : ""}${editionIsPast ? " · Voir les résultats" : registrationClosed ? " · Inscriptions closes" : ""}`}
                   data-quadrennial-games-tile={isQuadrennialGamesCalendarEdition(segment.edition) ? "true" : undefined}
                   className={`${isQuadrennialGamesCalendarEdition(segment.edition) ? gamesTile.tile : ""} relative z-10 mx-1 flex min-w-0 items-center gap-2 self-center overflow-hidden border px-2 py-2 text-[10px] font-black shadow-sm transition hover:z-20 hover:-translate-y-0.5 hover:brightness-110 focus-visible:z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17] ${
                     hasSeveralStages ? "pb-5" : ""
@@ -1237,6 +1237,7 @@ function DesktopCalendarWeek({
                   <RaceCountryFlag
                     countryCode={segment.edition.countryCode}
                     countryName={segment.edition.countryName}
+                    isNeutralHost={segment.edition.isNeutralHost}
                     className="border-white/70"
                   />
 
@@ -1386,6 +1387,7 @@ function DesktopCalendarWeek({
                               <RaceCountryFlag
                                 countryCode={segment.edition.countryCode}
                                 countryName={segment.edition.countryName}
+                                isNeutralHost={segment.edition.isNeutralHost}
                               />
                               <SponsorObjectiveBadges edition={segment.edition} compact />
                               {importance ? (
@@ -1574,6 +1576,7 @@ function MobileCalendarDay({
               <RaceCountryFlag
                 countryCode={edition.countryCode}
                 countryName={edition.countryName}
+                isNeutralHost={edition.isNeutralHost}
                 className="border-white/70"
               />
 
@@ -1656,12 +1659,17 @@ function SponsorObjectiveBadges({
 function RaceCountryFlag({
   countryCode,
   countryName,
+  isNeutralHost,
   className = "border-white",
 }: {
   countryCode: string;
   countryName: string;
+  isNeutralHost?: boolean;
   className?: string;
 }) {
+  if (isNeutralHost) {
+    return <span className="shrink-0 text-[9px] font-black">Terrain neutre</span>;
+  }
   return (
     <span
       role="img"

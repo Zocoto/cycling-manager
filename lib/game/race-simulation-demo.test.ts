@@ -102,6 +102,31 @@ describe("createCalendarSimulationInput", () => {
     });
   });
 
+  it("conserve la météo du parcours et retire l’avantage local sur terrain neutre", () => {
+    const edition = createEdition({
+      slug: "championnat-neutre",
+      riders: [{ ...createRider("rider-a", "team-a"), countryCode: "FR" }],
+    });
+    edition.countryCode = "FR";
+    edition.federationHomeAdvantageBonus = 1;
+    edition.federationHomeAdvantageSpecialization = {
+      code: "terrain_library",
+      infrastructureLevel: 5,
+    };
+    const parameters = { stage: edition.stages[0], seed: "official" };
+    const hosted = createCalendarSimulationInput({ edition, ...parameters });
+    const neutral = createCalendarSimulationInput({
+      edition: { ...edition, isNeutralHost: true },
+      ...parameters,
+    });
+
+    expect(hosted.raceCountryCode).toBe("FR");
+    expect(neutral.raceCountryCode).toBeNull();
+    expect(neutral.federationHomeAdvantageBonus).toBe(0);
+    expect(neutral.federationHomeAdvantageSpecialization).toBeNull();
+    expect(neutral.weather).toEqual(hosted.weather);
+  });
+
   it("réserve le laboratoire fédéral aux épreuves chronométrées", () => {
     const ratings = createRider("rider-a", "nation-a").ratings;
 

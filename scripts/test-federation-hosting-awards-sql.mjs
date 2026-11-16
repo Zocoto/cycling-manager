@@ -19,6 +19,12 @@ const reservationGuard = reservationMigration.match(
   /create index national_federation_hosting_pending_budget_idx[\s\S]*?(?=create function public.get_national_federation_hosting_budget)/,
 )?.[0];
 assert.ok(reservationGuard, "apply the real reservation guard alongside the settlement migration");
+function migrationFunction(file, name) {
+  const source = readFileSync(`supabase/migrations/${file}.sql`, "utf8");
+  const definition = source.match(new RegExp(`create (?:or replace )?function ${name.replaceAll(".", "\\.")}\\([\\s\\S]*?\\$\\$;`))?.[0];
+  assert.ok(definition, `real function ${name}`);
+  return definition;
+}
 
 async function scalar(sql) {
   const result = await db.query(sql);
@@ -234,6 +240,117 @@ try {
   assert.equal((await award("quadrennial_games_pro")).actual_participation_rate, "0.50000", "uses frozen places for both Olympic disciplines");
   assert.equal(await settleReturns(), 0);
   console.log("Hosting awards verified: cutoff, balance guarantees, separate continents, programme binding, actual starters and places, repeat settlement, partial and rollover refunds.");
+
+  await db.exec(`
+    create schema auth;
+    create function auth.uid() returns uuid language sql as $$select null::uuid$$;
+    create table season_days(season_id uuid, day_number integer, calendar_date date);
+    drop function public.refresh_national_federation_renown(uuid);
+    grant select on public.national_federation_hosting_candidacies to authenticated, service_role;
+    insert into seasons values (uid(5), 'planned', 9, 1);
+    update seasons set current_day_number = 21 where id = uid(4);
+    insert into season_days values (uid(4), 21, (clock_timestamp() at time zone 'Europe/Paris')::date + 1);
+    insert into races values (uid(450),'world_championship',null), (uid(451),'world_championship',null),
+      (uid(452),'continental_championship','europe'), (uid(453),'standard',null),
+      (uid(454),'nations_cup',null), (uid(455),'continental_championship','europe');
+    insert into race_editions values
+      (uid(460),uid(450),uid(5),'planned',10,uid(13)), (uid(461),uid(451),uid(5),'planned',10,uid(13)),
+      (uid(462),uid(452),uid(5),'planned',10,uid(13)), (uid(463),uid(453),uid(5),'planned',10,uid(13)),
+      (uid(468),uid(452),uid(1),'completed',10,uid(13)),
+      (uid(469),uid(454),uid(5),'planned',10,uid(13));
+    insert into stages select gen_random_uuid(), id, 'planned' from race_editions where id in (uid(460),uid(461),uid(462));
+    insert into national_federation_nations_cup_heats values (uid(5),uid(469),'nc-hills');
+    insert into development_race_editions(id, season_id, competition_type, championship_continent_code, status,
+      selection_maximum, host_country_id, country_code, location_name) values
+      (uid(464),uid(5),'continental_road','europe','planned',5,uid(12),'PL','Pologne');
+    insert into national_federation_hosting_candidacies
+      (id,country_id,submitted_season_id,target_game_year,event_type,event_key,continent_code,hosting_cost,
+       base_attendance,revenue_per_attendee,prestige_gain,renown_score,selection_score,status) values
+      (uid(470),uid(11),uid(4),9,'world_championship_pro','world_championship_pro',null,3500000,240000,18,60,500,800,'pending'),
+      (uid(471),uid(13),uid(4),9,'continental_championship_pro','continental_championship_pro:europe','europe',1800000,130000,16,35,500,650,'pending');
+  `);
+  await db.exec(migrationFunction("20261110100020_secure_federation_hosting_reservations", "private.get_open_federation_hosting_candidacy_context"));
+  await db.exec(migrationFunction("20260909193000_wire_federation_organization_prestige", "public.refresh_national_federation_renown"));
+  await db.exec(migrationFunction("20261110140000_open_federation_hosting_and_score_organization", "private.score_national_federation_hosting_candidacy"));
+  await db.exec(`
+    alter table races alter column id set default gen_random_uuid(),
+      add column country_id uuid, add column name text, add column short_name text,
+      add column race_format text, add column status text, add column slug text unique;
+    alter table race_editions alter column id set default gen_random_uuid(),
+      add column race_category_id uuid, add column edition_number integer, add column display_name text,
+      add column registration_closes_at timestamptz, add column withdrawal_closes_at timestamptz,
+      add column minimum_reputation integer, add column registration_policy text;
+    alter table stages alter column id set default gen_random_uuid(),
+      add column season_day_id uuid, add column stage_number integer, add column name text,
+      add column stage_type text, add column distance_km numeric, add column departure_at timestamptz,
+      add column profile_type text, add column day_slot text;
+    alter table season_days add column id uuid default gen_random_uuid();
+    alter table national_federation_olympic_qualifications add column eligible_riders integer,
+      add column qualification_rank integer;
+    create table stage_segments(stage_id uuid, segment_number smallint, distance_km numeric, terrain_type text,
+      surface_type text, average_gradient_pct numeric);
+    create function ensure_global_olympic_road_event_before_itt(uuid) returns integer language sql as $$ select 1 $$;
+    create function get_federation_professional_event_profile_segments_before_itt(text,integer)
+    returns table(segment_number smallint,distance_km numeric,terrain_type text,surface_type text,average_gradient_pct numeric)
+    language sql as $$ select null::smallint,null::numeric,null::text,null::text,null::numeric where false $$;
+  `);
+  await db.exec(migrationFunction("20261016180000_olympic_individual_time_trial", "public.ensure_global_olympic_event"));
+  await db.exec(migrationFunction("20261016180000_olympic_individual_time_trial", "public.get_federation_professional_event_profile_segments"));
+  const verdictMigration = readFileSync("supabase/migrations/20261116120000_record_official_federation_hosting_decisions.sql", "utf8");
+  await db.exec(verdictMigration);
+  assert.equal(await settleAwards(), 0, "J21 according to stored game day does not pre-empt actual Paris cutoff");
+  assert.equal(await scalar("select count(*)::integer from national_federation_hosting_decisions where target_game_year=9"), 0);
+  await db.exec("update season_days set calendar_date=(clock_timestamp() at time zone 'Europe/Paris')::date where season_id=uid(4)");
+  const transactionsBefore = await scalar("select count(*)::integer from national_federation_transactions");
+  assert.equal(await settleAwards(), 1, "real paid jury retains programme readiness and settles a valid E9 host");
+  assert.equal(await scalar("select count(*)::integer from national_federation_hosting_decisions where target_game_year=9 and decision='neutral' and country_id is null and award_id is null"), 11);
+  assert.equal(await scalar("select count(*)::integer from national_federation_hosting_decisions where target_game_year=9 and decision='hosted' and country_id=uid(11) and award_id is not null and jury_day_number=21 and gazette_date is not null"), 1);
+  assert.equal(await scalar("select count(*)::integer from national_federation_hosting_decisions where target_game_year=9 and event_key='continental_championship_pro:europe'"), 0, "a pending bid and incomplete programme are never mistaken for no bid");
+  assert.equal(await scalar("select count(*)::integer from national_federation_transactions"), transactionsBefore + 1, "neutral venues create no debit or award");
+  assert.equal(await scalar("select count(*)::integer from national_federation_journal_entries where source_reference like 'federation-hosting:%:selected' and season_id=uid(4) and detail like '%Décision du jury%' and detail not like '%score%'"), 1);
+  assert.equal(await scalar("select count(*)::integer from race_editions where id in(uid(460),uid(461)) and host_country_id=uid(11) and not is_neutral_host"), 2);
+  assert.equal(await scalar("select is_neutral_host and host_country_id is null from race_editions where id=uid(469)"), true, "existing no-bid official Nations Cup heat is neutral");
+  assert.equal(await scalar("select is_neutral_host and host_country_id is null and country_code='PL' from development_race_editions where id=uid(464)"), true, "existing no-bid junior race keeps physical geography only");
+  assert.equal(await scalar("select count(*)::integer from race_editions where id in(uid(463),uid(468)) and not is_neutral_host and host_country_id=uid(13)"), 2, "domestic calendar and prior seasons remain untouched");
+  assert.equal(await scalar("select has_column_privilege('authenticated','national_federation_hosting_candidacies','selection_score','select')"), false);
+  assert.equal(await scalar("select has_column_privilege('authenticated','national_federation_hosting_candidacies','country_id','select')"), true);
+  assert.equal(await scalar("select has_column_privilege('service_role','national_federation_hosting_candidacies','selection_score','select')"), true);
+  await db.exec(`
+    insert into race_editions (id, race_id, season_id, status, field_limit, host_country_id)
+      values (uid(465),uid(454),uid(5),'planned',10,uid(13)), (uid(466),uid(455),uid(5),'planned',10,uid(13));
+    insert into stages values (uid(480),uid(466),'planned');
+    insert into development_race_editions(id, season_id, competition_type, championship_continent_code, status,
+      selection_maximum, host_country_id, country_code, location_name) values
+      (uid(467),uid(5),'world_time_trial',null,'planned',5,uid(12),'PL','Pologne');
+    update race_editions set host_country_id=uid(12) where id=uid(469);
+  `);
+  assert.equal(await scalar("select count(*)::integer from race_editions where id in(uid(465),uid(469)) and is_neutral_host and host_country_id is null"), 2, "new and regenerated editions respect the recorded jury verdict");
+  assert.equal(await scalar("select is_neutral_host and host_country_id is null from development_race_editions where id=uid(467)"), true);
+  assert.equal(await settleAwards(), 1, "a pending candidate is considered when the remaining calendar appears");
+  assert.equal(await scalar("select count(*)::integer from national_federation_hosting_decisions where target_game_year=9"), 13);
+  assert.equal(await settleAwards(), 0, "retries do not create another verdict or fee");
+  assert.equal(await scalar("select count(*)::integer from national_federation_transactions"), transactionsBefore + 2);
+  await db.exec(`
+    update seasons set status='completed' where id=uid(4);
+    insert into seasons values (uid(6),'active',11,21),(uid(7),'planned',12,1);
+    insert into season_days(season_id,day_number,calendar_date) values
+      (uid(6),21,(clock_timestamp() at time zone 'Europe/Paris')::date),(uid(7),24,current_date+30);
+  `);
+  assert.equal(await settleAwards(), 0, "no federation funded the S12 Olympics");
+  await db.exec(`
+    insert into races(id,competition_type,country_id) values (uid(490),'nations_cup',uid(13));
+    insert into race_editions(id,race_id,season_id,status,host_country_id,race_category_id)
+      values(uid(491),uid(490),uid(7),'planned',uid(13),uid(498));
+    insert into national_federation_olympic_events(season_id,race_edition_id) values(uid(7),uid(491));
+  `);
+  assert.equal(await scalar("select is_neutral_host and host_country_id is null from race_editions where id=uid(491)"), true);
+  assert.equal(await scalar("select ensure_global_olympic_event(uid(7))"), 2, "the JQ time trial can use the neutral road venue");
+  assert.equal(await scalar(`
+    select e.is_neutral_host and e.host_country_id is null and r.country_id=uid(13)
+    from national_federation_olympic_events o join race_editions e on e.id=o.time_trial_race_edition_id
+    join races r on r.id=e.race_id where o.season_id=uid(7)
+  `), true, "both JQ events are neutral and retain their geographical course location");
+  console.log("Jury verdicts verified: confirmed scheduling, neutral venues, future calendar writes, unaffected seasons and finances, score privileges, retries and neutral Olympic time trial generation.");
 } finally {
   await db.close();
 }

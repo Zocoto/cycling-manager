@@ -1130,6 +1130,7 @@ function EditorialFeatureSection({
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         {stories.map((story, index) => {
           const isHalloweenTeaser = story.kind === "event_teaser";
+          const body = isEnglish ? story.bodyEn : story.body;
           const article = (
             <article
               data-gazette-feature-kind={story.kind}
@@ -1173,15 +1174,28 @@ function EditorialFeatureSection({
                 >
                   {isEnglish ? story.titleEn : story.title}
                 </h3>
-                <p
+                {body ? <p
                   className={`mt-4 font-serif text-sm font-medium leading-6 ${
                     isHalloweenTeaser
                       ? "text-[#E4D0BA]"
                       : "text-[var(--gazette-body)]"
                   }`}
                 >
-                  {isEnglish ? story.bodyEn : story.body}
-                </p>
+                  {body}
+                </p> : null}
+                {story.hostingDecisions?.length ? (
+                  <dl className="mt-3 divide-y divide-[var(--gazette-muted)]/20 text-sm">
+                    {story.hostingDecisions.map((decision) => (
+                      <div key={decision.eventKey} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2">
+                        <dt>{isEnglish ? decision.eventNameEn : decision.eventName}</dt>
+                        <dd className="flex items-center gap-2 font-bold">
+                          {decision.countryCode ? <span aria-hidden="true" className={`fi fi-${decision.countryCode} shrink-0`} /> : null}
+                          {isEnglish ? decision.hostNameEn : decision.hostName}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                ) : null}
                 {isHalloweenTeaser ? (
                   <p className="mt-5 border-t border-[#E8751A]/35 pt-3 text-[9px] font-black uppercase tracking-[0.16em] text-[#F29A3A]">
                     {isEnglish

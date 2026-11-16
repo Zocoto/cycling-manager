@@ -86,6 +86,7 @@ export type CyclogazetteFeatureKind =
   | "injury"
   | "rivalry"
   | "federation_race"
+  | "federation_hosting"
   | "national_team_jersey"
   | "national_champion_jersey"
   | "event_teaser";
@@ -101,6 +102,14 @@ export type CyclogazetteFeatureStory = {
   bodyEn: string;
   href?: string;
   jerseyReveal?: CyclogazetteJerseyReveal;
+  hostingDecisions?: Array<{
+    eventKey: string;
+    eventName: string;
+    eventNameEn: string;
+    hostName: string;
+    hostNameEn: string;
+    countryCode?: string;
+  }>;
 };
 
 export type CyclogazetteNationsCupMovement = {

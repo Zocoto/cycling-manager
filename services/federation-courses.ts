@@ -82,15 +82,6 @@ export type FederationHostingCandidacy = {
   targetGameYear: number;
   status: "pending" | "selected" | "not_selected" | "withdrawn";
   hostingCost: number;
-  lastHostedGameYear: number | null;
-  uciRank: number;
-  renownScore: number;
-  recencyPoints: number;
-  rankingPoints: number;
-  renownPoints: number;
-  organizationPoints: number;
-  specializationBonusPoints: number;
-  selectionScore: number;
   submittedAt: string;
 };
 
@@ -106,6 +97,7 @@ export type FederationHostingOpportunity = {
   projectedNetReturn: [number, number];
   candidacy: FederationHostingCandidacy | null;
   selectedHostName: string | null;
+  isNeutralHost: boolean;
   canApply: boolean;
   canWithdraw: boolean;
   unavailableReason: string | null;
@@ -135,6 +127,8 @@ export type FederationCoursesState = {
     targetGameYear: number;
     applicationCloseDay: number;
     decisionDay: number;
+    applicationCloseDate: string | null;
+    decisionDate: string | null;
     viewerIsPresident: boolean;
     balance: number | null;
     reservedAmount: number;
@@ -194,18 +188,15 @@ type CandidacyRow = {
   event_type: FederationHostingEventType;
   event_key: string;
   hosting_cost: number | string;
-  last_hosted_game_year: number | null;
-  uci_rank: number;
-  renown_score: number;
-  recency_points: number;
-  ranking_points: number;
-  renown_points: number;
-  organization_points: number;
-  specialization_bonus_points: number;
-  selection_score: number;
   status: FederationHostingCandidacy["status"];
   created_at: string;
 };
+type HostingDecisionRow = {
+  event_key: string;
+  decision: "hosted" | "neutral";
+  country_id: string | null;
+};
+type HostingDateRow = { day_number: number; calendar_date: string };
 type CountryRow = { id: string; iso_alpha2: string; name: string };
 type FederationCountryMetaRow = { continent_code: string | null };
 type AwardRow = {
@@ -285,6 +276,8 @@ export async function getFederationCoursesState({
       targetGameYear,
       applicationCloseDay: FEDERATION_HOSTING_APPLICATION_CLOSE_DAY,
       decisionDay: FEDERATION_HOSTING_DECISION_DAY,
+      applicationCloseDate: null,
+      decisionDate: null,
       viewerIsPresident: false,
       balance: null,
       reservedAmount: 0,
@@ -381,7 +374,7 @@ export async function getFederationCoursesState({
     const editions = editionsResult.data ?? [];
     const editionIds = editions.map((edition) => edition.id);
     const categoryIds = [...new Set(editions.map((edition) => edition.race_category_id))];
-    const [categoriesResult, registrationsResult, stagesResult, candidaciesResult, awardsResult, pastWinnersByRaceId] =
+    const [categoriesResult, registrationsResult, stagesResult, candidaciesResult, awardsResult, decisionsResult, datesResult, pastWinnersByRaceId] =
       await Promise.all([
         categoryIds.length
           ? admin
@@ -407,11 +400,11 @@ export async function getFederationCoursesState({
         admin
           .from("national_federation_hosting_candidacies")
               .select(
-            "id, country_id, target_game_year, event_type, event_key, hosting_cost, last_hosted_game_year, uci_rank, renown_score, recency_points, ranking_points, renown_points, organization_points, specialization_bonus_points, selection_score, status, created_at",
+            "id, country_id, target_game_year, event_type, event_key, hosting_cost, status, created_at",
           )
           .eq("target_game_year", targetGameYear)
           .in("event_key", relevantEventKeys)
-          .order("selection_score", { ascending: false })
+          .neq("status", "withdrawn")
           .order("created_at", { ascending: true })
           .returns<CandidacyRow[]>(),
         admin
@@ -420,6 +413,21 @@ export async function getFederationCoursesState({
           .or(`and(target_game_year.eq.${targetGameYear},event_key.in.(${relevantEventKeys.join(",")})),and(target_game_year.gte.${Math.max(1, gameYear - 4)},target_game_year.lte.${gameYear},country_id.eq.${countryId},event_type.neq.nations_cup_junior)`)
           .order("target_game_year", { ascending: false })
           .returns<AwardRow[]>(),
+        admin
+          .from("national_federation_hosting_decisions")
+          .select("event_key, decision, country_id")
+          .eq("target_game_year", targetGameYear)
+          .in("event_key", relevantEventKeys)
+          .returns<HostingDecisionRow[]>(),
+        admin
+          .from("season_days")
+          .select("day_number, calendar_date")
+          .eq("season_id", seasonId)
+          .in("day_number", [
+            FEDERATION_HOSTING_APPLICATION_CLOSE_DAY,
+            FEDERATION_HOSTING_DECISION_DAY,
+          ])
+          .returns<HostingDateRow[]>(),
         loadRacePastWinners(admin, raceIds),
       ]);
     for (const result of [
@@ -428,6 +436,8 @@ export async function getFederationCoursesState({
       stagesResult,
       candidaciesResult,
       awardsResult,
+      decisionsResult,
+      datesResult,
     ]) {
       if (result.error) throw result.error;
     }
@@ -448,6 +458,7 @@ export async function getFederationCoursesState({
       new Set([
         ...candidacyRows.map((candidate) => candidate.country_id),
         ...(awardsResult.data ?? []).map((award) => award.country_id),
+        ...(decisionsResult.data ?? []).flatMap((decision) => decision.country_id ? [decision.country_id] : []),
       ]),
     ];
     const countriesResult = candidateCountryIds.length
@@ -597,15 +608,6 @@ export async function getFederationCoursesState({
         targetGameYear: row.target_game_year,
         status: row.status,
         hostingCost: Number(row.hosting_cost),
-        lastHostedGameYear: row.last_hosted_game_year,
-        uciRank: row.uci_rank,
-        renownScore: row.renown_score,
-        recencyPoints: row.recency_points,
-        rankingPoints: row.ranking_points,
-        renownPoints: row.renown_points,
-        organizationPoints: row.organization_points,
-        specializationBonusPoints: row.specialization_bonus_points,
-        selectionScore: row.selection_score,
         submittedAt: row.created_at,
       };
     });
@@ -619,6 +621,12 @@ export async function getFederationCoursesState({
       (awardsResult.data ?? [])
         .filter((award) => award.target_game_year === targetGameYear)
         .map((award) => [award.event_key, award]),
+    );
+    const decisionByEventKey = new Map(
+      (decisionsResult.data ?? []).map((decision) => [decision.event_key, decision]),
+    );
+    const datesByDay = new Map(
+      (datesResult.data ?? []).map((day) => [day.day_number, day.calendar_date]),
     );
     const reports = (awardsResult.data ?? [])
       .filter((award) => award.target_game_year <= gameYear && award.country_id === countryId)
@@ -645,7 +653,9 @@ export async function getFederationCoursesState({
             (candidate) => candidate.countryId === countryId && candidate.eventKey === eventKey,
           ) ?? null;
         const award = awardByEventKey.get(eventKey);
-        const selectedCountry = award ? countryById.get(award.country_id) : null;
+        const decision = decisionByEventKey.get(eventKey);
+        const selectedCountryId = decision?.country_id ?? award?.country_id;
+        const selectedCountry = selectedCountryId ? countryById.get(selectedCountryId) : null;
         const discountedHostingCost = getFederationHostingCost(
           event.hostingCost, officeEffects.hostingCostReductionPercentage,
         );
@@ -686,6 +696,7 @@ export async function getFederationCoursesState({
           projectedNetReturn: [low.netReturn, high.netReturn],
           candidacy,
           selectedHostName: selectedCountry?.name ?? null,
+          isNeutralHost: decision?.decision === "neutral",
           canApply: unavailableReason == null,
           canWithdraw: viewerIsPresident && currentDayNumber <= FEDERATION_HOSTING_APPLICATION_CLOSE_DAY &&
             candidacy?.status === "pending",
@@ -702,6 +713,8 @@ export async function getFederationCoursesState({
         targetGameYear,
         applicationCloseDay: FEDERATION_HOSTING_APPLICATION_CLOSE_DAY,
         decisionDay: FEDERATION_HOSTING_DECISION_DAY,
+        applicationCloseDate: datesByDay.get(FEDERATION_HOSTING_APPLICATION_CLOSE_DAY) ?? null,
+        decisionDate: datesByDay.get(FEDERATION_HOSTING_DECISION_DAY) ?? null,
         viewerIsPresident,
         balance,
         reservedAmount,

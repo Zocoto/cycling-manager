@@ -105,10 +105,14 @@ export default async function RaceTourPage({ params }: RaceTourPageProps) {
                 >
                   {categoryStyle.shortLabel}
                 </span>
-                <span
-                  className={`fi fi-${edition.countryCode.toLowerCase()} rounded shadow-sm`}
-                  aria-label={edition.countryName}
-                />
+                {edition.isNeutralHost ? (
+                  <span className="text-xs font-bold">Terrain neutre</span>
+                ) : (
+                  <span
+                    className={`fi fi-${edition.countryCode.toLowerCase()} rounded shadow-sm`}
+                    aria-label={edition.countryName}
+                  />
+                )}
                 <span className="text-xs font-black uppercase tracking-[0.18em] text-[#9BE0CA]">
                   Tour · {edition.stages.length} étapes
                 </span>

@@ -169,6 +169,7 @@ export type RaceCalendarEdition = {
   raceFormat: RaceFormat;
   competitionType: RaceCompetitionType;
   isJuniorChampionship?: boolean;
+  isNeutralHost?: boolean;
   calendarHref?: string;
   calendarGroup?: {
     kind: "nations_cup" | "continental_championships";
@@ -364,6 +365,7 @@ function createFederationCalendarGroup(
     raceFormat: "one_day",
     calendarHref: configuration.href,
     isJuniorChampionship: false,
+    isNeutralHost: sourceEditions.every((edition) => edition.isNeutralHost) || undefined,
     calendarGroup: {
       kind: configuration.kind,
       editionCount: olympic ? 1 : sourceEditions.length,
