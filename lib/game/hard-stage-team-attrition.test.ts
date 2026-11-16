@@ -8,6 +8,8 @@ function rider(id: string, teamId: string, role: RiderSimulationInput["role"], m
     name: id,
     teamId,
     teamName: teamId,
+    teamPrimaryColor: "#176951",
+    teamSecondaryColor: "#FFFDF4",
     age: 27,
     form: 75,
     role,
@@ -92,7 +94,7 @@ it("laisse un grimpeur moins fort battre le favori isolé grâce au travail de s
   expect(supported.results[0].energyAfter).toBeGreaterThan(
     alone.results.find((result) => result.riderId === "Rival")!.energyAfter,
   );
-  expect(supported.teamWork.some((entry) =>
+  expect(supported.teamWork?.some((entry) =>
     entry.kind === "protection" && entry.targetRiderIds.includes("Rival"),
   )).toBe(true);
 });
