@@ -2254,6 +2254,32 @@ function canTriggerRaceTacticalDoctrine({
   return true;
 }
 
+function getHardStageAttrition(
+  segments: RaceStageSegment[],
+  distanceKm: number,
+) {
+  let elevationGain = 0;
+  let hardCobblesKm = 0;
+  for (const segment of segments) {
+    if (segment.terrain === "climb") {
+      elevationGain += segment.distanceKm * Math.max(0, segment.averageGradientPct) * 10;
+    }
+    if (segment.surface === "cobbles" && !isUrbanCobbles(segment)) {
+      hardCobblesKm += segment.distanceKm;
+    }
+  }
+
+  const mountain = clamp((elevationGain - 2900) / 2400, 0, 1);
+  const hasRepeatedClimbs = elevationGain > 1450 && distanceKm > 145 &&
+    getClimbBlocks(segments).filter((climb) => climb.distanceKm * climb.averageGradientPct >= 7).length >= 4;
+  const repeatedHills = hasRepeatedClimbs
+    ? clamp((distanceKm - 145) / 70, 0, 1) * clamp((elevationGain - 1450) / 1400, 0, 1)
+    : 0;
+  const cobbles = clamp((distanceKm - 160) / 70, 0, 1) *
+    clamp((hardCobblesKm - 38) / 65, 0, 1);
+  return Math.max(mountain, repeatedHills, cobbles);
+}
+
 function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
   const teamWorkRecorder = createRaceTeamWorkRecorder();
   const random = createSeededRandom(`${input.id}:${input.seed}:road`);
@@ -2307,6 +2333,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     1,
     input.segments.reduce((total, segment) => total + segment.distanceKm, 0),
   );
+  const attrition = getHardStageAttrition(input.segments, totalDistanceKm);
   const timeline: RaceTimelineSnapshot[] = [];
   const visualTimeline: RaceVisualFrame[] = [];
   const abandonments: RaceAbandonment[] = [];
@@ -3283,19 +3310,20 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
         delayedGroupByRiderId.get(state.rider.id) ?? [state];
       const localDroppedGroup =
         droppedGroupByRiderId.get(state.rider.id) ?? [state];
-
-      const groupSize =
+      const groupRiders =
         state.group === "breakaway"
-          ? Math.max(1, breakaway.length)
+          ? breakaway
           : state.group === "breakaway_2"
-            ? Math.max(1, secondaryBreakaway.length)
+            ? secondaryBreakaway
             : state.group === "chase"
-              ? Math.max(1, chase.length)
+              ? chase
               : state.group === "delayed"
-                ? Math.max(1, localDelayedGroup.length)
+                ? localDelayedGroup
                 : state.group === "peloton"
-                  ? Math.max(1, peloton.length)
-                  : Math.max(1, localDroppedGroup.length);
+                  ? peloton
+                  : localDroppedGroup;
+      const groupSize = Math.max(1, groupRiders.length);
+      const supportGroup = attrition > 0 ? groupRiders : undefined;
       const groupPaceRating =
         state.group === "peloton"
           ? frontTerrainRating
@@ -3349,6 +3377,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
           // internal physical ticks must not shorten their active window.
           segmentIndex,
           segmentCount: input.segments.length,
+          supportGroup,
         });
         const leaderRecoverySupportActive = hasActiveLeaderRecoverySupport(
           state,
@@ -3363,6 +3392,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
           states,
           segmentIndex,
           segmentCount: input.segments.length,
+          supportGroup,
         });
         const pelotonWorker =
           state.group === "peloton" && pelotonWorkerIds.has(state.rider.id);
@@ -3382,7 +3412,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
         }
         if (protectingLeader) {
           teamWorkRecorder.record({ ...workPeriod, kind: "protection",
-            targetRiderIds: [...states.values()].filter((teammate) =>
+            targetRiderIds: (supportGroup ?? [...states.values()]).filter((teammate) =>
               teammate.rider.teamId === state.rider.teamId && teammate.group === state.group &&
               (isRaceLeaderRole(teammate.rider.role) || isRaceProtectedRiderRole(teammate.rider.role) ||
                 teammate.rider.generalClassificationProtected === true),
@@ -3413,7 +3443,11 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
                   state.rider.id
                 ] ?? 1)
               : 1,
-          bottleCarrierEnergyCostMultiplier: getTeammateBottleCarrierEnergyCostMultiplier(state, states),
+          bottleCarrierEnergyCostMultiplier: getTeammateBottleCarrierEnergyCostMultiplier(
+            state,
+            states,
+            supportGroup,
+          ),
           leaderProtectionStrength,
           leaderRecoverySupportActive,
           supportingDetachedLeader,
@@ -3423,6 +3457,8 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
           profileType: input.profileType,
           hillyClimbLoad,
           groupPaceRating,
+          attrition,
+          distanceProgress: energyCompletedDistanceKm / totalDistanceKm,
         });
         accrueCollectiveWorkload({
           state,
@@ -3907,6 +3943,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     input.profileType,
     roadFinishMode,
     random,
+    attrition,
     finalCommentary,
     input.teamStrategies,
   );
@@ -5659,6 +5696,8 @@ function updateRiderEnergy({
   groupPaceRating,
   profileType,
   hillyClimbLoad = 0,
+  attrition = 0,
+  distanceProgress = 0,
   timeTrial = false,
 }: {
   state: RiderState;
@@ -5681,6 +5720,8 @@ function updateRiderEnergy({
   groupPaceRating?: number;
   profileType?: RaceProfileType;
   hillyClimbLoad?: number;
+  attrition?: number;
+  distanceProgress?: number;
   timeTrial?: boolean;
 }) {
   const rider = state.rider;
@@ -5797,6 +5838,27 @@ function updateRiderEnergy({
   }
 
   const teamSupport = bottleCarrierEnergyCostMultiplier;
+  const roughCobbles = attrition > 0 && segment.surface === "cobbles" && !isUrbanCobbles(segment);
+  // Riders who have eased off in a dropped group no longer pay the same price
+  // as those trying to sustain the pace at the front.
+  const activeAttrition = state.group === "dropped" ? attrition * 0.25 : attrition;
+  let effortMultiplier = 1;
+  if (activeAttrition > 0) {
+    const stamina = (rider.ratings.endurance + rider.ratings.resistance) / 2;
+    const climbingLoad = segment.terrain === "climb"
+      ? Math.min(1, Math.abs(segment.averageGradientPct) / 8)
+      : 0;
+    const hardTerrainLoad = climbingLoad + (roughCobbles ? 0.75 : 0);
+    const remainingEffort = 0.45 + 0.55 * clamp((state.energy - 12) / 30, 0, 1);
+    effortMultiplier += activeAttrition * remainingEffort *
+      (0.16 + 0.19 * hardTerrainLoad + 0.14 * distanceProgress) *
+      clamp(1 + (73 - stamina) / 72, 0.7, 1.55);
+  }
+  const protectionReduction = clamp(
+    leaderProtectionStrength * (1.35 + attrition * 1.5),
+    0,
+    0.3 + attrition * 0.13,
+  );
   const loss =
     (segment.distanceKm / 10) *
     (2.05 + terrainLoad * 1.18) *
@@ -5810,7 +5872,8 @@ function updateRiderEnergy({
     abilityFactor *
     teamSupport *
     (1 + state.injuryPerformancePenalty * 0.035) *
-    (1 - clamp(leaderProtectionStrength * 1.35, 0, 0.3));
+    effortMultiplier *
+    (1 - protectionReduction);
 
   if (segment.terrain === "descent" && !timeTrial) {
     const recoveryCeiling = clamp(
@@ -5837,7 +5900,12 @@ function updateRiderEnergy({
       largeBreakawayEffortMultiplier /
       (1 + state.injuryPerformancePenalty * 0.04);
 
-    return clamp(state.energy + recoveryGain, 0, recoveryCeiling);
+    const descentCost = roughCobbles ? activeAttrition * loss * 0.25 : 0;
+    return clamp(
+      state.energy + recoveryGain * (1 - activeAttrition * 0.42) - descentCost,
+      0,
+      recoveryCeiling,
+    );
   }
 
   return clamp(
@@ -5855,9 +5923,10 @@ function updateRiderEnergy({
 function getTeammateBottleCarrierEnergyCostMultiplier(
   state: RiderState,
   states: Map<string, RiderState>,
+  supportGroup?: readonly RiderState[],
 ) {
   let strongestMultiplier = 0;
-  for (const teammate of states.values()) {
+  for (const teammate of supportGroup ?? states.values()) {
     if (teammate.rider.id === state.rider.id || teammate.rider.teamId !== state.rider.teamId || teammate.group !== state.group) continue;
     strongestMultiplier = Math.max(strongestMultiplier, getSupportAbilityMultiplier(teammate.rider, "bottle_carrier"));
     if (strongestMultiplier === 2) break;
@@ -5896,12 +5965,14 @@ function getLeaderProtectionStrength({
   segment,
   segmentIndex,
   segmentCount,
+  supportGroup,
 }: {
   state: RiderState;
   states: Map<string, RiderState>;
   segment: RaceStageSegment;
   segmentIndex: number;
   segmentCount: number;
+  supportGroup?: readonly RiderState[];
 }) {
   if (
     (!isRaceLeaderRole(state.rider.role) &&
@@ -5913,7 +5984,7 @@ function getLeaderProtectionStrength({
   }
 
   const helpers = getPreferredGeneralSupportHelpers(
-    [...states.values()].filter(
+    (supportGroup ?? [...states.values()]).filter(
       (teammate) =>
         teammate.rider.id !== state.rider.id &&
         teammate.rider.teamId === state.rider.teamId &&
@@ -5969,21 +6040,28 @@ function isProtectingTeamLeader({
   states,
   segmentIndex,
   segmentCount,
+  supportGroup,
 }: {
   state: RiderState;
   states: Map<string, RiderState>;
   segmentIndex: number;
   segmentCount: number;
+  supportGroup?: readonly RiderState[];
 }) {
   if (state.rider.generalClassificationProtected === true) {
     return false;
   }
-  if (segmentIndex >= segmentCount - 1 || state.energy < 10) {
+  if (
+    supportGroup
+      ? (state.group !== "peloton" && state.group !== "delayed") || state.energy < 12
+      : segmentIndex >= segmentCount - 1 || state.energy < 10
+  ) {
     return false;
   }
 
+  const candidates = supportGroup ?? [...states.values()];
   const preferredHelpers = getPreferredGeneralSupportHelpers(
-    [...states.values()].filter(
+    candidates.filter(
       (candidate) =>
         candidate.rider.teamId === state.rider.teamId &&
         candidate.group === state.group,
@@ -5997,7 +6075,7 @@ function isProtectingTeamLeader({
     return false;
   }
 
-  return [...states.values()].some(
+  return candidates.some(
     (teammate) =>
       teammate.rider.teamId === state.rider.teamId &&
       (isRaceLeaderRole(teammate.rider.role) ||
@@ -9409,6 +9487,7 @@ function getRoadFinishScores(
   profileType: RaceProfileType,
   finishMode: RoadFinishMode,
   random: () => number,
+  attrition: number,
   commentary: string[],
   teamStrategies: RaceTeamStrategy[] = [],
 ) {
@@ -9700,7 +9779,7 @@ function getRoadFinishScores(
       rider.id,
       score +
         physiologyFinishBonus -
-        (compactSprintFinish ? 0 : getLowEnergyPerformancePenalty(state)) -
+        (compactSprintFinish ? 0 : getLowEnergyPerformancePenalty(state, attrition)) -
         getCollectiveWorkFinishPenalty({
           state,
           states,
@@ -10627,12 +10706,12 @@ export function getLongSummitFinishFactor(segments: RaceStageSegment[]) {
   );
 }
 
-function getLowEnergyPerformancePenalty(state: RiderState) {
+function getLowEnergyPerformancePenalty(state: RiderState, attrition: number) {
   const resistanceBuffer = (state.rider.ratings.resistance - 50) * 0.12;
   const criticalReserve = clamp(34 - resistanceBuffer, 26, 36);
   if (state.energy >= criticalReserve) return 0;
   const depletion = (criticalReserve - state.energy) / criticalReserve;
-  return depletion ** 2 * 6;
+  return depletion ** 2 * 6 + attrition * depletion * 4.5;
 }
 
 function getCollectiveWorkFinishPenalty({
