@@ -708,6 +708,7 @@ export type RaceRosterOption = {
   projectedSeasonRaceDays?: number;
   hasEtapovore?: boolean;
   squadStatus: SquadStatus | null;
+  protectedLeaderId: string | null;
   climateProfile: RiderClimateProfile;
   isSelected: boolean;
   currentRole: RaceRole;
@@ -826,6 +827,7 @@ type RaceRosterOptionRow = {
   conflicting_start_day: number | null;
   conflicting_end_day: number | null;
   squad_status: string | null;
+  squad_protected_leader_id: string | null;
 };
 
 export type RaceEngagedRider = {
@@ -2357,6 +2359,7 @@ export async function getCurrentTeamRaceRosterOptions(
     hasEtapovore: raceDaysByRiderId.get(rider.rider_id)?.has_etapovore ??
       raceDaysByRiderId.get(rider.rider_id)?.riders?.rider_special_abilities.some((ability) => ability.ability_code === "etapovore"),
     squadStatus: parseSquadStatus(rider.squad_status),
+    protectedLeaderId: rider.squad_protected_leader_id ?? null,
     climateProfile: getRiderClimateProfile({
       riderId: rider.rider_id,
       countryCode: rider.country_iso_alpha2,

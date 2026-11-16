@@ -28,6 +28,7 @@ import { WorldChampionJersey } from "@/components/game/world-champion-jersey";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { SquadStatusBadge } from "@/components/game/squad-status-badge";
 import { SquadStatusEditor } from "@/components/game/squad-status-editor";
+import { canLeadCloseGuard } from "@/lib/game/squad-status";
 import { RiderComparisonLauncher } from "@/components/game/rider-comparison-launcher";
 import { RiderConditionGauges } from "@/components/game/rider-condition-gauges";
 import { RiderClimateProfileCard } from "@/components/game/rider-climate-profile-card";
@@ -295,6 +296,7 @@ export default async function RiderProfilePage({
         ? getNationalChampionPalette(activeNationalTitle.countryCode)
         : null;
   const fullName = `${profile.firstName} ${profile.lastName}`.trim();
+  const protectedLeaderId = comparisonOptions.find(rider => rider.id === profile.id)?.protectedLeaderId ?? null;
   const weightStatus = profile.physique ? getRiderWeightStatus({ ...profile.physique, ratings: profile.ratings }) : null;
   const formerChampionshipBorder = resolveFormerChampionshipBorder(profile);
   const equipmentRatingBonuses = getEquipmentRatingBonusTotals(
@@ -582,8 +584,16 @@ export default async function RiderProfilePage({
               {profile.canManage && profile.currentTeam ? (
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
                   <SquadStatusEditor
+                    key={`${profile.id}:${profile.squadStatus}:${protectedLeaderId}`}
                     riderId={profile.id}
                     status={profile.squadStatus}
+                    protectedLeaderId={protectedLeaderId}
+                    leaderOptions={comparisonOptions
+                      .filter(rider => canLeadCloseGuard(rider.squadStatus))
+                      .map(rider => ({
+                        id: rider.id,
+                        label: `${rider.firstName} ${rider.lastName}`,
+                      }))}
                     returnTo={`/jeu/coureurs/${profile.id}`}
                     tone="dark"
                   />

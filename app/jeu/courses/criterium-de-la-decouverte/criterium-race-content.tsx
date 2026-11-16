@@ -13,6 +13,7 @@ import {
 } from "@/lib/game/race-calendar";
 import { RACE_ROLE_LABELS } from "@/lib/game/race-simulation";
 import { getRiderClimateProfile } from "@/lib/game/race-weather";
+import { parseSquadStatus } from "@/lib/game/squad-status";
 import {
   createAmateurRiderJersey,
   createSponsoredRiderJersey,
@@ -57,6 +58,8 @@ type TutorialRosterRow = {
   cobbles: number;
   sprint: number;
   breakaway: number;
+  squad_status: string | null;
+  squad_protected_leader_id: string | null;
 };
 
 export async function CriteriumDiscoveryRaceContent({
@@ -158,7 +161,8 @@ export async function CriteriumDiscoveryRaceContent({
       form: health?.form ?? 75,
       morale: health?.morale ?? 60,
       seasonRaceDays: health?.seasonRaceDays,
-      squadStatus: null,
+      squadStatus: parseSquadStatus(rider.squad_status),
+      protectedLeaderId: rider.squad_protected_leader_id ?? null,
       climateProfile: getRiderClimateProfile({
         riderId: rider.rider_id,
         countryCode: rider.country_iso_alpha2,

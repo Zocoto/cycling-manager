@@ -24,7 +24,7 @@ it("acknowledges successful saves and keeps every pending choice on failure",()=
   expect(getSquadStatusUpdates(saved)).toEqual([]);
   const next=updateSquadStatusDraft(saved,"a","road_captain");
   expect(getSquadStatusUpdates(next)[0].expectedStatus).toBe("absolute_leader");
-  expect(discardSquadStatusDrafts(next).valuesByRiderId.a).toBe("absolute_leader");
+  expect(discardSquadStatusDrafts(next).valuesByRiderId.a.squadStatus).toBe("absolute_leader");
 });
 
 it("does not swallow a newer edit when a request completes",()=>{
@@ -37,9 +37,9 @@ it("does not let a late save acknowledgement mask a different server refresh",()
   const submitted=updateSquadStatusDraft(createSquadStatusDrafts(initial),"a","absolute_leader");
   const refreshed=rebaseSquadStatusDrafts(submitted,[{riderId:"a",squadStatus:"road_captain"},initial[1]]);
   const acknowledged=acknowledgeSquadStatusSave(refreshed,{status:"success",message:"Saved",savedStatuses:[{riderId:"a",squadStatus:"absolute_leader"}]},submitted.confirmedByRiderId);
-  expect(acknowledged.confirmedByRiderId.a).toBe("road_captain");
+  expect(acknowledged.confirmedByRiderId.a.squadStatus).toBe("road_captain");
   expect(getSquadStatusUpdates(acknowledged)).toEqual([{riderId:"a",squadStatus:"absolute_leader",expectedStatus:"road_captain"}]);
-  expect(discardSquadStatusDrafts(acknowledged).valuesByRiderId.a).toBe("road_captain");
+  expect(discardSquadStatusDrafts(acknowledged).valuesByRiderId.a.squadStatus).toBe("road_captain");
   const matching=rebaseSquadStatusDrafts(submitted,[{riderId:"a",squadStatus:"absolute_leader"},initial[1]]);
   expect(getSquadStatusUpdates(acknowledgeSquadStatusSave(matching,{status:"success",message:"Saved",savedStatuses:[{riderId:"a",squadStatus:"absolute_leader"}]},submitted.confirmedByRiderId))).toEqual([]);
 });
@@ -49,8 +49,8 @@ it("preserves pending expectations across revalidation and discards to the lates
   expect(squadStatusRevision(initial)).toBe(squadStatusRevision([...initial].reverse()));
   const refreshed=rebaseSquadStatusDrafts(changed,[{riderId:"a",squadStatus:"road_captain"},{riderId:"b",squadStatus:"domestique"}]);
   expect(getSquadStatusUpdates(refreshed)).toEqual([{riderId:"a",squadStatus:"absolute_leader",expectedStatus:"lieutenant"}]);
-  expect(refreshed.valuesByRiderId.b).toBe("domestique");
-  expect(discardSquadStatusDrafts(refreshed).valuesByRiderId.a).toBe("road_captain");
+  expect(refreshed.valuesByRiderId.b.squadStatus).toBe("domestique");
+  expect(discardSquadStatusDrafts(refreshed).valuesByRiderId.a.squadStatus).toBe("road_captain");
   expect(getSquadStatusUpdates(rebaseSquadStatusDrafts(changed,[initial[1]]))).toEqual([]);
 });
 
@@ -58,4 +58,27 @@ it("ignores unknown riders and non-status values",()=>{
   const state=createSquadStatusDrafts(initial);
   expect(updateSquadStatusDraft(state,"unknown","absolute_leader")).toBe(state);
   expect(updateSquadStatusDraft(state,"a","forged" as SquadStatus)).toBe(state);
+});
+
+it("saves a change to the protected rider even when the guard's role stays the same", () => {
+  const roles: SavedSquadStatus[] = [{riderId:"a",squadStatus:"close_guard",protectedLeaderId:"b"}];
+  const start = createSquadStatusDrafts(roles);
+  const changed = updateSquadStatusDraft(start, "a", "close_guard", "c");
+  expect(getSquadStatusUpdates(changed)).toEqual([{
+    riderId:"a",
+    squadStatus:"close_guard",
+    expectedStatus:"close_guard",
+    protectedLeaderId:"c",
+    expectedProtectedLeaderId:"b",
+  }]);
+  const rolesAfterSave: SavedSquadStatus[] = [{riderId:"a",squadStatus:"close_guard",protectedLeaderId:"c"}];
+  expect(squadStatusRevision(roles)).not.toBe(squadStatusRevision(rolesAfterSave));
+  expect(getSquadStatusUpdates(acknowledgeSquadStatusSave(changed, {
+    status:"success",
+    message:"Saved",
+    savedStatuses:rolesAfterSave,
+  }))).toEqual([]);
+  const demoted = updateSquadStatusDraft(changed, "a", "domestique");
+  expect(getSquadStatusUpdates(demoted)[0].protectedLeaderId).toBeNull();
+  expect(discardSquadStatusDrafts(demoted).valuesByRiderId.a.protectedLeaderId).toBe("b");
 });

@@ -25,6 +25,7 @@ import {
   RACE_ROLE_LABELS,
   type RaceRole,
 } from "@/lib/game/race-simulation";
+import { canLeadCloseGuard } from "@/lib/game/squad-status";
 import type { RiderJerseyAppearance } from "@/lib/rider-jersey";
 import type { RaceRosterOption } from "@/services/race-calendar";
 
@@ -135,6 +136,49 @@ export function sortAndFilterRaceRosterOptions({
     .map(({ rider }) => rider);
 }
 
+export function toggleRaceRosterSelection({
+  selectedIds,
+  rider,
+  riders,
+  maximum,
+  isRiderLocked,
+}: {
+  selectedIds: string[];
+  rider: RaceRosterOption;
+  riders: readonly RaceRosterOption[];
+  maximum: number;
+  isRiderLocked: (riderId: string) => boolean;
+}): string[] {
+  if (isRiderLocked(rider.riderId)) return selectedIds;
+  if (selectedIds.includes(rider.riderId)) {
+    return selectedIds.filter((id) => id !== rider.riderId);
+  }
+  if (!rider.isAvailable || selectedIds.length >= maximum) return selectedIds;
+
+  const nextIds = [...selectedIds, rider.riderId];
+  if (nextIds.length === maximum || !canLeadCloseGuard(rider.squadStatus)) {
+    return nextIds;
+  }
+
+  const nextSet = new Set(nextIds);
+  for (const guard of riders) {
+    if (
+      guard.squadStatus === "close_guard" &&
+      guard.protectedLeaderId === rider.riderId &&
+      guard.isAvailable &&
+      !guard.conflict &&
+      !nextSet.has(guard.riderId) &&
+      !isRiderLocked(guard.riderId)
+    ) {
+      nextIds.push(guard.riderId);
+      if (nextIds.length === maximum) break;
+      nextSet.add(guard.riderId);
+    }
+  }
+
+  return nextIds;
+}
+
 export function RaceRosterSelector({
   riders,
   minimum,
@@ -229,15 +273,17 @@ export function RaceRosterSelector({
     uniqueRolesAreValid &&
     (selectionOnly ? hasSelectionChanged || hasRoleChanged : true);
 
-  function toggleRider(riderId: string) {
-    if (lockInitiallySelected && initiallySelectedSet.has(riderId)) return;
-    if (selectionOnly && lockedRiderSet.has(riderId)) return;
+  function toggleRider(rider: RaceRosterOption) {
     setSelectedIds((current) =>
-      current.includes(riderId)
-        ? current.filter((id) => id !== riderId)
-        : current.length < maximum
-          ? [...current, riderId]
-          : current
+      toggleRaceRosterSelection({
+        selectedIds: current,
+        rider,
+        riders,
+        maximum,
+        isRiderLocked: (riderId) =>
+          (lockInitiallySelected && initiallySelectedSet.has(riderId)) ||
+          (selectionOnly && lockedRiderSet.has(riderId)),
+      }),
     );
   }
 
@@ -383,7 +429,7 @@ export function RaceRosterSelector({
                   value={rider.riderId}
                   checked={isSelected}
                   disabled={isDisabled}
-                  onChange={() => toggleRider(rider.riderId)}
+                  onChange={() => toggleRider(rider)}
                   className="mt-1 h-4 w-4 accent-emerald-400"
                 />
                 {isPressLeaderLocked && isSelected ? (

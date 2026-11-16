@@ -117,6 +117,7 @@ type RiderRow = {
   breakaway: number;
   prologue: number;
   squad_status: SquadStatus | null;
+  squad_protected_leader_id: string | null;
 };
 
 type RiderRosterHealth = {
@@ -642,7 +643,17 @@ export default async function TeamRosterPage({
 
               {riders.length > 0 ? (
                 <RiderComparisonRosterProvider options={comparisonOptions}>
-                  <SquadStatusesBulkEditor initialStatuses={riders.map(rider=>({riderId:rider.rider_id,squadStatus:rider.squad_status}))}>
+                  <SquadStatusesBulkEditor
+                    initialStatuses={riders.map(rider => ({
+                      riderId: rider.rider_id,
+                      squadStatus: rider.squad_status,
+                      protectedLeaderId: rider.squad_protected_leader_id,
+                    }))}
+                    riderOptions={comparisonOptions.map(rider => ({
+                      id: rider.id,
+                      label: `${rider.firstName} ${rider.lastName}`,
+                    }))}
+                  >
                   <div className="xl:hidden">
                     <MobileRosterViewSwitch
                       activeView={mobileRosterView}

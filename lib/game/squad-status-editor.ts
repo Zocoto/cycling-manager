@@ -4,8 +4,10 @@ export type SquadStatusUpdate = {
   riderId: string;
   squadStatus: SquadStatus | null;
   expectedStatus: SquadStatus | null;
+  protectedLeaderId?: string | null;
+  expectedProtectedLeaderId?: string | null;
 };
-export type SavedSquadStatus = Pick<SquadStatusUpdate, "riderId" | "squadStatus">;
+export type SavedSquadStatus = Pick<SquadStatusUpdate, "riderId" | "squadStatus" | "protectedLeaderId">;
 export type SquadStatusesSaveState = {
   status: "idle" | "success" | "error";
   message: string;

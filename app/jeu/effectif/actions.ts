@@ -18,6 +18,22 @@ type BulkRenewalResult = {
 
 const CONTRACTS_PATH = "/jeu/effectif?vue=contrats";
 const squadStatusValues = SQUAD_STATUS_OPTIONS.map((option) => option.value);
+const squadStatusSchema = z.enum(squadStatusValues as [SquadStatus, ...SquadStatus[]]).nullable();
+const protectedLeaderSchema = z.uuid().nullable();
+
+function isSquadRoleTargetValid({
+  riderId,
+  squadStatus,
+  protectedLeaderId,
+}: {
+  riderId: string;
+  squadStatus: SquadStatus | null;
+  protectedLeaderId?: string | null;
+}) {
+  return squadStatus === "close_guard"
+    ? Boolean(protectedLeaderId && protectedLeaderId !== riderId)
+    : protectedLeaderId == null;
+}
 
 export async function recoverEmptyTeamRosterAction() {
   const supabase = await createSupabaseServerClient();
@@ -43,13 +59,15 @@ export async function recoverEmptyTeamRosterAction() {
 export async function updateRiderSquadStatusAction(formData: FormData) {
   const parsed = z
     .object({
-      riderId: z.string().uuid(),
-      squadStatus: z.enum(squadStatusValues as [string, ...string[]]).or(z.literal("")),
+      riderId: z.uuid(),
+      squadStatus: squadStatusSchema.unwrap().or(z.literal("")).transform((status) => status || null),
+      protectedLeaderId: protectedLeaderSchema,
       returnTo: z.string(),
     })
     .safeParse({
       riderId: formData.get("riderId"),
       squadStatus: formData.get("squadStatus"),
+      protectedLeaderId: formData.get("protectedLeaderId") || null,
       returnTo: formData.get("returnTo"),
     });
   const fallbackPath = "/jeu/effectif?vue=statistiques";
@@ -58,6 +76,9 @@ export async function updateRiderSquadStatusAction(formData: FormData) {
   }
 
   const returnTo = sanitizeSquadStatusReturnPath(parsed.data.returnTo);
+  if (!isSquadRoleTargetValid(parsed.data)) {
+    redirect(withPageFeedback(returnTo, "erreur", "Choisissez le leader à protéger."));
+  }
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -67,16 +88,14 @@ export async function updateRiderSquadStatusAction(formData: FormData) {
 
   const { error } = await supabase.rpc("set_current_team_rider_squad_status", {
     p_rider_id: parsed.data.riderId,
-    p_squad_status: parsed.data.squadStatus || null,
+    p_squad_status: parsed.data.squadStatus,
+    p_protected_leader_id: parsed.data.protectedLeaderId,
   });
   if (error) {
     redirect(withPageFeedback(returnTo, "erreur", error.message.slice(0, 220)));
   }
 
-  revalidatePath("/jeu/effectif");
-  revalidatePath("/jeu/entrainement");
-  revalidatePath(`/jeu/coureurs/${parsed.data.riderId}`);
-  revalidatePath("/jeu/courses/[slug]", "page");
+  revalidateSquadStatusPages();
   redirect(withPageFeedback(returnTo, "succes", "Statut dans l’effectif mis à jour."));
 }
 
@@ -91,22 +110,39 @@ export async function updateRiderSquadStatusesAction(
   if (typeof raw !== "string" || raw.length > 50_000) return invalid();
   let values: unknown;
   try { values = JSON.parse(raw); } catch { return invalid(); }
-  const status = z.enum(squadStatusValues as [SquadStatus, ...SquadStatus[]]).nullable();
-  const parsed = z.array(z.strictObject({ riderId: z.string().uuid(), squadStatus: status, expectedStatus: status })).min(1).max(200).safeParse(values);
+  const parsed = z.array(z.strictObject({
+    riderId: z.uuid(),
+    squadStatus: squadStatusSchema,
+    expectedStatus: squadStatusSchema,
+    protectedLeaderId: protectedLeaderSchema.optional(),
+    expectedProtectedLeaderId: protectedLeaderSchema.optional(),
+  }).refine((row) =>
+    (row.protectedLeaderId === undefined) === (row.expectedProtectedLeaderId === undefined) &&
+    isSquadRoleTargetValid(row),
+  )).min(1).max(200).safeParse(values);
   if (!parsed.success || new Set(parsed.data.map(row => row.riderId)).size !== parsed.data.length) return invalid();
   const supabase = await createSupabaseServerClient();
   const { data: { user }, error: authenticationError } = await supabase.auth.getUser();
   if (authenticationError || !user) redirect("/connexion");
   const { error } = await supabase.rpc("set_current_team_rider_squad_statuses", { p_updates: parsed.data });
   if (error) return { status: "error", message: error.message.slice(0, 220), savedStatuses: [] };
+  revalidateSquadStatusPages();
+  return {
+    status: "success", message: "Statuts dans l’effectif mis à jour.",
+    savedStatuses: parsed.data.map(({ riderId, squadStatus, protectedLeaderId }) => ({
+      riderId,
+      squadStatus,
+      ...(protectedLeaderId === undefined ? {} : { protectedLeaderId }),
+    })),
+  };
+}
+
+function revalidateSquadStatusPages() {
   revalidatePath("/jeu/effectif");
   revalidatePath("/jeu/entrainement");
   revalidatePath("/jeu/coureurs/[identifiant]", "page");
   revalidatePath("/jeu/courses/[slug]", "page");
-  return {
-    status: "success", message: "Statuts dans l’effectif mis à jour.",
-    savedStatuses: parsed.data.map(({ riderId, squadStatus }) => ({ riderId, squadStatus })),
-  };
+  revalidatePath("/jeu/courses/criterium-de-la-decouverte");
 }
 
 function sanitizeSquadStatusReturnPath(value: string): string {

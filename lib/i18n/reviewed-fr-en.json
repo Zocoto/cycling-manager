@@ -4082,5 +4082,12 @@
   "Cette mise en vente n’est plus ouverte.": "This listing is no longer open.",
   "Impossible d’annuler la mise en vente.": "Could not cancel the listing.",
   "La mise en vente a été annulée. Le coureur reste dans votre effectif.": "The listing was cancelled. The rider stays on your roster.",
-  "Une offre a déjà été déposée. La mise en vente ne peut plus être annulée.": "A bid has already been placed. The listing can no longer be cancelled."
+  "Une offre a déjà été déposée. La mise en vente ne peut plus être annulée.": "A bid has already been placed. The listing can no longer be cancelled.",
+  "Garde rapprochée": "Personal domestique",
+  "Leader protégé": "Protected leader",
+  "Choisir un leader": "Choose a leader",
+  "Aucun leader éligible": "No eligible leader",
+  "Choisissez le leader à protéger.": "Choose the leader to protect.",
+  "Choisissez un leader éligible pour chaque garde rapprochée.": "Choose an eligible leader for each personal domestique.",
+  "Choisissez un co-leader ou un leader absolu de votre équipe.": "Choose a co-leader or an absolute leader from your team."
 }

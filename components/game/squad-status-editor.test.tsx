@@ -62,4 +62,20 @@ describe("SquadStatusEditor", () => {
     expect(markup).toContain('name="returnTo" value="/jeu/coureurs/a"');
     expect(markup).not.toContain('name="updates"');
   });
+
+  it("restores the saved leader and excludes the rider from the profile choices", () => {
+    const markup = renderToStaticMarkup(
+      <SquadStatusEditor
+        riderId="a"
+        status="close_guard"
+        protectedLeaderId="b"
+        leaderOptions={[{ id: "a", label: "Selectionneur" }, { id: "b", label: "Leader B" }]}
+        returnTo="/jeu/coureurs/a"
+        tone="dark"
+      />,
+    );
+    expect(markup).toContain('name="protectedLeaderId"');
+    expect(markup).toContain('<option value="b" selected="">Leader B</option>');
+    expect(markup).not.toContain("Selectionneur");
+  });
 });

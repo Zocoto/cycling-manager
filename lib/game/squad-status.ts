@@ -3,6 +3,7 @@ export const SQUAD_STATUS_OPTIONS = [
   { value: "co_leader", label: "Co-leader", rank: 90 },
   { value: "road_captain", label: "Capitaine de route", rank: 80 },
   { value: "lieutenant", label: "Lieutenant", rank: 70 },
+  { value: "close_guard", label: "Garde rapprochée", rank: 65 },
   { value: "free_role", label: "Électron libre", rank: 60 },
   {
     value: "stage_hunter",
@@ -15,6 +16,10 @@ export const SQUAD_STATUS_OPTIONS = [
 ] as const;
 
 export type SquadStatus = (typeof SQUAD_STATUS_OPTIONS)[number]["value"];
+
+export function canLeadCloseGuard(status: SquadStatus | null | undefined) {
+  return status === "absolute_leader" || status === "co_leader";
+}
 
 const SQUAD_STATUS_VALUES = new Set<string>(
   SQUAD_STATUS_OPTIONS.map((option) => option.value),

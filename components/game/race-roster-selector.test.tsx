@@ -11,6 +11,7 @@ import {
   formatRosterForm,
   getRosterFormClasses,
   sortAndFilterRaceRosterOptions,
+  toggleRaceRosterSelection,
 } from "./race-roster-selector";
 import { SeasonRaceDaysBadge } from "./season-race-days-badge";
 
@@ -34,6 +35,7 @@ const rider = {
   morale: 72,
   seasonRaceDays: 0,
   squadStatus: "lieutenant",
+  protectedLeaderId: null,
   climateProfile: { strength: "sun", weakness: "rain" },
   isSelected: false,
   currentRole: "auto",
@@ -166,6 +168,86 @@ describe("RaceRosterSelector", () => {
     expect(markup).toContain(
       `type="hidden" name="riderIds" value="${rider.riderId}"`,
     );
+  });
+
+  it("coche seulement les gardes disponibles du leader sélectionné dans la limite des places", () => {
+    const leader: RaceRosterOption = {
+      ...rider,
+      riderId: "leader",
+      squadStatus: "co_leader",
+    };
+    const guard: RaceRosterOption = {
+      ...rider,
+      riderId: "guard",
+      squadStatus: "close_guard",
+      protectedLeaderId: leader.riderId,
+    };
+    const riders: RaceRosterOption[] = [
+      { ...guard, riderId: "other-guard", protectedLeaderId: "other-leader" },
+      { ...guard, riderId: "other-status", squadStatus: "lieutenant" },
+      { ...guard, riderId: "unavailable", isAvailable: false },
+      { ...guard, riderId: "locked" },
+      {
+        ...guard,
+        riderId: "conflict",
+        conflict: { raceSlug: "autre-course", raceName: "Autre course", startDay: 12, endDay: 12 },
+      },
+      guard,
+      { ...guard, riderId: "extra-guard" },
+      leader,
+    ];
+    const selection = {
+      selectedIds: [rider.riderId],
+      rider: leader,
+      riders,
+      isRiderLocked: (riderId: string) => riderId === "locked",
+    };
+
+    expect(toggleRaceRosterSelection({ ...selection, maximum: 4 })).toEqual([
+      rider.riderId, "leader", "guard", "extra-guard",
+    ]);
+    expect(toggleRaceRosterSelection({ ...selection, maximum: 3 })).toEqual([
+      rider.riderId, "leader", "guard",
+    ]);
+    expect(toggleRaceRosterSelection({ ...selection, maximum: 2 })).toEqual([
+      rider.riderId, "leader",
+    ]);
+  });
+
+  it("laisse modifier les coches une par une et retrouve la garde si le leader est recoché", () => {
+    const leader: RaceRosterOption = {
+      ...rider,
+      riderId: "leader",
+      squadStatus: "absolute_leader",
+    };
+    const guard: RaceRosterOption = {
+      ...rider,
+      riderId: "guard",
+      squadStatus: "close_guard",
+      protectedLeaderId: leader.riderId,
+    };
+    const options = {
+      riders: [leader, guard, rider],
+      maximum: 4,
+      isRiderLocked: () => false,
+    };
+
+    const initialSelection = toggleRaceRosterSelection({ ...options, selectedIds: [], rider: leader });
+    expect(initialSelection).toEqual(["leader", "guard"]);
+    const withoutGuard = toggleRaceRosterSelection({ ...options, selectedIds: initialSelection, rider: guard });
+    expect(withoutGuard).toEqual(["leader"]);
+    expect(toggleRaceRosterSelection({ ...options, selectedIds: withoutGuard, rider })).toEqual([
+      "leader", rider.riderId,
+    ]);
+    const withoutLeader = toggleRaceRosterSelection({ ...options, selectedIds: initialSelection, rider: leader });
+    expect(withoutLeader).toEqual(["guard"]);
+    expect(toggleRaceRosterSelection({ ...options, selectedIds: withoutLeader, rider: leader })).toEqual([
+      "guard", "leader",
+    ]);
+    const emptySelection = toggleRaceRosterSelection({ ...options, selectedIds: withoutGuard, rider: leader });
+    expect(toggleRaceRosterSelection({ ...options, selectedIds: emptySelection, rider: leader })).toEqual([
+      "leader", "guard",
+    ]);
   });
 
   it("trie les coureurs par statistique dans les deux sens", () => {

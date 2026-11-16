@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { RiderComparisonOption } from "@/lib/game/rider-comparison";
+import { parseSquadStatus, type SquadStatus } from "@/lib/game/squad-status";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type ServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
@@ -12,11 +13,13 @@ type ComparisonRosterRow = {
   country_name: string;
   country_iso_alpha2: string;
   age: number | null;
+  squad_status: string | null;
+  squad_protected_leader_id: string | null;
 };
 
 export async function getCurrentTeamRiderComparisonOptions(
   supabase: ServerClient,
-): Promise<RiderComparisonOption[]> {
+): Promise<(RiderComparisonOption & { squadStatus: SquadStatus | null; protectedLeaderId: string | null })[]> {
   const { data, error } = await supabase.rpc(
     "get_current_team_roster_with_potential",
   );
@@ -35,6 +38,8 @@ export async function getCurrentTeamRiderComparisonOptions(
       countryCode: rider.country_iso_alpha2,
       countryName: rider.country_name,
       age: rider.age,
+      squadStatus: parseSquadStatus(rider.squad_status),
+      protectedLeaderId: rider.squad_protected_leader_id ?? null,
     }))
     .sort(
       (left, right) =>

@@ -14,7 +14,7 @@ describe("squad statuses", () => {
       SQUAD_STATUS_OPTIONS.length,
     );
     expect(SQUAD_STATUS_OPTIONS.map((option) => option.rank)).toEqual([
-      100, 90, 80, 70, 60, 50, 40, 30, 20,
+      100, 90, 80, 70, 65, 60, 50, 40, 30, 20,
     ]);
   });
 

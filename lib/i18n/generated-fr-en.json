@@ -19015,5 +19015,11 @@
   "Chaque lecteur qui réagit à votre article rapporte 1 000 € à votre équipe.": "Your team earns €1,000 for each reader who reacts to your article.",
   "Échec du chargement des réactions aux articles de la Gazette": "Failed to load Gazette article reactions",
   "Vous ne pouvez pas réagir à une tribune de votre équipe.": "You can’t react to a column by your own team.",
-  "Réactions": "Reactions"
+  "Réactions": "Reactions",
+  "Garde rapprochée": "Personal domestique",
+  "Choisir un leader": "Choose a leader",
+  "Aucun leader éligible": "No eligible leader",
+  "Choisissez le leader à protéger.": "Choose the leader to protect.",
+  "Choisissez un leader éligible pour chaque garde rapprochée.": "Choose an eligible leader for each personal domestique.",
+  "Choisissez un co-leader ou un leader absolu de votre équipe.": "Choose a co-leader or an absolute leader from your team."
 }

@@ -40,15 +40,22 @@ function all(node:unknown):Element[]{
 function find(node:unknown,predicate:(element:Element)=>boolean){
   const element=all(node).find(predicate);if(!element)throw new Error("Expected rendered control");return element;
 }
-const initialStatuses=[{riderId:"a",squadStatus:"lieutenant" as const},{riderId:"b",squadStatus:null}];
+const initialStatuses=[
+  {riderId:"a",squadStatus:"lieutenant" as const},
+  {riderId:"b",squadStatus:null},
+  {riderId:"c",squadStatus:"absolute_leader" as const},
+  {riderId:"d",squadStatus:"road_captain" as const},
+];
+const riderOptions = initialStatuses.map(({ riderId }) => ({ id: riderId, label: riderId.toUpperCase() }));
 function render(){
   runtime.cursor=0;
-  const tree=SquadStatusesBulkEditor({initialStatuses,children:null});
+  const tree=SquadStatusesBulkEditor({initialStatuses,riderOptions,children:null});
   runtime.context=tree.props.value;
   return tree;
 }
-function selector(riderId:string){return find(SquadStatusEditor({riderId,status:null,returnTo:"/jeu/effectif",compact:true}),element=>element.type==="select");}
-function change(riderId:string,value:string){(selector(riderId).props.onChange as (event:{target:{value:string}})=>void)({target:{value}});}
+function controls(riderId:string){return SquadStatusEditor({riderId,status:null,returnTo:"/jeu/effectif",compact:true});}
+function selector(riderId:string,name="squadStatus"){return find(controls(riderId),element=>element.type==="select"&&element.props.name===name);}
+function change(riderId:string,value:string,name?:string){(selector(riderId,name).props.onChange as (event:{target:{value:string}})=>void)({target:{value}});}
 function payload(tree:unknown){return JSON.parse(find(tree,element=>element.type==="input"&&element.props.name==="updates").props.value as string);}
 function submit(tree:unknown){
   const data=new FormData();data.set("updates",JSON.stringify(payload(tree)));
@@ -104,4 +111,26 @@ it("preserves Next authentication redirects instead of turning them into a netwo
   const redirect=Object.assign(new Error("NEXT_REDIRECT"),{digest:"NEXT_REDIRECT;replace;/connexion;307;"});
   runtime.save.mockRejectedValue(redirect);
   await expect(submit(tree)).rejects.toBe(redirect);
+});
+
+it("offers only leaders from the current draft and requires a target before saving a guard", () => {
+  const submitButton = (tree: unknown) => find(tree, element => element.type === "button" && element.props.type === "submit");
+  render();
+  expect(all(controls("a")).some(element => element.props.name === "protectedLeaderId")).toBe(false);
+  change("a", "close_guard");
+  expect(submitButton(render()).props.disabled).toBe(true);
+  expect(all(selector("a", "protectedLeaderId")).filter(element => element.type === "option").map(element => element.props.value)).toEqual(["", "c"]);
+  change("b", "co_leader");
+  render();
+  expect(all(selector("a", "protectedLeaderId")).filter(element => element.type === "option").map(element => element.props.value)).toEqual(["", "b", "c"]);
+  change("a", "b", "protectedLeaderId");
+  const ready = render();
+  expect(submitButton(ready).props.disabled).toBe(false);
+  expect(payload(ready)).toEqual([
+    {riderId:"a",squadStatus:"close_guard",expectedStatus:"lieutenant",protectedLeaderId:"b",expectedProtectedLeaderId:null},
+    {riderId:"b",squadStatus:"co_leader",expectedStatus:null},
+  ]);
+  change("b", "domestique");
+  expect(submitButton(render()).props.disabled).toBe(true);
+  expect(selector("a", "protectedLeaderId").props.value).toBe("");
 });
