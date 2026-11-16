@@ -20,6 +20,22 @@ export type FanClubTripAllocation = {
   createdAt: string;
 };
 
+export type FanClubInternationalTrip = {
+  editionId: string;
+  name: string;
+  kind: "professional" | "junior";
+} & (
+  | { status: "available"; dayNumber: number; distanceKm: number }
+  | {
+      status: "confirmed" | "completed" | "cancelled";
+      id: string;
+      modelId: string;
+      carCount: number;
+      mobilizedSupporters: number;
+      tripCost: number;
+    }
+);
+
 export type FanClubInventoryItem = {
   productId: string;
   quantity: number;
@@ -53,6 +69,7 @@ export type FanClubManagementState = {
   shopSpecialization: ClubShopSpecialization | null;
   fleet: Readonly<Record<string, number>>;
   trips: ReadonlyArray<FanClubTripAllocation>;
+  internationalTrips?: ReadonlyArray<FanClubInternationalTrip>;
   inventory: ReadonlyArray<FanClubInventoryItem>;
   recentSales: ReadonlyArray<FanClubShopSale>;
   wholesaleMarket: ReadonlyArray<FanClubWholesalePrice>;

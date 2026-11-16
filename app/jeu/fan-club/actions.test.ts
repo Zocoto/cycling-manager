@@ -5,7 +5,7 @@ vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
 vi.mock("@/lib/supabase/server", () => ({ createSupabaseServerClient: async () => ({
   auth: { getUser: mocks.getUser }, rpc: mocks.rpc,
 }) }));
-import { updateFanClubAutoRestockAction } from "./actions";
+import { charterFanClubCarsAction, updateFanClubAutoRestockAction } from "./actions";
 
 describe("réglages du réapprovisionnement", () => {
   beforeEach(() => {
@@ -38,5 +38,20 @@ describe("réglages du réapprovisionnement", () => {
     expect(await updateFanClubAutoRestockAction(settings)).toEqual({ ok: false,
       message: "Les minimums cumulés dépassent la capacité du magasin." });
     expect(mocks.revalidate).not.toHaveBeenCalled();
+  });
+});
+
+it("sends a junior edition to the international charter RPC and preserves ordinary charters", async () => {
+  mocks.getUser.mockResolvedValue({ data: { user: { id: "owner" } }, error: null });
+  mocks.rpc.mockResolvedValue({ error: null });
+  const raceId = "00000000-0000-4000-8000-000000000012";
+  const charter = { raceId, modelId: "regional", carCount: 2 };
+  expect((await charterFanClubCarsAction({ ...charter, internationalKind: "junior" })).ok).toBe(true);
+  expect(mocks.rpc).toHaveBeenLastCalledWith("charter_current_team_international_fan_club_cars", {
+    p_edition_id: raceId, p_is_junior: true, p_model_code: "regional", p_car_count: 2,
+  });
+  expect((await charterFanClubCarsAction(charter)).ok).toBe(true);
+  expect(mocks.rpc).toHaveBeenLastCalledWith("charter_current_team_fan_club_cars", {
+    p_race_edition_id: raceId, p_model_code: "regional", p_car_count: 2,
   });
 });

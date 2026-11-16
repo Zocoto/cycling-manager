@@ -10,7 +10,7 @@ import { NationalChampionshipRoutePanel } from "@/components/game/national-champ
 import { useLocale } from "@/components/i18n/locale-provider";
 import Link from "@/components/ui/app-link";
 import { initialFederationGovernanceActionState } from "@/lib/game/federation-action-states";
-import { getFederationHostingEvent } from "@/lib/game/federation-hosting";
+import { getFederationHostingEvent, type FederationHostingEconomics } from "@/lib/game/federation-hosting";
 import type { NationalChampionshipRouteChoice } from "@/lib/game/national-championship-road-route";
 import {
   getRaceProfileLabel,
@@ -32,6 +32,11 @@ const moneyFormatter = new Intl.NumberFormat("fr-FR", {
 const hostingDateFormatters: Record<AppLocale, Intl.DateTimeFormat> = {
   fr: new Intl.DateTimeFormat(getIntlLocale("fr"), { dateStyle: "long", timeZone: "Europe/Paris" }),
   en: new Intl.DateTimeFormat(getIntlLocale("en"), { dateStyle: "long", timeZone: "Europe/Paris" }),
+};
+
+const hostingWindowFormatters: Record<AppLocale, Intl.DateTimeFormat> = {
+  fr: new Intl.DateTimeFormat(getIntlLocale("fr"), { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Paris" }),
+  en: new Intl.DateTimeFormat(getIntlLocale("en"), { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Paris" }),
 };
 
 const PROFILE_COLORS: Record<RaceProfileType, string> = {
@@ -131,8 +136,7 @@ export function FederationCoursesPanel({
 
           <div className="rounded-2xl border border-[#D5AC18]/30 bg-[#FFF9DE] px-5 py-4 text-sm font-bold leading-6 text-[#66520D]">
             Le dépôt réserve le coût affiché. Le pays retenu paie à l’attribution.
-            Les recettes dépendent des départs effectifs, des places ouvertes et
-            de la renommée du pays hôte. Les estimations couvrent une participation de 50 à 95 %.
+            Les estimations couvrent 50 à 95 % des objectifs pour un programme intégralement disputé, hors prime de tirage.
           </div>
 
           {actionState.message ? (
@@ -183,6 +187,8 @@ export function FederationCoursesPanel({
                   />
                 </dl>
 
+                {opportunity.economics ? <HostingEconomicsDetails economics={opportunity.economics} /> : null}
+
                 <div className="mt-5 flex-1 rounded-xl border border-[#315B3E]/10 bg-white p-4 text-sm font-bold text-[#536B63]">
                   {opportunity.isNeutralHost ? (
                     "Terrain neutre"
@@ -219,7 +225,7 @@ export function FederationCoursesPanel({
             ))}
           </div>
 
-          {state.hosting.reports.length ? <HostingReports reports={state.hosting.reports} /> : null}
+          {state.hosting.reports.length ? <HostingReports reports={state.hosting.reports} locale={locale} /> : null}
         </div>
       </section>
 
@@ -243,7 +249,30 @@ function formatMoneyRange(range: [number, number]) {
   return range.map((amount) => moneyFormatter.format(amount)).join(" – ");
 }
 
-function HostingReports({ reports }: { reports: FederationHostingReport[] }) {
+function HostingEconomicsDetails({ economics }: { economics: FederationHostingEconomics }) {
+  const asPercent = (value: number) => `${Math.round(value * 100)} %`;
+  return (
+    <details className="mt-4 rounded-xl border border-[#315B3E]/10 bg-white px-3 py-2">
+      <summary className="cursor-pointer text-xs font-black text-[#205D4A]">Objectifs et prime d’accueil</summary>
+      <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
+        <HostingMetric label="Socle de recettes" value={asPercent(economics.baseRate)} />
+        <HostingMetric label="Objectif de pays au départ" value={`${economics.countryTarget} · +${asPercent(economics.countryCapRate)}`} />
+        <HostingMetric label="Objectif de lecteurs uniques" value={`${economics.readerTarget} · +${asPercent(economics.readerCapRate)}`} />
+        <HostingMetric label="Objectif de places en car" value={`${economics.seatTarget} · +${asPercent(economics.seatCapRate)}`} />
+      </dl>
+      <p className="mt-3 text-xs font-semibold text-[#536B63]">Les pourcentages s’appliquent au tarif de référence de <strong>{moneyFormatter.format(economics.catalogCost)}</strong>, au prorata des épreuves disputées.</p>
+      <p className="mt-1.5 text-xs font-semibold text-[#536B63]">
+        {`Le tirage se déclenche à partir de ${asPercent(economics.drawEligibleCountryRate)} de l’objectif de pays au départ.`}
+      </p>
+      <dl className="mt-2 grid grid-cols-2 gap-2 text-xs">
+        <HostingMetric label="Prime d’accueil" value={`+${asPercent(economics.drawSmallRate)} · ${asPercent(economics.drawSmallProbability)} de chances`} />
+        <HostingMetric label="Prime exceptionnelle" value={`+${asPercent(economics.drawLargeRate)} · ${asPercent(economics.drawLargeProbability)} de chances`} />
+      </dl>
+    </details>
+  );
+}
+
+function HostingReports({ reports, locale }: { reports: FederationHostingReport[]; locale: AppLocale }) {
   return (
     <section className="space-y-3">
       <h3 className="text-lg font-black text-[#183F37]">Bilan des accueils</h3>
@@ -251,7 +280,14 @@ function HostingReports({ reports }: { reports: FederationHostingReport[] }) {
         <article key={`${report.gameYear}-${report.eventType}`} className="rounded-xl border border-[#315B3E]/14 bg-[#F8FBF9] p-4">
           <h4 className="font-black text-[#183F37]">{getFederationHostingEvent(report.eventType).label} · S{report.gameYear}</h4>
           {report.status === "scheduled" ? (
-            <p className="mt-1 text-sm text-[#536B63]">Accueil prévu · {moneyFormatter.format(report.hostingCost)}</p>
+            <div className="mt-1 space-y-1 text-sm text-[#536B63]">
+              <p>Accueil prévu · {moneyFormatter.format(report.hostingCost)}</p>
+              {report.revenueWindowEndsAt ? (
+                <p><span>Clôture des recettes</span>{" · "}<time dateTime={report.revenueWindowEndsAt}>{hostingWindowFormatters[locale].format(new Date(report.revenueWindowEndsAt))}</time></p>
+              ) : report.economics ? (
+                <p>Le bilan est calculé après les 72 heures de consultation des résultats.</p>
+              ) : null}
+            </div>
           ) : (
             <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
               <HostingMetric label="Coût d’accueil" value={moneyFormatter.format(report.hostingCost)} />
@@ -269,9 +305,37 @@ function HostingReports({ reports }: { reports: FederationHostingReport[] }) {
               <HostingMetric label="Prestige d’organisation" value={`+${report.prestigeGain}`} />
             </dl>
           )}
+          {report.economics && report.breakdown ? (
+            <HostingRevenueBreakdown economics={report.economics} breakdown={report.breakdown} />
+          ) : null}
         </article>
       ))}
     </section>
+  );
+}
+
+function HostingRevenueBreakdown({ economics, breakdown }: {
+  economics: FederationHostingEconomics;
+  breakdown: NonNullable<FederationHostingReport["breakdown"]>;
+}) {
+  return (
+    <details className="mt-3 border-t border-[#315B3E]/10 pt-3">
+      <summary className="cursor-pointer text-sm font-black text-[#205D4A]">Détail des recettes d’accueil</summary>
+      <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
+        <HostingMetric label="Socle de recettes" value={moneyFormatter.format(breakdown.baseAmount)} />
+        <HostingMetric label="Recettes de participation" value={moneyFormatter.format(breakdown.countryAmount)} />
+        <HostingMetric label="Recettes de lecture" value={moneyFormatter.format(breakdown.readerAmount)} />
+        <HostingMetric label="Recettes de déplacements" value={moneyFormatter.format(breakdown.seatAmount)} />
+        <HostingMetric label="Prime du tirage" value={moneyFormatter.format(breakdown.drawAmount)} />
+      </dl>
+      <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-[#315B3E]/10 pt-3 text-sm sm:grid-cols-3">
+        <HostingMetric label="Pays inscrits" value={String(breakdown.registeredCountryCount)} />
+        <HostingMetric label="Pays au départ" value={`${breakdown.countryCount} / ${economics.countryTarget}`} />
+        <HostingMetric label="Lecteurs uniques" value={`${breakdown.readerCount} / ${economics.readerTarget}`} />
+        <HostingMetric label="Cars mobilisés" value={String(breakdown.carCount)} />
+        <HostingMetric label="Places mobilisées" value={`${breakdown.seatCount} / ${economics.seatTarget}`} />
+      </dl>
+    </details>
   );
 }
 

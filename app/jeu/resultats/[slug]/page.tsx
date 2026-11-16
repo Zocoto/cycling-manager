@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
+import { FederationHostingResultViewMarker } from "@/components/game/federation-hosting-result-view-marker";
 import { GameHeader } from "@/components/game/game-header";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import { TourGeneralClassificationLink } from "@/components/game/tour-general-classification-link";
 import Link from "@/components/ui/app-link";
+import { canTrackFederationHostedProResult } from "@/lib/game/federation-hosting-result-view";
 import {
   RACE_CATEGORY_STYLE,
   RACE_DAY_SLOT_CONFIG,
@@ -77,6 +79,9 @@ export default async function RaceTourPage({ params }: RaceTourPageProps) {
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
+      {latestClassifiedStage && canTrackFederationHostedProResult(calendar.gameYear, edition) ? (
+        <FederationHostingResultViewMarker editionId={edition.id} />
+      ) : null}
       <GameHeader
         simulatorEmail={user.email}
         displayName={headerData.displayName}

@@ -89,6 +89,36 @@ export type FederationHostingSelectionScore = {
   total: number;
 };
 
+export type FederationHostingEconomics = {
+  catalogCost: number;
+  prestigeGain: number;
+  countryTarget: number;
+  readerTarget: number;
+  seatTarget: number;
+  baseRate: number;
+  countryCapRate: number;
+  readerCapRate: number;
+  seatCapRate: number;
+  drawEligibleCountryRate: number;
+  drawSmallRate: number;
+  drawSmallProbability: number;
+  drawLargeRate: number;
+  drawLargeProbability: number;
+};
+
+export type FederationHostingBreakdown = {
+  countryCount: number;
+  registeredCountryCount: number;
+  readerCount: number;
+  carCount: number;
+  seatCount: number;
+  baseAmount: number;
+  countryAmount: number;
+  readerAmount: number;
+  seatAmount: number;
+  drawAmount: number;
+};
+
 export type FederationHostingAttendance = {
   attendance: number;
   grossRevenue: number;
@@ -178,6 +208,29 @@ export function calculateFederationHostingAttendance({
     grossRevenue,
     netReturn: grossRevenue - (hostingCost ?? event.hostingCost),
   };
+}
+
+export function projectFederationHostingReturn({
+  economics,
+  hostingCost,
+  countryRate,
+  readerRate,
+  seatRate,
+}: {
+  economics: FederationHostingEconomics;
+  hostingCost: number;
+  countryRate: number;
+  readerRate: number;
+  seatRate: number;
+}): { grossRevenue: number; netReturn: number } {
+  const share = (value: number) => Math.max(0, Math.min(1, value));
+  const roundEuros = (rate: number) => Math.round(economics.catalogCost * rate * 100) / 100;
+  const grossRevenue =
+    roundEuros(economics.baseRate) +
+    roundEuros(economics.countryCapRate * share(countryRate)) +
+    roundEuros(economics.readerCapRate * share(readerRate)) +
+    roundEuros(economics.seatCapRate * share(seatRate));
+  return { grossRevenue, netReturn: grossRevenue - hostingCost };
 }
 
 export function calculateFederationRaceReturn({

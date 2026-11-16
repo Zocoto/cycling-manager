@@ -98,6 +98,27 @@ function renderFanClub(
 }
 
 describe("Fan Club de production", () => {
+  it("affiche les déplacements internationaux parmi les épreuves du Fan Club sans bonus sportif", () => {
+    const markup = renderToStaticMarkup(
+      <FanClub headquartersLevel={1} shopLevel={0} data={LIVE_DATA}
+        management={{
+          ...MANAGEMENT,
+          fleet: { "grand-tourisme": 1 },
+          internationalTrips: [
+            { editionId: "junior", kind: "junior", name: "Mondiaux juniors", status: "available", dayNumber: 26, distanceKm: 100 },
+            { id: "charter", editionId: "pro", kind: "professional", name: "Mondiaux pros", status: "confirmed",
+              modelId: "regional", carCount: 1, mobilizedSupporters: 40, tripCost: 520 },
+          ],
+        }} sponsorIdentity={null} initialTab="travel" />,
+    );
+    expect(markup).toContain("Déplacement international");
+    expect(markup).toContain("Mondiaux juniors · J26");
+    expect(markup).toContain("Confirmer l’affrètement");
+    expect(markup).toContain("Mondiaux pros");
+    expect(markup).toContain("Confirmé");
+    expect(markup).not.toContain("Multiplicateur de ferveur");
+  });
+
   it("charge les seuils et les options de réapprovisionnement dans le magasin", () => {
     const markup = renderToStaticMarkup(<FanClub headquartersLevel={1} shopLevel={5} data={LIVE_DATA}
       management={{ ...MANAGEMENT, autoRestock: { enabled: true, allowNegativeProjection: true,

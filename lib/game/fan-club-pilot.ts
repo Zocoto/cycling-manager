@@ -63,6 +63,7 @@ export type FanClubReachBreakdown = {
 
 export type FanClubLiveData = {
   teamName: string;
+  gameYear?: number;
   supporterCount: number;
   fervor: number;
   teamReach: number;

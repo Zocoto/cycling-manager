@@ -2,6 +2,7 @@ import "server-only";
 
 import type {
   FanClubInventoryItem,
+  FanClubInternationalTrip,
   FanClubManagementState,
   FanClubShopSale,
   FanClubTripAllocation,
@@ -26,6 +27,19 @@ type TripRow = {
   car_count: number;
   trip_cost: number | string;
   created_at: string;
+};
+type InternationalTripRow = {
+  id: string | null;
+  edition_id: string;
+  is_junior: boolean;
+  edition_name: string;
+  day_number: number | null;
+  distance_km: number | string | null;
+  edition_status: string;
+  model_code: string | null;
+  car_count: number | null;
+  mobilized_supporters: number | null;
+  trip_cost: number | string | null;
 };
 type InventoryRow = {
   product_code: string;
@@ -240,6 +254,35 @@ export async function getFanClubManagementState({
       ),
     ],
     eligibleCollectorProductIds,
+  };
+}
+
+export async function getFanClubInternationalTrips(supabase: ServerClient): Promise<FanClubInternationalTrip[] | undefined> {
+  const { data, error } = await supabase.rpc("get_current_team_international_fan_club_trips");
+  if (error) {
+    console.error("Impossible de charger les déplacements internationaux du Fan Club", error);
+    return undefined;
+  }
+  return Array.isArray(data) ? (data as unknown as InternationalTripRow[]).map(mapInternationalTrip) : [];
+}
+
+function mapInternationalTrip(row: InternationalTripRow): FanClubInternationalTrip {
+  const edition = {
+    editionId: row.edition_id,
+    name: row.edition_name,
+    kind: row.is_junior ? "junior" as const : "professional" as const,
+  };
+  if (row.id === null) {
+    return { ...edition, status: "available", dayNumber: Number(row.day_number), distanceKm: Number(row.distance_km) };
+  }
+  return {
+    ...edition,
+    id: row.id,
+    status: row.edition_status === "completed" || row.edition_status === "cancelled" ? row.edition_status : "confirmed",
+    modelId: row.model_code ?? "",
+    carCount: Number(row.car_count),
+    mobilizedSupporters: Number(row.mobilized_supporters),
+    tripCost: Number(row.trip_cost),
   };
 }
 

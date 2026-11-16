@@ -7,6 +7,7 @@ import {
   FEDERATION_HOSTING_EVENTS,
   getFederationHostingEventsForGameYear,
   getFederationRenownLabel,
+  projectFederationHostingReturn,
 } from "@/lib/game/federation-hosting";
 
 describe("federation hosting", () => {
@@ -75,6 +76,31 @@ describe("federation hosting", () => {
     expect(high.attendance).toBeGreaterThan(low.attendance);
     expect(high.grossRevenue).toBe(high.attendance * 11);
     expect(high.netReturn).toBe(high.grossRevenue - 550_000);
+  });
+
+  it("projects hosting income from the reduced tariff before any draw", () => {
+    const economics = {
+      catalogCost: 1_440_000,
+      prestigeGain: 35,
+      countryTarget: 25,
+      readerTarget: 70,
+      seatTarget: 320,
+      baseRate: 0.85,
+      countryCapRate: 0.5,
+      readerCapRate: 0.1,
+      seatCapRate: 0.05,
+      drawEligibleCountryRate: 0.6,
+      drawSmallRate: 0.15,
+      drawSmallProbability: 0.3,
+      drawLargeRate: 0.35,
+      drawLargeProbability: 0.1,
+    };
+    expect(projectFederationHostingReturn({
+      economics, hostingCost: 1_440_000, countryRate: 0.8, readerRate: 0.6, seatRate: 0.5,
+    })).toEqual({ grossRevenue: 1_922_400, netReturn: 482_400 });
+    expect(projectFederationHostingReturn({
+      economics, hostingCost: 1_400_000, countryRate: 2, readerRate: 2, seatRate: -1,
+    })).toEqual({ grossRevenue: 2_088_000, netReturn: 688_000 });
   });
 
   it("keeps low-ranked national races money-only and higher ranks mixed", () => {

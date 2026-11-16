@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
+import { FederationHostingResultViewMarker } from "@/components/game/federation-hosting-result-view-marker";
 import { GameHeader } from "@/components/game/game-header";
 import { JuniorChampionshipResultEmptyState } from "@/components/game/junior-championship-result-empty-state";
 import Link from "@/components/ui/app-link";
@@ -47,6 +48,10 @@ export default async function JuniorChampionshipResultsPage({
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
+      {snapshot.season.gameYear >= 6 && snapshot.race.status === "completed" &&
+      !snapshot.race.isNeutralHost && !isNationsCup && results.length > 0 ? (
+        <FederationHostingResultViewMarker editionId={snapshot.race.id} isJunior />
+      ) : null}
       <GameHeader
         simulatorEmail={user.email}
         displayName={headerData.displayName}

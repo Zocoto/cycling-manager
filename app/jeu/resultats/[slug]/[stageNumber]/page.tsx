@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { after } from "next/server";
 
 import { recordNewcomerReplayStartAction } from "@/app/jeu/welcome-journey-actions";
+import { FederationHostingResultViewMarker } from "@/components/game/federation-hosting-result-view-marker";
 import { GameHeader } from "@/components/game/game-header";
 import { NationalChampionshipStageResults } from "@/components/game/national-championship-stage-results";
 import { RaceStageExperience } from "@/components/game/race-stage-experience";
@@ -14,6 +15,7 @@ import {
   shouldUseNationalChampionshipResultsOnly,
 } from "@/lib/game/national-championship-results-only";
 import type { LockedOfficialRaceSimulationDirectory } from "@/lib/game/official-race-simulation";
+import { canTrackFederationHostedProResult } from "@/lib/game/federation-hosting-result-view";
 import { getStageLiveState } from "@/lib/game/race-live";
 import { buildRaceCourseJournal } from "@/lib/game/race-course-journal";
 import { buildTeamStageReport } from "@/lib/game/race-team-stage-report";
@@ -309,6 +311,10 @@ export default async function RaceLivePage({
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
+      {state.status === "finished" && selectedStageResultAvailable && !replayRequested &&
+      canTrackFederationHostedProResult(calendar.gameYear, edition) ? (
+        <FederationHostingResultViewMarker editionId={edition.id} />
+      ) : null}
       <GameHeader
         simulatorEmail={user.email}
         displayName={headerData.displayName}

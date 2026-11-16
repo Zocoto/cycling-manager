@@ -351,6 +351,183 @@ try {
     join races r on r.id=e.race_id where o.season_id=uid(7)
   `), true, "both JQ events are neutral and retain their geographical course location");
   console.log("Jury verdicts verified: confirmed scheduling, neutral venues, future calendar writes, unaffected seasons and finances, score privileges, retries and neutral Olympic time trial generation.");
+
+  await db.exec(`
+    alter table national_federation_hosting_awards
+      add column economics_version smallint not null default 1 check (economics_version in (1, 2)),
+      add constraint national_federation_hosting_awards_values_valid check (prestige_gain > 0);
+    alter table national_federation_hosting_candidacies
+      alter column id set default gen_random_uuid(), alter column status set default 'pending',
+      alter column selection_score set default 500,
+      add column uci_rank integer, add column submitted_by_director_id uuid,
+      add unique(country_id,target_game_year,event_key);
+    alter table development_race_results add column academy_rider_id uuid, add column country_code text;
+    alter table national_federation_journal_entries add column created_at timestamptz default now();
+    create table national_federation_selection_lists(id uuid primary key, country_id uuid);
+    create table national_federation_selection_race_links(selection_list_id uuid primary key, race_edition_id uuid, race_registration_id uuid unique);
+    create table race_registrations(id uuid primary key, status text);
+    create table race_rosters(id uuid primary key, race_registration_id uuid);
+    create table national_federation_junior_race_registrations(race_edition_id uuid, country_id uuid, status text);
+
+    drop function public.refresh_national_federation_renown(uuid);
+    create function public.refresh_national_federation_renown(p_country uuid)
+    returns public.national_federation_renown language sql as $$
+      select renown from public.national_federation_renown renown where renown.country_id = p_country
+    $$;
+    drop function public.get_national_federation_race_organization_effects(uuid);
+    create function public.get_national_federation_race_organization_effects(p_country uuid)
+    returns table(hosting_revenue_bonus_percentage numeric, hosting_cost_reduction_percentage numeric)
+    language sql as $$ select 6::numeric, case when p_country=public.uid(13) then 10 else 0 end::numeric $$;
+    create function public.get_current_federation_identity(p_country text)
+    returns table(country_id uuid, sporting_director_id uuid) language sql as $$
+      select id, auth.uid() from public.countries where iso_alpha2 = p_country
+    $$;
+    create or replace function auth.uid() returns uuid language sql as $$ select public.uid(599) $$;
+    create table national_federation_terms(country_id uuid, start_game_year integer, end_game_year integer,
+      governance_mode text, president_director_id uuid);
+    create function public.get_national_championship_country_rankings(uuid)
+    returns table(country_id uuid, uci_points int) language sql as $$
+      select id, 100 from public.countries
+    $$;
+
+    -- Contract mocks for the independently tested reader and charter migrations.
+    create table private.test_hosting_audiences(event_key text, deadline timestamptz, reader_count integer, car_count integer, seat_count integer);
+    create function private.get_federation_hosting_revenue_window(uuid) returns timestamptz language sql as $$
+      select audience.deadline from private.test_hosting_audiences audience
+      join public.national_federation_hosting_awards award using(event_key) where award.id=$1
+    $$;
+    create function private.get_federation_hosting_unique_readers(uuid) returns integer language sql as $$
+      select audience.reader_count from private.test_hosting_audiences audience
+      join public.national_federation_hosting_awards award using(event_key) where award.id=$1
+    $$;
+    create function private.get_federation_hosting_charter_totals(uuid) returns table(car_count integer, seat_count integer)
+    language sql as $$
+      select audience.car_count, audience.seat_count from private.test_hosting_audiences audience
+      join public.national_federation_hosting_awards award using(event_key) where award.id=$1
+    $$;
+
+    update seasons set status='completed' where id=uid(6);
+    update seasons set status='active',current_day_number=15 where id=uid(7);
+    insert into seasons values(uid(8),'planned',13,1);
+    insert into season_days(season_id,day_number,calendar_date) values
+      (uid(7),20,(clock_timestamp() at time zone 'Europe/Paris')::date+5),
+      (uid(7),21,(clock_timestamp() at time zone 'Europe/Paris')::date+6);
+    insert into national_federation_terms select id,11,12,'elected',uid(599) from countries;
+    insert into national_federation_accounts(id,country_id,season_id,balance)
+      select gen_random_uuid(), c.id, s.id, 8000000 from countries c cross join seasons s where s.id in(uid(7),uid(8));
+    insert into countries(id,iso_alpha2,name,continent_code)
+      select uid(600+n), 'A'||chr(64+n), 'Équipe '||n,'europe' from generate_series(1,23) n;
+
+    -- This guarantee was reserved before V2 and remains on its original economics.
+    insert into national_federation_hosting_candidacies
+      (id,country_id,submitted_season_id,target_game_year,event_type,event_key,hosting_cost,
+       base_attendance,revenue_per_attendee,prestige_gain,renown_score,submitted_by_director_id)
+      values(uid(598),uid(14),uid(7),13,'world_championship_pro','world_championship_pro',3500000,240000,18,60,500,uid(599));
+    insert into race_editions(id,race_id,season_id,status,field_limit)
+      select uid(700+n),uid(case when n<3 then 451+n else 447+n end),uid(8),'planned',200 from generate_series(1,4) n;
+    update race_editions set race_id=uid(455) where id=uid(702);
+    insert into stages(id,race_edition_id,status) select uid(720+n),uid(700+n),'planned' from generate_series(1,4) n;
+    insert into development_race_editions(id,season_id,competition_type,championship_continent_code,status,selection_maximum)
+      values(uid(741),uid(8),'continental_road','africa','planned',6),
+            (uid(742),uid(8),'continental_time_trial','africa','planned',6),
+            (uid(743),uid(8),'world_road',null,'planned',6),
+            (uid(744),uid(8),'world_time_trial',null,'planned',6);
+    insert into development_race_stages select uid(760+n),uid(740+n) from generate_series(1,4) n;
+    insert into private.test_hosting_audiences values
+      ('continental_championship_pro:europe',clock_timestamp()+interval '72 hours',42,5,160),
+      ('continental_championship_junior:africa',clock_timestamp()+interval '72 hours',0,0,0);
+  `);
+  await db.exec(migrationFunction("20261110140000_open_federation_hosting_and_score_organization", "public.submit_national_federation_hosting_candidacy"));
+  const economicsMigration = readFileSync("supabase/migrations/20261116133000_version_federation_hosting_economics.sql", "utf8");
+  await db.exec(economicsMigration.replace(/\r?\n/g, "\r\n"));
+
+  const submit = (country, event) => scalar(`select submit_national_federation_hosting_candidacy('${country}','${event}')`);
+  const euPro = await submit("FR", "continental_championship_pro");
+  const africaJunior = await submit("KE", "continental_championship_junior");
+  await submit("PL", "world_championship_junior");
+  assert.equal(await submit("JP", "world_championship_pro"), "00000000-0000-0000-0000-000000000598");
+  assert.equal(await scalar("select economics_version=1 and economics_manifest is null and hosting_cost=3500000 from national_federation_hosting_candidacies where id=uid(598)"), true);
+  assert.equal(await scalar(`select economics_version=2 and hosting_cost=1440000 and economics_manifest->>'countryTarget'='25' from national_federation_hosting_candidacies where id='${euPro}'`), true);
+  assert.equal(await scalar(`select economics_version=2 and hosting_cost=505000 and economics_manifest->>'countryTarget'='1' from national_federation_hosting_candidacies where id='${africaJunior}'`), true);
+  const scenario = (countries, ticket) => scalar(`
+    select private.calculate_federation_hosting_revenue(economics_manifest,1,30,${countries},1000,7,4000,${ticket})
+    from get_federation_hosting_economics_catalog('europe') where event_type='continental_championship_pro'
+  `);
+  const capped = await scenario(30, 1000);
+  assert.equal(capped.countryRate, 0.5);
+  assert.equal(capped.readerRate, 0.1);
+  assert.equal(capped.seatRate, 0.05);
+  assert.equal(capped.drawRate, 0.15);
+  assert.equal((await scenario(15, 3999)).drawRate, 0.15, "the draw opens at exactly 60% participation");
+  assert.equal((await scenario(14, 0)).drawRate, 0, "a winning ticket cannot bypass the country objective");
+  assert.equal((await scenario(25, 4000)).drawRate, 0, "the two prize ranges leave 60% with no award");
+  await db.exec("insert into countries(id,iso_alpha2,name,continent_code) values(uid(650),'UG','Ouganda','africa');");
+  assert.equal(await scalar("select economics_manifest->>'countryTarget' from get_federation_hosting_economics_catalog('africa') where event_type='continental_championship_junior'"), "2");
+  await db.exec(`
+    update seasons set current_day_number=21 where id=uid(7);
+    update season_days set calendar_date=(clock_timestamp() at time zone 'Europe/Paris')::date where season_id=uid(7) and day_number=21;
+  `);
+  assert.equal(await settleAwards(), 4);
+  const awardsByKey = (await db.query("select * from national_federation_hosting_awards where target_game_year=13")).rows;
+  const pro = awardsByKey.find((row) => row.event_key === "continental_championship_pro:europe");
+  const junior = awardsByKey.find((row) => row.event_key === "continental_championship_junior:africa");
+  const legacy = awardsByKey.find((row) => row.event_key === "world_championship_pro");
+  const cancelledV2 = awardsByKey.find((row) => row.event_key === "world_championship_junior");
+  assert.equal(pro.economics_version, 2);
+  assert.equal(junior.economics_manifest.countryTarget, 1, "the bid freezes the continental denominator through award");
+  assert.equal(legacy.economics_version, 1);
+  assert.equal(legacy.economics_manifest, null);
+  assert.equal(await scalar("select count(*)::int from private.federation_hosting_draw_tickets"), 3);
+  assert.equal(await scalar("select has_table_privilege('authenticated','private.federation_hosting_draw_tickets','select')"), false);
+  await db.exec(`
+    update seasons set status='completed' where id=uid(7);
+    update seasons set status='active' where id=uid(8);
+    update race_editions set status='completed' where id in(uid(701),uid(702),uid(703),uid(704));
+    update stages set status='completed' where id in(uid(721),uid(722),uid(723),uid(724));
+    update development_race_editions set status='cancelled' where id in(uid(742),uid(743),uid(744));
+    insert into national_federation_junior_race_registrations values (uid(741),uid(13),'completed');
+    insert into development_race_results(race_edition_id,result_scope,competitor_key,academy_rider_id,country_code)
+      values(uid(741),'stage','real',uid(800),'KE'),(uid(741),'stage','synthetic',null,'UG');
+    insert into stage_results(stage_id,race_roster_id,status) values (uid(723),uid(810),'finished');
+    insert into national_federation_selection_lists select uid(1000+n),uid(600+n) from generate_series(1,21)n;
+    insert into race_registrations select uid(1100+n),'accepted' from generate_series(1,21)n;
+    insert into race_rosters select uid(1200+n),uid(1100+n) from generate_series(1,21)n;
+    insert into national_federation_selection_race_links select uid(1000+n),uid(701),uid(1100+n) from generate_series(1,21)n;
+    insert into stage_results select uid(721),uid(1200+n),case when n<=20 then 'finished' else 'did_not_start' end from generate_series(1,21)n;
+    insert into national_federation_selection_lists values(uid(1350),uid(601));
+    insert into race_registrations values(uid(1351),'accepted');
+    insert into race_rosters values(uid(1352),uid(1351));
+    insert into national_federation_selection_race_links values(uid(1350),uid(702),uid(1351));
+    insert into stage_results values(uid(722),uid(1352),'outside_time_limit');
+    update private.federation_hosting_draw_tickets set ticket=999 where award_id='${pro.id}';
+    update private.federation_hosting_draw_tickets set ticket=4000 where award_id='${junior.id}';
+  `);
+  assert.equal(await settleReturns(), 2, "only legacy and entirely cancelled awards settle without waiting");
+  assert.equal(await scalar(`select status='scheduled' and revenue_window_ends_at>clock_timestamp() and economics_breakdown is null from national_federation_hosting_awards where id='${pro.id}'`), true);
+  assert.equal(await scalar(`select status='cancelled' and actual_refund=960000 and actual_net_return=0 and prestige_gain=0 and revenue_window_ends_at is null from national_federation_hosting_awards where id='${cancelledV2.id}'`), true);
+  assert.equal(await scalar(`select status='settled' and economics_version=1 and economics_breakdown is null from national_federation_hosting_awards where id='${legacy.id}'`), true);
+  assert.equal(await settleReturns(), 0, "an incomplete competition and a live reader window cannot settle");
+  await db.exec(`
+    update development_race_editions set status='completed' where id=uid(741);
+    update private.test_hosting_audiences set deadline=clock_timestamp()-interval '1 second';
+    update national_federation_hosting_awards set revenue_window_ends_at=clock_timestamp()-interval '1 second' where id='${pro.id}';
+  `);
+  assert.equal(await settleReturns(), 2);
+  const breakdown = (awardId) => scalar(`select economics_breakdown from national_federation_hosting_awards where id='${awardId}'`);
+  assert.deepEqual(await breakdown(pro.id), {
+    completionRate: 1, registeredCountryCount: 21, countryCount: 20, readerCount: 42, carCount: 5, seatCount: 160,
+    countryProgress: 0.8, readerProgress: 0.6, seatProgress: 0.5, countryRate: 0.4, readerRate: 0.06, seatRate: 0.025,
+    drawEligible: true, drawRate: 0.35, baseAmount: 1224000, countryAmount: 576000, readerAmount: 86400,
+    seatAmount: 36000, drawAmount: 504000, grossRevenue: 2426400, actualPrestigeGain: 35,
+  });
+  assert.equal(await scalar(`select actual_net_return=986400 from national_federation_hosting_awards where id='${pro.id}'`), true);
+  assert.equal((await breakdown(junior.id)).countryCount, 1, "a synthetic junior finisher does not count as another country");
+  assert.equal(await scalar(`select actual_gross_revenue=378000 and actual_refund=252500 and actual_net_return=125500 and prestige_gain=8 from national_federation_hosting_awards where id='${junior.id}'`), true);
+  await db.exec(`update private.federation_hosting_draw_tickets set ticket=9999 where award_id='${pro.id}';`);
+  assert.equal(await settleReturns(), 0);
+  assert.equal((await breakdown(pro.id)).drawRate, 0.35, "a retry cannot reroll the persisted draw");
+  assert.equal(await scalar(`select count(*)=1 and sum(amount)=2426400 from national_federation_transactions where source_reference='federation-hosting:${pro.id}:revenue'`), true);
+  console.log("Versioned hosting economics verified: protected reservations, exact catalog results, real distinct countries, deadlines, discounts, draws, refunds, and once-only finance receipts.");
 } finally {
   await db.close();
 }

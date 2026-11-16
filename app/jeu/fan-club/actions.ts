@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { FAN_CLUB_CAR_MODELS, FAN_CLUB_PRODUCTS } from "@/lib/game/fan-club-pilot";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getFanClubInternationalTrips } from "@/services/fan-club-management";
 
 export type FanClubActionResult = {
   ok: boolean;
@@ -12,6 +13,10 @@ export type FanClubActionResult = {
 
 const CAR_MODEL_IDS = new Set(FAN_CLUB_CAR_MODELS.map((model) => model.id));
 const PRODUCT_IDS = new Set(FAN_CLUB_PRODUCTS.map((product) => product.id));
+
+export async function loadFanClubInternationalTripsAction() {
+  return getFanClubInternationalTrips(await createSupabaseServerClient());
+}
 
 export async function purchaseFanClubCarAction(
   modelId: string,
@@ -35,19 +40,30 @@ export async function charterFanClubCarsAction({
   raceId,
   modelId,
   carCount,
+  internationalKind,
 }: {
   raceId: string;
   modelId: string;
   carCount: number;
+  internationalKind?: "professional" | "junior";
 }): Promise<FanClubActionResult> {
   if (
     !isUuid(raceId) ||
     !CAR_MODEL_IDS.has(modelId) ||
     !Number.isInteger(carCount) ||
+    (internationalKind !== undefined && internationalKind !== "professional" && internationalKind !== "junior") ||
     carCount < 1 ||
     carCount > 30
   ) {
     return invalidRequest();
+  }
+  if (internationalKind) {
+    return runRpc("charter_current_team_international_fan_club_cars", {
+      p_edition_id: raceId,
+      p_is_junior: internationalKind === "junior",
+      p_model_code: modelId,
+      p_car_count: carCount,
+    }, "Le déplacement international est confirmé.");
   }
   return runRpc("charter_current_team_fan_club_cars", {
     p_race_edition_id: raceId,

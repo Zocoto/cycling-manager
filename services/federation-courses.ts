@@ -10,6 +10,9 @@ import {
   getFederationHostingEvent,
   getFederationHostingEventsForGameYear,
   getFederationRenownLabel,
+  projectFederationHostingReturn,
+  type FederationHostingBreakdown,
+  type FederationHostingEconomics,
   type FederationHostingEventType,
   type FederationHostingRiderCategory,
 } from "@/lib/game/federation-hosting";
@@ -93,6 +96,7 @@ export type FederationHostingOpportunity = {
   shortLabel: string;
   hostingCost: number;
   prestigeGain: number;
+  economics?: FederationHostingEconomics | null;
   projectedGrossRevenue: [number, number];
   projectedNetReturn: [number, number];
   candidacy: FederationHostingCandidacy | null;
@@ -117,6 +121,9 @@ export type FederationHostingReport = {
   starterCount: number | null;
   placeCount: number | null;
   prestigeGain: number;
+  economics?: FederationHostingEconomics | null;
+  breakdown?: FederationHostingBreakdown | null;
+  revenueWindowEndsAt?: string | null;
 };
 
 export type FederationCoursesState = {
@@ -189,6 +196,7 @@ type CandidacyRow = {
   event_key: string;
   hosting_cost: number | string;
   status: FederationHostingCandidacy["status"];
+  economics_manifest: FederationHostingEconomics | null;
   created_at: string;
 };
 type HostingDecisionRow = {
@@ -196,6 +204,7 @@ type HostingDecisionRow = {
   decision: "hosted" | "neutral";
   country_id: string | null;
 };
+type HostingCatalogRow = { event_type: FederationHostingEventType; economics_manifest: FederationHostingEconomics };
 type HostingDateRow = { day_number: number; calendar_date: string };
 type CountryRow = { id: string; iso_alpha2: string; name: string };
 type FederationCountryMetaRow = { continent_code: string | null };
@@ -215,6 +224,9 @@ type AwardRow = {
   scheduled_edition_count: number | null;
   actual_starter_count: number | null;
   actual_place_count: number | null;
+  economics_manifest: FederationHostingEconomics | null;
+  economics_breakdown: FederationHostingBreakdown | null;
+  revenue_window_ends_at: string | null;
 };
 type AccountRow = { balance: number | string; reserved_amount: number | string };
 type InfrastructureRow = { level: number };
@@ -374,7 +386,7 @@ export async function getFederationCoursesState({
     const editions = editionsResult.data ?? [];
     const editionIds = editions.map((edition) => edition.id);
     const categoryIds = [...new Set(editions.map((edition) => edition.race_category_id))];
-    const [categoriesResult, registrationsResult, stagesResult, candidaciesResult, awardsResult, decisionsResult, datesResult, pastWinnersByRaceId] =
+    const [categoriesResult, registrationsResult, stagesResult, candidaciesResult, awardsResult, decisionsResult, datesResult, hostingCatalogResult, pastWinnersByRaceId] =
       await Promise.all([
         categoryIds.length
           ? admin
@@ -400,7 +412,7 @@ export async function getFederationCoursesState({
         admin
           .from("national_federation_hosting_candidacies")
               .select(
-            "id, country_id, target_game_year, event_type, event_key, hosting_cost, status, created_at",
+            "id, country_id, target_game_year, event_type, event_key, hosting_cost, status, economics_manifest, created_at",
           )
           .eq("target_game_year", targetGameYear)
           .in("event_key", relevantEventKeys)
@@ -409,7 +421,7 @@ export async function getFederationCoursesState({
           .returns<CandidacyRow[]>(),
         admin
           .from("national_federation_hosting_awards")
-          .select("event_key, event_type, target_game_year, country_id, status, hosting_cost, prestige_gain, actual_gross_revenue, actual_refund, actual_net_return, actual_participation_rate, completed_edition_count, scheduled_edition_count, actual_starter_count, actual_place_count")
+          .select("event_key, event_type, target_game_year, country_id, status, hosting_cost, prestige_gain, actual_gross_revenue, actual_refund, actual_net_return, actual_participation_rate, completed_edition_count, scheduled_edition_count, actual_starter_count, actual_place_count, economics_manifest, economics_breakdown, revenue_window_ends_at")
           .or(`and(target_game_year.eq.${targetGameYear},event_key.in.(${relevantEventKeys.join(",")})),and(target_game_year.gte.${Math.max(1, gameYear - 4)},target_game_year.lte.${gameYear},country_id.eq.${countryId},event_type.neq.nations_cup_junior)`)
           .order("target_game_year", { ascending: false })
           .returns<AwardRow[]>(),
@@ -428,6 +440,9 @@ export async function getFederationCoursesState({
             FEDERATION_HOSTING_DECISION_DAY,
           ])
           .returns<HostingDateRow[]>(),
+        targetGameYear >= 6
+          ? admin.rpc("get_federation_hosting_economics_catalog", { p_continent_code: continentCode })
+          : Promise.resolve({ data: [] as HostingCatalogRow[], error: null }),
         loadRacePastWinners(admin, raceIds),
       ]);
     for (const result of [
@@ -438,6 +453,7 @@ export async function getFederationCoursesState({
       awardsResult,
       decisionsResult,
       datesResult,
+      hostingCatalogResult,
     ]) {
       if (result.error) throw result.error;
     }
@@ -628,6 +644,10 @@ export async function getFederationCoursesState({
     const datesByDay = new Map(
       (datesResult.data ?? []).map((day) => [day.day_number, day.calendar_date]),
     );
+    const bidsById = new Map(candidacyRows.map((row) => [row.id, row]));
+    const catalogRows = Array.isArray(hostingCatalogResult.data)
+      ? hostingCatalogResult.data as HostingCatalogRow[] : [];
+    const hostingCatalog = new Map(catalogRows.map((row) => [row.event_type, row.economics_manifest]));
     const reports = (awardsResult.data ?? [])
       .filter((award) => award.target_game_year <= gameYear && award.country_id === countryId)
       .map((award): FederationHostingReport => ({
@@ -644,6 +664,9 @@ export async function getFederationCoursesState({
         starterCount: award.actual_starter_count,
         placeCount: award.actual_place_count,
         prestigeGain: award.status === "cancelled" ? 0 : award.prestige_gain,
+        economics: award.economics_manifest,
+        breakdown: award.economics_breakdown,
+        revenueWindowEndsAt: award.revenue_window_ends_at,
       }));
     const opportunities = hostingEvents.map(
       (event): FederationHostingOpportunity => {
@@ -656,20 +679,29 @@ export async function getFederationCoursesState({
         const decision = decisionByEventKey.get(eventKey);
         const selectedCountryId = decision?.country_id ?? award?.country_id;
         const selectedCountry = selectedCountryId ? countryById.get(selectedCountryId) : null;
-        const discountedHostingCost = getFederationHostingCost(
-          event.hostingCost, officeEffects.hostingCostReductionPercentage,
+        const activeBid = candidacy && candidacy.status !== "withdrawn" ? candidacy : null;
+        const economics = activeBid
+          ? bidsById.get(activeBid.id)?.economics_manifest ?? null
+          : hostingCatalog.get(event.type) ?? null;
+        const hostingCost = activeBid?.hostingCost ?? getFederationHostingCost(
+          economics?.catalogCost ?? event.hostingCost,
+          officeEffects.hostingCostReductionPercentage,
         );
-        const hostingCost = candidacy && candidacy.status !== "withdrawn"
-          ? candidacy.hostingCost
-          : discountedHostingCost;
-        const projection = (participationRate: number) => calculateFederationHostingAttendance({
-          eventType: event.type,
-          participationRate,
-          renown: renown.score,
-          hostingCost,
-          revenueBonusPercentage:
-            officeEffects.internationalHostingRevenueBonusPercentage,
-        });
+        const projection = (rate: number) => economics
+          ? projectFederationHostingReturn({
+              economics,
+              hostingCost,
+              countryRate: rate,
+              readerRate: rate,
+              seatRate: rate,
+            })
+          : calculateFederationHostingAttendance({
+              eventType: event.type,
+              participationRate: rate,
+              renown: renown.score,
+              hostingCost,
+              revenueBonusPercentage: officeEffects.internationalHostingRevenueBonusPercentage,
+            });
         const [lowRate, highRate] = FEDERATION_HOSTING_PARTICIPATION_SCENARIOS;
         const low = projection(lowRate);
         const high = projection(highRate);
@@ -691,7 +723,8 @@ export async function getFederationCoursesState({
           label: event.label,
           shortLabel: event.shortLabel,
           hostingCost,
-          prestigeGain: event.prestigeGain,
+          prestigeGain: economics?.prestigeGain ?? event.prestigeGain,
+          economics,
           projectedGrossRevenue: [low.grossRevenue, high.grossRevenue],
           projectedNetReturn: [low.netReturn, high.netReturn],
           candidacy,

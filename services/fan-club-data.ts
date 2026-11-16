@@ -291,7 +291,7 @@ export async function getFanClubLiveData({
   }
 
   if (riderIds.length === 0) {
-    return buildEmptyLiveData({
+    return { ...buildEmptyLiveData({
       teamName: summary.teamName,
       headquartersLevel,
       directorReputation: Number(directorResult.data?.reputation_points ?? 0),
@@ -301,7 +301,7 @@ export async function getFanClubLiveData({
         headquartersSpecializationEffects.carPurchaseDiscountPercentage,
       directSupporterBonus: mediaInterventionBonuses.supporters,
       directFervorBonus: mediaInterventionBonuses.fervor,
-    });
+    }), gameYear: activeSeason.game_year };
   }
   const federationCountryId =
     currentTeamSeasonResult.data?.registration_country_id ?? null;
@@ -765,6 +765,7 @@ export async function getFanClubLiveData({
 
   return {
     teamName: summary.teamName,
+    gameYear: activeSeason.game_year,
     supporterCount: audience.supporterCount,
     fervor: audience.fervor,
     teamReach: audience.teamReach,

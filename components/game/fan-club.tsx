@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import {
   charterFanClubCarsAction,
+  loadFanClubInternationalTripsAction,
   purchaseFanClubCarAction,
   purchaseFanClubStockAction,
   sellFanClubCarAction,
@@ -22,6 +23,7 @@ import Link from "@/components/ui/app-link";
 import {
   estimateDailyProductSalesForecast,
   getAvailableCarsForRace,
+  type FanClubInternationalTrip,
   type FanClubManagementState,
   type FanClubTripAllocation,
   type FanClubWholesalePrice,
@@ -84,6 +86,7 @@ const decimalEuroFormatter = new Intl.NumberFormat("fr-FR", {
 
 type ExecuteAction = (
   action: () => Promise<FanClubActionResult>,
+  reloadInternationalTrips?: boolean,
 ) => void;
 
 export type FanClubSponsorIdentity = {
@@ -110,10 +113,13 @@ export function FanClub({
 }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<FanClubPilotTab>(
-    initialTab === "store" && shopLevel > 0 ? "store" : "overview",
+    initialTab === "store" && shopLevel <= 0 ? "overview" : initialTab,
   );
   const [feedback, setFeedback] = useState("");
   const [isPending, startTransition] = useTransition();
+  const [isLoadingInternationalTrips, startLoadingInternationalTrips] = useTransition();
+  const [loadedInternationalTrips, setLoadedInternationalTrips] = useState<FanClubInternationalTrip[]>();
+  const internationalTrips = management.internationalTrips ?? loadedInternationalTrips;
   const tabs = shopLevel > 0
     ? [
         ...BASE_TABS,
@@ -145,12 +151,24 @@ export function FanClub({
     "--fan-shadow": theme.shadow,
   } as CSSProperties;
 
-  const execute: ExecuteAction = (action) => {
+  const navigate = (tab: FanClubPilotTab) => {
+    setActiveTab(tab);
+    setFeedback("");
+    if (tab === "travel" && (data.gameYear ?? 0) >= 6 && !internationalTrips && !isLoadingInternationalTrips) {
+      startLoadingInternationalTrips(async () => setLoadedInternationalTrips(await loadFanClubInternationalTripsAction()));
+    }
+  };
+  const execute: ExecuteAction = (action, reloadInternationalTrips) => {
     setFeedback("");
     startTransition(async () => {
       const result = await action();
       setFeedback(result.message);
-      if (result.ok) router.refresh();
+      if (result.ok) {
+        if (reloadInternationalTrips && management.internationalTrips === undefined) {
+          setLoadedInternationalTrips(await loadFanClubInternationalTripsAction());
+        }
+        router.refresh();
+      }
     });
   };
 
@@ -169,10 +187,7 @@ export function FanClub({
             label={tab.label}
             description={tab.description}
             ariaControls={getPanelId(tab.id)}
-            onClick={() => {
-              setActiveTab(tab.id);
-              setFeedback("");
-            }}
+            onClick={() => navigate(tab.id)}
           />
         ))}
       </GameSectionTabs>
@@ -184,7 +199,7 @@ export function FanClub({
               data={data}
               management={management}
               shopLevel={shopLevel}
-              onNavigate={setActiveTab}
+              onNavigate={navigate}
             />
           </Panel>
         ) : null}
@@ -195,10 +210,11 @@ export function FanClub({
           <Panel tab="travel">
             <TravelPanel
               data={data}
-              management={management}
+              management={{ ...management, internationalTrips }}
               headquartersLevel={headquartersLevel}
               execute={execute}
               isPending={isPending}
+              isLoadingInternationalTrips={isLoadingInternationalTrips}
               feedback={feedback}
             />
           </Panel>
@@ -411,6 +427,7 @@ function TravelPanel({
   headquartersLevel,
   execute,
   isPending,
+  isLoadingInternationalTrips,
   feedback,
 }: {
   data: FanClubLiveData;
@@ -418,18 +435,34 @@ function TravelPanel({
   headquartersLevel: number;
   execute: ExecuteAction;
   isPending: boolean;
+  isLoadingInternationalTrips: boolean;
   feedback: string;
 }) {
   const [raceId, setRaceId] = useState(data.races[0]?.id ?? "");
   const [raceSearch, setRaceSearch] = useState("");
   const [modelId, setModelId] = useState("regional");
   const [requestedCars, setRequestedCars] = useState(1);
+  const internationalTrips = management.internationalTrips ?? [];
+  const bookedTrips = internationalTrips.filter((trip) => trip.status !== "available");
+  const internationalRaces = internationalTrips.filter((trip) => trip.status === "available");
+  const internationalEditionIds = new Set(internationalTrips.map((trip) => trip.editionId));
+  const races = [
+    ...data.races.filter((race) => !internationalEditionIds.has(race.id)),
+    ...internationalRaces.map((trip) => ({
+      id: trip.editionId,
+      name: trip.name,
+      timing: `J${trip.dayNumber}`,
+      distanceKm: trip.distanceKm,
+    })),
+  ];
   const search = normalizeRaceSearch(raceSearch);
   const visibleRaces = search
-    ? data.races.filter((candidate) => normalizeRaceSearch(candidate.name).includes(search))
-    : data.races;
+    ? races.filter((candidate) => normalizeRaceSearch(candidate.name).includes(search))
+    : races;
   const race = visibleRaces.find((candidate) => candidate.id === raceId) ?? visibleRaces[0];
-  const model = FAN_CLUB_CAR_MODELS.find((candidate) => candidate.id === modelId) ?? FAN_CLUB_CAR_MODELS[0];
+  const internationalRace = internationalRaces.find((trip) => trip.editionId === race?.id);
+  const ownedModels = FAN_CLUB_CAR_MODELS.filter((candidate) => (management.fleet[candidate.id] ?? 0) > 0);
+  const model = ownedModels.find((candidate) => candidate.id === modelId) ?? ownedModels[0] ?? FAN_CLUB_CAR_MODELS[0];
   const fleetLimit = FAN_CLUB_FLEET_CAPACITY_BY_HEADQUARTERS_LEVEL[headquartersLevel] ?? 2;
   const totalCars = Object.values(management.fleet).reduce((sum, value) => sum + value, 0);
   const raceTrips = management.trips.filter((trip) => trip.raceId === race?.id);
@@ -464,9 +497,8 @@ function TravelPanel({
     fervor: data.fervor,
     seatCapacity: allocatedSeats + seats,
   });
-  const cost = race
-    ? Math.round(cars * (race.distanceKm * 2 * model.operatingCostPerKm + 250))
-    : 0;
+  const tripCost = race ? cars * (race.distanceKm * 2 * model.operatingCostPerKm + 250) : 0;
+  const cost = internationalRace ? Math.round(tripCost * 100) / 100 : Math.round(tripCost);
 
   return (
     <div className="space-y-6">
@@ -524,7 +556,7 @@ function TravelPanel({
             title="Préparer un déplacement"
             detail="Choisissez n’importe quelle course à venir où votre inscription est acceptée. Jusqu’à 40 % des supporters peuvent être mobilisés par épreuve."
           />
-          {data.races.length > 0 ? (
+          {races.length > 0 ? (
             <div className="mt-6 grid gap-5 md:grid-cols-2">
               <label className="block md:col-span-2">
                 <span className="text-sm font-black text-[var(--fan-ink)]">
@@ -556,16 +588,20 @@ function TravelPanel({
                 label="Modèle à envoyer"
                 value={model.id}
                 onChange={(value) => { setModelId(value); setRequestedCars(1); }}
-                options={FAN_CLUB_CAR_MODELS.filter((candidate) => (management.fleet[candidate.id] ?? 0) > 0).map((candidate) => ({
+                options={ownedModels.map((candidate) => ({
                   value: candidate.id,
                   label: `${candidate.name} · ${getAvailableCarsForRace({ owned: management.fleet[candidate.id] ?? 0, allocated: allocatedByModel[candidate.id] ?? 0 })} disponible(s) ici`,
                 }))}
               />
             </div>
-          ) : <p className="mt-5 rounded-xl bg-[var(--fan-soft)] p-4 text-sm font-bold text-[var(--fan-muted)]">Aucune course à venir n’est actuellement ouverte à l’affrètement.</p>}
+          ) : (
+            <p role="status" className="mt-5 rounded-xl bg-[var(--fan-soft)] p-4 text-sm font-bold text-[var(--fan-muted)]">
+              {isLoadingInternationalTrips ? "Chargement des déplacements internationaux…" : "Aucune course à venir n’est actuellement ouverte à l’affrètement."}
+            </p>
+          )}
           <label className="mt-6 block">
             <span className="flex justify-between gap-3 text-sm font-black text-[var(--fan-ink)]">
-              Cars à ajouter <strong className="text-[var(--fan-primary)]">{availableCars > 0 ? cars : 0} / {availableCars}</strong>
+              {internationalRace ? "Cars à envoyer" : "Cars à ajouter"} <strong className="text-[var(--fan-primary)]">{availableCars > 0 ? cars : 0} / {availableCars}</strong>
             </span>
             <input
               type="range"
@@ -580,47 +616,66 @@ function TravelPanel({
         </Surface>
 
         <aside className="rounded-[1.5rem] bg-[linear-gradient(145deg,var(--fan-ink),var(--fan-primary))] p-6 text-white shadow-[0_18px_45px_var(--fan-shadow)]">
-          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--fan-accent)]">Déplacement réel</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--fan-accent)]">
+            {internationalRace ? "Déplacement international" : "Déplacement réel"}
+          </p>
           <h2 className="mt-3 text-2xl font-black">{race?.name ?? "Aucune course"}</h2>
           <dl className="mt-5 divide-y divide-white/10 border-y border-white/10 text-sm">
-            <PreviewLine label="Déjà affectés" value={`${raceTrips.reduce((sum, trip) => sum + trip.carCount, 0)} car(s)`} />
-            <PreviewLine label="Supporters encore mobilisables" value={remainingSupporters.toLocaleString("fr-FR")} />
-            <PreviewLine label="Places ajoutées" value={seats.toLocaleString("fr-FR")} />
-            <PreviewLine label="Voyageurs supplémentaires" value={travelers.toLocaleString("fr-FR")} />
-            <PreviewLine
-              label="Supporters mobilisés au total"
-              value={raceBoost.mobilizedSupporters.toLocaleString("fr-FR")}
-            />
-            <PreviewLine
-              label="Multiplicateur de ferveur"
-              value={`${data.fervor} / 100 · × ${formatRaceRating(raceBoost.fervorMultiplier)}`}
-            />
-            <PreviewLine
-              label="Bonus sur la course"
-              value={`+${formatRaceRating(raceBoost.ratingBoost)} note principale`}
-            />
-            <PreviewLine
-              label="Soutien à l’effort"
-              value={`+${formatRaceRating(raceBoost.ratingBoost / 2)} en ACC, END et RES`}
-            />
-            <PreviewLine
-              label="Exemple montagne"
-              value={`70 MO → ${formatRaceRating(raceBoost.projectedMountainRatingAt70)} MO`}
-            />
-            <PreviewLine label="Coût du trajet" value={euroFormatter.format(cost)} />
+            {internationalRace ? (
+              <PreviewLine label="Supporters mobilisés" value={travelers.toLocaleString("fr-FR")} />
+            ) : (
+              <>
+                <PreviewLine label="Déjà affectés" value={`${raceTrips.reduce((sum, trip) => sum + trip.carCount, 0)} car(s)`} />
+                <PreviewLine label="Supporters encore mobilisables" value={remainingSupporters.toLocaleString("fr-FR")} />
+                <PreviewLine label="Places ajoutées" value={seats.toLocaleString("fr-FR")} />
+                <PreviewLine label="Voyageurs supplémentaires" value={travelers.toLocaleString("fr-FR")} />
+                <PreviewLine
+                  label="Supporters mobilisés au total"
+                  value={raceBoost.mobilizedSupporters.toLocaleString("fr-FR")}
+                />
+                <PreviewLine
+                  label="Multiplicateur de ferveur"
+                  value={`${data.fervor} / 100 · × ${formatRaceRating(raceBoost.fervorMultiplier)}`}
+                />
+                <PreviewLine
+                  label="Bonus sur la course"
+                  value={`+${formatRaceRating(raceBoost.ratingBoost)} note principale`}
+                />
+                <PreviewLine
+                  label="Soutien à l’effort"
+                  value={`+${formatRaceRating(raceBoost.ratingBoost / 2)} en ACC, END et RES`}
+                />
+                <PreviewLine
+                  label="Exemple montagne"
+                  value={`70 MO → ${formatRaceRating(raceBoost.projectedMountainRatingAt70)} MO`}
+                />
+              </>
+            )}
+            <PreviewLine label="Coût du trajet" value={(internationalRace ? decimalEuroFormatter : euroFormatter).format(cost)} />
           </dl>
-          <p className="mt-4 text-xs font-semibold leading-5 text-white/75">
-            Calcul : √(supporters mobilisés ÷ 100) × (ferveur ÷ 100), avec un
-            plafond de +3,00. Les rendements décroissants préservent
-            l’équilibre sportif. Le bonus complet cible la note principale du
-            profil ; ACC, END et RES en reçoivent la moitié.
-          </p>
+          {internationalRace ? (
+            <p className="mt-4 text-xs font-semibold leading-5 text-white/75">
+              Les supporters contribuent aux recettes de la fédération hôte si l’un de vos coureurs prend le départ.
+            </p>
+          ) : (
+            <p className="mt-4 text-xs font-semibold leading-5 text-white/75">
+              Calcul : √(supporters mobilisés ÷ 100) × (ferveur ÷ 100), avec un
+              plafond de +3,00. Les rendements décroissants préservent
+              l’équilibre sportif. Le bonus complet cible la note principale du
+              profil ; ACC, END et RES en reçoivent la moitié.
+            </p>
+          )}
           <button
             type="button"
             disabled={isPending || !race || availableCars <= 0 || travelers <= 0}
             data-financial-expense={cost}
             data-financial-label="cet affrètement de supporters"
-            onClick={() => race && execute(() => charterFanClubCarsAction({ raceId: race.id, modelId: model.id, carCount: cars }))}
+            onClick={() => race && execute(() => charterFanClubCarsAction({
+              raceId: race.id,
+              modelId: model.id,
+              carCount: cars,
+              internationalKind: internationalRace?.kind,
+            }), Boolean(internationalRace))}
             className="mt-6 min-h-11 w-full rounded-xl bg-[var(--fan-accent)] px-4 text-sm font-black text-[var(--fan-ink)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
           >{isPending ? "Enregistrement…" : "Confirmer l’affrètement"}</button>
           <StatusMessage message={feedback} dark />
@@ -633,8 +688,17 @@ function TravelPanel({
           title="Déplacements enregistrés"
           detail="Cette vue conserve les cars déjà engagés, course par course."
         />
-        {management.trips.length > 0 ? (
+        {management.trips.length > 0 || bookedTrips.length > 0 ? (
           <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {bookedTrips.map((trip) => (
+              <TripCard key={trip.id} trip={{
+                raceName: trip.name,
+                raceStatus: trip.status,
+                modelId: trip.modelId,
+                carCount: trip.carCount,
+                tripCost: trip.tripCost,
+              }} mobilizedSupporters={trip.mobilizedSupporters} />
+            ))}
             {management.trips.map((trip) => <TripCard key={trip.id} trip={trip} />)}
           </div>
         ) : <p className="mt-5 text-sm font-bold text-[var(--fan-muted)]">Aucun car n’a encore été envoyé.</p>}
@@ -944,15 +1008,23 @@ function StorePanel({
   );
 }
 
-function TripCard({ trip }: { trip: FanClubTripAllocation }) {
+function TripCard({ trip, mobilizedSupporters }: {
+  trip: Pick<FanClubTripAllocation, "raceName" | "raceStatus" | "modelId" | "carCount" | "tripCost">;
+  mobilizedSupporters?: number;
+}) {
   const model = FAN_CLUB_CAR_MODELS.find((candidate) => candidate.id === trip.modelId);
-  const status = trip.raceStatus === "completed" ? "Terminée" : trip.raceStatus === "cancelled" ? "Annulée" : "À venir";
+  const status = trip.raceStatus === "completed" ? "Terminée" : trip.raceStatus === "cancelled" ? "Annulée" : mobilizedSupporters === undefined ? "À venir" : "Confirmé";
   return (
     <article className="rounded-xl border border-[var(--fan-line)] bg-[var(--fan-surface)] p-4">
       <div className="flex items-start justify-between gap-3">
         <div><p className="font-black text-[var(--fan-ink)]">{trip.raceName}</p><p className="mt-1 text-xs font-bold text-[var(--fan-muted)]">{model?.name ?? "Car"} · {trip.carCount} engagé{trip.carCount > 1 ? "s" : ""}</p></div>
         <span className="rounded-full bg-[var(--fan-soft)] px-2.5 py-1 text-[10px] font-black uppercase text-[var(--fan-primary)]">{status}</span>
       </div>
+      {mobilizedSupporters === undefined ? null : (
+        <p className="mt-2 text-xs font-semibold text-[var(--fan-muted)]">
+          <span>Supporters prévus</span>{" · "}{mobilizedSupporters.toLocaleString("fr-FR")}
+        </p>
+      )}
       <p className="mt-3 text-sm font-black text-[var(--fan-secondary)]">{euroFormatter.format(trip.tripCost)}</p>
     </article>
   );

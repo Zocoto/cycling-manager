@@ -14,7 +14,7 @@ import { createTeamProfileTheme } from "@/lib/game/team-profile-theme";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getTeamFanClubBuildings } from "@/services/fan-club-buildings";
-import { getFanClubManagementState } from "@/services/fan-club-management";
+import { getFanClubInternationalTrips, getFanClubManagementState } from "@/services/fan-club-management";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { isClubShopSpecializationCode } from "@/lib/game/club-shop-specialization";
 
@@ -79,12 +79,12 @@ export default async function FanClubPage({
   if (!liveData) {
     redirect("/jeu");
   }
-  const management = await getFanClubManagementState({
-    supabase,
-    teamId: headerData.teamId,
-    liveData,
-    shopSpecialization,
-  });
+  const [management, internationalTrips] = await Promise.all([
+    getFanClubManagementState({ supabase, teamId: headerData.teamId, liveData, shopSpecialization }),
+    query.onglet === "deplacements" && (liveData.gameYear ?? 0) >= 6
+      ? getFanClubInternationalTrips(supabase)
+      : undefined,
+  ]);
   const shopLevel = FAN_CLUB_SHOP_LEVELS.find(
     (level) => level.level === buildings.shopLevel,
   );
@@ -228,11 +228,12 @@ export default async function FanClubPage({
           headquartersLevel={buildings.headquartersLevel}
           shopLevel={buildings.shopLevel}
           data={liveData}
-          management={management}
+          management={{ ...management, internationalTrips }}
           sponsorIdentity={headerData.teamSponsorIdentity}
           initialTab={
             query.onglet === "magasin" && buildings.shopLevel > 0
               ? "store"
+              : query.onglet === "deplacements" ? "travel"
               : "overview"
           }
         />
