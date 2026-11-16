@@ -83,13 +83,14 @@ export function extractDetailedRaceInterviewFacts({
   const nextBest = ranked.find((result) => result.riderId !== best?.riderId && isOwnRider(result, teamId));
   const winner = ranked.find((result) => result.rank === 1 && !isOwnRider(result, teamId));
   const ahead = best && ranked.find((result) => result.rank === best.rank - 1 && !isOwnRider(result, teamId));
-  const byId = new Map(own.map((result) => [result.riderId, result]));
+  const starters = own.filter((result) => result.status !== "did_not_start" && result.status !== "withdrawn");
+  const byId = new Map(starters.map((result) => [result.riderId, result]));
   const isTeamTrial = stageType === "team_time_trial";
   const isIndividualTrial = stageType === "individual_time_trial" || stageType === "prologue";
   const abandon = own.find((result) => result.status === "did_not_finish");
   const facts: PostRaceInterviewDetailedRaceFacts = {
-    starters: own.filter((result) => result.status !== "did_not_start" && result.status !== "withdrawn").length,
-    finishers: own.filter((result) => result.status === "finished").length,
+    starters: starters.length,
+    finishers: own.filter(isRanked).length,
     incidents: [],
     primes: [],
     work: [],
@@ -111,7 +112,7 @@ export function extractDetailedRaceInterviewFacts({
     if (ahead) facts.ahead = { ...asRider(ahead), team: ahead.teamName };
     if (best?.gapToWinnerMs != null && best.gapToWinnerMs >= 0) facts.winnerGapMs = best.gapToWinnerMs;
   }
-  if (isIndividualTrial && best?.elapsedTimeMs != null) {
+  if (isIndividualTrial && best?.elapsedTimeMs != null && best.elapsedTimeMs > 0) {
     const gapAheadMs = ahead?.elapsedTimeMs != null ? best.elapsedTimeMs - ahead.elapsedTimeMs : null;
     facts.individualTimeTrial = {
       ownTimeMs: best.elapsedTimeMs,
@@ -266,8 +267,8 @@ export const TEAM_TIME_TRIAL_INTERVIEW_FALLBACK: readonly PostRaceInterviewQuest
     id: "race-detail-team-time-strategy",
     topic: "ttt-strategy",
     category: "tactics",
-    text: "Dans un chrono collectif, comment trouvez-vous l’équilibre entre la vitesse des relais et les coureurs à attendre ?",
-    textEn: "In a team time trial, how do you balance fast rotations with waiting for the riders you need to keep together?",
+    text: "Comment avez-vous choisi l’allure des relais pour garder vos coureurs ensemble ?",
+    textEn: "How did you set the pace of the turns to keep your riders together?",
   },
 ];
 
@@ -276,62 +277,62 @@ function addFinishQuestions(facts: PostRaceInterviewDetailedRaceFacts, add: AddQ
   if (facts.teamTimeTrial) {
     const { rank, timeMs, gapMs, winnerTeam } = facts.teamTimeTrial;
     add("team-time", "result", [
-      [`Votre équipe signe le ${frenchRank(rank)} temps en ${duration(timeMs, "fr")}. Quel passage révèle le mieux la qualité de vos relais ?`,
-        `Your squad finished ${englishRank(rank)} in ${duration(timeMs, "en")}. Which section best showed how well your riders rotated?`],
-      [`Vous prenez la ${rank === 1 ? "première" : `${rank}e`} place au chrono collectif. Comment avez-vous réparti l’effort entre les rouleurs et les coureurs à protéger ?`,
-        `You finished ${englishRank(rank)} in the team time trial. How did you split the work between your strongest time triallists and those you needed to protect?`],
+      [`Votre équipe signe le ${frenchRank(rank)} temps en ${duration(timeMs, "fr")}. Êtes-vous satisfait de la façon dont vos coureurs se sont relayés ?`,
+        `Your squad finished ${englishRank(rank)} in ${duration(timeMs, "en")}. Were you happy with how your riders took turns?`],
+      [`Vous prenez la ${rank === 1 ? "première" : `${rank}e`} place au chrono par équipes. Où avez-vous gagné ou perdu le plus de temps ?`,
+        `You finished ${englishRank(rank)} in the team time trial. Where did you gain or lose the most time?`],
     ]);
     if (gapMs > 0) add("team-gap", "tactics", [
-      [`${winnerTeam} vous devance de ${duration(gapMs, "fr")}. Quel réglage de vos relais testeriez-vous au prochain chrono collectif ?`,
-        `${winnerTeam} beat you by ${duration(gapMs, "en")}. What would you change about your rotations for the next team time trial?`],
+      [`${winnerTeam} vous devance de ${duration(gapMs, "fr")}. Que changeriez-vous dans vos relais au prochain chrono par équipes ?`,
+        `${winnerTeam} beat you by ${duration(gapMs, "en")}. What would you change about your turns in the next team time trial?`],
       [`Il vous manque ${duration(gapMs, "fr")} sur ${winnerTeam}. Sur un autre parcours, garderiez-vous la même composition ?`,
         `You were ${duration(gapMs, "en")} behind ${winnerTeam}. Would you pick the same line-up on a different course?`],
     ]);
   }
   if (best) {
     add("best-place", "result", [
-      [`${best.name} signe votre meilleur résultat avec sa ${best.rank === 1 ? "première" : `${best.rank}e`} place. Quelle décision de votre équipe a le plus pesé sur ce classement ?`,
-        `${best.name} was your best finisher in ${englishRank(best.rank)}. Which team decision had the greatest impact on that placing?`],
-      [`${best.name} finit ${frenchRank(best.rank)}. Quel moment de sa course aimeriez-vous revoir avec lui et pourquoi ?`,
-        `${best.name} finished ${englishRank(best.rank)}. Which part of the race would you like to watch back with him, and why?`],
-      [`À la lecture de la ${best.rank === 1 ? "première" : `${best.rank}e`} place de ${best.name}, quel détail se perd quand on ne regarde que le classement ?`,
-        `Looking at ${best.name} in ${englishRank(best.rank)}, what does the results sheet fail to capture?`],
+      [`${best.name} est le mieux classé de votre équipe, à la ${best.rank === 1 ? "première" : `${best.rank}e`} place. Qu’est-ce qui a le plus compté dans sa performance ?`,
+        `${best.name} was your best finisher in ${englishRank(best.rank)}. What made the biggest difference to his performance?`],
+      [`${best.name} finit ${frenchRank(best.rank)}. Quel a été le moment décisif de sa course ?`,
+        `${best.name} finished ${englishRank(best.rank)}. What was the turning point in his race?`],
+      [`${best.name} termine ${frenchRank(best.rank)}. Au-delà du classement, que retenez-vous de sa course ?`,
+        `${best.name} finished ${englishRank(best.rank)}. Beyond the result, what stood out about his race?`],
     ]);
   }
   if (best && second && second.rank <= 15) add("two-finishers", "result", [
-    [`${best.name} termine ${frenchRank(best.rank)} et ${second.name} ${frenchRank(second.rank)}. Qu’est-ce qui les a aidés à signer deux résultats aussi solides le même jour ?`,
-      `${best.name} finished ${englishRank(best.rank)} and ${second.name} ${englishRank(second.rank)}. What helped them both deliver such strong results on the same day?`],
-    [`Deux de vos coureurs sont dans les quinze premiers avec ${best.name} et ${second.name}. Seriez-vous tenté de les associer de nouveau sur ce type de parcours ?`,
-      `You had two riders in the top fifteen with ${best.name} and ${second.name}. Would you pair them again on this kind of course?`],
+    [`${best.name} termine ${frenchRank(best.rank)} et ${second.name} ${frenchRank(second.rank)}. Est-ce le résultat que vous attendiez de ces deux coureurs ?`,
+      `${best.name} finished ${englishRank(best.rank)} and ${second.name} ${englishRank(second.rank)}. Was this the result you expected from them?`],
+    [`${best.name} et ${second.name} terminent dans les quinze premiers. Les aligneriez-vous de nouveau sur un parcours similaire ?`,
+      `${best.name} and ${second.name} both finished in the top fifteen. Would you select them both for a similar course?`],
   ]);
   if (best && winner && winnerGapMs != null && winnerGapMs > 0) add("winner-margin", "result", [
-    [`${best.name} termine à ${duration(winnerGapMs, "fr")} de ${winner.name}. Quelle partie de cet écart pensez-vous pouvoir réduire sur un parcours comparable ?`,
-      `${best.name} finished ${duration(winnerGapMs, "en")} behind ${winner.name}. Where do you think you could reduce that gap on a similar course?`],
+    [`${best.name} termine à ${duration(winnerGapMs, "fr")} de ${winner.name}. À quel endroit du parcours pensez-vous qu’il aurait pu gagner du temps ?`,
+      `${best.name} finished ${duration(winnerGapMs, "en")} behind ${winner.name}. Where on the course do you think he could have gained time?`],
     [`${winner.name}, chez ${winner.team}, devance ${best.name} de ${duration(winnerGapMs, "fr")}. Qu’est-ce que vous retenez de la prestation de cette équipe ?`,
       `${winner.name} of ${winner.team} beat ${best.name} by ${duration(winnerGapMs, "en")}. What did you take away from that team's performance?`],
   ]);
   if (best && winner && winnerGapMs === 0) add("same-finish-time", "result", [
     [`${best.name} est classé ${frenchRank(best.rank)} dans le même temps que ${winner.name}. Quel détail a le plus compté pour départager les coureurs ?`,
       `${best.name} finished ${englishRank(best.rank)} on the same time as ${winner.name}. What mattered most in the battle for places?`],
-    [`${best.name} et ${winner.name} ont le même temps officiel. Quelle indication aviez-vous donnée à votre coureur pour gagner quelques places à l’arrivée ?`,
-      `${best.name} and ${winner.name} recorded the same official time. What guidance did you give your rider about gaining positions at the finish?`],
+    [`${best.name} a le même temps officiel que ${winner.name}. Comment jugez-vous sa performance au vu de son classement ?`,
+      `${best.name} shared the same official time as ${winner.name}. How do you rate his performance given where he placed?`],
   ]);
-  if (best && facts.ahead && facts.ahead.name !== winner?.name) {
+  if (best && facts.ahead && facts.ahead.rank > 1) {
     const ahead = facts.ahead;
     add("next-competitor", "race_fact", [
-      [`${ahead.name} de ${ahead.team} termine juste devant ${best.name} au classement. Qu’avez-vous remarqué dans sa façon d’aborder ce parcours ?`,
-        `${ahead.name} of ${ahead.team} placed one spot ahead of ${best.name}. What did you notice about how he approached this course?`],
-      [`${ahead.team} place ${ahead.name} ${frenchRank(ahead.rank)}, une place devant ${best.name}. Quelle différence de stratégie avez-vous pu observer entre les deux équipes ?`,
-        `${ahead.team}'s ${ahead.name} finished ${englishRank(ahead.rank)}, one place ahead of ${best.name}. What did you notice about the two teams' approaches?`],
+      [`${ahead.name} de ${ahead.team} termine une place devant ${best.name}. Qu’a-t-il mieux réussi aujourd’hui, selon vous ?`,
+        `${ahead.name} of ${ahead.team} placed one spot ahead of ${best.name}. What do you think he did better today?`],
+      [`${ahead.name} finit ${frenchRank(ahead.rank)}, une place devant ${best.name}. Qu’aurait pu faire votre coureur pour remonter au classement ?`,
+        `${ahead.name} finished ${englishRank(ahead.rank)}, one place ahead of ${best.name}. What could your rider have done to finish higher?`],
     ]);
   }
   if (best && facts.individualTimeTrial) {
     const { ownTimeMs, gapAheadMs } = facts.individualTimeTrial;
     add("individual-time", "tactics", [
-      [`${best.name} a bouclé le chrono en ${duration(ownTimeMs, "fr")}. Comment avait-il prévu de répartir son effort entre le départ et le retour vers la ligne ?`,
-        `${best.name} completed the time trial in ${duration(ownTimeMs, "en")}. How did he plan to pace the effort from the start to the run-in?`],
-      [`Sur son chrono de ${duration(ownTimeMs, "fr")}, quel passage donneriez-vous à revoir à ${best.name} pour son prochain contre-la-montre ?`,
-        `Looking back at his ${duration(ownTimeMs, "en")} ride, which section would you ask ${best.name} to study before his next time trial?`],
+      [`${best.name} a bouclé le chrono en ${duration(ownTimeMs, "fr")}. Comment a-t-il géré son effort du départ à l’arrivée ?`,
+        `${best.name} completed the time trial in ${duration(ownTimeMs, "en")}. How did he pace himself from start to finish?`],
+      [`${best.name} signe un temps de ${duration(ownTimeMs, "fr")}. Qu’aimeriez-vous qu’il améliore pour son prochain contre-la-montre ?`,
+        `${best.name} posted a time of ${duration(ownTimeMs, "en")}. What would you like him to improve for his next time trial?`],
     ]);
     if (gapAheadMs != null && gapAheadMs > 0 && facts.ahead) add("chrono-next-place", "result", [
       [`Il a manqué ${duration(gapAheadMs, "fr")} à ${best.name} pour devancer ${facts.ahead.name}. Où chercher ces secondes sur le prochain chrono ?`,
@@ -339,120 +340,120 @@ function addFinishQuestions(facts: PostRaceInterviewDetailedRaceFacts, add: AddQ
     ]);
   }
   if (starters > finishers && finishers > 0) add("finishers", "result", [
-    [`Votre équipe compte ${finishers} classé${finishers > 1 ? "s" : ""} à l’arrivée pour ${starters} au départ. Quel bilan faites-vous de cette arrivée pour l’ensemble du groupe ?`,
-      `${finishers} of your ${starters} starters were classified. How do you assess the finish for the whole squad?`],
+    [`Sur vos ${starters} coureurs au départ, ${finishers} figure${finishers > 1 ? "nt" : ""} au classement. Qu’est-ce qui a compliqué la course de votre équipe ?`,
+      `${finishers} of your ${starters} starters were classified. What made the race difficult for your team?`],
   ]);
   if (facts.abandoned) add("abandonment", "race_fact", [
-    [`${facts.abandoned} a abandonné. Quel a été votre premier réflexe dans la voiture ?`,
-      `${facts.abandoned} did not finish. What was your first response in the team car?`],
-    [`Après l’abandon de ${facts.abandoned}, quel message avez-vous voulu faire passer à ses équipiers encore en course ?`,
-      `After ${facts.abandoned} withdrew, what did you want to tell his teammates who were still racing?`],
+    [`${facts.abandoned} a abandonné. Comment va-t-il après la course ?`,
+      `${facts.abandoned} did not finish. How is he doing after the race?`],
+    [`L’abandon de ${facts.abandoned} va-t-il vous amener à revoir son programme de courses ?`,
+      `Will ${facts.abandoned}'s withdrawal affect his upcoming race schedule?`],
   ]);
 }
 
 function addCourseQuestions(facts: PostRaceInterviewDetailedRaceFacts, add: AddQuestions) {
   const { breakaway, pursuit, caught, attack, combativity, best } = facts;
   if (breakaway) add("in-breakaway", "race_fact", [
-    [`${breakaway.name} figurait dans l’échappée ${position(breakaway.km, "fr")}. À partir de quand avez-vous pensé que ce groupe pouvait aller au bout ?`,
-      `${breakaway.name} was in the break ${position(breakaway.km, "en")}. When did you think that group might stay away?`],
-    [`On retrouve ${breakaway.name} à l’avant ${position(breakaway.km, "fr")}. Quelles consignes lui avez-vous données sur la fréquence de ses relais ?`,
-      `${breakaway.name} was up the road ${position(breakaway.km, "en")}. What did you tell him about how often to take a turn?`],
-    [`Quand ${breakaway.name} se retrouve dans l’échappée ${position(breakaway.km, "fr")}, qu’est-ce que sa présence à l’avant permet à ses équipiers de faire derrière ?`,
-      `With ${breakaway.name} in the break ${position(breakaway.km, "en")}, what options did that give his teammates behind?`],
+    [`${breakaway.name} était dans l’échappée ${position(breakaway.km, "fr")}. Pensiez-vous que ce groupe pouvait aller au bout ?`,
+      `${breakaway.name} was in the break ${position(breakaway.km, "en")}. Did you think the group could stay away?`],
+    [`${breakaway.name} était à l’avant ${position(breakaway.km, "fr")}. Devait-il prendre des relais ou garder des forces ?`,
+      `${breakaway.name} was up the road ${position(breakaway.km, "en")}. Did you want him to take turns or save his energy?`],
+    [`${breakaway.name} était dans l’échappée ${position(breakaway.km, "fr")}. Sa présence à l’avant a-t-elle changé la tactique de votre équipe ?`,
+      `${breakaway.name} was in the break ${position(breakaway.km, "en")}. Did having him up the road change your team's tactics?`],
   ]);
   if (pursuit) add("in-pursuit", "race_fact", [
-    [`${pursuit.name} est dans le groupe de poursuite ${position(pursuit.km, "fr")}. Quels signes lui permettaient de juger si la jonction était encore réaliste ?`,
-      `${pursuit.name} was in the chase ${position(pursuit.km, "en")}. What signs helped him judge whether he could still make it across?`],
-    [`Avec ${pursuit.name} dans la poursuite ${position(pursuit.km, "fr")}, à quelles conditions lui demandiez-vous de prendre ses relais ?`,
-      `With ${pursuit.name} in the chase ${position(pursuit.km, "en")}, what conditions would prompt you to ask him to take a turn?`],
+    [`${pursuit.name} était dans le groupe de poursuite ${position(pursuit.km, "fr")}. Pensiez-vous qu’il pouvait revenir sur les coureurs de tête ?`,
+      `${pursuit.name} was in the chase group ${position(pursuit.km, "en")}. Did you think he could catch the leaders?`],
+    [`${pursuit.name} était dans le groupe de poursuite ${position(pursuit.km, "fr")}. Avait-il intérêt à prendre des relais pour réduire l’écart ?`,
+      `${pursuit.name} was in the chase group ${position(pursuit.km, "en")}. Would taking turns to close the gap have helped him?`],
   ]);
   if (caught) add("caught", "race_fact", [
-    [`${caught.name} est repris ${position(caught.km, "fr")}. Comment décide-t-on à ce moment de repartir ou de se remettre dans les roues ?`,
-      `${caught.name} was caught ${position(caught.km, "en")}. How do you decide in that moment whether to go again or sit in?`],
-    [`Après la reprise de ${caught.name} ${position(caught.km, "fr")}, quel rôle espériez-vous encore lui confier dans le final ?`,
-      `After ${caught.name} was caught ${position(caught.km, "en")}, what role did you still hope he could play in the finale?`],
+    [`${caught.name} est repris ${position(caught.km, "fr")}. Lui restait-il assez de forces pour repartir à l’attaque ?`,
+      `${caught.name} was caught ${position(caught.km, "en")}. Did he have enough left to attack again?`],
+    [`${caught.name} est repris ${position(caught.km, "fr")}. Qu’a apporté son passage à l’avant à votre équipe ?`,
+      `${caught.name} was caught ${position(caught.km, "en")}. What did your team gain from having him up the road?`],
   ]);
   if (attack?.planned) add("prepared-attack", "tactics", [
-    [`${attack.name} a lancé l’attaque préparée ${position(attack.km, "fr")}. Quel détail du parcours vous avait fait choisir ce point précis ?`,
-      `${attack.name} launched the planned attack ${position(attack.km, "en")}. What about the route made you pick that exact spot?`],
-    [`Lors de l’attaque préparée de ${attack.name} ${position(attack.km, "fr")}, quelle réaction attendiez-vous des autres équipes ?`,
-      `When ${attack.name} launched the planned attack ${position(attack.km, "en")}, how did you expect the other teams to react?`],
+    [`${attack.name} a lancé une attaque préparée ${position(attack.km, "fr")}. Pourquoi était-ce un bon moment pour attaquer ?`,
+      `${attack.name} launched a planned attack ${position(attack.km, "en")}. Why was that a good moment to go?`],
+    [`${attack.name} a lancé une attaque préparée ${position(attack.km, "fr")}. Qu’espériez-vous obtenir avec cette attaque ?`,
+      `${attack.name} launched a planned attack ${position(attack.km, "en")}. What were you hoping to achieve with that move?`],
   ]);
   if (attack && !attack.planned) add("offensive", "tactics", [
-    [`Le journal de course relève une offensive de ${attack.name} ${position(attack.km, "fr")}. Quelle ouverture a-t-il vue à ce moment-là ?`,
-      `The race log records an offensive move by ${attack.name} ${position(attack.km, "en")}. What opening did he see at that moment?`],
-    [`${attack.name} passe à l’offensive ${position(attack.km, "fr")}. Était-ce le moment que vous aviez en tête avant le départ ?`,
-      `${attack.name} made his move ${position(attack.km, "en")}. Was that the moment you had in mind before the start?`],
+    [`${attack.name} a attaqué ${position(attack.km, "fr")}. Qu’est-ce qui aurait pu rendre son attaque plus efficace ?`,
+      `${attack.name} attacked ${position(attack.km, "en")}. What could have made his attack more effective?`],
+    [`${attack.name} a attaqué ${position(attack.km, "fr")}. Vous attendiez-vous à le voir prendre cette initiative ?`,
+      `${attack.name} attacked ${position(attack.km, "en")}. Did you expect him to make that move?`],
   ]);
   const mountainPrime = facts.primes.find((entry) => entry.type === "mountain");
   if (mountainPrime) add("mountain-prime", "race_fact", [
-    [`${mountainPrime.name} a pris ${mountainPrime.points} point${mountainPrime.points > 1 ? "s" : ""} au GPM ${position(mountainPrime.km, "fr")}. Quel intérêt aviez-vous à jouer ce sommet ?`,
-      `${mountainPrime.name} collected ${mountainPrime.points} mountain point${mountainPrime.points > 1 ? "s" : ""} ${position(mountainPrime.km, "en")}. What was your incentive to contest that summit?`],
-    [`${mountainPrime.name} passe ${frenchRank(mountainPrime.rank)} au GPM ${position(mountainPrime.km, "fr")}. Comment arbitrez-vous entre les points de la montagne et les forces à garder pour l’arrivée ?`,
-      `${mountainPrime.name} crossed the mountain prime ${englishRank(mountainPrime.rank)} ${position(mountainPrime.km, "en")}. How do you balance mountain points against keeping something for the finish?`],
+    [`${mountainPrime.name} a marqué ${mountainPrime.points} point${mountainPrime.points > 1 ? "s" : ""} de la montagne ${position(mountainPrime.km, "fr")}. Visiez-vous ces points au départ ?`,
+      `${mountainPrime.name} scored ${mountainPrime.points} mountain point${mountainPrime.points > 1 ? "s" : ""} ${position(mountainPrime.km, "en")}. Were you targeting those points at the start?`],
+    [`${mountainPrime.name} est passé ${frenchRank(mountainPrime.rank)} au sommet ${position(mountainPrime.km, "fr")}. Qu’avez-vous retenu de sa façon de courir dans cette montée ?`,
+      `${mountainPrime.name} went over the summit ${englishRank(mountainPrime.rank)} ${position(mountainPrime.km, "en")}. What stood out about the way he rode the climb?`],
   ]);
   const sprintPrime = facts.primes.find((entry) => entry.type === "intermediate_sprint");
   if (sprintPrime) add("sprint-prime", "race_fact", [
-    [`${sprintPrime.name} a marqué ${sprintPrime.points} point${sprintPrime.points > 1 ? "s" : ""} au sprint intermédiaire ${position(sprintPrime.km, "fr")}. Quelle place ce sprint avait-il dans votre plan ?`,
-      `${sprintPrime.name} scored ${sprintPrime.points} point${sprintPrime.points > 1 ? "s" : ""} at the intermediate sprint ${position(sprintPrime.km, "en")}. How did that sprint fit into your plan?`],
-    [`${sprintPrime.name} a pris la ${sprintPrime.rank === 1 ? "première" : `${sprintPrime.rank}e`} place au sprint intermédiaire ${position(sprintPrime.km, "fr")}. Quand avez-vous su qu’il aurait une chance d’y prendre des points ?`,
-      `${sprintPrime.name} took ${englishRank(sprintPrime.rank)} at the intermediate sprint ${position(sprintPrime.km, "en")}. When did you know he had a chance to score there?`],
+    [`${sprintPrime.name} a marqué ${sprintPrime.points} point${sprintPrime.points > 1 ? "s" : ""} au sprint intermédiaire ${position(sprintPrime.km, "fr")}. Était-ce un objectif de votre équipe aujourd’hui ?`,
+      `${sprintPrime.name} scored ${sprintPrime.points} point${sprintPrime.points > 1 ? "s" : ""} at the intermediate sprint ${position(sprintPrime.km, "en")}. Was that a target for your team today?`],
+    [`${sprintPrime.name} a pris la ${sprintPrime.rank === 1 ? "première" : `${sprintPrime.rank}e`} place au sprint intermédiaire ${position(sprintPrime.km, "fr")}. Comment jugez-vous son placement à l’approche de la ligne ?`,
+      `${sprintPrime.name} took ${englishRank(sprintPrime.rank)} at the intermediate sprint ${position(sprintPrime.km, "en")}. How do you rate his positioning on the approach to the line?`],
   ]);
   if (combativity) add("combativity", "result", [
     [`${combativity.name} reçoit le prix de la combativité. Quel moment de sa course résume le mieux l’énergie qu’il y a mise ?`,
       `${combativity.name} took the combativity award. Which moment best captured the energy he put into the stage?`],
     ...(combativity.breakawayKm === undefined ? [] : [[
-      `${combativity.name} est désigné le plus combatif après ${Math.round(combativity.breakawayKm)} km à l’avant. Quels conseils lui avez-vous donnés pour gérer ses relais ?`,
-      `${combativity.name} won the combativity award after ${Math.round(combativity.breakawayKm)} km at the front. What advice did you give him about managing his turns?`,
+      `${combativity.name} est désigné le plus combatif après ${Math.round(combativity.breakawayKm)} km à l’avant. Comment a-t-il fait pour tenir aussi longtemps ?`,
+      `${combativity.name} won the combativity award after ${Math.round(combativity.breakawayKm)} km at the front. How did he manage to stay out there that long?`,
     ]] as const),
   ]);
   if (best && facts.winnerGapMs === 0 && facts.finishMode === "mass_sprint") add("mass-sprint", "tactics", [
     [`Dans cette arrivée au sprint massif, où vouliez-vous placer ${best.name} à l’entrée du dernier kilomètre ?`,
       `In that bunch sprint, where did you want ${best.name} positioned going into the final kilometre?`],
-    [`Le sprint s’est joué au milieu d’un gros peloton. Pour ${best.name}, quel repère de placement était le plus utile ?`,
-      `It came down to a bunch sprint. What was the most useful positioning cue for ${best.name}?`],
+    [`L’arrivée s’est jouée au sprint massif. Comment jugez-vous le placement de ${best.name} à l’approche de la ligne ?`,
+      `It came down to a bunch sprint. How do you rate ${best.name}'s positioning on the approach to the line?`],
   ]);
   if (best && facts.winnerGapMs === 0 && facts.finishMode === "reduced_sprint") add("reduced-sprint", "tactics", [
-    [`L’arrivée s’est jouée au sprint d’un groupe réduit. Pour ${best.name}, en quoi ce final demandait-il un autre placement qu’un sprint massif ?`,
-      `It came down to a reduced-group sprint. How did that change the positioning demands for ${best.name} compared with a bunch sprint?`],
-    [`Sur ce sprint en petit comité, quel adversaire ${best.name} devait-il surveiller en priorité ?`,
-      `In that small-group finish, which opponent did ${best.name} most need to watch?`],
+    [`L’arrivée s’est jouée au sprint d’un petit groupe. ${best.name} était-il bien placé à l’entrée de la dernière ligne droite ?`,
+      `It came down to a small-group sprint. Was ${best.name} well positioned heading into the final straight?`],
+    [`L’arrivée s’est jouée en petit comité. Quelle était la meilleure façon pour ${best.name} de défendre ses chances dans ce groupe ?`,
+      `It came down to a small group. How could ${best.name} make the most of his chances in that group?`],
   ]);
   if (facts.lostContact) {
     const { name, km } = facts.lostContact;
     add("lost-contact", "race_fact", [
-      [`Le journal signale que ${name} perd le contact ${position(km, "fr")}. Quel élément de ce passage aimeriez-vous revoir avec lui ?`,
-        `The race log shows ${name} losing contact ${position(km, "en")}. What would you like to go over with him about that section?`],
-      [`Quand ${name} décroche ${position(km, "fr")}, quels éléments vous font choisir entre demander du soutien ou laisser courir ses équipiers ?`,
-        `When ${name} loses contact ${position(km, "en")}, what helps you decide between sending support or letting his teammates race on?`],
+      [`${name} a perdu le contact avec son groupe ${position(km, "fr")}. Quelle difficulté a fait la différence à ce moment-là ?`,
+        `${name} lost contact with his group ${position(km, "en")}. What made that part of the race so difficult for him?`],
+      [`${name} a décroché ${position(km, "fr")}. A-t-il pu compter sur un équipier pour tenter de revenir ?`,
+        `${name} dropped back ${position(km, "en")}. Was a teammate able to help him try to get back on?`],
     ]);
   }
 }
 
 const INCIDENT_QUESTIONS = {
   puncture: (name: string, fr: string, en: string) => [
-    [`${name} a subi une crevaison ou une avarie ${fr}. Comment décide-t-on vite si un équipier doit décrocher pour l’aider ?`,
-      `${name} had a puncture or mechanical ${en}. How do you decide quickly whether a teammate should drop back to help?`],
-    [`Après l’incident mécanique de ${name} ${fr}, qu’est-ce que la voiture doit surveiller en priorité ?`,
-      `After ${name}'s mechanical ${en}, what does the team car have to watch most closely?`],
+    [`${name} a crevé ${fr}. Quel effet cette crevaison a-t-elle eu sur sa course ?`,
+      `${name} punctured ${en}. How did it affect his race?`],
+    [`${name} a crevé ${fr}. A-t-il pu reprendre le rythme rapidement ?`,
+      `${name} punctured ${en}. Was he able to get back up to speed quickly?`],
   ],
   crosswind: (name: string, fr: string, en: string) => [
-    [`${name} a été pris dans une bordure ${fr}. Quel signal donnez-vous aux coureurs quand le placement devient aussi important que les jambes ?`,
-      `${name} was caught out in the crosswinds ${en}. What signal do you give when positioning becomes as important as the legs?`],
-    [`La bordure a touché ${name} ${fr}. Qu’auriez-vous aimé que votre équipe change dans son placement à l’approche de ce secteur ?`,
-      `The crosswinds caught ${name} out ${en}. What would you have liked your team to change about its positioning on the approach?`],
+    [`Le peloton s’est coupé dans le vent de côté ${fr}, avec ${name} parmi les coureurs piégés. Votre équipe avait-elle anticipé ce risque ?`,
+      `Crosswinds split the bunch ${en}, and ${name} was caught out. Had your team expected that risk?`],
+    [`${name} a été piégé par une bordure ${fr}. Comment aurait-il pu mieux se placer avant ce passage exposé au vent ?`,
+      `${name} was caught out in the crosswinds ${en}. How could he have positioned himself better before that exposed stretch?`],
   ],
   crash_individual: (name: string, fr: string, en: string) => [
     [`${name} est tombé ${fr}. Quelle information avez-vous cherchée en premier après sa chute ?`,
       `${name} crashed ${en}. What was the first thing you wanted to find out after the crash?`],
-    [`Après la chute de ${name} ${fr}, comment avez-vous décidé des consignes à donner au reste de l’équipe ?`,
-      `After ${name}'s crash ${en}, how did you decide what to tell the rest of the team?`],
+    [`${name} est tombé ${fr}. Cette chute vous a-t-elle obligé à revoir votre tactique ?`,
+      `${name} crashed ${en}. Did that force you to change your tactics?`],
   ],
   crash_mass: (name: string, fr: string, en: string) => [
-    [`${name} a été impliqué dans la chute collective ${fr}. Comment avez-vous compté vos coureurs et réorganisé l’équipe dans la foulée ?`,
-      `${name} was involved in the mass crash ${en}. How did you locate your riders and reorganise the team afterwards?`],
-    [`Dans la confusion de la chute collective ${fr}, qu’avez-vous demandé aux équipiers de ${name} ?`,
-      `In the confusion after the mass crash ${en}, what did you ask of ${name}'s teammates?`],
+    [`${name} a été pris dans la chute collective ${fr}. Comment votre équipe a-t-elle réagi ?`,
+      `${name} was involved in the mass crash ${en}. How did your team respond?`],
+    [`${name} a été pris dans la chute collective ${fr}. Quelles conséquences cet incident a-t-il eues sur la course de votre équipe ?`,
+      `${name} was involved in the mass crash ${en}. How did the incident affect your team's race?`],
   ],
 } satisfies Record<RaceIncidentType, (name: string, fr: string, en: string) => QuestionPair[]>;
 
@@ -463,39 +464,40 @@ function addIncidentAndWorkQuestions(facts: PostRaceInterviewDetailedRaceFacts, 
     add(type, "race_fact", INCIDENT_QUESTIONS[type](name, fr, en));
     if (type !== "crash_mass" && type !== "crash_individual") continue;
     if (finished) add(`${type}-finished`, "race_fact", [
-      [`Tombé ${fr}, ${name} a tout de même terminé. Que vous a-t-il raconté sur les kilomètres qui ont suivi ?`,
-        `After crashing ${en}, ${name} still finished. What did he tell you about the kilometres that followed?`],
+      [`${name} est tombé ${fr} et a terminé la course. Qu’est-ce qui l’a aidé à aller jusqu’à l’arrivée ?`,
+        `${name} crashed ${en} and still finished. What helped him get to the finish?`],
     ]);
     if (abandoned) add(`${type}-abandoned`, "race_fact", [
-      [`${name} a abandonné après sa chute ${fr}. Quelle est la priorité pour lui une fois l’arrivée passée ?`,
-        `${name} withdrew after his crash ${en}. What is the priority for him once the race is over?`],
+      [`${name} a abandonné après sa chute ${fr}. Comment allez-vous gérer les prochains jours avec lui ?`,
+        `${name} withdrew after his crash ${en}. How will you manage the next few days with him?`],
     ]);
   }
   for (const { kind, name, target, km } of facts.work) {
-    const distance = Math.round(km);
+    const distanceFr = km.toLocaleString("fr", { maximumFractionDigits: 1 });
+    const distanceEn = km.toLocaleString("en", { maximumFractionDigits: 1 });
     if (kind === "protection" && target) add("protection", "tactics", [
-      [`Le suivi de course relève ${distance} km de protection de ${name} pour ${target} sur un même passage. Quel travail lui aviez-vous demandé à cet endroit ?`,
-        `The race log records ${distance} km in which ${name} protected ${target} in one stretch. What work did you ask of him there?`],
-      [`${name} a protégé ${target} pendant ${distance} km sur un même passage. Comment décidez-vous à quel moment un équipier peut passer le relais à un autre ?`,
-        `${name} protected ${target} for ${distance} km in one stretch. How do you decide when a teammate can hand over to another rider?`],
+      [`${name} a protégé ${target} pendant ${distanceFr} km. En quoi son aide a-t-elle compté pour la suite de la course ?`,
+        `${name} protected ${target} for ${distanceEn} km. What difference did that support make later in the race?`],
+      [`${name} a protégé ${target} pendant ${distanceFr} km. Lui aviez-vous confié ce rôle avant le départ ?`,
+        `${name} protected ${target} for ${distanceEn} km. Had you given him that role before the start?`],
     ]);
     if (kind === "recovery" && target) add("recovery", "tactics", [
-      [`${name} a roulé pour aider ${target} à revenir. Qu’est-ce qui justifiait de mobiliser un équipier à ce moment ?`,
-        `${name} worked to help ${target} get back. What made it worth using a teammate at that point?`],
-      [`Quand ${name} a prêté main-forte à ${target}, quel retour attendiez-vous de leur part à l’oreillette ?`,
-        `When ${name} went to help ${target}, what feedback were you expecting over the radio?`],
+      [`${name} a roulé pour aider ${target} à revenir. Pourquoi était-ce important pour votre équipe de le faire revenir ?`,
+        `${name} worked to help ${target} get back. Why was it important for your team to get him back?`],
+      [`${name} a roulé pour aider ${target} à revenir. Comment évaluez-vous le travail de votre équipier dans ce passage ?`,
+        `${name} worked to help ${target} get back. How do you rate his work in that part of the race?`],
     ]);
     if (kind === "peloton") add("peloton-work", "tactics", [
-      [`${name} a travaillé ${distance} km en tête du peloton sur un même passage. Qu’essayiez-vous d’obtenir en prenant la responsabilité de l’allure ?`,
-        `${name} spent ${distance} km working at the head of the bunch in one stretch. What were you looking to achieve by taking responsibility for the pace?`],
-      [`Quand ${name} a pris des relais en tête du peloton, comment avez-vous décidé jusqu’où l’engager avant de garder ses forces pour la suite ?`,
-        `When ${name} was pulling at the front of the bunch, how far did you ask him to go before saving something for later?`],
+      [`${name} a roulé ${distanceFr} km en tête du peloton. Quel était le but de votre équipe sur cette portion ?`,
+        `${name} spent ${distanceEn} km working at the head of the bunch. What was your team trying to achieve on that stretch?`],
+      [`${name} a pris des relais en tête du peloton. Ce travail a-t-il permis à l’équipe d’aborder la suite comme vous le souhaitiez ?`,
+        `${name} took turns at the front of the bunch. Did that help the team approach the rest of the race as you had hoped?`],
     ]);
     if (kind === "leadout" && target) add("leadout", "tactics", [
-      [`${name} a participé au lancement de ${target}. Au moment de travailler ensemble, quel était leur repère pour se passer le relais ?`,
-        `${name} helped lead out ${target}. How did they know when to hand over to each other?`],
-      [`${name} a contribué au train de ${target}. Avec le recul, qu’est-ce que vous garderiez de leur coordination ?`,
-        `${name} worked in ${target}'s lead-out. Looking back, what would you keep about how they coordinated?`],
+      [`${name} a aidé à lancer le sprint de ${target}. Que pensez-vous du moment où votre sprinteur a lancé son effort ?`,
+        `${name} helped lead out ${target}. What did you think of the timing of your sprinter's effort?`],
+      [`${name} a aidé à lancer le sprint de ${target}. Êtes-vous satisfait de leur coordination dans le final ?`,
+        `${name} helped lead out ${target}. Were you happy with how they worked together in the finish?`],
     ]);
   }
 }

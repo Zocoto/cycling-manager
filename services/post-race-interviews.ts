@@ -119,7 +119,9 @@ export async function getOrCreatePostRaceInterview({
   const stageResults = officialResults.stages.find(
     (classification) => classification.stageId === stageId,
   )?.results ?? [];
-  const teamResults = stageResults.filter((result) => result.teamId === teamId);
+  const teamResults = stageResults.filter((result) =>
+    result.teamId === teamId && result.status !== "did_not_start" && result.status !== "withdrawn",
+  );
   if (teamResults.length === 0) return null;
 
   const admin = createSupabaseAdminClient();
@@ -214,7 +216,7 @@ export async function getOrCreatePostRaceInterview({
       participant.stageNumbers.includes(stageNumber),
   );
   const context: PostRaceInterviewContext = {
-    questionVersion: 4,
+    questionVersion: 5,
     stageType,
     weatherLabel,
     sponsorName,

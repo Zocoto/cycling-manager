@@ -1,3 +1,4 @@
+import { seededInterviewIndex } from "@/lib/game/post-race-interview";
 import type {
   PostRaceInterviewContext,
   ZoneMixteEvent,
@@ -13,7 +14,7 @@ export type {
 } from "@/lib/game/post-race-interview";
 
 type EventRequirement =
-  | "sponsor" | "rivalry" | "chase" | "podium"
+  | "sponsor" | "road-rivalry" | "rival-sprint" | "road-race" | "podium"
   | "rider-crash" | "rider-dropped" | "rider-pursuit" | "leader-drought"
   | "arrival" | "sale" | "rival-finish";
 
@@ -34,14 +35,14 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
       {
         id: "ask-for-feelings",
         label: "Lui demander comment il a vécu la suite",
-        description: "Écouter son récit, du moment où il est remonté sur le vélo jusqu’à l’arrivée.",
+        description: "Lui demander comment il a repris la course et ce qui l’a aidé à terminer.",
         impactPreview: "Conséquence cachée",
         risk: "safe",
         outcomes: [{ weight: 100, riderMoraleDelta: 2, summary: "{{riderName}} se sent écouté après une journée difficile : +2 moral." }],
       },
       {
         id: "value-recovery",
-        label: "Saluer publiquement le fait d’avoir terminé",
+        label: "Saluer publiquement sa persévérance",
         description: "Remercier le coureur d’avoir rejoint l’arrivée et laisser les questions sur la chute au vestiaire.",
         impactPreview: "Conséquence cachée",
         risk: "balanced",
@@ -58,7 +59,7 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
     requires: "rider-dropped",
     rarity: "common",
     title: "Au moment de perdre la roue",
-    story: "Les images montrent {{riderName}} perdre le contact au km {{dropKm}}. Il vous demande ce que vous avez vu depuis la voiture.",
+    story: "{{riderName}} a perdu le contact avec son groupe au km {{dropKm}}. Il vous demande ce que vous avez vu depuis la voiture.",
     choices: [
       {
         id: "review-the-moment",
@@ -70,8 +71,8 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
       },
       {
         id: "encourage-own-pace",
-        label: "Lui laisser plus de liberté sur son effort",
-        description: "L’inviter à annoncer lui-même quand le rythme devient trop coûteux pour rester dans un groupe.",
+        label: "Le laisser mieux gérer son rythme",
+        description: "Lui demander de prévenir la voiture dès qu’il peine à suivre le rythme.",
         impactPreview: "Conséquence cachée",
         risk: "balanced",
         outcomes: [
@@ -86,8 +87,8 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
     family: "rider_director_relationship",
     requires: "rider-pursuit",
     rarity: "common",
-    title: "Entrer en poursuite",
-    story: "{{riderName}} figurait dans le groupe de poursuite au km {{pursuitKm}}. Que retenez-vous de sa décision de suivre ce mouvement ?",
+    title: "Dans le groupe de poursuite",
+    story: "{{riderName}} était dans le groupe de poursuite au km {{pursuitKm}}. Qu’allez-vous lui dire au débriefing ?",
     choices: [
       {
         id: "acknowledge-the-move",
@@ -100,7 +101,7 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
       {
         id: "set-a-chase-rule",
         label: "Fixer une consigne plus claire pour la prochaine poursuite",
-        description: "Lui proposer de décider ensemble quels mouvements couvrent un intérêt de l’équipe.",
+        description: "Voir avec lui quelles attaques méritent d’être suivies lors de la prochaine course.",
         impactPreview: "Conséquence cachée",
         risk: "balanced",
         outcomes: [
@@ -115,8 +116,8 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
     family: "rider_director_relationship",
     requires: "leader-drought",
     rarity: "notable",
-    title: "Le compteur laisse des traces",
-    story: "Avant cette course, votre leader {{riderName}} comptait {{leaderDays}} jours en individuel sans victoire d’étape ni de classique cette saison. Il veut savoir comment vous jugez son début de saison.",
+    title: "Toujours en quête d’une victoire",
+    story: "Avant la course du jour, votre leader {{riderName}} avait disputé {{leaderDays}} jours de course en individuel cette saison, sans gagner d’étape ni de classique. Il vous demande comment vous jugez son bilan.",
     choices: [
       {
         id: "look-beyond-wins",
@@ -129,7 +130,7 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
       {
         id: "reduce-pressure",
         label: "Proposer de partager la responsabilité sur une prochaine course",
-        description: "Discuter avec lui de l’intérêt de désigner une deuxième carte sur un parcours adapté.",
+        description: "Lui proposer de partager le rôle de leader sur une course qui convient aussi à un équipier.",
         impactPreview: "Conséquence cachée",
         risk: "balanced",
         outcomes: [
@@ -143,8 +144,8 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
     id: "confirmed-arrival-role",
     requires: "arrival",
     rarity: "common",
-    title: "La première place au briefing",
-    story: "{{arrivalName}} a rejoint {{teamName}} à J{{arrivalDay}}. La presse vous demande comment les rôles seront répartis avec cette arrivée.",
+    title: "Le rôle de la nouvelle recrue",
+    story: "{{arrivalName}} a rejoint {{teamName}} à J{{arrivalDay}}. Quel rôle comptez-vous lui donner sur ses premières courses ?",
     choices: [
       {
         id: "explain-integration",
@@ -157,7 +158,7 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
       {
         id: "open-competition",
         label: "Annoncer que les places se joueront sur la route",
-        description: "Choisir de présenter l’arrivée comme une concurrence ouverte pour les rôles.",
+        description: "Dire que les résultats des prochaines courses aideront à fixer les rôles.",
         impactPreview: "Conséquence cachée",
         risk: "balanced",
         outcomes: [
@@ -172,19 +173,19 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
     requires: "sale",
     rarity: "common",
     title: "La place libérée",
-    story: "{{departureName}} a été vendu à J{{departureDay}}. On vous demande si {{teamName}} veut remplacer son profil ou redistribuer son rôle.",
+    story: "{{departureName}} a quitté {{teamName}} à J{{departureDay}} après un transfert payant. Comptez-vous recruter un coureur qui remplit le même rôle ou confier ce rôle à un coureur de l’équipe ?",
     choices: [
       {
         id: "shout-out-and-redistribute",
-        label: "Remercier le coureur et ouvrir la discussion en interne",
-        description: "Saluer son passage dans l’équipe avant d’expliquer ce que ses anciens équipiers pourraient reprendre.",
+        label: "Envisager une solution dans l’équipe",
+        description: "Remercier le coureur et expliquer comment ses anciens équipiers pourraient prendre le relais.",
         impactPreview: "Conséquence cachée",
         risk: "safe",
         outcomes: [{ weight: 100, reputationDelta: 1, summary: "Les supporters apprécient l’hommage et la confiance accordée à l’effectif : +1 réputation." }],
       },
       {
         id: "describe-next-recruitment",
-        label: "Assumer une nouvelle priorité de recrutement",
+        label: "Expliquer ce que vous cherchez chez son remplaçant",
         description: "Décrire le type de coureur que vous aimeriez recruter sans citer de cible.",
         impactPreview: "Conséquence cachée",
         risk: "balanced",
@@ -260,7 +261,7 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
     rarity: "common",
     title: "À qui revient le mérite ?",
     story:
-      "Un journaliste vous demande si le résultat du jour appartient surtout à {{riderName}} ou au collectif de {{teamName}}.",
+      "Un journaliste vous demande quel rôle {{riderName}} a joué dans le résultat de {{teamName}}. Que choisissez-vous de mettre en avant ?",
     choices: [
       {
         id: "credit-rider",
@@ -275,7 +276,7 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
       {
         id: "credit-team",
         label: "Célébrer uniquement le collectif",
-        description: "Rappeler que personne ne gagne seul.",
+        description: "Mettre en avant le travail de l’ensemble de l’équipe.",
         impactPreview: "Conséquence cachée",
         risk: "balanced",
         outcomes: [
@@ -291,7 +292,7 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
     rarity: "common",
     title: "Une consigne discutée",
     story:
-      "{{riderName}} reconnaît devant vous ne pas avoir totalement compris la consigne donnée dans le final.",
+      "{{riderName}} vous dit qu’il aurait aimé des consignes plus claires dans le final. Comment lui répondez-vous ?",
     choices: [
       {
         id: "review-privately",
@@ -322,7 +323,7 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
     rarity: "common",
     title: "Le travail invisible",
     story:
-      "Personne n’a évoqué les longs relais de {{riderName}}, pourtant essentiels au résultat de {{teamName}}.",
+      "En zone mixte, {{riderName}} vous dit que son travail pour l’équipe passe souvent inaperçu. Comment lui répondez-vous ?",
     choices: [
       {
         id: "name-contribution",
@@ -337,7 +338,7 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
       {
         id: "normal-duty",
         label: "Parler d’un travail normal",
-        description: "Présenter ces relais comme le devoir attendu de chacun.",
+        description: "Dire que ce travail fait partie du rôle de chaque équipier.",
         impactPreview: "Conséquence cachée",
         risk: "balanced",
         outcomes: [
@@ -352,7 +353,7 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
     rarity: "notable",
     title: "Le programme commence à peser",
     story:
-      "{{riderName}} vous glisse que l’enchaînement des séances devient difficile à supporter mentalement.",
+      "{{riderName}} vous confie qu’il commence à se lasser de son programme d’entraînement. Comment réagissez-vous ?",
     choices: [
       {
         id: "listen-and-adjust",
@@ -380,15 +381,16 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
   {
     id: "crash-confidence",
     family: "rider_director_relationship",
+    requires: "rider-crash",
     rarity: "notable",
     title: "La peur n’est pas tout à fait partie",
     story:
-      "Après les incidents du jour, {{riderName}} reconnaît qu’il hésite encore dans les passages les plus nerveux.",
+      "Après sa chute, {{riderName}} vous dit qu’il a hésité à reprendre sa place dans le peloton. Comment l’aidez-vous à retrouver confiance ?",
     choices: [
       {
         id: "protect-return",
         label: "Lui laisser le temps de retrouver ses repères",
-        description: "Prévoir un retour progressif sans objectif immédiat.",
+        description: "Lui proposer d’adapter ses objectifs sur les prochaines courses.",
         impactPreview: "Conséquence cachée",
         risk: "safe",
         outcomes: [
@@ -414,7 +416,7 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
     rarity: "notable",
     title: "La rumeur de transfert arrive au micro",
     story:
-      "On demande à {{riderName}} s’il se sent encore pleinement désiré chez {{teamName}}.",
+      "Un journaliste demande si {{riderName}} pourrait rejoindre une autre équipe. Que souhaitez-vous dire sur son avenir chez {{teamName}} ?",
     choices: [
       {
         id: "affirm-place",
@@ -444,12 +446,12 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
     rarity: "notable",
     title: "Un leader pour la suite ?",
     story:
-      "La presse vous demande si {{riderName}} a gagné le droit d’être davantage protégé lors des prochaines échéances.",
+      "Un journaliste vous demande si vous envisagez de donner à {{riderName}} un rôle de leader sur une prochaine course.",
     choices: [
       {
         id: "open-door",
-        label: "Lui ouvrir clairement la porte",
-        description: "Confirmer que sa performance aura des conséquences dans la hiérarchie.",
+        label: "Envisager de lui confier le rôle de leader",
+        description: "Dire qu’il pourrait courir comme leader sur un parcours qui lui convient.",
         impactPreview: "Conséquence cachée",
         risk: "balanced",
         outcomes: [
@@ -475,7 +477,7 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
     rarity: "rare",
     title: "Qui porte la responsabilité ?",
     story:
-      "Une erreur de {{riderName}} a coûté cher, et la question tombe sans détour : allez-vous le sanctionner ?",
+      "Un journaliste estime que {{riderName}} s’est mal placé dans le final. Il vous demande si vous comptez lui en parler publiquement.",
     choices: [
       {
         id: "share-responsibility",
@@ -489,12 +491,12 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
       },
       {
         id: "announce-sanction",
-        label: "Annoncer une sanction sportive",
-        description: "Faire de cette erreur un avertissement public pour tout le groupe.",
+        label: "Lui adresser un avertissement public",
+        description: "Expliquer devant les micros quel point il devra améliorer.",
         impactPreview: "Conséquence cachée",
         risk: "bold",
         outcomes: [
-          { weight: 20, riderMoraleDelta: 1, reputationDelta: 1, summary: "{{riderName}} accepte la sanction et promet de répondre sur la route : +1 moral et +1 réputation." },
+          { weight: 20, riderMoraleDelta: 1, reputationDelta: 1, summary: "{{riderName}} accepte la remarque et promet de répondre sur la route : +1 moral et +1 réputation." },
           { weight: 80, riderMoraleDelta: -5, summary: "Humilié par l’annonce publique, {{riderName}} perd confiance : −5 moral." },
         ],
       },
@@ -506,7 +508,7 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
     rarity: "rare",
     title: "Une promesse rappelée devant les caméras",
     story:
-      "{{riderName}} évoque à demi-mot une promesse de rôle ou de sélection que vous lui auriez faite en privé.",
+      "Devant la presse, {{riderName}} dit qu’il pensait avoir votre accord pour prendre le rôle de leader lors d’une prochaine course. Que lui répondez-vous ?",
     choices: [
       {
         id: "honor-promise",
@@ -641,7 +643,7 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
   {
     id: "wheel-sucker",
     rarity: "common",
-    requires: "rivalry",
+    requires: "road-rivalry",
     title: "« Suceur de roue ! »",
     story:
       "Un rival accuse {{riderName}} d’avoir passé la journée bien au chaud avant de surgir au dernier moment.",
@@ -657,7 +659,7 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
       {
         id: "counterattack",
         label: "Répliquer sèchement",
-        description: "Rappeler qu’une roue se prend encore faut-il savoir la suivre.",
+        description: "Rappeler que suivre le rythme du groupe fait aussi partie de la course.",
         impactPreview: "60 % : +1 réputation et +3 popularité · 40 % : −2 réputation et +3 popularité",
         risk: "bold",
         outcomes: [
@@ -670,10 +672,10 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
   {
     id: "chase-potato-meme",
     rarity: "common",
-    requires: "chase",
-    title: "La chasse-patate fait le tour du réseau",
+    requires: "rider-pursuit",
+    title: "La poursuite fait le tour des réseaux",
     story:
-      "La poursuite solitaire de {{riderName}} est déjà montée sur une musique dramatique et partagée partout.",
+      "{{riderName}} était dans le groupe de poursuite au km {{pursuitKm}}. Un supporter a monté la séquence sur une musique dramatique et la vidéo circule déjà sur les réseaux.",
     choices: [
       {
         id: "embrace-meme",
@@ -699,7 +701,7 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
     requires: "sponsor",
     title: "Le gel du concurrent",
     story:
-      "Une photo très nette montre {{riderName}} avec un produit concurrent de {{sponsorName}} entre les dents.",
+      "Une photo de {{riderName}} avec un gel énergétique d’une marque concurrente circule. {{sponsorName}} vous demande comment vous comptez réagir.",
     choices: [
       {
         id: "sponsor-apology",
@@ -727,7 +729,7 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
     rarity: "common",
     title: "La banderole presque parfaite",
     story:
-      "Des supporters ont confectionné une magnifique banderole pour {{riderName}}, avec une faute gigantesque au milieu.",
+      "Des supporters ont préparé une banderole pour {{riderName}}, mais son nom est mal orthographié. Ils lui demandent de poser devant.",
     choices: [
       {
         id: "pose-with-banner",
@@ -853,9 +855,10 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
   {
     id: "sticky-bottle-video",
     rarity: "notable",
+    requires: "road-race",
     title: "Le bidon était vraiment très collant",
     story:
-      "Une vidéo au ralenti montre une transmission de bidon qui semble avoir duré une éternité.",
+      "Sur une vidéo au ralenti, {{riderName}} semble s’accrocher à un bidon que lui tend la voiture de l’équipe. Un journaliste vous demande de commenter la scène.",
     choices: [
       {
         id: "acknowledge",
@@ -962,7 +965,7 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
     rarity: "notable",
     title: "La mauvaise musette",
     story:
-      "Une musette de {{teamName}} a été échangée avec celle d’une équipe rivale. Elle revient encore fermée.",
+      "En rentrant au bus, un membre du staff de {{teamName}} découvre une musette d’une autre équipe. Elle est encore fermée.",
     choices: [
       {
         id: "return-unopened",
@@ -1016,7 +1019,7 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
     requires: "podium",
     title: "Le bouchon frappe la presse",
     story:
-      "Un bouchon parti du podium vient de toucher un journaliste en pleine prise d’antenne.",
+      "Sur le podium, un coureur de {{teamName}} ouvre une bouteille. Le bouchon touche un journaliste qui est en direct.",
     choices: [
       {
         id: "pay-cleaning",
@@ -1042,10 +1045,10 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
   {
     id: "dangerous-sprint-claim",
     rarity: "notable",
-    requires: "rivalry",
+    requires: "rival-sprint",
     title: "Le sprint était-il dangereux ?",
     story:
-      "Un rival affirme que {{riderName}} a changé de ligne et réclame une réaction immédiate de {{directorName}}.",
+      "Après le sprint, un adversaire du même groupe affirme que {{riderName}} a changé de ligne et l’a gêné. La presse vous demande de réagir.",
     choices: [
       {
         id: "calm-response",
@@ -1155,7 +1158,7 @@ const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
   {
     id: "honorary-goat",
     rarity: "rare",
-    title: "Une chèvre comme mascotte honoraire",
+    title: "Une chèvre comme mascotte",
     story:
       "Le maire remet officiellement à {{teamName}} une chèvre locale, ruban aux couleurs de la course compris.",
     choices: [
@@ -1193,7 +1196,7 @@ export function selectZoneMixteEvent({
   seed: string;
   usedEventIds?: readonly string[];
 }): ZoneMixteEvent | null {
-  const triggerRoll = seededIndex(`${seed}:event-trigger`, 6);
+  const triggerRoll = seededInterviewIndex(`${seed}:event-trigger`, 6);
   if (triggerRoll > 1) return null;
   const selectedFamily =
     triggerRoll === 0 ? "general" : "rider_director_relationship";
@@ -1207,12 +1210,12 @@ export function selectZoneMixteEvent({
   );
   if (eligible.length === 0) return null;
 
-  const rarityRoll = seededIndex(`${seed}:event-rarity`, 100);
+  const rarityRoll = seededInterviewIndex(`${seed}:event-rarity`, 100);
   const rarity: ZoneMixteEventRarity =
     rarityRoll < 65 ? "common" : rarityRoll < 93 ? "notable" : "rare";
   const rarityCandidates = eligible.filter((event) => event.rarity === rarity);
   const candidates = rarityCandidates.length > 0 ? rarityCandidates : eligible;
-  const selected = candidates[seededIndex(`${seed}:event-choice`, candidates.length)];
+  const selected = candidates[seededInterviewIndex(`${seed}:event-choice`, candidates.length)];
   return renderEvent(selected, context);
 }
 
@@ -1220,14 +1223,21 @@ function meetsRequirement(
   event: ZoneMixteEventDefinition,
   context: PostRaceInterviewContext,
 ) {
-  if (event.requires === "sponsor") return Boolean(context.sponsorName);
-  if (event.requires === "rivalry") return Boolean(context.rivalry);
-  if (event.requires === "chase") return context.tookChase;
-  if (event.requires === "podium") {
-    return context.bestRank !== null && context.bestRank <= 3;
-  }
+  const isRoadRace = !context.stageType || context.stageType === "road";
   const race = context.detailedRaceFacts;
   const editorial = context.editorialFacts;
+  if (event.requires === "sponsor") return Boolean(context.sponsorName);
+  if (event.requires === "road-race") return isRoadRace;
+  if (event.requires === "road-rivalry") return isRoadRace && Boolean(context.rivalry);
+  if (event.requires === "rival-sprint") {
+    return isRoadRace
+      && (race?.finishMode === "mass_sprint" || race?.finishMode === "reduced_sprint")
+      && race.winnerGapMs === 0
+      && Boolean(editorial?.opponent?.sameTimeAsOwn);
+  }
+  if (event.requires === "podium") {
+    return context.bestRank !== null && context.bestRank >= 1 && context.bestRank <= 3;
+  }
   if (event.requires === "rider-crash") return Boolean(context.riderId && interviewRiderCrash(context));
   if (event.requires === "rider-dropped") return Boolean(context.riderId && race?.lostContact?.riderId === context.riderId);
   if (event.requires === "rider-pursuit") return Boolean(context.riderId && race?.pursuit?.riderId === context.riderId);
@@ -1313,13 +1323,4 @@ function getLocalSpecialty(countryCode?: string | null) {
     PT: "un pastel de nata géant",
   };
   return specialties[countryCode ?? ""] ?? "une spécialité locale géante";
-}
-
-function seededIndex(seed: string, length: number) {
-  let hash = 2166136261;
-  for (let index = 0; index < seed.length; index += 1) {
-    hash ^= seed.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return Math.abs(hash) % Math.max(1, length);
 }

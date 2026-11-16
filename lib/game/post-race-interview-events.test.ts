@@ -158,6 +158,55 @@ describe("événements de zone mixte", () => {
       context: { ...CONTEXT, riderId: "same-name-other-rider", detailedRaceFacts },
       seed,
     })?.id).not.toBe(event.id);
+
+    const confidence = findEventWithId("crash-confidence", { ...CONTEXT, detailedRaceFacts });
+    expect(selectZoneMixteEvent({
+      context: { ...CONTEXT, detailedRaceFacts: { ...detailedRaceFacts, incidents: [] } },
+      seed: confidence.seed,
+    })?.id).not.toBe("crash-confidence");
+  });
+
+  it("attribue la vidéo de poursuite au bon coureur", () => {
+    const detailedRaceFacts = {
+      starters: 5,
+      finishers: 5,
+      incidents: [],
+      primes: [],
+      work: [],
+      pursuit: { riderId: CONTEXT.riderId!, name: CONTEXT.riderName, km: 72 },
+    };
+    const { seed, event } = findEventWithId("chase-potato-meme", { ...CONTEXT, detailedRaceFacts });
+    expect(event.story).toContain("Marco Test était dans le groupe de poursuite au km 72");
+    expect(selectZoneMixteEvent({
+      context: { ...CONTEXT, riderId: "another-rider", detailedRaceFacts },
+      seed,
+    })?.id).not.toBe(event.id);
+  });
+
+  it("réserve la polémique du sprint aux coureurs arrivés dans le même groupe", () => {
+    const context: PostRaceInterviewContext = {
+      ...CONTEXT,
+      detailedRaceFacts: {
+        starters: 5, finishers: 5, finishMode: "mass_sprint", winnerGapMs: 0,
+        incidents: [], primes: [], work: [],
+      },
+      editorialFacts: {
+        opponent: {
+          teamId: "rival-1", teamName: "Rivale", riderName: "Rival Coureur",
+          rank: 2, ownRiderRank: 1, sameTimeAsOwn: true,
+        },
+      },
+    };
+    const { seed, event } = findEventWithId("dangerous-sprint-claim", context);
+    expect(event.story).toContain("Après le sprint");
+    expect(selectZoneMixteEvent({
+      context: { ...context, stageType: "individual_time_trial" },
+      seed,
+    })?.id).not.toBe(event.id);
+    expect(selectZoneMixteEvent({
+      context: { ...context, detailedRaceFacts: { ...context.detailedRaceFacts!, winnerGapMs: 7000 } },
+      seed,
+    })?.id).not.toBe(event.id);
   });
 
   it("pose la question de remplacement après une vente confirmée", () => {
@@ -166,7 +215,7 @@ describe("événements de zone mixte", () => {
       ...CONTEXT,
       editorialFacts: { recentDeparture },
     });
-    expect(event.story).toContain("Milo Test a été vendu à J4");
+    expect(event.story).toContain("Milo Test a quitté Dolci Test à J4 après un transfert payant");
     expect(selectZoneMixteEvent({
       context: { ...CONTEXT, editorialFacts: { recentDeparture: { ...recentDeparture, isSale: false } } },
       seed,

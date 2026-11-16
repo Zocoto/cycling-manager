@@ -297,6 +297,22 @@ describe("questions après-course", () => {
     ).toBe(false);
   });
 
+  it("écarte les questions sur le peloton lors d’un contre-la-montre individuel", () => {
+    const context: PostRaceInterviewContext = {
+      ...BASE_CONTEXT,
+      stageType: "individual_time_trial",
+      tookBreakaway: true,
+      tookChase: true,
+      raceFacts: { breakawayOccurred: true, crashOccurred: false, crosswindOccurred: true },
+    };
+
+    const momentIds = Array.from({ length: 60 }, (_, index) =>
+      selectPostRaceInterviewQuestions(context, "clm-stale-facts-" + index)[1].id,
+    );
+
+    expect(momentIds.every((id) => id.startsWith("clm-tactics-"))).toBe(true);
+  });
+
   it("fait émerger les chutes, bordures, échappées et la météo quand elles sont réelles", () => {
     const contexts: Array<[string, PostRaceInterviewContext]> = [
       [

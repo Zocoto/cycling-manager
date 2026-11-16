@@ -103,6 +103,26 @@ describe("questions éditoriales en zone mixte", () => {
     expect(questions(6, 1, 1).map(({ id }) => id)).not.toContain("season-leader-no-top-ten");
   });
 
+  it("tient compte d’une première victoire ou d’un premier top 10 acquis aujourd’hui", () => {
+    const context = {
+      ...CONTEXT,
+      riderId: "leader",
+      editorialFacts: { seasonLeader: { ...FACTS.seasonLeader, riderId: "leader" } },
+    };
+    const win = buildPostRaceEditorialQuestions({ ...context, bestRank: 1 });
+    const topTen = buildPostRaceEditorialQuestions({ ...context, bestRank: 8 });
+    const otherRiderWins = buildPostRaceEditorialQuestions({
+      ...context,
+      riderId: "teammate",
+      bestRank: 1,
+    });
+
+    expect(win.some(({ topic }) => topic === "season-leader")).toBe(false);
+    expect(topTen.map(({ id }) => id)).toContain("season-leader-calendar");
+    expect(topTen.map(({ id }) => id)).not.toContain("season-leader-no-top-ten");
+    expect(otherRiderWins.map(({ id }) => id)).toContain("season-leader-no-top-ten");
+  });
+
   it("distingue le même temps au classement d’un écart chronométré", () => {
     const withGap = buildPostRaceEditorialQuestions(CONTEXT);
     const sameTime = buildPostRaceEditorialQuestions({
@@ -147,6 +167,17 @@ describe("questions éditoriales en zone mixte", () => {
 });
 
 describe("rotation des questions de fin d’entretien", () => {
+  it("permet de tirer chaque formulation parmi deux sujets de même taille", () => {
+    const context = { ...CONTEXT, questionVersion: 5, editorialFacts: undefined };
+    const possibleIds = buildPostRaceEditorialQuestions(context).map(({ id }) => id);
+    const drawnIds = new Set(Array.from({ length: 250 }, (_, index) =>
+      selectPostRaceInterviewQuestions(context, "closing-copy-" + index)[2].id,
+    ));
+
+    expect(possibleIds).toHaveLength(8);
+    expect(drawnIds).toEqual(new Set(possibleIds));
+  });
+
   it("change de sujet lorsque la dernière question a déjà traité celui-ci", () => {
     const seed = "editorial-topic-rotation";
     const first = selectPostRaceInterviewQuestions(CONTEXT, seed);

@@ -98,7 +98,7 @@ describe("questions factuelles de zone mixte", () => {
     ]);
   });
 
-  it("retient une reprise seulement si le journal identifie le coureur repris dans la bonne simulation", () => {
+  it("retient une reprise seulement si le journal identifie un coureur parti dans la bonne simulation", () => {
     const simulation: StageSimulationResult = {
       stageId: "stage-2",
       seed: "test",
@@ -135,6 +135,14 @@ describe("questions factuelles de zone mixte", () => {
       extractDetailedRaceInterviewFacts({ ...parameters, courseJournal: [entry] }),
       extractDetailedRaceInterviewFacts({
         ...parameters, simulation: { ...simulation, stageId: "stage-1" },
+        courseJournal: [{ ...entry, caughtRiderIds: ["Olivier"] }],
+      }),
+      extractDetailedRaceInterviewFacts({
+        ...parameters,
+        stageResults: [
+          { ...parameters.stageResults[0]!, status: "did_not_start", rank: null },
+          ...parameters.stageResults.slice(1),
+        ],
         courseJournal: [{ ...entry, caughtRiderIds: ["Olivier"] }],
       }),
     ]) {

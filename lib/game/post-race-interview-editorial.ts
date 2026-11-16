@@ -74,23 +74,23 @@ export function buildPostRaceEditorialQuestions(
     add("transfers", "transfers-future", [
       [
         "transfer-future-scouting",
-        "Si vous deviez donner une seule mission à votre cellule de recrutement, que lui demanderiez-vous d’observer en course, au-delà du classement ?",
-        "If you could give your recruitment team one assignment, what would you ask them to watch for in races beyond the results?",
+        "Quand vous repérez un coureur à recruter, qu’est-ce que vous regardez en course en dehors de son classement ?",
+        "When you scout a potential signing, what do you look for in a race besides their finishing position?",
       ],
       [
         "transfer-future-swap-or-buy",
-        "Si deux équipes étaient prêtes à discuter d’un même profil, qu’est-ce qui vous ferait préférer un échange à un achat ?",
-        "If the same kind of rider were available from two teams, what would make you prefer a swap to a purchase?",
+        "Si un coureur vous intéresse, qu’est-ce qui vous ferait proposer un échange de coureurs plutôt que de payer une indemnité de transfert ?",
+        "If you wanted to sign a rider, what would make you offer a rider swap rather than pay a transfer fee?",
       ],
       [
         "transfer-future-promote",
-        "Si une place se libérait dans l’effectif, sur quelle preuve en course préféreriez-vous miser sur un coureur du club plutôt que recruter ?",
-        "If a spot opened up, what would you need to see in a race to back a rider already at the club over a new signing?",
+        "Si vous devez renforcer l’équipe pour un type de course, qu’est-ce qui vous ferait donner sa chance à un de vos coureurs plutôt que recruter ?",
+        "If you needed to strengthen the team for a particular type of race, what would make you give one of your current riders a chance rather than sign someone?",
       ],
       [
         "transfer-future-specialist-or-versatile",
-        "Si votre prochain recrutement devait améliorer un seul aspect de l’équipe, chercheriez-vous un spécialiste d’un terrain ou un coureur capable de changer de rôle en course ?",
-        "If your next signing could improve one part of the team, would you look for a specialist on a particular terrain or a rider who can switch jobs mid-race?",
+        "Pour votre prochain recrutement, préféreriez-vous un spécialiste, comme un sprinteur ou un grimpeur, ou un coureur polyvalent ? Pourquoi ?",
+        "For your next signing, would you prefer a specialist such as a sprinter or climber, or an all-rounder? Why?",
       ],
     ]);
 
@@ -102,23 +102,23 @@ export function buildPostRaceEditorialQuestions(
       add("season", "season-next-block", [
         [
           "season-next-block-measure",
-          `${result} Sur les prochaines courses, quel indicateur vous aidera à savoir si cette performance peut se répéter ?`,
-          `${resultEn} Over the next few races, what would tell you whether this is a performance you can repeat?`,
+          `${result} Que regarderez-vous sur les prochaines courses pour savoir si l’équipe progresse ?`,
+          `${resultEn} What will you look for in the next few races to tell whether the team is improving?`,
         ],
         [
           "season-next-block-calendar",
-          `${result} Est-ce un résultat qui pourrait changer les courses que vous priorisez dans les semaines à venir ? Si oui, lesquelles ?`,
-          `${resultEn} Could that result change which races you prioritise over the next few weeks? If so, which ones?`,
+          `${result} Ce résultat vous donne-t-il envie de revoir votre programme pour les prochaines semaines ?`,
+          `${resultEn} Does this result make you want to change your race programme for the next few weeks?`,
         ],
         [
           "season-next-block-rotation",
-          `${result} Si vous deviez choisir dès maintenant vos prochains titulaires sur ce type de parcours, qu’est-ce qui pèserait le plus dans votre choix ?`,
-          `${resultEn} If you had to pick your next lineup for this kind of course now, what would carry the most weight in your decision?`,
+          `${result} Quel sera votre premier critère pour sélectionner vos coureurs sur un parcours similaire ?`,
+          `${resultEn} What will matter most when you pick your riders for a similar course?`,
         ],
         [
           "season-next-block-test",
-          `${result} Quelle consigne aimeriez-vous tester sur deux ou trois épreuves similaires avant d’en faire une habitude ?`,
-          `${resultEn} What instruction would you try over two or three similar races before making it a regular part of your approach?`,
+          `${result} Qu’aimeriez-vous essayer lors de la prochaine épreuve de ce type ?`,
+          `${resultEn} What would you like to try the next time you race on a similar course?`,
         ],
       ]);
     }
@@ -135,23 +135,23 @@ export function buildPostRaceEditorialQuestions(
     add("transfers", "transfers-arrival", [
       [
         "arrival-first-mission",
-        `${joined} Quelle serait la première mission idéale pour lui, celle qui vous dirait que vous avez fait le bon choix ?`,
-        `${joinedEn} What would be the ideal first assignment for him, the one that tells you you made the right call?`,
+        `${joined} Quel rôle aimeriez-vous lui confier pour ses premières courses avec l’équipe ?`,
+        `${joinedEn} What role would you like him to take in his first races with the team?`,
       ],
       [
         "arrival-hidden-criterion",
-        `Quel détail de la candidature de ${rider} a pesé dans votre choix alors qu’il se voit à peine sur sa fiche ?`,
-        `What about signing ${rider} mattered more to you than it might appear from his rider profile?`,
+        `Qu’est-ce qui vous a convaincu de recruter ${rider} ?`,
+        `What convinced you to sign ${rider}?`,
       ],
       [
         "arrival-change-of-plan",
-        `Depuis l’arrivée de ${rider}, quel scénario de course osez-vous envisager que vous prépariez rarement jusque-là ?`,
-        `Since ${rider} arrived, what race scenario are you more willing to prepare for now?`,
+        `L’arrivée de ${rider} vous donne-t-elle une nouvelle option tactique en course ?`,
+        `Does signing ${rider} give your team a new tactical option in races?`,
       ],
       [
         "arrival-room-to-grow",
-        `Si ${rider} vous demande demain plus de liberté en course, sur quel profil lui diriez-vous oui ?`,
-        `If ${rider} asked for more freedom to race tomorrow, on what kind of course would you give it to him?`,
+        `Sur quel type de parcours laisseriez-vous ${rider} courir pour son propre résultat ?`,
+        `What kind of course would suit ${rider} if you let him ride for his own result?`,
       ],
       [
         "arrival-long-term",
@@ -160,26 +160,26 @@ export function buildPostRaceEditorialQuestions(
       ],
       [
         "arrival-roster-balance",
-        `${joined} Son arrivée vous donne-t-elle surtout un nouveau leader, un soutien de plus ou une option que vous n’aviez pas ?`,
-        `${joinedEn} Has his arrival given you a new leader, another support rider, or an option you were missing?`,
+        `${joined} Voyez-vous en lui un leader, un équipier ou un coureur capable de remplir les deux rôles ?`,
+        `${joinedEn} Do you see him as a leader, a support rider, or someone who can do both?`,
       ],
     ]);
     if (arrival.otherTeamName) {
       add("transfers", "transfers-arrival", [
         [
           "arrival-from-team",
-          `${rider} arrive de ${arrival.otherTeamName}. Quelle habitude de course aimeriez-vous qu’il apporte avec lui ?`,
-          `${rider} has joined from ${arrival.otherTeamName}. What racing habit would you like him to bring over?`,
+          `${rider} arrive de ${arrival.otherTeamName}. Qu’est-ce qui vous avait marqué dans sa façon de courir avec cette équipe ?`,
+          `${rider} has joined from ${arrival.otherTeamName}. What stood out about the way he raced for them?`,
         ],
         [
           "arrival-new-role",
-          `Après son passage chez ${arrival.otherTeamName}, qu’est-ce qui pourrait faire changer ${rider} de dimension chez vous ?`,
-          `After his time at ${arrival.otherTeamName}, what could help ${rider} take the next step with you?`,
+          `Quel rôle aimeriez-vous proposer à ${rider} après son passage chez ${arrival.otherTeamName} ?`,
+          `What role would you like to offer ${rider} after his time at ${arrival.otherTeamName}?`,
         ],
         [
           "arrival-opposite-cars",
-          `Quand ${rider} recroisera les maillots de ${arrival.otherTeamName} dans le peloton, quelle consigne aimeriez-vous lui donner ?`,
-          `When ${rider} sees the ${arrival.otherTeamName} jerseys in the peloton again, what instruction would you give him?`,
+          `Qu’est-ce que l’expérience de ${rider} chez ${arrival.otherTeamName} pourrait apporter à vos coureurs ?`,
+          `What could your riders learn from ${rider}’s time at ${arrival.otherTeamName}?`,
         ],
       ]);
     }
@@ -193,46 +193,46 @@ export function buildPostRaceEditorialQuestions(
     add("transfers", "transfers-departure", [
       [
         "departure-replace-role",
-        `${left} Quel rôle sera le plus difficile à redistribuer parmi vos coureurs ?`,
-        `${leftEn} What part of his role will be hardest to share among your riders?`,
+        `${left} Qui pourrait reprendre son rôle en course ?`,
+        `${leftEn} Who could take over his role in races?`,
       ],
       [
         "departure-promote-internally",
-        `Le départ de ${rider} libère une place dans le groupe. Préférez-vous donner sa chance à un coureur déjà là ou rouvrir le dossier du recrutement ?`,
+        `Après le départ de ${rider}, comptez-vous donner sa chance à un coureur de l’équipe ou chercher un renfort ?`,
         `With ${rider} leaving, a spot has opened up. Would you give someone already in the team a chance or go back to the transfer market?`,
       ],
       [
         "departure-decision-in-hindsight",
-        `Avec le recul, quel élément du dossier ${rider} regarderiez-vous plus tôt la prochaine fois que vous devrez décider d’un départ ?`,
-        `Looking back on the departure of ${rider}, what would you look at earlier next time you have a decision like this to make?`,
+        `Qu’avez-vous appris sur votre effectif depuis le départ de ${rider} ?`,
+        `What have you learned about your squad since ${rider} left?`,
       ],
       [
         "departure-slot-in-calendar",
-        `${left} Y a-t-il un rendez-vous de la saison que vous préparerez différemment depuis son départ ?`,
+        `${left} Son départ change-t-il votre préparation pour une course à venir ?`,
         `${leftEn} Is there a race this season you’ll prepare for differently now that he’s gone?`,
       ],
       [
         "departure-rebuild-different",
-        `S’il fallait réinvestir la place laissée libre par ${rider}, chercheriez-vous un profil semblable ou un coureur qui change la façon de courir de l’équipe ?`,
-        `When filling the spot ${rider} left, would you look for a similar rider or someone who changes how the team races?`,
+        `Si vous recrutez pour remplacer ${rider}, chercherez-vous un coureur capable de remplir le même rôle ?`,
+        `If you sign a replacement for ${rider}, will you look for someone who can fill the same role?`,
       ],
     ]);
     if (departure.otherTeamName) {
       add("transfers", "transfers-departure", [
         [
           "departure-face-former-rider",
-          `Vous pourriez retrouver ${rider} sous les couleurs de ${departure.otherTeamName}. Dans quel scénario serait-il le plus gênant à avoir en face ?`,
-          `You could see ${rider} again in ${departure.otherTeamName} colours. In which race situation would he be hardest to face?`,
+          `${rider} court désormais pour ${departure.otherTeamName}. Sur quel type de parcours sera-t-il le plus difficile à battre ?`,
+          `${rider} now rides for ${departure.otherTeamName}. What kind of course would make him hardest to beat?`,
         ],
         [
           "departure-opponent-advantage",
-          `Avec l’arrivée de ${rider}, sur quel type de course regarderiez-vous d’un autre œil la composition de ${departure.otherTeamName} ?`,
-          `Now that ${rider} rides for ${departure.otherTeamName}, on what kind of course would you look at their lineup differently?`,
+          `Dans quel rôle ${rider} pourrait-il le plus aider sa nouvelle équipe, ${departure.otherTeamName} ?`,
+          `In what role could ${rider} do the most to help his new team, ${departure.otherTeamName}?`,
         ],
         [
           "departure-former-team-knowledge",
-          `${rider} est parti chez ${departure.otherTeamName}. Quand vous le recroiserez en course, qu’est-ce qui restera difficile à anticiper chez lui malgré le temps passé ensemble ?`,
-          `${rider} has moved to ${departure.otherTeamName}. What would still be hard to predict about him when you race against him again?`,
+          `${rider} est parti chez ${departure.otherTeamName}. Bien connaître sa façon de courir vous aidera-t-il quand vous le retrouverez en course ?`,
+          `${rider} has moved to ${departure.otherTeamName}. Will knowing how he races help you when you face him again?`,
         ],
       ]);
     }
@@ -240,18 +240,18 @@ export function buildPostRaceEditorialQuestions(
       add("transfers", "transfers-sale", [
         [
           "sale-value",
-          `Après la vente de ${rider}, si vous recrutiez de nouveau, quelle qualité chercheriez-vous en priorité ?`,
-          `After selling ${rider}, if you went back to the market, what quality would you look for first?`,
+          `Si vous utilisez l’argent de la vente de ${rider} pour recruter, quelle qualité chercherez-vous chez le prochain coureur ?`,
+          `If you use the fee for ${rider} to sign another rider, what quality will you look for first?`,
         ],
         [
           "sale-reinvest",
-          `Après la vente de ${rider}, qu’est-ce qui justifierait de réinvestir vite, et qu’est-ce qui vous ferait attendre ?`,
-          `After selling ${rider}, what would make you reinvest quickly and what would make you wait?`,
+          `Après la vente de ${rider}, voulez-vous recruter tout de suite ou attendre ? Qu’est-ce qui guidera votre décision ?`,
+          `After selling ${rider}, would you sign someone now or wait? What will guide your decision?`,
         ],
         [
           "sale-sporting-impact",
-          `La vente de ${rider} est actée. Quel rôle en course risque de vous manquer plus que prévu ?`,
-          `The sale of ${rider} is complete. Which racing role might you miss more than you expected?`,
+          `Après la vente de ${rider}, de quoi votre équipe risque-t-elle de manquer en course ?`,
+          `After selling ${rider}, what might your team be missing in races?`,
         ],
       ]);
     }
@@ -261,18 +261,18 @@ export function buildPostRaceEditorialQuestions(
     add("transfers", "transfers-market", [
       [
         "transfer-roster-difference",
-        `Entre le départ de ${departure.riderName} et l’arrivée de ${arrival.riderName}, sur quel profil de course verrait-on le mieux ce qui a changé dans l’effectif ?`,
-        `With ${departure.riderName} leaving and ${arrival.riderName} coming in, what type of course would best show how the team has changed?`,
+        `${departure.riderName} est parti et ${arrival.riderName} a rejoint l’équipe. Sur quel type de parcours ces mouvements changent-ils vos chances de jouer la victoire ?`,
+        `${departure.riderName} has left and ${arrival.riderName} has joined. On what kind of course do those moves change your chances of winning?`,
       ],
       [
         "transfer-market-tradeoff",
-        `${departure.riderName} est parti et ${arrival.riderName} a rejoint le groupe. Quel compromis est devenu le plus difficile quand vous composez une équipe de course ?`,
-        `${departure.riderName} has left and ${arrival.riderName} has arrived. What’s the toughest trade-off when you pick a race lineup now?`,
+        `${departure.riderName} est parti et ${arrival.riderName} a rejoint l’équipe. Ces mouvements vont-ils changer votre façon de sélectionner les coureurs pour une course ?`,
+        `${departure.riderName} has left and ${arrival.riderName} has joined. Will those moves change how you pick a race lineup?`,
       ],
       [
         "transfer-changing-identity",
-        `Si on ne regardait que le départ de ${departure.riderName} et l’arrivée de ${arrival.riderName}, quelle idée de votre projet sportif en aurait-on ?`,
-        `If people only saw ${departure.riderName} leave and ${arrival.riderName} arrive, what impression would they get of your plans for the team?`,
+        `Après le départ de ${departure.riderName} et l’arrivée de ${arrival.riderName}, quel type de course voulez-vous privilégier avec votre nouvel effectif ?`,
+        `With ${departure.riderName} gone and ${arrival.riderName} in the squad, what kind of race would you like to prioritise?`,
       ],
     ]);
   }
@@ -280,43 +280,49 @@ export function buildPostRaceEditorialQuestions(
   const leader = facts.seasonLeader;
   if (leader && leader.daysRaced >= 5) {
     const rider = leader.riderName;
+    const leaderRankToday = context.stageType !== "team_time_trial"
+      && leader.riderId && leader.riderId === context.riderId
+      ? context.bestRank
+      : null;
+    const leaderMadeTopTenToday = leaderRankToday !== null
+      && leaderRankToday > 0 && leaderRankToday <= 10;
     const noWins = `Avant cette épreuve, ${rider} avait couru ${leader.daysRaced} jours en individuel cette saison, sans victoire d’étape ni de classique.`;
     const noWinsEn = `Before this race, ${rider} had ${leader.daysRaced} days of individual racing this season without winning a stage or a one-day race.`;
 
-    if (leader.wins === 0) {
+    if (leader.wins === 0 && leaderRankToday !== 1) {
       add("season", "season-leader", [
         [
           "season-leader-calendar",
-          `${noWins} Quelle course choisiriez-vous pour lui donner une vraie occasion de débloquer le compteur ?`,
-          `${noWinsEn} Which race would offer him the best chance of getting that first win?`,
+          `${noWins} Où aurait-il le plus de chances de gagner une étape ou une classique cette saison ?`,
+          `${noWinsEn} Where would he have the best chance of winning a stage or one-day race this season?`,
         ],
         [
           "season-leader-plan-b",
-          `${noWins} À quel moment ouvrez-vous le jeu à un deuxième leader ?`,
-          `${noWinsEn} At what point would you look at giving a second rider a leadership role?`,
+          `${noWins} Envisagez-vous de confier le rôle de leader à un autre coureur sur certaines épreuves ?`,
+          `${noWinsEn} Are you considering letting another rider lead the team in some races?`,
         ],
         [
           "season-leader-small-signal",
-          `${noWins} Quel progrès observable en course vous convaincrait de maintenir le cap avec lui ?`,
-          `${noWinsEn} What sign of improvement in a race would convince you to stay the course with him?`,
+          `${noWins} Quel signe en course vous montrerait qu’il se rapproche d’une victoire ?`,
+          `${noWinsEn} What would you need to see in a race to feel that he’s getting closer to a win?`,
         ],
         [
           "season-leader-support",
-          `${noWins} Qu’attendez-vous de ses équipiers pour l’aider à convertir une bonne journée en résultat ?`,
-          `${noWinsEn} What do you want his teammates to do to help him turn a good day into a result?`,
+          `${noWins} De quel soutien aurait-il besoin de la part de ses équipiers pour jouer la victoire ?`,
+          `${noWinsEn} What support would he need from his teammates to compete for a win?`,
         ],
         [
           "season-leader-trust",
-          `${noWins} Si vous deviez choisir un point à travailler avec lui dès demain pour changer ce bilan, lequel choisiriez-vous ?`,
-          `${noWinsEn} What would you focus on with him tomorrow to try to change that record?`,
+          `${noWins} Quelle qualité travailleriez-vous en priorité pour l’aider à gagner ?`,
+          `${noWinsEn} What would you work on first to help him win?`,
         ],
         [
           "season-leader-opportunity",
-          `${noWins} Pour changer la donne, joueriez-vous une course loin de ses habitudes ou renforceriez-vous le soutien sur son terrain préféré ?`,
+          `${noWins} Préférez-vous lui faire essayer un autre type de parcours ou mieux l’entourer sur ceux qui lui conviennent déjà ?`,
           `${noWinsEn} Would you give him a chance on unfamiliar terrain or strengthen the support on courses that suit him best?`,
         ],
       ]);
-      if (leader.topTenFinishes === 0) {
+      if (leader.topTenFinishes === 0 && !leaderMadeTopTenToday) {
         add("season", "season-leader", [
           [
             "season-leader-no-top-ten",
@@ -338,8 +344,8 @@ export function buildPostRaceEditorialQuestions(
         add("season", "season-leader", [
           [
             "season-leader-convert",
-            `Avant cette épreuve, ${rider} comptait ${leader.topTenFinishes} top 10 en individuel et aucune victoire d’étape ou de classique cette saison. Que lui manque-t-il pour peser sur les derniers kilomètres ?`,
-            `Before this race, ${rider} had ${leader.topTenFinishes} individual top-ten finishes but no stage or one-day win this season. What’s missing for him in the final kilometres?`,
+            `Avant cette épreuve, ${rider} comptait ${leader.topTenFinishes} top 10 en individuel cette saison, sans victoire d’étape ni de classique. Que lui manque-t-il pour jouer la victoire dans un final ?`,
+            `Before this race, ${rider} had ${leader.topTenFinishes} individual top-ten finishes but no stage or one-day win this season. What would help him fight for a win in the closing kilometres?`,
           ],
           [
             "season-leader-last-step",
@@ -353,7 +359,7 @@ export function buildPostRaceEditorialQuestions(
           ],
         ]);
       }
-    } else {
+    } else if (leader.wins > 0) {
       const winningRecord = leader.wins === 1
         ? "une victoire d’étape ou de classique"
         : `${leader.wins} victoires d’étape ou de classique`;
@@ -363,17 +369,17 @@ export function buildPostRaceEditorialQuestions(
       add("season", "season-leader", [
         [
           "season-leader-repeat",
-          `Avant cette course, ${rider} comptait déjà ${winningRecord} cette saison. Quelle recette aimeriez-vous reproduire avec lui ?`,
+          `Avant cette course, ${rider} comptait déjà ${winningRecord} cette saison. Qu’est-ce qui a bien fonctionné et que vous aimeriez retrouver ?`,
           `Before this race, ${rider} already had ${winningRecordEn} this season. What would you like to reproduce with him?`,
         ],
         [
           "season-leader-share",
-          `${rider} avait déjà gagné cette saison avant cette épreuve. Comment décider du prochain rendez-vous où l’équipe roulera pour lui ?`,
-          `${rider} had already won this season before today. How will you pick the next race where the team rides for him?`,
+          `${rider} avait déjà gagné cette saison avant cette épreuve. Sur quelle course comptez-vous lui donner une nouvelle occasion de gagner ?`,
+          `${rider} had already won this season before today. Which race do you see as his next chance to win?`,
         ],
         [
           "season-leader-room-for-others",
-          `${rider} a déjà prouvé qu’il pouvait gagner cette saison. Sur quel terrain donneriez-vous aussi leur chance à d’autres coureurs ?`,
+          `${rider} a déjà gagné cette saison. Sur quel type de parcours donneriez-vous leur chance à d’autres coureurs de l’équipe ?`,
           `${rider} has already shown he can win this season. On what terrain would you give some of your other riders a chance as well?`,
         ],
       ]);
@@ -394,31 +400,31 @@ export function buildPostRaceEditorialQuestions(
       ],
       [
         "opponent-repeat-course",
-        `${result} Si vous deviez le retrouver ici demain, quel scénario voudriez-vous éviter ?`,
-        `${resultEn} If you faced him here again tomorrow, what race scenario would you want to avoid?`,
+        `${result} Si vous le retrouvez sur un parcours similaire, que feriez-vous différemment ?`,
+        `${resultEn} If you faced him again on a similar course, what would you do differently?`,
       ],
       [
         "opponent-handicap",
-        `${result} Quel terrain permettrait à vos coureurs de le mettre le plus en difficulté ?`,
-        `${resultEn} What terrain would give your riders the best chance of putting him under pressure?`,
+        `${result} Sur quel type de parcours vos coureurs auraient-ils le plus de chances de le battre ?`,
+        `${resultEn} What kind of course would give your riders the best chance of beating him?`,
       ],
       [
         "opponent-report",
-        `Si vous deviez remettre une note à votre staff sur ${rivalRider} après cette ${context.stageType === "road" ? "course" : "épreuve"}, quel serait le premier point à retenir ?`,
-        `If you had to brief your staff on ${rivalRider} after this event, what would be the first thing you’d highlight?`,
+        `Quel point fort de ${rivalRider} vous a le plus marqué aujourd’hui ?`,
+        `What impressed you most about the way ${rivalRider} raced today?`,
       ],
       [
         "opponent-team-transfer",
-        `${result} Que vous apprend ce résultat sur le type de coureur que vous aimeriez pouvoir aligner face à eux ?`,
-        `${resultEn} What does that tell you about the kind of rider you’d want to field against them?`,
+        `${result} Quelle qualité chercheriez-vous chez un de vos coureurs pour rivaliser avec lui sur un parcours similaire ?`,
+        `${resultEn} What quality would you look for in one of your own riders to challenge him on a similar course?`,
       ],
     ]);
     if (!context.stageType || context.stageType === "road") {
       add("opponent", "opponent-result", [
         [
           "opponent-follow",
-          `${result} À l’avenir, quel indice vous ferait dire qu’il est temps de prendre sa roue ?`,
-          `${resultEn} Next time, what sign would tell you it was time to get on his wheel?`,
+          `${result} À quel moment auriez-vous conseillé à vos coureurs de se placer dans sa roue ?`,
+          `${resultEn} When would you have told your riders to get on his wheel?`,
         ],
       ]);
     }
@@ -431,8 +437,8 @@ export function buildPostRaceEditorialQuestions(
         ],
         [
           "opponent-winner-anticipate",
-          `${rivalTeam} repart avec la victoire de ${rivalRider}. Quel passage de l’épreuve reverriez-vous pour mieux comprendre comment leur répondre ?`,
-          `${rivalRider} takes the win for ${rivalTeam}. Which part of the event would you review to work out how to respond?`,
+          `${rivalRider} s’impose pour ${rivalTeam}. Quel passage de l’épreuve reverriez-vous pour comprendre où il a fait la différence ?`,
+          `${rivalRider} takes the win for ${rivalTeam}. Which part of the event would you review to see where he made the difference?`,
         ],
         [
           "opponent-winner-own-strength",
@@ -448,26 +454,26 @@ export function buildPostRaceEditorialQuestions(
       add("opponent", "opponent-comparison", [
         [
           "opponent-head-to-head",
-          `${ownResult} Dans quel registre votre coureur aurait-il le plus de chances d’inverser cet ordre ?`,
-          `${ownResultEn} On what terrain would your rider have the best chance of reversing that order?`,
+          `${ownResult} Sur quel type de parcours votre coureur aurait-il le plus de chances de finir devant lui ?`,
+          `${ownResultEn} What kind of course would give your rider the best chance of finishing ahead of him?`,
         ],
         [
           "opponent-next-matchup",
-          `${ownResult} Sur quel élément concret départageriez-vous les deux avant de les retrouver sur une épreuve similaire ?`,
-          `${ownResultEn} What would you look at to decide which of them has the edge before a similar event?`,
+          `${ownResult} Quel atout de ${context.riderName} pourrait faire la différence lors de leur prochaine confrontation ?`,
+          `${ownResultEn} What strength could give ${context.riderName} the edge when they meet again?`,
         ],
       ]);
       if (opponent.sameTimeAsOwn) {
         add("opponent", "opponent-close-finish", [
           [
             "opponent-same-time",
-            `${ownResult} Le classement officiel leur donne le même temps. Qu’aimeriez-vous changer pour que votre coureur franchisse la ligne devant lui la prochaine fois ?`,
-            `${ownResultEn} They were given the same official time. What would you change so your rider crosses the line ahead next time?`,
+            `${ownResult} Ils sont classés dans le même temps. Qu’est-ce qui pourrait permettre à votre coureur de finir devant lui la prochaine fois ?`,
+            `${ownResultEn} They were given the same time. What could help your rider finish ahead of him next time?`,
           ],
           [
             "opponent-same-time-detail",
-            `${rivalRider} devance ${context.riderName} au classement avec le même temps officiel. Quel détail peut faire gagner une place dans ce genre d’arrivée ?`,
-            `${rivalRider} finishes ahead of ${context.riderName} on the same official time. What small detail could win your rider a place at a finish like that?`,
+            `${rivalRider} devance ${context.riderName} au classement avec le même temps officiel. Que retenez-vous de la performance de votre coureur dans un résultat aussi serré ?`,
+            `${rivalRider} finishes ahead of ${context.riderName} on the same official time. What do you take from your rider’s performance in such a close result?`,
           ],
         ]);
       } else if (
@@ -485,7 +491,7 @@ export function buildPostRaceEditorialQuestions(
           ],
           [
             "opponent-gap-prep",
-            `Il manque ${gap} à ${context.riderName} pour rejoindre le temps de ${rivalRider}. Quelle préparation changeriez-vous avant une épreuve de ce profil ?`,
+            `${context.riderName} termine à ${gap} de ${rivalRider}. Que changeriez-vous dans sa préparation pour un parcours similaire ?`,
             `${context.riderName} was ${gapEn} behind the time set by ${rivalRider}. What would you change in the build-up to a similar event?`,
           ],
         ]);
@@ -498,13 +504,13 @@ export function buildPostRaceEditorialQuestions(
       add("opponent", "opponent-team-depth", [
         [
           "opponent-collective",
-          `${teamResult} Pour leur répondre, miseriez-vous sur le meilleur de vos coureurs ou sur plusieurs cartes à jouer ?`,
+          `${teamResult} Pour rivaliser avec cette équipe, miseriez-vous sur un seul leader ou sur plusieurs coureurs ?`,
           `${teamResultEn} To challenge them, would you back your strongest rider or give a few riders the freedom to try something?`,
         ],
         [
           "opponent-depth",
-          `${teamResult} Quelle qualité voudriez-vous voir chez vos équipiers pour concurrencer une équipe capable de placer autant de monde ?`,
-          `${teamResultEn} What would you want from your support riders to take on a team with that kind of depth?`,
+          `${teamResult} Qu’attendez-vous de vos coureurs pour rivaliser avec une équipe aussi bien placée ?`,
+          `${teamResultEn} What would you want from your riders to take on a team with that kind of depth?`,
         ],
         [
           "opponent-multiple-threats",

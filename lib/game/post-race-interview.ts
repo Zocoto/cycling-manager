@@ -206,13 +206,13 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
       id: "win-plan",
       category: "result",
       situations: ["win"],
-      text: "Votre plan semble avoir été exécuté à la perfection. La course s’est-elle vraiment déroulée comme prévu ?",
+      text: "La course s’est-elle déroulée comme vous l’aviez prévu ? Qu’est-ce qui a fait la différence ?",
     },
     {
       id: "win-final-message",
       category: "result",
       situations: ["win"],
-      text: "Qu’avez-vous dit à {{riderName}} dans les derniers kilomètres ?",
+      text: "Quelle consigne avez-vous donnée à {{riderName}} pour le final ?",
     },
     {
       id: "win-collective",
@@ -242,13 +242,13 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
       id: "win-risk",
       category: "result",
       situations: ["win"],
-      text: "Quel risque avez-vous accepté de prendre pour aller chercher ce succès ?",
+      text: "Y a-t-il une décision risquée qui a payé aujourd’hui ?",
     },
     {
       id: "win-symbol",
       category: "result",
       situations: ["win"],
-      text: "Cette victoire raconte-t-elle quelque chose de nouveau sur l’identité de {{teamName}} ?",
+      text: "Quelle force de {{teamName}} cette victoire a-t-elle mise en valeur ?",
     },
     {
       id: "podium-feeling",
@@ -260,7 +260,7 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
       id: "podium-ambition",
       category: "result",
       situations: ["podium"],
-      text: "Étiez-vous venus sur {{raceName}} avec l’ambition de monter sur le podium ?",
+      text: "Visiez-vous un podium avant le départ ?",
     },
     {
       id: "podium-gap",
@@ -278,13 +278,13 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
       id: "podium-next-step",
       category: "result",
       situations: ["podium"],
-      text: "Ce résultat confirme-t-il que {{riderName}} peut bientôt franchir le cap de la victoire ?",
+      text: "Que manque-t-il à {{riderName}} pour transformer ce podium en victoire ?",
     },
     {
       id: "podium-regret",
       category: "result",
       situations: ["podium"],
-      text: "Quel détail vous empêche de repartir pleinement satisfait de ce podium ?",
+      text: "Qu’est-ce qui vous a le plus plu dans ce podium ? Y a-t-il encore un regret ?",
     },
     {
       id: "podium-reference",
@@ -308,7 +308,7 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
       id: "top10-support",
       category: "result",
       situations: ["top10"],
-      text: "Qu’a-t-il manqué à vos coureurs pour accompagner les meilleurs jusqu’au bout ?",
+      text: "Qu’est-ce qui aurait permis à {{riderName}} de gagner quelques places ?",
     },
     {
       id: "top10-progression",
@@ -320,19 +320,19 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
       id: "top10-signals",
       category: "result",
       situations: ["top10"],
-      text: "Malgré l’absence de podium, quels signaux positifs retenez-vous de cette journée ?",
+      text: "Que retenez-vous de positif dans ce top 10 ?",
     },
     {
       id: "top10-ceiling",
       category: "result",
       situations: ["top10"],
-      text: "Ce résultat reflète-t-il votre niveau actuel ou seulement le scénario du jour ?",
+      text: "Ce top 10 correspond-il à ce que vous attendiez de l’équipe aujourd’hui ?",
     },
     {
       id: "top10-aggression",
       category: "result",
       situations: ["top10"],
-      text: "Avez-vous été assez entreprenants pour transformer ce top 10 en résultat majeur ?",
+      text: "Avec le recul, quelle initiative aurait pu vous rapprocher du podium ?",
     },
     {
       id: "top10-rider-role",
@@ -356,19 +356,19 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
       id: "outside-influence",
       category: "result",
       situations: ["outside"],
-      text: "Votre équipe n’a jamais réellement pesé sur la course. Est-ce une déception ?",
+      text: "Qu’est-ce qui a le mieux fonctionné dans la façon de courir de votre équipe ?",
     },
     {
       id: "outside-cause",
       category: "result",
       situations: ["outside"],
-      text: "Cette contre-performance est-elle physique, tactique ou collective ?",
+      text: "Qu’est-ce qui a le plus pesé sur votre résultat aujourd’hui ?",
     },
     {
       id: "outside-opportunity",
       category: "result",
       situations: ["outside"],
-      text: "Le profil de {{raceName}} semblait pourtant vous convenir. Avez-vous manqué une occasion ?",
+      text: "Quelles parties du parcours convenaient le mieux à vos coureurs ?",
     },
     {
       id: "outside-rebuild",
@@ -380,25 +380,25 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
       id: "outside-hidden-positive",
       category: "result",
       situations: ["outside"],
-      text: "Y a-t-il malgré tout une satisfaction que le classement brut ne raconte pas ?",
+      text: "Qu’est-ce qui a bien fonctionné malgré le résultat ?",
     },
     {
       id: "outside-expectations",
       category: "result",
       situations: ["outside"],
-      text: "Aviez-vous surestimé vos chances avant le départ ou l’équipe a-t-elle simplement connu un mauvais jour ?",
+      text: "Quel résultat visiez-vous au départ, et comment jugez-vous la course au regard de cet objectif ?",
     },
     {
       id: "outside-responsibility",
       category: "result",
       situations: ["outside"],
-      text: "Dans quelle mesure assumez-vous personnellement ce résultat en tant que DS ?",
+      text: "Y a-t-il une décision que vous prendriez autrement après cette course ?",
     },
     {
       id: "outside-response",
       category: "result",
       situations: ["outside"],
-      text: "Attendez-vous une réaction immédiate de vos leaders dès la prochaine course ?",
+      text: "Sur quoi comptez-vous travailler avec vos coureurs avant leur prochaine course ?",
     },
 
     // Résultat · CLM individuel
@@ -414,14 +414,14 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
       category: "result",
       situations: ["win"],
       raceTypes: ["itt"],
-      text: "Cette victoire place-t-elle {{riderName}} parmi vos références absolues contre la montre ?",
+      text: "Qu’a particulièrement bien réussi {{riderName}} dans ce contre-la-montre ?",
     },
     {
       id: "clm-podium-splits",
       category: "result",
       situations: ["podium"],
       raceTypes: ["itt"],
-      text: "Votre coureur termine sur le podium du chrono {{gapLabel}} : sur quelle portion le temps s’est-il joué ?",
+      text: "{{riderName}} termine sur le podium, {{gapLabel}} du meilleur temps. Où pensez-vous qu’il pouvait gagner du temps ?",
     },
     {
       id: "clm-podium-satisfaction",
@@ -435,7 +435,7 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
       category: "result",
       situations: ["top10"],
       raceTypes: ["itt"],
-      text: "Ce top 10 reflète-t-il une exécution parfaite ou reste-t-il du temps à gagner ?",
+      text: "Qu’a bien géré {{riderName}} pour entrer dans le top 10 ?",
     },
     {
       id: "clm-top10-benchmark",
@@ -449,7 +449,7 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
       category: "result",
       situations: ["outside"],
       raceTypes: ["itt"],
-      text: "Le chrono n’a pas répondu à vos attentes. Le problème venait-il des jambes, du rythme ou du matériel ?",
+      text: "Qu’est-ce qui a le plus compliqué ce contre-la-montre pour {{riderName}} ?",
     },
     {
       id: "clm-outside-progress",
@@ -480,7 +480,7 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
       id: "tactics-chase",
       category: "tactics",
       requires: "chase",
-      text: "Le peloton a laissé partir un groupe dangereux. Avez-vous hésité à organiser la poursuite plus tôt ?",
+      text: "Qu’est-ce qui vous a décidé à participer à la poursuite ?",
     },
     {
       id: "tactics-isolated",
@@ -490,7 +490,7 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
     {
       id: "tactics-positioning",
       category: "tactics",
-      text: "Le placement avant les moments clés était-il suffisamment travaillé ?",
+      text: "À quel moment le placement dans le peloton a-t-il le plus compté pour votre équipe ?",
     },
     {
       id: "tactics-final-choice",
@@ -510,7 +510,7 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
     {
       id: "tactics-radio",
       category: "tactics",
-      text: "Les informations transmises par radio ont-elles modifié votre lecture de la course ?",
+      text: "Quelle consigne aviez-vous donnée pour les passages les plus difficiles ?",
     },
     {
       id: "tactics-plan-b",
@@ -520,7 +520,7 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
     {
       id: "tactics-selection",
       category: "tactics",
-      text: "Cherchiez-vous à durcir la course ou à conserver le plus de cartes possible pour le final ?",
+      text: "Quel scénario convenait le mieux à votre équipe pour le final ?",
     },
     {
       id: "tactics-captain",
@@ -550,7 +550,7 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
       id: "clm-tactics-recon",
       category: "tactics",
       raceTypes: ["itt"],
-      text: "La reconnaissance du parcours a-t-elle permis de cibler précisément les zones où relancer ?",
+      text: "En préparant ce chrono, aviez-vous repéré des endroits où relancer ou récupérer ?",
     },
     {
       id: "clm-tactics-material",
@@ -568,7 +568,7 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
       id: "clm-tactics-risk",
       category: "tactics",
       raceTypes: ["itt"],
-      text: "Où aviez-vous autorisé {{riderName}} à prendre le plus de risques sur le parcours ?",
+      text: "Sur quelle partie du parcours conseilleriez-vous à {{riderName}} de faire la différence ?",
     },
     {
       id: "clm-tactics-cadence",
@@ -586,13 +586,13 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
       id: "clm-tactics-finish",
       category: "tactics",
       raceTypes: ["itt"],
-      text: "Aviez-vous demandé de garder une réserve pour le final ou de tout lisser jusqu’à la ligne ?",
+      text: "Vouliez-vous que {{riderName}} garde des forces pour la fin ou maintienne un effort régulier jusqu’à l’arrivée ?",
     },
     {
       id: "clm-tactics-data",
       category: "tactics",
       raceTypes: ["itt"],
-      text: "Les données préparées avant le départ ont-elles confirmé ce que le coureur a ressenti sur la route ?",
+      text: "Le parcours s’est-il révélé aussi difficile que vous le pensiez avant le départ ?",
     },
 
     // Faits de course
@@ -636,32 +636,32 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
       category: "race_fact",
       requires: "race_breakaway",
       raceTypes: ["road"],
-      text: "L’échappée a-t-elle davantage servi les attaquants ou les équipes restées en contrôle dans le peloton ?",
+      text: "Qu’aurait changé une victoire de l’échappée pour votre équipe ?",
     },
     {
       id: "fact-crash-impact",
       category: "race_fact",
       requires: "crash",
-      text: "Une chute a marqué la journée. A-t-elle changé votre manière d’aborder la suite de la course ?",
+      text: "La chute a-t-elle eu des conséquences pour vos coureurs ou pour votre stratégie ?",
     },
     {
       id: "fact-crash-neutralize",
       category: "race_fact",
       requires: "crash",
-      text: "Après la chute, avez-vous demandé à vos coureurs de temporiser ou de rester concentrés sur leur propre course ?",
+      text: "Avez-vous adapté vos consignes après la chute ?",
     },
     {
       id: "fact-crash-tension",
       category: "race_fact",
       requires: "crash",
-      text: "La nervosité provoquée par la chute était-elle perceptible jusque dans votre voiture ?",
+      text: "Comment vos coureurs ont-ils réagi après la chute ?",
     },
     {
       id: "fact-crosswind-anticipation",
       category: "race_fact",
       requires: "crosswind",
       raceTypes: ["road"],
-      text: "Les bordures ont cassé le rythme de la course. Aviez-vous suffisamment anticipé ce danger ?",
+      text: "Comment aviez-vous préparé vos coureurs au risque de bordures ?",
     },
     {
       id: "fact-crosswind-position",
@@ -675,7 +675,7 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
       category: "race_fact",
       requires: "crosswind",
       raceTypes: ["road"],
-      text: "Quel prix énergétique les bordures ont-elles fait payer à vos coureurs ?",
+      text: "Les bordures ont-elles coûté de l’énergie à vos coureurs pour le final ?",
     },
     {
       id: "fact-weather-plan",
@@ -699,13 +699,13 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
       id: "fact-weather-fatigue",
       category: "race_fact",
       requires: "weather",
-      text: "Quel impact les conditions — {{weatherLabel}} — ont-elles eu sur la fatigue après l’arrivée ?",
+      text: "Avec la météo du jour ({{weatherLabel}}), vos coureurs ont-ils dû gérer leur effort autrement ?",
     },
     {
       id: "fact-weather-selection",
       category: "race_fact",
       requires: "weather",
-      text: "La météo a-t-elle réellement sélectionné les plus forts ou seulement rendu la course plus imprévisible ?",
+      text: "Certains de vos coureurs ont-ils mieux supporté la météo que d’autres ?",
     },
 
     // Saison, objectifs et classements
@@ -723,13 +723,13 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
       id: "outlook-uci-gap",
       category: "outlook",
       requires: "uci",
-      text: "Vous occupez actuellement la {{uciRank}}e place au classement UCI. Que vous manque-t-il pour progresser ?",
+      text: "Votre équipe occupe la place n° {{uciRank}} au classement UCI. Quel rang visez-vous pour la suite ?",
     },
     {
       id: "outlook-uci-pressure",
       category: "outlook",
       requires: "uci",
-      text: "Votre {{uciRank}}e place au classement UCI crée-t-elle de la sérénité ou une obligation de résultat ?",
+      text: "Votre équipe occupe la place n° {{uciRank}} au classement UCI. Cette place change-t-elle vos ambitions ?",
     },
     {
       id: "outlook-uci-calendar",
@@ -747,12 +747,12 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
       id: "outlook-uci-leader-gap",
       category: "outlook",
       requires: "uci_leader",
-      text: "Que sépare encore vos meilleurs coureurs du leader UCI, {{uciLeaderName}} ?",
+      text: "Dans quels types de courses vos coureurs peuvent-ils rivaliser avec {{uciLeaderName}}, le leader UCI ?",
     },
     {
       id: "outlook-elite",
       category: "outlook",
-      text: "La montée en Élite est-elle un objectif réaliste pour {{teamName}} cette saison ?",
+      text: "Quelle place aimeriez-vous que {{teamName}} occupe dans sa division en fin de saison ?",
     },
     {
       id: "outlook-program",
@@ -762,7 +762,7 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
     {
       id: "outlook-year-objective",
       category: "outlook",
-      text: "Quel objectif majeur fixé en début d’année guide encore toutes vos décisions ?",
+      text: "Quel est l’objectif principal de votre équipe cette saison ?",
     },
     {
       id: "outlook-objective-progress",
@@ -777,17 +777,17 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
     {
       id: "outlook-leader",
       category: "outlook",
-      text: "Votre leader actuel répond-il aux attentes placées en lui avant la saison ?",
+      text: "Qu’attendez-vous de vos leaders pour la suite de la saison ?",
     },
     {
       id: "outlook-young-riders",
       category: "outlook",
-      text: "Cette course peut-elle changer la place de certains jeunes dans votre hiérarchie ?",
+      text: "Quel rôle aimeriez-vous donner à vos jeunes coureurs lors des prochaines courses ?",
     },
     {
       id: "outlook-next-block",
       category: "outlook",
-      text: "Quel sera le fil conducteur du prochain bloc de courses pour {{teamName}} ?",
+      text: "Quel résultat visez-vous sur les prochaines courses de {{teamName}} ?",
     },
     {
       id: "clm-outlook-training",
@@ -799,7 +799,7 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
       id: "clm-outlook-specialist",
       category: "outlook",
       raceTypes: ["itt"],
-      text: "Souhaitez-vous construire un véritable spécialiste du chrono au sein de {{teamName}} ?",
+      text: "Aimeriez-vous faire progresser l’un de vos coureurs en contre-la-montre ?",
     },
     {
       id: "clm-outlook-goal",
@@ -813,7 +813,7 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
       id: "season-rivalry-score",
       category: "rivalry",
       requires: "season_rivalry",
-      text: "Le duel de saison contre {{rivalTeamName}} affiche désormais {{rivalryScore}}. Quel poids ce score a-t-il dans votre lecture de la course ?",
+      text: "Votre duel avec {{rivalTeamName}} en est à {{rivalryScore}}. Qu’est-ce qui a fait la différence aujourd’hui ?",
     },
     {
       id: "season-rivalry-director",
@@ -831,19 +831,19 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
       id: "season-rivalry-origin",
       category: "rivalry",
       requires: "season_rivalry",
-      text: "Cette rivalité est née de votre proximité au classement final de la saison précédente. Est-ce encore ce qui sépare le mieux {{teamName}} de {{rivalTeamName}} aujourd’hui ?",
+      text: "Sur quels types de courses pensez-vous pouvoir faire la différence face à {{rivalTeamName}} ?",
     },
     {
       id: "season-rivalry-stakes",
       category: "rivalry",
       requires: "season_rivalry",
-      text: "Les gains du duel de saison sont désormais conséquents. Le score {{rivalryScore}} change-t-il votre manière de programmer les prochaines courses communes avec {{rivalTeamName}} ?",
+      text: "Le duel avec {{rivalTeamName}} en est à {{rivalryScore}}. Cela change-t-il votre façon de préparer les courses où vous vous retrouverez ?",
     },
     {
       id: "season-rivalry-pressure",
       category: "rivalry",
       requires: "season_rivalry",
-      text: "Cette confrontation avec {{rivalTeamName}} prend de plus en plus de place dans La Cyclogazette. Cette exposition vous stimule-t-elle ou ajoute-t-elle une pression inutile ?",
+      text: "Le duel avec {{rivalTeamName}} motive-t-il vos coureurs avant les courses que vous disputez ensemble ?",
     },
     {
       id: "season-rivalry-message",
@@ -885,7 +885,7 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
       id: "rivalry-director-mentality",
       category: "rivalry",
       requires: "rival_winner",
-      text: "Que pensez-vous de la mentalité insufflée par {{rivalDirectorName}} à {{rivalTeamName}} ?",
+      text: "Quel point fort avez-vous remarqué chez {{rivalTeamName}} aujourd’hui ?",
     },
     {
       id: "rivalry-respect",
@@ -915,7 +915,7 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
       id: "rebound-direct",
       category: "rivalry",
       requires: "rival_quote",
-      text: "{{rivalDirectorName}} a déclaré à votre sujet : « {{rivalQuote}} ». Qu’avez-vous à lui répondre ?",
+      text: "Comment répondez-vous à {{rivalDirectorName}}, qui a déclaré : « {{rivalQuote}} » ?",
     },
     {
       id: "rebound-surprised",
@@ -927,19 +927,19 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
       id: "rebound-rivalry",
       category: "rivalry",
       requires: "rival_quote",
-      text: "Après ces mots de {{rivalDirectorName}} — « {{rivalQuote}} » — la rivalité entre {{teamName}} et {{rivalTeamName}} change-t-elle de dimension ?",
+      text: "Les propos de {{rivalDirectorName}} — « {{rivalQuote}} » — changent-ils votre façon d’aborder les prochaines courses face à {{rivalTeamName}} ?",
     },
     {
       id: "rebound-clarify",
       category: "rivalry",
       requires: "rival_quote",
-      text: "{{rivalDirectorName}} affirme : « {{rivalQuote}} ». Souhaitez-vous rectifier ou nuancer ses propos ?",
+      text: "Quel est votre point de vue sur les propos de {{rivalDirectorName}} : « {{rivalQuote}} » ?",
     },
     {
       id: "rebound-pressure",
       category: "rivalry",
       requires: "rival_quote",
-      text: "La sortie de {{rivalDirectorName}} — « {{rivalQuote}} » — ajoute-t-elle une pression particulière sur votre groupe ?",
+      text: "Pensez-vous que les propos de {{rivalDirectorName}} — « {{rivalQuote}} » — auront un effet sur vos coureurs ?",
     },
     {
       id: "rebound-next-race",
@@ -1001,12 +1001,12 @@ export function selectPostRaceInterviewQuestions(
     const topics = [...new Set(candidates.map(topicOf))];
     const unseenTopics = topics.filter((topic) => !recentTopicIndexes.has(topic));
     const nextTopic = unseenTopics.length
-      ? unseenTopics[seededIndex([seed, "topic", selected.length].join(":"), unseenTopics.length)]
+      ? unseenTopics[seededInterviewIndex([seed, "topic", selected.length].join(":"), unseenTopics.length)]
       : topics.sort((a, b) => (recentTopicIndexes.get(b) ?? -1) - (recentTopicIndexes.get(a) ?? -1))[0];
     const variants = candidates.filter((question) => topicOf(question) === nextTopic);
     const unusedVariants = variants.filter(({ id }) => !recentIds.has(id));
     const pool = unusedVariants.length ? unusedVariants : variants;
-    const question = pool[seededIndex([seed, selected.length].join(":"), pool.length)];
+    const question = pool[seededInterviewIndex([seed, selected.length].join(":"), pool.length)];
     if (!question) throw new Error("Aucune question de zone mixte n’est disponible.");
     selected.push(question);
   }
@@ -1047,16 +1047,16 @@ function eligibleQuestions(context: PostRaceInterviewContext) {
       return false;
     }
     if (question.text.includes("{{gapLabel}}") && !context.gapLabel) return false;
-    if (question.requires === "breakaway") return context.tookBreakaway;
+    if (question.requires === "breakaway") return raceType === "road" && context.tookBreakaway;
     if (question.requires === "race_breakaway") {
-      return Boolean(context.raceFacts?.breakawayOccurred);
+      return raceType === "road" && Boolean(context.raceFacts?.breakawayOccurred);
     }
-    if (question.requires === "chase") return context.tookChase;
+    if (question.requires === "chase") return raceType === "road" && context.tookChase;
     if (question.requires === "crash") {
       return Boolean(context.raceFacts?.crashOccurred);
     }
     if (question.requires === "crosswind") {
-      return Boolean(context.raceFacts?.crosswindOccurred);
+      return raceType === "road" && Boolean(context.raceFacts?.crosswindOccurred);
     }
     if (question.requires === "weather") return Boolean(context.weatherLabel);
     if (question.requires === "uci") return context.uciRank !== null;
@@ -1095,7 +1095,7 @@ function shouldAskRivalryQuestion(
     : context.rivalry.kind === "opinion"
       ? 4
       : 2;
-  return seededIndex(`${seed}:rivalry`, frequency) === 0;
+  return seededInterviewIndex(`${seed}:rivalry`, frequency) === 0;
 }
 
 function getInterviewRaceType(context: PostRaceInterviewContext) {
@@ -1144,11 +1144,14 @@ function renderQuestion(template: string, context: PostRaceInterviewContext) {
   );
 }
 
-function seededIndex(seed: string, length: number) {
+export function seededInterviewIndex(seed: string, length: number) {
   let hash = 2166136261;
   for (let index = 0; index < seed.length; index += 1) {
     hash ^= seed.charCodeAt(index);
     hash = Math.imul(hash, 16777619);
   }
-  return Math.abs(hash) % Math.max(1, length);
+  // Mix the final bits so related seeds do not favor the same positions in even-sized pools.
+  hash = Math.imul(hash ^ (hash >>> 16), 0x85ebca6b);
+  hash = Math.imul(hash ^ (hash >>> 13), 0xc2b2ae35);
+  return ((hash ^ (hash >>> 16)) >>> 0) % Math.max(1, length);
 }
