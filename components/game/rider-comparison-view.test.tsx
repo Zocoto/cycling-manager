@@ -71,6 +71,7 @@ function createProfile({
 }): PublicRiderProfile {
   return {
     id,
+    personalityKey: null,
     firstName,
     lastName,
     status: "active",

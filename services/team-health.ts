@@ -1,5 +1,7 @@
 import "server-only";
 
+import { parseRiderPersonalityKey, type RiderPersonalityKey } from "@/lib/game/rider-personalities";
+
 import {
   FORM_CAMP_TYPES,
   NUTRITION_INTERVENTIONS,
@@ -40,6 +42,7 @@ type TeamSeasonRow = {
 type ContractRow = { rider_id: string };
 type RiderRow = {
   id: string;
+  personality_key?: string | null;
   country_id: string;
   first_name: string;
   last_name: string;
@@ -227,6 +230,7 @@ export type RiderFormCamp = {
 
 export type TeamHealthRider = {
   id: string;
+  personalityKey?: RiderPersonalityKey | null;
   firstName: string;
   lastName: string;
   countryName: string;
@@ -439,7 +443,7 @@ export async function getCurrentTeamHealthOverview(
       admin
         .from("riders")
         .select(
-          "id, country_id, first_name, last_name, avatar_profile_key, avatar_seed, height_cm, weight_kg, baseline_weight_kg, physiology_version, rider_special_abilities(ability_code)",
+          "id, country_id, first_name, last_name, avatar_profile_key, avatar_seed, height_cm, weight_kg, baseline_weight_kg, physiology_version, personality_key, rider_special_abilities(ability_code)",
         )
         .in("id", riderIds)
         .eq("rider_special_abilities.ability_code", "etapovore")
@@ -730,6 +734,7 @@ export async function getCurrentTeamHealthOverview(
         return {
           id: rider.id,
           firstName: rider.first_name,
+          personalityKey: parseRiderPersonalityKey(rider.personality_key),
           lastName: rider.last_name,
           countryName: country?.name ?? "Pays inconnu",
           countryCode: country?.iso_alpha2 ?? "xx",

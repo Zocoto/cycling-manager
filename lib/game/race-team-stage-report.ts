@@ -1,6 +1,6 @@
 import type { RaceCourseJournalEntry } from "./race-course-journal";
 import type { OfficialRiderResult } from "./race-results";
-import { RACE_ROLE_LABELS, type StageSimulationResult } from "./race-simulation";
+import { RACE_ROLE_LABELS, type RacePersonalityEvent, type StageSimulationResult } from "./race-simulation";
 import type { RaceTeamWorkKind } from "./race-team-work";
 
 export type TeamStageEvent = {
@@ -153,6 +153,18 @@ export function buildTeamStageReport({ teamId, stageId, results, simulation, cou
     }
   }
   const workByRider = new Map(ownResults.map((rider) => [rider.riderId, { protection: 0, recovery: 0, peloton: 0, leadout: 0 }]));
+  for (const event of recorded?.personalityEvents ?? []) {
+    if (!ownIds.has(event.riderId)) continue;
+    const riderName = names.get(event.riderId)!;
+    const targetName = "targetRiderId" in event ? resolved.get(event.targetRiderId)?.name : undefined;
+    const copy = describeRacePersonalityEvent(event, riderName, targetName);
+    push({
+      id: `personality-${event.riderId}-${event.kind}`,
+      distanceKm: event.distanceKm,
+      ...copy,
+      riderIds: [event.riderId],
+    });
+  }
   for (const [index, period] of (recorded?.teamWork ?? []).entries()) {
     if (!ownIds.has(period.riderId)) continue;
     const work = workByRider.get(period.riderId)!;
@@ -177,6 +189,23 @@ export function buildTeamStageReport({ teamId, stageId, results, simulation, cou
       workKm: recorded?.teamWork !== undefined ? workByRider.get(result.riderId)! : null,
     })),
   };
+}
+
+function describeRacePersonalityEvent(event: RacePersonalityEvent, riderName: string, targetName?: string) {
+  switch (event.kind) {
+    case "solo_effort":
+      return { title: "Franc-tireur", detail: `${riderName} économise de l’énergie en dosant son effort en solitaire.` };
+    case "followed_move":
+      return targetName
+        ? { title: "Opportuniste", detail: `${riderName} réagit au mouvement de ${targetName} en partant à sa poursuite.` }
+        : { title: "Opportuniste", detail: `${riderName} réagit à une offensive adverse en partant en poursuite.` };
+    case "saved_reserves":
+      return { title: "Calculateur", detail: `${riderName} conserve ses réserves et renonce à une contre-attaque.` };
+    case "recovery_support":
+      return targetName
+        ? { title: "Solidaire", detail: `${riderName} se porte volontaire pour épauler ${targetName} après son décrochage.` }
+        : { title: "Solidaire", detail: `${riderName} se porte volontaire pour épauler son leader distancé.` };
+  }
 }
 
 function normalizedCommentary(message: string) {

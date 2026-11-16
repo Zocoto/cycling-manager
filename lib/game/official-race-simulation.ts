@@ -102,7 +102,7 @@ export function buildOfficialStageRaceStandings(
 }
 
 export const OFFICIAL_RACE_ENGINE_VERSION =
-  "2026.11-hard-stage-team-attrition-v61";
+  "2026.11-rider-personalities-v62";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;

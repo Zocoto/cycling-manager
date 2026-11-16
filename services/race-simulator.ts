@@ -11,6 +11,7 @@ import {
   type RiderSpecialAbility,
 } from "@/lib/game/special-abilities";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { parseRiderPersonalityKey } from "@/lib/game/rider-personalities";
 import {
   getActiveSeasonRaceCalendar,
   loadActiveRaceTeamSponsorVisuals,
@@ -44,6 +45,7 @@ type RiderRow = {
   first_name: string;
   last_name: string;
   career_race_days: number;
+  personality_key: string | null;
 };
 
 type RiderIdRow = {
@@ -188,7 +190,7 @@ export async function getRaceSimulatorTeams(): Promise<RaceSimulatorTeam[]> {
     await Promise.all([
       admin
         .from("riders")
-        .select("id, country_id, first_name, last_name, career_race_days")
+        .select("id, country_id, first_name, last_name, career_race_days, personality_key")
         .in("id", riderIds)
         .returns<RiderRow[]>(),
       admin
@@ -378,6 +380,7 @@ function toSimulatorRider({
     age: rating.age,
     form,
     morale,
+    personalityKey: parseRiderPersonalityKey(rider.personality_key),
     careerRaceDays: Number(rider.career_race_days ?? 0),
     ratings: toSimulationRatings(rating),
     specialAbilities,

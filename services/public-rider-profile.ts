@@ -19,6 +19,7 @@ import {
 } from "@/lib/game/squad-status";
 import { getDailyConditionHistoryLabel } from "@/lib/game/rider-form-history";
 import type { RiderMoraleEvent } from "@/lib/game/rider-morale";
+import { parseRiderPersonalityKey, type RiderPersonalityKey } from "@/lib/game/rider-personalities";
 import {
   isRiderSpecialAbility,
   type RiderSpecialAbility,
@@ -56,6 +57,7 @@ export type RiderEquipmentSlot = EquipmentSlot;
 
 export type PublicRiderProfile = {
   id: string;
+  personalityKey: RiderPersonalityKey | null;
   firstName: string;
   lastName: string;
   status: string;
@@ -207,6 +209,7 @@ export type RiderFormEvent = {
 
 type RiderRow = {
   id: string;
+  personality_key?: string | null;
   country_id: string;
   first_name: string;
   last_name: string;
@@ -479,7 +482,7 @@ export async function getPublicRiderProfile({
   const { data: rider, error: riderError } = await supabase
     .from("riders")
     .select(
-      "id, country_id, first_name, last_name, status, avatar_profile_key, avatar_seed, potential_steps, career_race_days, height_cm, weight_kg, baseline_weight_kg, physiology_version",
+      "id, country_id, first_name, last_name, status, avatar_profile_key, avatar_seed, potential_steps, career_race_days, height_cm, weight_kg, baseline_weight_kg, physiology_version, personality_key",
     )
     .eq("id", riderId)
     .maybeSingle<RiderRow>();
@@ -1241,6 +1244,7 @@ export async function getPublicRiderProfile({
 
   return {
     id: rider.id,
+    personalityKey: parseRiderPersonalityKey(rider.personality_key),
     firstName: rider.first_name,
     lastName: rider.last_name,
     status: rider.status,

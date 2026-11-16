@@ -1,4 +1,5 @@
 import type { RiderRatingKey } from "@/lib/game/rider-profile";
+import type { RiderPersonalityKey } from "@/lib/game/rider-personalities";
 import {
   getPotentialStatCap,
   getTrainingDomainWeight,
@@ -331,6 +332,7 @@ export function calculateYouthManualTrainingGain({
   youthCoachSpecialty = null,
   youthCoachTalentSpecialties = [],
   youthCoachCountryMatch = false,
+  personalityKey = null,
   domain,
   ratingKey,
 }: {
@@ -345,6 +347,7 @@ export function calculateYouthManualTrainingGain({
   youthCoachSpecialty?: TrainerSpecialty | null;
   youthCoachTalentSpecialties?: readonly TrainerSpecialty[];
   youthCoachCountryMatch?: boolean;
+  personalityKey?: RiderPersonalityKey | null;
   domain: YouthTrainingDomain;
   ratingKey: RiderRatingKey;
 }) {
@@ -374,7 +377,8 @@ export function calculateYouthManualTrainingGain({
       talentSpecialties: youthCoachTalentSpecialties,
       countryMatch: youthCoachCountryMatch,
       ratingKey,
-    });
+    }) *
+    (personalityKey === "assidu" ? 1.05 : 1);
   return Math.min(
     gain,
     Math.max(0, getPotentialStatCap(potentialSteps) - currentProjectedRating),
@@ -392,6 +396,7 @@ export function calculateYouthAutomaticTrainingGain({
   youthCoachSpecialty = null,
   youthCoachTalentSpecialties = [],
   youthCoachCountryMatch = false,
+  personalityKey = null,
   domain,
   ratingKey,
 }: {
@@ -406,6 +411,7 @@ export function calculateYouthAutomaticTrainingGain({
   youthCoachSpecialty?: TrainerSpecialty | null;
   youthCoachTalentSpecialties?: readonly TrainerSpecialty[];
   youthCoachCountryMatch?: boolean;
+  personalityKey?: RiderPersonalityKey | null;
   domain: YouthTrainingDomain;
   ratingKey: RiderRatingKey;
 }) {
@@ -432,7 +438,8 @@ export function calculateYouthAutomaticTrainingGain({
       talentSpecialties: youthCoachTalentSpecialties,
       countryMatch: youthCoachCountryMatch,
       ratingKey,
-    });
+    }) *
+    (personalityKey === "assidu" ? 1.05 : 1);
   return Math.min(
     gain,
     Math.max(0, getPotentialStatCap(potentialSteps) - currentProjectedRating),

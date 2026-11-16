@@ -49,6 +49,18 @@ describe("team stage report", () => {
     expect(report.riders.every((rider) => rider.workKm === null && rider.relayKm === null)).toBe(true);
     expect(report.events.some((event) => event.title === "Protection")).toBe(false);
   });
+  it("nomme le caractère et son effet pour le coureur concerné", () => {
+    const recorded = simulation();
+    recorded.personalityEvents = [
+      { kind: "recovery_support", riderId: "helper", targetRiderId: "leader", distanceKm: 20 },
+      { kind: "solo_effort", riderId: "other", distanceKm: 20 },
+    ];
+    const report = buildTeamStageReport({ teamId: "own", stageId: "stage", results, simulation: recorded })!;
+    expect(report.events.filter(({ id }) => id.startsWith("personality-"))).toEqual([{
+      id: "personality-helper-recovery_support", title: "Solidaire", distanceKm: 20, riderIds: ["helper"],
+      detail: "Marc Petit se porte volontaire pour épauler Lucas Martin après son décrochage.",
+    }]);
+  });
   it("raconte une reprise confirmée une seule fois et garde le retour des autres équipiers", () => {
     const recorded = simulation();
     const message = "Marc Petit est repris par le peloton et se replace dans les roues.";

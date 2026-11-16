@@ -24,6 +24,8 @@ import {
 } from "@/components/game/rider-comparison-launcher";
 import { RiderSeasonPlanning } from "../../../components/game/rider-season-planning";
 import { RiderMoraleGauge } from "@/components/game/rider-morale-gauge";
+import { RiderPersonalityBadge } from "@/components/game/rider-personality";
+import type { RiderPersonalityKey } from "@/lib/game/rider-personalities";
 import { SeasonRaceDaysBadge } from "@/components/game/season-race-days-badge";
 import { SquadStatusEditor, SquadStatusesBulkEditor } from "@/components/game/squad-status-editor";
 import { TeamContractManagement } from "@/components/game/team-contract-management";
@@ -123,6 +125,7 @@ type RiderRow = {
 type RiderRosterHealth = {
   form: number;
   morale: number;
+  personalityKey?: RiderPersonalityKey | null;
   seasonRaceDays?: number;
   hasEtapovore?: boolean;
   moraleEvents: RiderMoraleEvent[];
@@ -368,6 +371,7 @@ export default async function TeamRosterPage({
       {
         form: rider.form,
         morale: rider.morale,
+        personalityKey: rider.personalityKey,
         seasonRaceDays: rider.seasonRaceDays,
         hasEtapovore: rider.hasEtapovore,
         moraleEvents: rider.moraleEvents,
@@ -1241,6 +1245,7 @@ function RiderMobileCard({
               <span className="inline-flex max-w-full rounded-full bg-[#D7EEE8] px-2.5 py-1 text-[11px] font-extrabold leading-4 text-[#176951]">
                 {riderProfile}
               </span>
+              <RiderPersonalityBadge personality={health?.personalityKey} />
               <SeasonRaceDaysBadge
                 seasonRaceDays={health?.seasonRaceDays}
                 hasEtapovore={health?.hasEtapovore}
@@ -1434,6 +1439,7 @@ function RiderTableRow({
           </div>
         </Link>
         <div className="mt-2 flex flex-wrap items-center gap-2">
+          <RiderPersonalityBadge personality={health?.personalityKey} />
           <SeasonRaceDaysBadge
             seasonRaceDays={health?.seasonRaceDays}
             hasEtapovore={health?.hasEtapovore}

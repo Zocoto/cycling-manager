@@ -96,7 +96,7 @@ describe("race preparation context season window", () => {
       countries: [{ id: "fr", name: "France", iso_alpha2: "FR", continent_code: "EU" }],
       stages: [1, 28].map((day, index) => ({ id: `stage-${day}`, race_edition_id: "edition", stage_number: index + 1, stage_type: "road", profile_type: "flat", distance_km: 100, season_day_id: `day-${day}`, day_slot: "early", departure_at: day === 1 ? "2026-10-09T12:00:00Z" : "2026-11-05T12:00:00Z", status: "planned", name: `Étape ${index + 1}` })),
       get_calendar_engaged_riders: [{ race_edition_id: "edition", rider_id: RIDER, team_id: "team", rider_first_name: "Test", rider_last_name: "Rider", team_name: "Team", team_primary_color: "#176951", team_secondary_color: "#ffffff", age: 25, form: 80, race_role: "leader", mountain: 75, hills: 75, flat: 75, time_trial: 75, cobbles: 75, sprint: 75, acceleration: 75, downhill: 75, endurance: 75, resistance: 75, recovery: 75, breakaway: 75, prologue: 75, equipment_effects: [] }],
-      riders: [{ id: RIDER, country_id: "fr", avatar_profile_key: "classic", avatar_seed: 12, career_race_days: 56, height_cm: 182, weight_kg: 72, baseline_weight_kg: 72, physiology_version: 1 }],
+      riders: [{ id: RIDER, country_id: "fr", avatar_profile_key: "classic", avatar_seed: 12, career_race_days: 56, height_cm: 182, weight_kg: 72, baseline_weight_kg: 72, physiology_version: 1, personality_key: "franc_tireur" }],
       rider_performance_preparations: [
         preparation(MIN_DAY - 6, MIN_DAY - 1, 1),
         preparation(MIN_DAY - 5, MIN_DAY, 1.5),
@@ -113,13 +113,14 @@ describe("race preparation context season window", () => {
   it("sends full-season bounds in the existing RPC body with no extra database read", async () => {
     const calendar = await load();
     expect(fixture.calls.filter((call) => call.source === "get_race_calendar_rider_context")).toEqual([
-      { source: "get_race_calendar_rider_context", args: { p_rider_ids: [RIDER], p_min_game_day: MIN_DAY, p_max_game_day: MAX_DAY } },
+      { source: "get_race_calendar_rider_context", args: { p_rider_ids: [RIDER], p_min_game_day: MIN_DAY, p_max_game_day: MAX_DAY, p_include_personality: true } },
     ]);
     expect(fixture.calls.some((call) => call.source === "rider_performance_preparations")).toBe(false);
     expect(fixture.calls.filter((call) => call.source === "seasons")).toHaveLength(1);
     expect(riderPreparations(calendar).map((row) => row.ratingBonus)).toEqual([1.5, 2, 2.5, 3]);
     const rider = calendar!.editions[0].engagedRiders[0];
     expect(rider.careerRaceDays).toBe(56);
+    expect(rider.personalityKey).toBe("franc_tireur");
     expect(rider.physiology).toEqual({ heightCm: 182, weightKg: 72, baselineWeightKg: 72, physiologyVersion: 1 });
   });
 
@@ -191,7 +192,7 @@ describe("race preparation context season window", () => {
     fixture.rows.seasons[0].game_year = year;
     await load();
     expect(fixture.calls.find((call) => call.source === "get_race_calendar_rider_context")?.args).toEqual({
-      p_rider_ids: [RIDER], p_min_game_day: year * 28, p_max_game_day: year * 28 + 27,
+      p_rider_ids: [RIDER], p_min_game_day: year * 28, p_max_game_day: year * 28 + 27, p_include_personality: true,
     });
   });
 

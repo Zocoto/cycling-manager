@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { RiderPersonalityBadge } from "@/components/game/rider-personality";
 import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -1150,6 +1151,7 @@ function AcademyRiderCard({
             <p className="mt-0.5 text-xs font-extrabold text-[#278B70]">
               {rider.sportingProfile}
             </p>
+            <div className="mt-1.5"><RiderPersonalityBadge personality={rider.personalityKey} /></div>
             {rider.heightCm !== null && rider.weightKg !== null ? (
               <p className="mt-1 text-[10px] font-bold text-[#60756E]">
                 {rider.heightCm.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} cm · {rider.weightKg.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kg
@@ -1595,6 +1597,7 @@ function CandidateCard({
           <p className="mt-1 text-xs font-extrabold text-[#278B70]">
             {candidate.sportingProfile}
           </p>
+          <div className="mt-1.5"><RiderPersonalityBadge personality={candidate.personalityKey} /></div>
           {candidate.heightCm !== null && candidate.weightKg !== null ? (
             <p className="mt-1 text-[10px] font-bold text-[#60756E]">
               {candidate.heightCm.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} cm · {candidate.weightKg.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kg

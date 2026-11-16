@@ -49,6 +49,7 @@ import {
   type TimeTrialRiderPlan,
 } from "./time-trial-preparation";
 import { getRiderExperienceRaceBonus } from "./rider-experience";
+import type { RiderPersonalityKey } from "./rider-personalities";
 import {
   DEFAULT_RIDER_MORALE,
   getRiderMoraleExecutionBias,
@@ -266,6 +267,7 @@ export type RiderSimulationInput = {
   age: number;
   form: number;
   morale?: number;
+  personalityKey?: RiderPersonalityKey | null;
   physiology?: RiderPhysiology | null;
   careerRaceDays?: number;
   countryCode?: string | null;
@@ -425,6 +427,7 @@ export type StageSimulationResult = {
   /** Frozen sporting finish category; absent on historical locks. */
   roadFinishMode?: RoadFinishMode;
   teamWork?: import("./race-team-work").RaceTeamWorkPeriod[];
+  personalityEvents?: RacePersonalityEvent[];
   stageId: string;
   seed: string;
   resolvedRiders: RiderSimulationInput[];
@@ -450,6 +453,16 @@ export type StageSimulationResult = {
   sprintPoints: Record<string, number>;
   tacticalReports?: RaceTacticalReport[];
 };
+
+export type RacePersonalityEvent = {
+  riderId: string;
+  distanceKm: number;
+} & (
+  | { kind: "solo_effort" }
+  | { kind: "followed_move"; targetRiderId: string }
+  | { kind: "saved_reserves" }
+  | { kind: "recovery_support"; targetRiderId: string }
+);
 
 export type StageAttackParticipant = {
   riderId: string;
@@ -763,7 +776,13 @@ type RiderState = {
   lateRecoveryEffortSeconds?: number;
   tacticalFinishBonus?: number;
   tacticalNoiseMultiplier?: number;
+  personalitySoloKm?: number;
+  personalityFollowUsed?: boolean;
 };
+
+const FRANC_TIREUR_SOLO_ENERGY_REDUCTION = 0.065;
+const FRANC_TIREUR_SOLO_DISTANCE_LIMIT_KM = 24;
+const SOLIDAIRE_RECOVERY_HELPER_SCORE_BONUS = 3.5;
 
 export type RoadFinishMode = "mass_sprint" | "reduced_sprint" | "selective";
 
@@ -2282,6 +2301,11 @@ function getHardStageAttrition(
 
 function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
   const teamWorkRecorder = createRaceTeamWorkRecorder();
+  const personalityEvents = new Map<string, RacePersonalityEvent>();
+  const recordPersonalityEvent = (event: RacePersonalityEvent) => {
+    const key = `${event.riderId}:${event.kind}`;
+    if (!personalityEvents.has(key)) personalityEvents.set(key, event);
+  };
   const random = createSeededRandom(`${input.id}:${input.seed}:road`);
   const dynamicAttackRandom = createSeededRandom(
     `${input.id}:${input.seed}:road:dynamic-attacks`,
@@ -2499,8 +2523,10 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       totalDistanceKm,
       teamStrategies: input.teamStrategies ?? [],
       generalClassification: input.generalClassification,
+      eligibleUnplannedAttackIds: attackPlan.eligibleUnplannedAttackIds,
       random,
       commentary,
+      recordPersonalityEvent,
     });
     if (
       strategyAttackLaunched &&
@@ -3424,7 +3450,15 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
         if (leadoutFinalWork) {
           teamWorkRecorder.record({ ...workPeriod, kind: "leadout", targetRiderIds: [] });
         }
-        state.energy = updateRiderEnergy({
+        const soloDistance =
+          state.rider.personalityKey === "franc_tireur" &&
+          groupSize === 1 &&
+          state.energy > 0 &&
+          (state.group === "breakaway" || state.group === "breakaway_2" || state.group === "chase") &&
+          tick.terrain !== "descent"
+            ? clamp(FRANC_TIREUR_SOLO_DISTANCE_LIMIT_KM - (state.personalitySoloKm ?? 0), 0, tick.distanceKm)
+            : 0;
+        const energy = updateRiderEnergy({
           state,
           segment: tick,
           segmentIndex: physicalSegmentIndex,
@@ -3460,6 +3494,19 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
           attrition,
           distanceProgress: energyCompletedDistanceKm / totalDistanceKm,
         });
+        if (soloDistance > 0 && energy < state.energy) {
+          const saved = (state.energy - energy) *
+            FRANC_TIREUR_SOLO_ENERGY_REDUCTION * (soloDistance / tick.distanceKm);
+          state.energy = energy + saved;
+          state.personalitySoloKm = (state.personalitySoloKm ?? 0) + soloDistance;
+          recordPersonalityEvent({
+            kind: "solo_effort",
+            riderId: state.rider.id,
+            distanceKm: energyCompletedDistanceKm - tick.distanceKm,
+          });
+        } else {
+          state.energy = energy;
+        }
         accrueCollectiveWorkload({
           state,
           segment: tick,
@@ -3547,6 +3594,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
         eligibleUnplannedAttackIds: attackPlan.eligibleUnplannedAttackIds,
         random: dynamicAttackRandom,
         commentary,
+        recordPersonalityEvent,
       })
     ) {
       lastOpportunisticAttackAtKm = counterAttackWindow.atDistanceKm;
@@ -3722,6 +3770,8 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       ),
       random,
       commentary,
+      distanceKm: completedDistanceKm + segment.distanceKm,
+      recordPersonalityEvent,
     });
 
     organizeGrupetto({
@@ -4099,6 +4149,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     sprintPoints,
     tacticalReports: tacticalResolution.reports,
     teamWork: teamWorkRecorder.periods,
+    ...(personalityEvents.size > 0 ? { personalityEvents: [...personalityEvents.values()] } : {}),
   };
 }
 
@@ -4818,6 +4869,10 @@ export function selectStageAttackPlan(
         (teamStrategy?.breakawayPolicy === "target" ? 8 : 0) +
         (teamStrategy?.objective === "breakaway" ? 8 : 0) +
         (teamStrategy?.collectivePosture === "aggressive" ? 4 : 0);
+      const spontaneousPersonalityBonus = rider.raceDuty !== "breakaway_candidate" &&
+        teamStrategy?.breakawayPolicy !== "target" && teamStrategy?.objective !== "breakaway"
+        ? rider.personalityKey === "franc_tireur" ? 4 : rider.personalityKey === "opportuniste" ? -4 : 0
+        : 0;
       const roleBonus =
         rider.role === "free_agent"
           ? 14
@@ -4836,6 +4891,7 @@ export function selectStageAttackPlan(
         abilityBonus +
         tacticalBonus -
         favoriteTeamPenalty +
+        spontaneousPersonalityBonus +
         random() * 15;
       return { rider, score, favoriteTier };
     })
@@ -5026,8 +5082,10 @@ function attemptPlannedStrategyAttacks({
   totalDistanceKm,
   teamStrategies,
   generalClassification,
+  eligibleUnplannedAttackIds,
   random,
   commentary,
+  recordPersonalityEvent,
 }: {
   orders: Array<RaceAttackOrder & { teamId: string }>;
   states: Map<string, RiderState>;
@@ -5038,8 +5096,10 @@ function attemptPlannedStrategyAttacks({
   totalDistanceKm: number;
   teamStrategies: RaceTeamStrategy[];
   generalClassification?: StageSimulationInput["generalClassification"];
+  eligibleUnplannedAttackIds: ReadonlySet<string>;
   random: () => number;
   commentary: string[];
+  recordPersonalityEvent: (event: RacePersonalityEvent) => void;
 }) {
   if (orders.length === 0) return false;
 
@@ -5118,6 +5178,15 @@ function attemptPlannedStrategyAttacks({
     state.groupSinceSegment = segmentIndex;
     state.elapsedTimeSeconds -= initiativeSeconds;
   }
+  const mainAttacker = successfulAttackers[0];
+  followAttackAsOpportunist({
+    attacker: mainAttacker,
+    states,
+    eligibleUnplannedAttackIds,
+    attackStartElapsedTime: mainAttacker.elapsedTimeSeconds + initiativeSeconds,
+    distanceKm: completedDistanceKm,
+    recordPersonalityEvent,
+  });
 
   const remainingDistanceKm = Math.max(
     0,
@@ -5133,6 +5202,54 @@ function attemptPlannedStrategyAttacks({
   );
 
   return true;
+}
+
+function followAttackAsOpportunist({
+  attacker,
+  states,
+  eligibleUnplannedAttackIds,
+  attackStartElapsedTime,
+  distanceKm,
+  recordPersonalityEvent,
+}: {
+  attacker: RiderState;
+  states: ReadonlyMap<string, RiderState>;
+  eligibleUnplannedAttackIds: ReadonlySet<string>;
+  attackStartElapsedTime: number;
+  distanceKm: number;
+  recordPersonalityEvent: (event: RacePersonalityEvent) => void;
+}) {
+  const explosiveRating = getExplosiveAccelerationRating(attacker.rider);
+  const follower = [...states.values()]
+    .filter((state) =>
+      state.group === "peloton" &&
+      state.rider.personalityKey === "opportuniste" &&
+      state.rider.teamId !== attacker.rider.teamId &&
+      eligibleUnplannedAttackIds.has(state.rider.id) &&
+      !isRaceProtectionRole(state.rider.role) &&
+      !state.personalityFollowUsed &&
+      state.energy >= Math.max(32, attacker.energy - 12) &&
+      Math.abs(state.elapsedTimeSeconds - attackStartElapsedTime) <= 3 &&
+      getExplosiveAccelerationRating(state.rider) >= Math.max(62, explosiveRating - 5),
+    )
+    .sort((left, right) =>
+      getExplosiveAccelerationRating(right.rider) - getExplosiveAccelerationRating(left.rider) ||
+      right.energy - left.energy ||
+      left.rider.id.localeCompare(right.rider.id),
+    )[0];
+  if (!follower) return;
+
+  follower.personalityFollowUsed = true;
+  follower.group = attacker.group;
+  follower.groupSinceSegment = attacker.groupSinceSegment;
+  follower.elapsedTimeSeconds = attacker.elapsedTimeSeconds + 1.5;
+  follower.energy = Math.max(0, follower.energy - 3);
+  recordPersonalityEvent({
+    kind: "followed_move",
+    riderId: follower.rider.id,
+    targetRiderId: attacker.rider.id,
+    distanceKm,
+  });
 }
 
 /**
@@ -6640,6 +6757,8 @@ function deployLeaderRecoverySupport({
   incidentRiderIds,
   random,
   commentary,
+  distanceKm,
+  recordPersonalityEvent,
 }: {
   states: Map<string, RiderState>;
   segment: RaceStageSegment;
@@ -6653,6 +6772,8 @@ function deployLeaderRecoverySupport({
   incidentRiderIds: Set<string>;
   random: () => number;
   commentary: string[];
+  distanceKm: number;
+  recordPersonalityEvent: (event: RacePersonalityEvent) => void;
 }) {
   if (segmentIndex >= segmentCount - 1) return;
 
@@ -6771,7 +6892,21 @@ function deployLeaderRecoverySupport({
       teammateTargetPriorities,
       availableHelperCount: eligibleHelpers.length,
     });
-    const helpers = eligibleHelpers.slice(0, helperLimit);
+    const conventionalHelpers = eligibleHelpers.slice(0, helperLimit);
+    const volunteeringHelpers = eligibleHelpers.filter(({ rider }) =>
+      rider.personalityKey === "solidaire" && !rider.raceDuty,
+    );
+    const volunteerIds = new Set(volunteeringHelpers.map(({ rider }) => rider.id));
+    const volunteerBonus = ({ rider }: RiderState) =>
+      volunteerIds.has(rider.id) ? SOLIDAIRE_RECOVERY_HELPER_SCORE_BONUS : 0;
+    const helpers = volunteeringHelpers.length
+      ? [...eligibleHelpers].sort((first, second) =>
+          getLeaderRecoveryHelperPriority(second) - getLeaderRecoveryHelperPriority(first) ||
+          (getLeaderRecoveryHelperStrength(second, segment) + volunteerBonus(second)) -
+            (getLeaderRecoveryHelperStrength(first, segment) + volunteerBonus(first)) ||
+          first.rider.id.localeCompare(second.rider.id),
+        ).slice(0, helperLimit)
+      : conventionalHelpers;
     const recoveryRoll = random();
     const canFollow = canLeaderFollowRecoveryPace({
       leaderTerrainRating: getStateSelectionTerrainRating(
@@ -6789,7 +6924,10 @@ function deployLeaderRecoverySupport({
       surface: segment.surface,
     });
     if (!canFollow) {
-      const survivalHelper = eligibleHelpers.at(-1)!;
+      const conventionalSurvivalHelper = eligibleHelpers.at(-1)!;
+      const survivalHelper = volunteeringHelpers.find((helper) =>
+        getLeaderRecoveryHelperPriority(helper) === getLeaderRecoveryHelperPriority(conventionalSurvivalHelper),
+      ) ?? conventionalSurvivalHelper;
       const survivalGroupTime = Math.max(
         leader.elapsedTimeSeconds,
         survivalHelper.elapsedTimeSeconds,
@@ -6806,6 +6944,14 @@ function deployLeaderRecoverySupport({
       survivalHelper.elapsedTimeSeconds = survivalGroupTime;
       survivalHelper.lostTimeSeconds = survivalGroupLostTime;
       survivalHelper.supportingLeaderId = leader.rider.id;
+      if (survivalHelper !== conventionalSurvivalHelper) {
+        recordPersonalityEvent({
+          kind: "recovery_support",
+          riderId: survivalHelper.rider.id,
+          targetRiderId: leader.rider.id,
+          distanceKm,
+        });
+      }
       const message = `${leader.rider.name} n’a pas les jambes pour soutenir un retour vers le peloton dans cette difficulté ; ${survivalHelper.rider.name} reste avec lui pour limiter les dégâts, les autres équipiers restent disponibles pour le leader.`;
       if (commentary.length >= 4) commentary[3] = message;
       else commentary.push(message);
@@ -6844,6 +6990,14 @@ function deployLeaderRecoverySupport({
       helper.elapsedTimeSeconds = groupTime;
       helper.lostTimeSeconds = groupLostTime;
       helper.supportingLeaderId = leader.rider.id;
+      if (volunteerIds.has(helper.rider.id) && !conventionalHelpers.includes(helper)) {
+        recordPersonalityEvent({
+          kind: "recovery_support",
+          riderId: helper.rider.id,
+          targetRiderId: leader.rider.id,
+          distanceKm,
+        });
+      }
     }
 
     const message =
@@ -7297,6 +7451,7 @@ function maybeLaunchCounterAttack({
   eligibleUnplannedAttackIds,
   random,
   commentary,
+  recordPersonalityEvent,
 }: {
   states: Map<string, RiderState>;
   segmentIndex: number;
@@ -7307,6 +7462,7 @@ function maybeLaunchCounterAttack({
   eligibleUnplannedAttackIds: ReadonlySet<string>;
   random: () => number;
   commentary: string[];
+  recordPersonalityEvent: (event: RacePersonalityEvent) => void;
 }) {
   if (
     attackWindow.opportunity < 0.42 ||
@@ -7358,7 +7514,7 @@ function maybeLaunchCounterAttack({
 
   if (!candidate) return false;
 
-  const launchChance = clamp(
+  const baseChance =
     0.08 +
       (candidate.state.rider.role === "free_agent" ? 0.08 : 0) +
       (hasSpecialAbility(candidate.state.rider, "chase_potato") ? 0.17 : 0) +
@@ -7369,19 +7525,39 @@ function maybeLaunchCounterAttack({
         ? 0.08
         : candidate.favoriteTier === "medium"
           ? 0.03
-          : 0),
-    0.05,
-    0.42,
-  );
-
-  if (random() >= launchChance) return false;
-
+          : 0);
+  const personality = candidate.state.rider.personalityKey;
+  const personalityAdjustment = personality === "calculateur"
+    ? attackWindow.opportunity < 0.65 ? -0.08 : -0.03
+    : personality === "franc_tireur" ? 0.04 : 0;
+  const launchChance = clamp(baseChance + personalityAdjustment, 0.05, 0.42);
+  const neutralChance = clamp(baseChance, 0.05, 0.42);
+  const initiativeRoll = random();
+  if (initiativeRoll >= launchChance) {
+    if (personality === "calculateur" && initiativeRoll < neutralChance) {
+      recordPersonalityEvent({
+        kind: "saved_reserves",
+        riderId: candidate.state.rider.id,
+        distanceKm: attackWindow.atDistanceKm,
+      });
+    }
+    return false;
+  }
+  const attackStartElapsedTime = candidate.state.elapsedTimeSeconds;
   candidate.state.group = "chase";
   candidate.state.groupSinceSegment = segmentIndex;
   candidate.state.elapsedTimeSeconds -= Math.min(
     18,
     breakawayGapSeconds * 0.18,
   );
+  followAttackAsOpportunist({
+    attacker: candidate.state,
+    states,
+    eligibleUnplannedAttackIds,
+    attackStartElapsedTime,
+    distanceKm: attackWindow.atDistanceKm,
+    recordPersonalityEvent,
+  });
   commentary.push(
     hasSpecialAbility(candidate.state.rider, "chase_potato")
       ? candidate.state.rider.name +

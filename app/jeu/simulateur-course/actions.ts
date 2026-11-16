@@ -108,6 +108,7 @@ export async function runRaceSimulatorAction(
           age: rider.age,
           form: rider.form,
           careerRaceDays: rider.careerRaceDays,
+          personalityKey: rider.personalityKey,
           countryCode: rider.countryCode,
           role: "auto" as const,
           specialAbilities: rider.specialAbilities,

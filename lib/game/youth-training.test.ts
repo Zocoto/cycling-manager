@@ -152,6 +152,25 @@ function simulateYouthCareer({
 }
 
 describe("youth training", () => {
+  it("bonifie les séances d’un junior assidu sans dépasser son plafond", () => {
+    const session = {
+      age: 17,
+      potentialSteps: 1,
+      currentProjectedRating: 50,
+      domain: "climber",
+      ratingKey: "mountain",
+    } as const;
+    const assidu = { ...session, personalityKey: "assidu" as const };
+    const manual = { ...session, score: 900 };
+
+    expect(calculateYouthAutomaticTrainingGain(assidu))
+      .toBeCloseTo(calculateYouthAutomaticTrainingGain(session) * 1.05, 10);
+    expect(calculateYouthManualTrainingGain({ ...assidu, score: 900 }))
+      .toBeCloseTo(calculateYouthManualTrainingGain(manual) * 1.05, 10);
+    expect(calculateYouthAutomaticTrainingGain({ ...assidu, currentProjectedRating: 70 })).toBe(0);
+    expect(calculateYouthManualTrainingGain({ ...assidu, score: 900, currentProjectedRating: 70 })).toBe(0);
+  });
+
   it("caps both session types after all bonuses without lowering existing notes", () => {
     const context = { age: 17, potentialSteps: 1, currentProjectedRating: 70,
       schoolTrainingBonusPercentage: 100, youthCoachLevel: 5,

@@ -22,6 +22,7 @@ import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { TransferAuctionList } from "@/components/game/transfer-auction-list";
 import { TransferCountdown } from "@/components/game/transfer-countdown";
 import { TransferScoutingReportPanel } from "@/components/game/transfer-scouting-report";
+import { RiderPersonalityBadge } from "@/components/game/rider-personality";
 import { TransferSubmitButton } from "@/components/game/transfer-submit-button";
 import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
 import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
@@ -650,6 +651,7 @@ function AuctionCard({ listing, jersey, leaderSponsor, teamId, availableBudget, 
         <div className="mb-4 flex flex-wrap gap-2">
           <AuctionTypeBadge listing={listing} />
           <span className={`rounded-full px-3 py-1 text-xs font-black ${isFinished ? "bg-[#DDE2DF] text-[#5E6C67]" : "bg-[#DDF3E7] text-[#176951]"}`}>{listing.rider.profileLabel}</span>
+          <RiderPersonalityBadge personality={listing.rider.personalityKey} />
         </div>
         <TransferScoutingReportPanel report={listing.rider.scoutingReport} compact />
         <div className="mt-4 grid grid-cols-2 gap-3">
@@ -781,6 +783,7 @@ function RiderSearchCard({ rider, currency, currentTeamId, rosterIsFull, returnP
     <article className="min-w-0 max-w-full overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_16px_42px_rgba(19,60,46,0.09)]">
       <div className="flex items-center gap-4"><RiderAvatar profileKey={rider.avatarProfileKey} seed={rider.avatarSeed} riderId={rider.id} age={rider.age} jersey={FREE_AGENT_RIDER_JERSEY} label={`Portrait de ${rider.firstName} ${rider.lastName}`} className="h-20 w-20" /><div className="min-w-0 flex-1"><Link href={`/jeu/coureurs/${rider.id}`} target="_blank" className="block truncate text-lg font-black text-[#183F37] hover:text-[#176951]">{rider.firstName} {rider.lastName} ↗</Link><p className="mt-1 text-xs font-bold text-[#60756E]"><span className={`fi fi-${rider.countryCode.toLowerCase()} mr-2 rounded-sm`} />{rider.countryName} · {rider.age} ans</p><div className="mt-2 flex gap-2"><span className="rounded-full bg-[#EAF2FA] px-2.5 py-1 text-[10px] font-black text-[#256390]">{rider.profileLabel}</span></div></div></div>
       <div className={`mt-4 rounded-xl px-4 py-3 ${isFreeAgent ? "bg-[#ECF8F1] text-[#176951]" : "bg-[#FFF8DD] text-[#705B00]"}`}><p className="text-[10px] font-black uppercase tracking-wider">{isFreeAgent ? "Libre" : isOwnRider ? "Votre effectif" : "Sous contrat"}</p><p className="mt-1 truncate text-sm font-black">{isFreeAgent ? "Disponible immédiatement" : (rider.teamName ?? "Équipe actuelle")}</p></div>
+      <div className="mt-3"><RiderPersonalityBadge personality={rider.personalityKey} /></div>
       <div className="mt-4"><TransferScoutingReportPanel report={rider.scoutingReport} compact /></div>
       <div className="mt-4 rounded-xl bg-[#F3F8F6] px-4 py-3"><p className="text-[10px] font-black uppercase tracking-wider text-[#60756E]">{isFreeAgent ? "Demande salariale" : "Salaire estimé après transfert"}</p><p className="mt-1 text-lg font-black text-[#183F37]">{formatMoney(Math.round(seasonSalary / 4), currency)} / semaine</p><p className="text-[10px] font-bold text-[#60756E]">{formatMoney(seasonSalary, currency)} par saison</p></div>
       {rider.hasChangedTeamThisSeason ? <p className="mt-4 rounded-xl bg-[#FFF0EE] px-4 py-3 text-center text-xs font-black text-[#8A2F2F]">Ce coureur a déjà changé d’équipe cette saison · nouveau transfert impossible</p> : null}

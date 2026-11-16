@@ -49,6 +49,10 @@ import {
   type YouthRatings,
 } from "@/lib/game/youth-development";
 import { getRiderSportingProfile } from "@/lib/game/rider-profile";
+import {
+  parseRiderPersonalityKey,
+  type RiderPersonalityKey,
+} from "@/lib/game/rider-personalities";
 import { createThirdGenerationRiderAvatarSeed } from "@/lib/rider-avatar";
 import {
   getSpecialAbilityDefinition,
@@ -212,6 +216,7 @@ type CandidateRow = {
   international_center_bonus_applied: boolean;
   international_center_bonus_percentage: number;
   native_special_ability_code: string | null;
+  personality_key?: string | null;
   federal_tuition_reduction_percentage: number | string;
   scout_tuition_reduction_percentage: number | string;
   data_room_tuition_reduction_percentage: number | string;
@@ -364,6 +369,7 @@ export type YouthCandidate = {
   internationalCenterBonusApplied: boolean;
   internationalCenterBonusPercentage: number;
   nativeSpecialAbility: SpecialAbilityDefinition | null;
+  personalityKey?: RiderPersonalityKey | null;
   tuitionDiscountBreakdown: BonusBreakdown;
 };
 
@@ -414,6 +420,7 @@ export type AcademyYouth = {
   sportingProfile: string;
   potentialSteps: number;
   nativeSpecialAbility: SpecialAbilityDefinition | null;
+  personalityKey?: RiderPersonalityKey | null;
   morale: number;
   moraleEvents: RiderMoraleEvent[];
   ratings: YouthRatings;
@@ -1243,6 +1250,7 @@ async function loadOverview(admin: AdminClient, context: Context) {
       nativeSpecialAbility: getSpecialAbilityDefinition(
         rider.native_special_ability_code,
       ),
+      personalityKey: parseRiderPersonalityKey(rider.personality_key),
       morale: toNumber(rider.morale ?? 60),
       moraleEvents: moraleEventsByRider.get(rider.id) ?? [],
       ratings: scaleYouthRatings(ratings),
@@ -2011,6 +2019,7 @@ async function settleAcademyTrainingSessions(
     if (rider.training_mode !== "automatic") continue;
 
     const ratings = rowToRatings(rider);
+    const personalityKey = parseRiderPersonalityKey(rider.personality_key);
     const sessions: Array<Record<string, unknown>> = [];
     const age = context.gameYear - rider.birth_game_year;
     const automaticSinceDay = getYouthAutomaticFirstDay({
@@ -2075,6 +2084,7 @@ async function settleAcademyTrainingSessions(
             effectiveYouthCoach?.talentSpecialties ?? [],
           youthCoachCountryMatch:
             effectiveYouthCoach?.countryId === rider.country_id,
+          personalityKey,
           domain: rider.training_priority,
           ratingKey: key,
         });
@@ -2556,6 +2566,7 @@ function toCandidate(
     nativeSpecialAbility: getSpecialAbilityDefinition(
       row.native_special_ability_code,
     ),
+    personalityKey: parseRiderPersonalityKey(row.personality_key),
     profileKey: row.avatar_profile_key,
     avatarSeed: String(row.avatar_seed),
     scoutingReport: revealExactValues

@@ -18,6 +18,7 @@ const MAINTENANCE_TASKS = [
   "refresh_due_rider_favorite_races",
   "settle_due_rider_morale",
   "settle_due_youth_rider_morale",
+  "settle_due_sociable_morale",
   "settle_due_federation_elections",
   "initialize_due_federation_presidencies",
   "settle_due_exceptional_federation_elections",

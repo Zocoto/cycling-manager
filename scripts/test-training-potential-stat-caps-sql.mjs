@@ -163,5 +163,58 @@ try {
   await db.exec("update seasons set current_day_number=3;");
   await db.query("select * from settle_due_training_sessions()");
   check((await ratings(102)).mountain,75,"potential item unlocks future training up to the new ceiling");
+
+  // The old fixture starts from the original club engine. Install the
+  // first-in-class factor that the shipped settlement has accumulated since.
+  await db.exec(`
+    alter table riders add column personality_key text;
+    alter table youth_academy_riders add column personality_key text;
+    do $fixture$
+    begin
+      execute replace(pg_get_functiondef('public.settle_due_training_sessions()'::regprocedure),
+        '* v_trainer_factor', '* v_trainer_factor * public.get_rider_training_progress_multiplier(v_rider.id)');
+    end;
+    $fixture$;
+  `);
+  const progression = read("20261117091000_apply_assidu_training_progression");
+  await db.exec(progression);
+  await db.exec(progression);
+
+  // Complete new sessions on the same day, with the same notes and form.
+  for (const [first, status, ledger, day] of [
+    [500, "active", "rider_training_sessions", 11],
+    [510, "free_agent", "free_agent_training_sessions", 13],
+  ]) {
+    for (let offset = 0; offset < 3; offset += 1) {
+      await createRider(first + offset, {
+        status, mountain: offset === 2 ? 70 : 50, balance: 0,
+      });
+    }
+    await db.query("update riders set personality_key='assidu' where id in ($1,$2)", [id(first + 1), id(first + 2)]);
+    if (status === "active") await db.query("select * from settle_due_training_sessions()");
+    else await db.query("select settle_due_free_agent_training(250)");
+    const progress = n => scalar(`select (progress_milli->>'mountain')::int value from ${ledger}
+      where rider_id=$1 and season_day_id=$2`, [id(n), id(day)]);
+    const base = await progress(first);
+    const assidu = await progress(first + 1);
+    check(base > 0, true, `${status}: unmodified training gain is positive`);
+    check(Math.abs(assidu - base * 1.05) <= 1 && assidu > base, true, `${status}: Assidu adds 5% before rounding`);
+    check(await progress(first + 2), 0, `${status}: Assidu respects the potential ceiling`);
+  }
+
+  // The fixture gives 20 projected points, or 2.5 raw points at a baseline of 1.
+  for (const [n, character, raw, expected] of [
+    [520, null, 1, 3.5],
+    [521, "assidu", 1, 3.625],
+    [522, "assidu", 4.499, 4.5],
+  ]) {
+    await db.query(`insert into youth_academy_riders(id,team_id,status,training_mode,potential_steps,personality_key,${stats.join(",")})
+      values($1,$2,'active','manual',1,$3,$4,${stats.slice(1).map(()=>"2").join(",")})`, [id(n), id(2), character, raw]);
+    await db.query(`insert into youth_academy_training_attempts(id,academy_rider_id,season_id,season_day_id,day_number,slot,training_priority,game_type,status,started_at,expires_at)
+      values($1,$2,$3,$4,3,case when extract(hour from now() at time zone 'Europe/Paris')<12 then 'manual_am' else 'manual_pm' end,'climber','rhythm','started',now()-interval '1 minute',now()+interval '1 hour')`, [id(n + 100), id(n), id(1), id(13)]);
+    await db.query("select complete_current_youth_training_attempt($1,1000)", [id(n + 100)]);
+    check(Number(await scalar("select mountain value from youth_academy_riders where id=$1", [id(n)])), expected,
+      `manual youth ${n}: gain includes Assidu before the final cap`);
+  }
   console.log(JSON.stringify({passed:checks,isolatedPostgres:true,productionFixtures:false,realItemBypass:true}));
 } finally { await db.close(); }

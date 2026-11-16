@@ -60,6 +60,7 @@ import {
 import { resolveFormerChampionshipBorder } from "@/lib/game/rider-championship-border";
 import { getRiderClimateProfile } from "@/lib/game/race-weather";
 import { isRiderMoraleTooLowForExtension, RIDER_LOW_MORALE_EXTENSION_MESSAGE } from "@/lib/game/rider-morale";
+import { RiderPersonalityCard } from "@/components/game/rider-personality";
 import { shouldDisplayNaturalizationCard } from "@/lib/game/naturalization";
 import {
   SPECIAL_ABILITY_CATALOG,
@@ -644,6 +645,7 @@ export default async function RiderProfilePage({
               />
             </div>
             <RiderClimateProfileCard profile={riderClimateProfile} />
+            <RiderPersonalityCard personality={profile.personalityKey} />
             <RiderFavoriteRacesCard races={favoriteRaces} />
             <div
               data-tutorial-id="rider-profile-abilities"

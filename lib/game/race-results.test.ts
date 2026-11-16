@@ -5,6 +5,7 @@ import {
   buildPersistedStageRaceStandings,
   buildTeamTimeTrialStageClassification,
   filterInactiveTeamsFromOfficialClassification,
+  getCharismaticReputationReasons,
   hasMinimumRaceEditionField,
   isRaceEditionSettlementCandidate,
   normalizeOfficialResultGapsToLeader,
@@ -39,6 +40,28 @@ const challengers = {
   sprintPoints: 0,
   abandonmentReason: null,
 };
+
+describe("réputation Charismatique", () => {
+  it("retient une seule récompense par coureur et privilégie la victoire", () => {
+    const rewards = getCharismaticReputationReasons({
+      personalityByRiderId: new Map([
+        ["winner", "charismatique"],
+        ["breakaway", "charismatique"],
+        ["chase", "charismatique"],
+        ["other", "solidaire"],
+      ]),
+      breakawayParticipants: [
+        { riderId: "winner", participationType: "breakaway", firstSegmentNumber: 1 },
+        { riderId: "breakaway", participationType: "breakaway", firstSegmentNumber: 1 },
+        { riderId: "breakaway", participationType: "breakaway", firstSegmentNumber: 2 },
+        { riderId: "chase", participationType: "chase", firstSegmentNumber: 1 },
+      ],
+      overallWinnerId: "winner",
+      stageWinnerIds: ["winner", "other"],
+    });
+    expect([...rewards]).toEqual([["winner", "victoire"], ["breakaway", "échappée"]]);
+  });
+});
 
 describe("shouldKeepRaceRosterInResultContext", () => {
   it("conserve un ancien partant retiré après un résultat homologué", () => {

@@ -1,5 +1,7 @@
 import "server-only";
 
+import { parseRiderPersonalityKey, type RiderPersonalityKey } from "@/lib/game/rider-personalities";
+
 import type { AmateurJerseyConfig } from "@/lib/amateur-team";
 import {
   RIDER_RATING_AXES,
@@ -64,6 +66,7 @@ type AcademyRow = {
   prologue: number | string;
   training_priority: string;
   native_special_ability_code: string | null;
+  personality_key?: string | null;
   status: "active" | "recruited" | "promoted" | "free_agent";
   promotion_game_year: number | null;
   career_race_days: number;
@@ -218,6 +221,7 @@ export type DevelopmentRider = {
   potentialSteps: number;
   sportingProfile: string;
   nativeSpecialAbility: SpecialAbilityDefinition | null;
+  personalityKey?: RiderPersonalityKey | null;
   ratings: RiderRatings;
   trainingPriority: string;
   status: AcademyRow["status"];
@@ -1110,6 +1114,7 @@ function toDevelopmentRider(
     nativeSpecialAbility: getSpecialAbilityDefinition(
       rider.native_special_ability_code,
     ),
+    personalityKey: parseRiderPersonalityKey(rider.personality_key),
     ratings,
     trainingPriority: rider.training_priority,
     status: rider.status,

@@ -32,6 +32,7 @@ import {
 } from "@/lib/game/race-calendar";
 import { buildDevelopmentRaceDisplaySegments } from "@/lib/game/development-race-profile";
 import type { RiderRatings } from "@/lib/game/rider-profile";
+import { parseRiderPersonalityKey } from "@/lib/game/rider-personalities";
 import { readStageEquipmentItems, readPermanentStageEquipmentPayloads, type StageEquipmentChange } from "@/lib/game/race-stage-equipment";
 import {
   parseSquadStatus,
@@ -610,6 +611,7 @@ type RiderCountryRow = {
   weight_kg: number | string | null;
   baseline_weight_kg: number | string | null;
   physiology_version: number | null;
+  personality_key?: string | null;
 };
 
 type RiderSpecialAbilityRow = {
@@ -3445,6 +3447,7 @@ function groupCalendarEngagedRiders(
       age: Number(row.age),
       form: Number(row.form),
       morale: moraleByRiderId.get(row.rider_id) ?? 60,
+      personalityKey: parseRiderPersonalityKey(riderMetadata?.personality_key),
       physiology:
         riderMetadata?.height_cm != null &&
         riderMetadata.weight_kg != null &&
@@ -3943,7 +3946,7 @@ async function loadRaceCalendarRiderContext({
         const result = await admin
           .from("riders")
           .select(
-            "id, country_id, avatar_profile_key, avatar_seed, career_race_days, height_cm, weight_kg, baseline_weight_kg, physiology_version",
+            "id, country_id, avatar_profile_key, avatar_seed, career_race_days, height_cm, weight_kg, baseline_weight_kg, physiology_version, personality_key",
           )
           .in("id", chunk)
           .order("id", { ascending: true })
@@ -4059,6 +4062,7 @@ async function loadCompactRaceCalendarRiderContext(
           p_rider_ids: riderIdChunk,
           p_min_game_day: minGameDay,
           p_max_game_day: maxGameDay,
+          p_include_personality: true,
         });
         return {
           data: result.data as RaceCalendarRiderContextRow[] | null,
@@ -4117,6 +4121,7 @@ function parseRaceCalendarRiderContext(
       weight_kg: row.weight_kg,
       baseline_weight_kg: row.baseline_weight_kg,
       physiology_version: row.physiology_version,
+      personality_key: row.personality_key,
     });
 
     if (Array.isArray(row.special_ability_codes)) {

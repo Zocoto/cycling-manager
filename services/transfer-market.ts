@@ -1,5 +1,7 @@
 import "server-only";
 
+import { parseRiderPersonalityKey, type RiderPersonalityKey } from "@/lib/game/rider-personalities";
+
 import { randomInt } from "node:crypto";
 
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -103,6 +105,7 @@ type RiderRow = {
   avatar_profile_key: string;
   avatar_seed: number | string;
   potential_steps: number;
+  personality_key?: string | null;
 };
 type RatingRow = {
   rider_id: string;
@@ -181,6 +184,7 @@ export type TransferMarketRider = {
   avatarSeed: number | string;
   age: number;
   profileLabel: RiderSportingProfile;
+  personalityKey?: RiderPersonalityKey | null;
   salaryPerSeason: number;
   scoutingReport: TransferScoutingReport;
 };
@@ -243,6 +247,7 @@ type LoadedMarketRider = TransferRosterRider & {
   potentialSteps: number;
   ratings: RiderRatings;
   profileLabel: RiderSportingProfile;
+  personalityKey: RiderPersonalityKey | null;
 };
 
 export type TransferMarketFilters = {
@@ -1624,7 +1629,7 @@ async function loadMarketRiders(
     admin
       .from("riders")
       .select(
-        "id, country_id, first_name, last_name, status, avatar_profile_key, avatar_seed, potential_steps",
+        "id, country_id, first_name, last_name, status, avatar_profile_key, avatar_seed, potential_steps, personality_key",
       )
       .in("id", riderIds)
       .returns<RiderRow[]>(),
@@ -1665,6 +1670,7 @@ async function loadMarketRiders(
         potentialSteps: rider.potential_steps,
         ratings,
         profileLabel: getRiderSportingProfile(ratings),
+        personalityKey: parseRiderPersonalityKey(rider.personality_key),
       } satisfies LoadedMarketRider,
     ];
   });
@@ -1781,6 +1787,7 @@ function toTransferMarketRider({
     avatarSeed: rider.avatarSeed,
     age: rider.age,
     profileLabel: rider.profileLabel,
+    personalityKey: rider.personalityKey,
     salaryPerSeason,
     scoutingReport: revealExactValues
       ? createExactTransferScoutingReport({

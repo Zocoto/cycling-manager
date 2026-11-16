@@ -255,6 +255,7 @@ export async function getArchivedRiderProfile(
   return {
     id: archive.rider_id,
     firstName: archive.first_name,
+    personalityKey: null,
     lastName: archive.last_name,
     status: "retired",
     country: {

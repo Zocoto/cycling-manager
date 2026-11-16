@@ -29,6 +29,8 @@ const ENGLISH_EVENT_TITLES: Record<string, string> = {
   "Bordure": "Crosswind split", "Chute collective": "Mass crash", "Chute": "Crash", "Abandon sur chute": "DNF after a crash",
   "Attaque / accélération": "Attack / acceleration", "Soutien / retour": "Support / return", "Perte de contact": "Losing contact",
   "Fait de course": "Race event", "Passage au GPM": "Mountain prime", "Sprint intermédiaire": "Intermediate sprint",
+  "Franc-tireur": "Lone attacker", "Opportuniste": "Opportunist",
+  "Calculateur": "Calculating", "Solidaire": "Supportive",
 };
 
 function rankLabel(rank: number, en: boolean) {

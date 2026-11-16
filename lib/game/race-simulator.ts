@@ -31,6 +31,7 @@ export type RaceSimulatorRider = {
   age: number;
   form: number;
   careerRaceDays: number;
+  personalityKey?: RiderSimulationInput["personalityKey"];
   ratings: RiderSimulationRatings;
   specialAbilities: RiderSimulationInput["specialAbilities"];
 };

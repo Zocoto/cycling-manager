@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { RiderPersonalityCard } from "@/components/game/rider-personality";
 import Link from "@/components/ui/app-link";
 import { notFound, redirect } from "next/navigation";
 
@@ -194,6 +195,7 @@ export default async function DevelopmentRiderPage({ params }: Props) {
               </section>
             ) : null}
             <RiderClimateProfileCard profile={profile.climateProfile} />
+            <RiderPersonalityCard personality={profile.personalityKey} />
             <section className="rounded-2xl border border-[#315B3E]/12 bg-white p-5 shadow-sm">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#278B70]">
                 Bilan junior

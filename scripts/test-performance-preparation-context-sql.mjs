@@ -1,12 +1,15 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { pathToFileURL } from "node:url";
 
 // No credentials, environment loading or network DB: PostgreSQL lives in memory.
 if (process.argv.length !== 3 || process.argv[2] !== "--isolated") {
   throw new Error("Only --isolated is accepted; external databases are forbidden.");
 }
 const { PGlite } = await import(
-  "../artifacts/.tmp-performance-preparations/node_modules/@electric-sql/pglite/dist/index.js"
+  process.env.RIDER_CONTEXT_PGLITE_MODULE
+    ? pathToFileURL(process.env.RIDER_CONTEXT_PGLITE_MODULE).href
+    : "../artifacts/.tmp-performance-preparations/node_modules/@electric-sql/pglite/dist/index.js"
 );
 const database = new PGlite();
 const uuid = (number) => `00000000-0000-0000-0000-${String(number).padStart(12, "0")}`;
@@ -117,6 +120,28 @@ try {
     await database.exec(migration);
     assert.deepEqual(await context([112,139]),snapshot);
     assert.deepEqual(await context(),before);
+  });
+  const boundedBeforePersonality = await context([112, 139]);
+  await database.exec("alter table public.riders add column personality_key text");
+  await database.query("update public.riders set personality_key = 'opportuniste' where id = $1", [rider]);
+  const personalityMigration = await readFile("supabase/migrations/20261117094000_include_personality_in_race_calendar_context.sql", "utf8");
+  await database.exec(personalityMigration);
+
+  await test("includes the character in the same bounded query and preserves both older signatures", async () => {
+    const query = "select * from public.get_race_calendar_rider_context($1::uuid[],112,139,$2::boolean)";
+    await database.exec("grant select (id,personality_key) on public.riders to service_role; set role service_role");
+    const withCharacter = await rows(query, [[rider, other], true]);
+    const withoutCharacter = await rows(query, [[rider, other], false]);
+    await database.exec("reset role");
+    assert.deepEqual(withCharacter, boundedBeforePersonality.map((row, index) => ({ ...row, personality_key: index === 0 ? "opportuniste" : null })));
+    assert.deepEqual(withoutCharacter, boundedBeforePersonality.map((row) => ({ ...row, personality_key: null })));
+    assert.deepEqual(await context([112, 139]), boundedBeforePersonality);
+    assert.deepEqual(await context(), before);
+    const [rights] = await rows(`select
+      has_function_privilege('service_role','public.get_race_calendar_rider_context(uuid[],integer,integer,boolean)','execute') as service,
+      has_function_privilege('authenticated','public.get_race_calendar_rider_context(uuid[],integer,integer,boolean)','execute') as authenticated,
+      has_function_privilege('anon','public.get_race_calendar_rider_context(uuid[],integer,integer,boolean)','execute') as anon`);
+    assert.deepEqual(rights, { service: true, authenticated: false, anon: false });
   });
   console.log(JSON.stringify({passed,memoryOnly:true,productionAccess:false}));
 } finally {

@@ -23,6 +23,7 @@ import {
   buildPersistedStageRaceStandings,
   buildTeamTimeTrialStageClassification,
   filterInactiveTeamsFromOfficialClassification,
+  getCharismaticReputationReasons,
   normalizeOfficialResultGapsToLeader,
   shouldKeepRaceRosterInResultContext,
   shouldSettleRaceEdition,
@@ -1914,19 +1915,50 @@ async function persistRaceClassification({
     `le classement UCI après ${edition.name}`,
   );
 
-  const attackedRiderIds = new Set(
-    simulations.flatMap((simulation) =>
-      getStageAttackParticipants(simulation).map(
-        (participant) => participant.riderId,
-      ),
-    ),
-  );
+  const attackParticipantsByStage = simulations.map((simulation) => ({
+    stageId: simulation.stageId,
+    participants: getStageAttackParticipants(simulation),
+  }));
+  const attackedRiderIds = new Set(attackParticipantsByStage
+    .flatMap(({ participants }) => participants.map(({ riderId }) => riderId)));
   const winnerRiderId = general.find((result) => result.rank === 1)?.riderId;
   const riderById = new Map(
     simulations.flatMap((simulation) =>
       simulation.resolvedRiders.map((rider) => [rider.id, rider] as const),
     ),
   );
+
+  if (edition.competitionType === "standard") {
+    const roadStageIds = new Set(edition.stages.filter(({ stageType }) => stageType === "road").map(({ id }) => id));
+    const reasons = getCharismaticReputationReasons({
+      personalityByRiderId: new Map([...riderById].map(([id, rider]) => [id, rider.personalityKey])),
+      breakawayParticipants: attackParticipantsByStage
+        .filter(({ stageId }) => roadStageIds.has(stageId))
+        .flatMap(({ participants }) => participants),
+      overallWinnerId: edition.raceFormat === "stage_race" || finalStage.stageType !== "team_time_trial" ? winnerRiderId : undefined,
+      stageWinnerIds: stageClassifications.flatMap(({ stage, results }) => {
+        if (stage.stageType === "team_time_trial") return [];
+        const winner = results.find(({ rank, status }) => rank === 1 && status === "finished");
+        return winner ? [winner.riderId] : [];
+      }),
+    });
+    for (const [riderId, reason] of reasons) {
+      const roster = requireRoster(rosterByRiderId, riderId);
+      if (!roster.teamSeasonId) continue;
+      const riderName = riderById.get(riderId)!.name;
+      const { error: personalityRewardError } = await admin.rpc(
+        "apply_race_roster_reputation_bonus",
+        {
+          p_source_reference: `personality:charismatique:edition:${edition.id}:rider:${riderId}`,
+          p_race_roster_id: roster.rosterId,
+          p_stage_id: finalStage.id,
+          p_reputation_points: 1,
+          p_description: `${edition.name} — Charismatique · ${riderName} · ${reason}`,
+        },
+      );
+      assertQuery(personalityRewardError, `le bonus Charismatique de ${riderName}`);
+    }
+  }
 
   for (const [riderId, rider] of riderById) {
     if (!hasSpecialAbility(rider, "sandwich_man")) continue;

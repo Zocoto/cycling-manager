@@ -1,5 +1,7 @@
 import { getStageLiveState } from "./race-live";
 import type { RaceCalendarStage } from "./race-calendar";
+import type { RiderPersonalityKey } from "./rider-personalities";
+import type { StageAttackParticipant } from "./race-simulation";
 import type { StageEquipmentSnapshot } from "./race-stage-equipment";
 import { getTeamTimeTrialCoreSize } from "./team-time-trial";
 
@@ -10,6 +12,33 @@ export type OfficialResultStatus =
   | "disqualified"
   | "outside_time_limit"
   | "withdrawn";
+
+export function getCharismaticReputationReasons({
+  personalityByRiderId,
+  breakawayParticipants,
+  overallWinnerId,
+  stageWinnerIds,
+}: {
+  personalityByRiderId: ReadonlyMap<string, RiderPersonalityKey | null | undefined>;
+  breakawayParticipants: readonly StageAttackParticipant[];
+  overallWinnerId?: string;
+  stageWinnerIds: readonly string[];
+}): Map<string, "victoire" | "échappée"> {
+  const rewards = new Map<string, "victoire" | "échappée">();
+  for (const participant of breakawayParticipants) {
+    if (participant.participationType === "breakaway" &&
+      personalityByRiderId.get(participant.riderId) === "charismatique") {
+      rewards.set(participant.riderId, "échappée");
+    }
+  }
+  for (const riderId of stageWinnerIds) {
+    if (personalityByRiderId.get(riderId) === "charismatique") rewards.set(riderId, "victoire");
+  }
+  if (overallWinnerId && personalityByRiderId.get(overallWinnerId) === "charismatique") {
+    rewards.set(overallWinnerId, "victoire");
+  }
+  return rewards;
+}
 
 export type OfficialRiderResult = {
   riderId: string;
