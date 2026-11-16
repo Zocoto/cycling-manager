@@ -10,7 +10,7 @@ const read = name => readFileSync("supabase/migrations/" + name + ".sql", "utf8"
 
 try {
   await db.exec(`
-    create role anon; create role authenticated;
+    create role anon; create role authenticated; create role service_role;
     create schema private;
     create table season_days(id uuid primary key, season_id uuid, day_number int);
     create table riders(id uuid primary key, first_name text, last_name text, personality_key text, potential_steps int default 1);
@@ -43,6 +43,7 @@ try {
   assert.ok(youthStart >= 0);
   await db.exec(morale.slice(youthStart, morale.indexOf("\n$$;", youthStart) + 4));
   await db.exec(read("20260930200000_contextualize_rider_result_morale"));
+  await db.exec(read("20260723170000_lock_official_stage_simulations"));
   const migration = read("20261117093000_apply_result_personality_morale");
   await db.exec(migration);
   await db.exec(migration);
@@ -68,14 +69,32 @@ try {
     [104,"colerique","leader",85], [105,"colerique","domestique",85], [106,"colerique","leader",85],
     [107,"colerique","sprinter",85],[108,"force_tranquille","leader",85],[109,"force_tranquille","domestique",85],
     [110,"force_tranquille","leader",85],[111,"force_tranquille","leader",85],
+    [112,"colerique","leader",85],[113,"colerique","leader",85],
   ]) {
     await db.query("insert into riders values ($1,'Nom','Test',$2)",[id(rider),personality]);
     await db.query("insert into rider_season_summaries values ($1,$2,$3)",[id(rider),id(2),rider===110 ? 20 : 1]);
     await db.query("insert into rider_season_ratings values ($1,$2,80,72,78,$3,62,71)",[id(rider),id(2),mountain]);
     await db.query("insert into race_rosters values ($1,$1,$1,'confirmed',$2)",[id(rider),role]);
   }
+  async function freezeStage(stage, edition, appointments, riders = []) {
+    const input = { riders, ...(appointments && { personalityLeadershipByRiderId: Object.fromEntries(
+      appointments.map(([number, personalityKey, stageRole, generalRole]) => [id(number), { personalityKey, stageRole, generalRole }]),
+    ) }) };
+    await db.query("insert into official_stage_simulations(stage_id,race_edition_id,engine_version,seed,input_data,simulation_data) values ($1,$2,'test','test',$3,'{}')",
+      [id(stage),id(edition),JSON.stringify(input)]);
+  }
+  await freezeStage(30,20,[[104,"colerique","leader"],[106,"colerique","leader"],[112,"ambitieux","leader"]]);
+  await freezeStage(31,21,[[101,"ambitieux","leader"],[102,"ambitieux",undefined,"leader"],
+    [103,"ambitieux","leader"],[104,"colerique","leader","leader"],[107,"colerique","sprinter"]]);
+  await freezeStage(32,21,[[101,"ambitieux","leader"],[104,"colerique","sprinter"],[107,"colerique","leader","leader"]]);
+  await freezeStage(33,22,[[104,"colerique","leader"]]);
+  await freezeStage(34,23,null,[{id:id(113),role:"leader"}]);
+
+  // Roles edited after the official start must not flow back into the results.
+  await db.query("update race_rosters set race_role = 'domestique' where rider_id = $1", [id(104)]);
+  await db.query("update race_rosters set race_role = 'leader' where rider_id in ($1,$2)", [id(105),id(107)]);
   for (const stage of [31, 32]) {
-    await db.query("insert into race_roster_stage_roles values ($1,$1,$3,'leader'), ($2,$2,$3,'domestique')",
+    await db.query("insert into race_roster_stage_roles values ($1,$1,$3,'domestique'), ($2,$2,$3,'leader')",
       [id(101),id(102),id(stage)]);
     await db.query("insert into stage_results(stage_id,race_roster_id,rank,status) select $1,id,45,'finished' from race_rosters",
       [id(stage)]);
@@ -88,13 +107,15 @@ try {
   assert.match((await events(101,31))[0].description,/Ambitieux/);
   for (const [rider,day] of [[101,32],[102,31],[103,31],[104,31]]) assert.deepEqual(await events(rider,day),[]);
 
-  await db.query("insert into stage_results(stage_id,race_roster_id,rank,status) values ($1,$2,45,'finished'),($1,$3,45,'finished'),($1,$4,null,'did_not_finish'),($5,$2,45,'finished')",
-    [id(30),id(104),id(105),id(106),id(33)]);
+  await db.query("insert into stage_results(stage_id,race_roster_id,rank,status) values ($1,$2,45,'finished'),($1,$3,45,'finished'),($1,$4,null,'did_not_finish'),($5,$2,45,'finished'),($1,$6,45,'finished'),($7,$8,90,'finished')",
+    [id(30),id(104),id(105),id(106),id(33),id(112),id(34),id(113)]);
   assert.equal((await events(104,30))[0].delta,-5);
   assert.match((await events(104,30))[0].description,/Colérique/);
   assert.equal((await events(105,30))[0].delta,-4);
   assert.equal((await events(106,30))[0].delta,-4);
   assert.equal((await events(104,33))[0].delta,-4);
+  assert.equal((await events(112,30))[0].delta,-4);
+  assert.doesNotMatch((await events(113,34))[0].description,/Colérique/);
 
   await db.query("insert into race_results(race_edition_id,race_roster_id,final_rank,status) values ($1,$2,45,'classified'),($1,$3,45,'classified')",
     [id(21),id(104),id(107)]);

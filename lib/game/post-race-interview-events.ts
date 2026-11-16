@@ -25,6 +25,11 @@ type ZoneMixteEventDefinition = ZoneMixteEvent & {
   personality?: RiderPersonalityKey;
 };
 
+export type ZoneMixtePersonalityRider = Pick<
+  PostRaceInterviewContext,
+  "riderId" | "riderName" | "riderPersonalityKey" | "riderHadSetback" | "bestRank" | "wasTeamLeader"
+>;
+
 const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
   {
     id: "personality-discret-debrief",
@@ -1276,10 +1281,12 @@ export function selectZoneMixteEvent({
   context,
   seed,
   usedEventIds = [],
+  personalityRiders = [context],
 }: {
   context: PostRaceInterviewContext;
   seed: string;
   usedEventIds?: readonly string[];
+  personalityRiders?: readonly ZoneMixtePersonalityRider[];
 }): ZoneMixteEvent | null {
   const triggerRoll = seededInterviewIndex(`${seed}:event-trigger`, 6);
   if (triggerRoll > 1) return null;
@@ -1287,15 +1294,25 @@ export function selectZoneMixteEvent({
     triggerRoll === 0 ? "general" : "rider_director_relationship";
 
   const used = new Set(usedEventIds);
-  const eligible = EVENT_DEFINITIONS.filter(
+  const available = EVENT_DEFINITIONS.filter(
     (event) =>
       (event.family ?? "general") === selectedFamily &&
-      !used.has(event.id) &&
-      meetsRequirement(event, context),
+      !used.has(event.id),
   );
+  const tailored = available.flatMap((event) => {
+    if (!event.personality) return [];
+    return personalityRiders.flatMap((rider) => {
+      if (!rider.riderId || rider.riderPersonalityKey !== event.personality) return [];
+      const riderContext = { ...context, ...rider };
+      return meetsRequirement(event, riderContext) ? [{ event, riderContext }] : [];
+    });
+  });
+  if (tailored.length) {
+    const { event, riderContext } = tailored[seededInterviewIndex(`${seed}:personality-event`, tailored.length)];
+    return renderEvent(event, riderContext);
+  }
+  const eligible = available.filter((event) => !event.personality && meetsRequirement(event, context));
   if (eligible.length === 0) return null;
-  const personalityEvent = eligible.find((event) => event.personality);
-  if (personalityEvent) return renderEvent(personalityEvent, context);
 
   const rarityRoll = seededInterviewIndex(`${seed}:event-rarity`, 100);
   const rarity: ZoneMixteEventRarity =
@@ -1328,7 +1345,9 @@ function meetsRequirement(
   }
   if (event.requires === "rider-crash") return Boolean(context.riderId && interviewRiderCrash(context));
   if (event.requires === "rider-setback") {
-    return Boolean(context.riderId && (interviewRiderCrash(context) || race?.lostContact?.riderId === context.riderId));
+    return Boolean(context.riderId && (context.riderHadSetback ?? (
+      Boolean(interviewRiderCrash(context)) || race?.lostContact?.riderId === context.riderId
+    )));
   }
   if (event.requires === "leader-finish-outside-top-ten") {
     return isRoadRace && Boolean(context.riderId && context.wasTeamLeader && context.bestRank !== null && context.bestRank > 10);
@@ -1386,6 +1405,7 @@ function renderEvent(
 
   return {
     id: definition.id,
+    ...(definition.personality && context.riderId ? { riderId: context.riderId } : {}),
     rarity: definition.rarity,
     title: render(definition.title),
     story: render(definition.story),

@@ -13,11 +13,11 @@ import {
   concealZoneMixteEventOutcomes,
   selectPostRaceInterviewQuestions,
 } from "@/lib/game/post-race-interview";
-import { selectZoneMixteEvent } from "@/lib/game/post-race-interview-events";
+import { selectZoneMixteEvent, type ZoneMixtePersonalityRider } from "@/lib/game/post-race-interview-events";
 import { extractDetailedRaceInterviewFacts } from "@/lib/game/post-race-interview-race-questions";
 import type { RaceCourseJournalEntry } from "@/lib/game/race-course-journal";
 import type { StageSimulationResult } from "@/lib/game/race-simulation";
-import type { OfficialRaceEditionResults } from "@/lib/game/race-results";
+import type { OfficialRaceEditionResults, OfficialRiderResult } from "@/lib/game/race-results";
 import { isPostRaceInterviewWindowOpen } from "@/lib/game/post-race-interview-window";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { loadPostRaceInterviewEditorialFacts } from "@/services/post-race-interview-season-facts";
@@ -210,9 +210,6 @@ export async function getOrCreatePostRaceInterview({
     teamResults[0];
   const teamRanking =
     rankings?.teams.find((team) => team.teamId === teamId) ?? null;
-  const interviewRider = simulation?.stageId === stageId
-    ? simulation.resolvedRiders.find(({ id }) => id === bestResult.riderId)
-    : undefined;
   const teamAttacks = officialResults.attackParticipants.filter(
     (participant) =>
       participant.teamId === teamId &&
@@ -237,10 +234,6 @@ export async function getOrCreatePostRaceInterview({
     directorAvatarKey: directorResult.data.avatar_key,
     riderName: bestResult.riderName,
     riderId: bestResult.riderId,
-    riderPersonalityKey: interviewRider?.personalityKey,
-    wasTeamLeader: interviewRider
-      ? ["leader", "leader_sprinter", "sprinter"].includes(interviewRider.role)
-      : false,
     bestRank: stageType === "team_time_trial"
       ? detailedRaceFacts?.teamTimeTrial?.rank ?? null
       : bestResult.rank,
@@ -262,6 +255,11 @@ export async function getOrCreatePostRaceInterview({
   context.zoneMixteEvent = selectZoneMixteEvent({
     context,
     seed,
+    personalityRiders: getZoneMixtePersonalityRiders(
+      teamResults,
+      simulation?.stageId === stageId ? simulation : null,
+      courseJournal,
+    ),
     usedEventIds: priorQuestions.flat().flatMap(({ id }) =>
       id.startsWith("event:") ? [id.slice("event:".length)] : [],
     ),
@@ -303,6 +301,41 @@ export async function getOrCreatePostRaceInterview({
     );
   }
   return mapInterview(concurrent.data);
+}
+
+function getZoneMixtePersonalityRiders(
+  teamResults: readonly OfficialRiderResult[],
+  simulation: StageSimulationResult | null | undefined,
+  courseJournal: readonly RaceCourseJournalEntry[] = [],
+): ZoneMixtePersonalityRider[] {
+  if (!simulation) return [];
+  const ridersById = new Map(simulation.resolvedRiders.map((rider) => [rider.id, rider]));
+  const ridersWithSetback = new Set<string>();
+  for (const frame of simulation.timeline) {
+    for (const incident of frame.incidents ?? []) {
+      if (incident.type !== "crash_individual" && incident.type !== "crash_mass") continue;
+      for (const riderId of incident.riderIds) ridersWithSetback.add(riderId);
+    }
+  }
+  for (const entry of courseJournal) {
+    if (entry.kind === "selection" && entry.title === "Perte de contact" && entry.riderIds?.length === 1) {
+      ridersWithSetback.add(entry.riderIds[0]);
+    }
+  }
+
+  return teamResults.flatMap((result) => {
+    const rider = ridersById.get(result.riderId);
+    if (!rider?.personalityKey || !["finished", "did_not_finish", "outside_time_limit"].includes(result.status)) return [];
+
+    return [{
+      riderId: result.riderId,
+      riderName: result.riderName,
+      riderPersonalityKey: rider.personalityKey,
+      riderHadSetback: ridersWithSetback.has(rider.id),
+      bestRank: result.status === "finished" ? result.rank : null,
+      wasTeamLeader: ["leader", "leader_sprinter", "sprinter"].includes(rider.role),
+    }];
+  });
 }
 
 export async function submitPostRaceInterview({

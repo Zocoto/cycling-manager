@@ -5,20 +5,30 @@ import {
 
 export function RiderPersonalityBadge({
   personality,
+  compact = false,
+  showDescription = false,
 }: {
   personality: RiderPersonalityKey | null | undefined;
+  compact?: boolean;
+  showDescription?: boolean;
 }) {
   if (!personality) return null;
   const { label, description } = RIDER_PERSONALITIES[personality];
 
-  return (
+  const badge = (
     <span
-      title={description}
-      className="inline-flex rounded-full border border-[#278B70]/20 bg-[#EAF5F3] px-2.5 py-1 text-[11px] font-black text-[#235E50]"
+      title={showDescription ? undefined : description}
+      className={`inline-flex rounded-full border border-[#278B70]/20 bg-[#EAF5F3] font-black text-[#235E50] ${compact ? "px-2 py-0.5 text-[10px] leading-3.5" : "px-2.5 py-1 text-[11px]"}`}
     >
       {label}
     </span>
   );
+  return showDescription ? (
+    <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+      {badge}
+      <span className="text-[11px] leading-4 font-semibold">{description}</span>
+    </span>
+  ) : badge;
 }
 
 export function RiderPersonalityCard({

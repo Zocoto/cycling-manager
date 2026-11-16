@@ -150,9 +150,8 @@ export function createCalendarSimulationInput({
   // après une signature ou une vente (équipe puis « Coureurs libres »). La
   // course reste unique : le moteur ne doit jamais recevoir deux fois le même
   // coureur, même si la synchronisation de la base est encore en cours.
-  const sourceRiders = [
-    ...new Map(rawSourceRiders.map((rider) => [rider.id, rider])).values(),
-  ];
+  const sourceRidersById = new Map(rawSourceRiders.map((rider) => [rider.id, rider]));
+  const sourceRiders = [...sourceRidersById.values()];
   const preliminaryTeamStrategies = sanitizeCalendarTeamStrategies({
     stage,
     sourceRiders,
@@ -255,6 +254,29 @@ export function createCalendarSimulationInput({
       riderIds.has(riderId),
     ),
   );
+  const personalityLeadershipByRiderId: NonNullable<
+    StageSimulationInput["personalityLeadershipByRiderId"]
+  > = {};
+  for (const rider of riders) {
+    const { personalityKey } = rider;
+    if (personalityKey !== "ambitieux" && personalityKey !== "colerique") continue;
+
+    const declaredRole = sourceRidersById.get(rider.id)?.role ?? "auto";
+    const stageOverride = stage.riderRoleOverrides?.[rider.id] ?? "auto";
+    const isTourLeader = tourLeaderByTeamId.get(rider.teamId) === rider.id;
+    const isAutomaticTourLeader = isTourLeader && declaredRole === "auto" && stageOverride === "auto";
+    const stageRole = !isAutomaticTourLeader &&
+      (isRaceLeaderRole(rider.role) || isRaceSprinterRole(rider.role))
+      ? rider.role
+      : undefined;
+    const generalRole = edition.raceFormat === "stage_race" &&
+      (declaredRole === "leader_sprinter" || (declaredRole === "leader" && isTourLeader))
+      ? declaredRole
+      : undefined;
+    if (stageRole || generalRole) {
+      personalityLeadershipByRiderId[rider.id] = { personalityKey, stageRole, generalRole };
+    }
+  }
 
   const segments = removeOneDayRaceMountainPrimes(
     stage.segments.length > 0
@@ -287,6 +309,9 @@ export function createCalendarSimulationInput({
     isStageRace: edition.raceFormat === "stage_race",
     stageNumber: stage.stageNumber,
     stageCount: edition.stages.length,
+    ...(Object.keys(personalityLeadershipByRiderId).length > 0
+      ? { personalityLeadershipByRiderId }
+      : {}),
     isFinalRoadStage: stage.stageType === "road" && !edition.stages.some(
       (candidate) => candidate.stageType === "road" && candidate.stageNumber > stage.stageNumber,
     ),

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { getCurrentFederationRacePreparation } from "@/services/federation-race-preparation";
 import { getCurrentTeamRacePreparation } from "@/services/race-calendar";
 
 type PreparationClient = Parameters<typeof getCurrentTeamRacePreparation>[0];
@@ -48,7 +49,10 @@ function preparationClient(
   rows: ReturnType<typeof preparationRow>[],
   failingOffset?: number,
 ) {
-  const range = vi.fn(async (from: number, to: number) =>
+  const range = vi.fn(async (from: number, to: number): Promise<{
+    data: ReturnType<typeof preparationRow>[] | null;
+    error: { message: string; code?: string } | null;
+  }> =>
     from === failingOffset
       ? { data: null, error: { message: "Second page unavailable" } }
       : { data: rows.slice(from, to + 1), error: null },
@@ -60,12 +64,32 @@ function preparationClient(
 }
 
 describe("team race preparation pagination", () => {
-  it("loads sprint preferences without an extra query", async () => {
-    const rows = [{ ...preparationRow(0), sprint_train_order: ["rider-1", "rider-2"] }];
+  it("loads sprint preferences and personalities without an extra query", async () => {
+    const rows = [
+      { ...preparationRow(0), sprint_train_order: ["rider-1", "rider-2"], personality_key: "metronome" },
+      { ...preparationRow(1), sprint_train_order: ["rider-1", "rider-2"], personality_key: "unknown" },
+    ];
     const { client, rpc } = preparationClient(rows);
     const plans = await getCurrentTeamRacePreparation(client);
     expect(Object.values(plans[0].stages)[0].sprintTrainOrder).toEqual(["rider-1", "rider-2"]);
+    expect(plans[0].riders.map((rider) => rider.personalityKey)).toEqual(["metronome", null]);
     expect(rpc).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the paginated sprint plan available before the new RPC is visible", async () => {
+    const rows = [{ ...preparationRow(0), sprint_train_order: ["rider-0"] }];
+    const { client, range, rpc } = preparationClient(rows);
+    range.mockResolvedValueOnce({ data: null, error: { message: "RPC not visible", code: "PGRST202" } });
+
+    const [plan] = await getCurrentTeamRacePreparation(client);
+
+    expect(rpc.mock.calls).toEqual([
+      ["get_current_team_race_preparation_with_personality"],
+      ["get_current_team_race_preparation_with_sprint"],
+    ]);
+    expect(range.mock.calls).toEqual([[0, 999], [0, 999]]);
+    expect(Object.values(plan.stages)[0].sprintTrainOrder).toEqual(["rider-0"]);
+    expect(plan.riders[0].personalityKey).toBeNull();
   });
   it("recovers upcoming races beyond the 1,000-row response cap", async () => {
     // Matches the reported season: 1,241 rows, first future row at 1,015.
@@ -78,7 +102,7 @@ describe("team race preparation pagination", () => {
 
     expect(range.mock.calls).toEqual([[0, 999], [1000, 1999]]);
     expect(rpc).toHaveBeenCalledTimes(2);
-    expect(rpc).toHaveBeenCalledWith("get_current_team_race_preparation_with_sprint");
+    expect(rpc).toHaveBeenCalledWith("get_current_team_race_preparation_with_personality");
     expect(query.order.mock.calls.slice(0, 4)).toEqual([
       ["race_edition_id", { ascending: true }],
       ["race_registration_id", { ascending: true }],
@@ -135,5 +159,20 @@ describe("team race preparation pagination", () => {
     const { client, rpc } = preparationClient([]);
     expect(await getCurrentTeamRacePreparation(client)).toEqual([]);
     expect(rpc).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("federation race preparation", () => {
+  it("passes the same country to the sprint reader when the new RPC is unavailable", async () => {
+    const rpc = vi.fn()
+      .mockResolvedValueOnce({ data: null, error: { message: "RPC not visible", code: "PGRST202" } })
+      .mockResolvedValueOnce({ data: [preparationRow(0)], error: null });
+    const [plan] = await getCurrentFederationRacePreparation({ rpc } as unknown as PreparationClient, "fr");
+
+    expect(rpc.mock.calls).toEqual([
+      ["get_current_national_federation_race_preparation_with_personality", { p_country_code: "FR" }],
+      ["get_current_national_federation_race_preparation_with_sprint", { p_country_code: "FR" }],
+    ]);
+    expect(plan.riders[0].personalityKey).toBeNull();
   });
 });

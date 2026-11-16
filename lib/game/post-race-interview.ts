@@ -37,6 +37,7 @@ export type ZoneMixteEventChoice = {
 
 export type ZoneMixteEvent = {
   id: string;
+  riderId?: string;
   rarity: ZoneMixteEventRarity;
   title: string;
   story: string;
@@ -107,6 +108,7 @@ export type PostRaceInterviewContext = {
   riderName: string;
   riderId?: string | null;
   riderPersonalityKey?: RiderPersonalityKey | null;
+  riderHadSetback?: boolean;
   wasTeamLeader?: boolean;
   sponsorName?: string | null;
   raceCountryCode?: string | null;

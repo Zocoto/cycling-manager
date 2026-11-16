@@ -211,8 +211,8 @@ describe("createCalendarSimulationInput", () => {
 
   it("applique les rôles d'étape sans démettre le leader déclaré du tour", () => {
     const riders = [
-      { ...createRider("rider-a", "team-a"), role: "domestique" as const },
-      { ...createRider("rider-b", "team-a"), role: "leader" as const },
+      { ...createRider("rider-a", "team-a"), role: "domestique" as const, personalityKey: "ambitieux" as const },
+      { ...createRider("rider-b", "team-a"), role: "leader" as const, personalityKey: "colerique" as const },
     ];
     const edition = createEdition({
       slug: "tour-roles-par-etape",
@@ -234,12 +234,35 @@ describe("createCalendarSimulationInput", () => {
       ["rider-a", "sprinter"],
       ["rider-b", "leader"],
     ]);
+    expect(JSON.parse(JSON.stringify(input.personalityLeadershipByRiderId))).toEqual({
+      "rider-a": { personalityKey: "ambitieux", stageRole: "sprinter" },
+      "rider-b": { personalityKey: "colerique", stageRole: "leader", generalRole: "leader" },
+    });
     expect(riders.map((rider) => rider.role)).toEqual(["domestique", "leader"]);
+  });
+
+  it("fige uniquement les nominations explicites aux rôles d'étape", () => {
+    const edition = createEdition({
+      slug: "classique-roles-caractere",
+      riders: [
+        { ...createRider("initial", "team-a"), role: "leader", personalityKey: "ambitieux" },
+        { ...createRider("etape", "team-a"), personalityKey: "colerique" },
+        { ...createRider("automatique", "team-b"), personalityKey: "ambitieux" },
+      ],
+    });
+    edition.stages[0].riderRoleOverrides = { initial: "domestique", etape: "leader" };
+
+    const input = createCalendarSimulationInput({ edition, stage: edition.stages[0], seed: "roles-classique" });
+
+    expect(JSON.parse(JSON.stringify(input.personalityLeadershipByRiderId))).toEqual({
+      etape: { personalityKey: "colerique", stageRole: "leader" },
+    });
   });
 
   it("choisit le leader automatique sur l'ensemble du tour et le conserve à chaque étape", () => {
     const allRounder = {
       ...createRider("leader-general", "team-a"),
+      personalityKey: "ambitieux" as const,
       ratings: {
         ...createRider("leader-general", "team-a").ratings,
         mountain: 83,
@@ -317,6 +340,7 @@ describe("createCalendarSimulationInput", () => {
       expect(
         input.riders.find((rider) => rider.role === "leader")?.id,
       ).toBe("leader-general");
+      expect(input.personalityLeadershipByRiderId).toBeUndefined();
     }
 
     const simulations = simulateOfficialRaceEdition(edition);

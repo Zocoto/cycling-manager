@@ -27,6 +27,8 @@ revoke all on function private.is_ambitious_rider_terrain(uuid,uuid,text)
 
 -- Reuse the current result triggers and morale ledger. The existing
 -- contextual assessment decides whether the result was a disappointment.
+-- Read explicit appointments from the official start. Legacy snapshots lack
+-- this evidence and do not qualify for role-specific personality effects.
 do $personality_patch$
 declare
   v_signature regprocedure;
@@ -48,17 +50,16 @@ begin
         array['    roster.rider_id,', $stage_context$    roster.rider_id,
     rider.personality_key,
     case
-      when stage.stage_type = 'road' then coalesce(stage_role.race_role, roster.race_role)
-      else roster.race_role
+      when rider.personality_key in ('ambitieux', 'colerique') then (
+        select official.input_data #>> array['personalityLeadershipByRiderId', roster.rider_id::text, 'stageRole']
+        from public.official_stage_simulations as official
+        where official.stage_id = stage.id
+          and official.input_data #>> array['personalityLeadershipByRiderId', roster.rider_id::text, 'personalityKey']
+            = rider.personality_key
+      )
     end as race_role,
     stage.stage_type,
     stage.profile_type,$stage_context$],
-        array['  where roster.id = new.race_roster_id;', $roles$  left join public.race_roster_stage_roles as stage_role
-    on stage_role.race_registration_id = roster.race_registration_id
-   and stage_role.rider_id = roster.rider_id
-   and stage_role.stage_id = stage.id
-   and rider.personality_key in ('ambitieux', 'colerique')
-  where roster.id = new.race_roster_id;$roles$],
         array['  if v_delta <> 0 then', $stage_delta$  v_colerique_penalty := coalesce(
     v_context.personality_key = 'colerique' and v_scope = 'one_day'
     and new.status = 'finished' and new.rank is not null
@@ -116,7 +117,21 @@ begin
         array['  v_delta numeric;', '  v_delta numeric;' || E'\n  ' || v_marker],
         array['    roster.rider_id,', $gc_context$    roster.rider_id,
     rider.personality_key,
-    roster.race_role,$gc_context$],
+    case
+      when rider.personality_key = 'colerique' then (
+        select official.input_data #>> array['personalityLeadershipByRiderId', roster.rider_id::text, 'generalRole']
+        from public.official_stage_simulations as official
+        where official.stage_id = (
+          select stage.id
+          from public.stages as stage
+          where stage.race_edition_id = edition.id
+          order by stage.stage_number
+          limit 1
+        )
+          and official.input_data #>> array['personalityLeadershipByRiderId', roster.rider_id::text, 'personalityKey']
+            = rider.personality_key
+      )
+    end as race_role,$gc_context$],
         array[E'\n    if v_delta <> 0 then', $gc_delta$
     v_colerique_penalty := coalesce(
       v_context.personality_key = 'colerique'

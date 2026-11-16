@@ -130,6 +130,10 @@ create trigger rider_contracts_fidele_morale
 after insert or update of status, end_season_id on public.rider_contracts
 for each row execute function private.apply_fidele_contract_morale();
 
+create index youth_academy_riders_professional_link_idx
+  on public.youth_academy_riders (promoted_rider_id)
+  where promoted_rider_id is not null;
+
 create function public.settle_stage_personality_team_morale(p_stage_id uuid)
 returns integer
 language plpgsql
@@ -178,7 +182,7 @@ begin
     select rider.rider_id, rider.personality, null::uuid as teammate_id
     from starters as rider
     where (rider.personality = 'meticuleux' and rider.recon_bonus > 0)
-      or (rider.personality = 'globe_trotteur' and not exists (
+      or (rider.personality = 'globe_trotteur' and v_stage.country_id is not null and not exists (
         select 1
         from public.race_rosters as previous_roster
         join public.stage_results as previous_result on previous_result.race_roster_id = previous_roster.id
@@ -192,6 +196,18 @@ begin
           and (previous_day.calendar_date,
             coalesce(previous_stage.departure_at, previous_day.calendar_date::timestamp at time zone 'Europe/Paris'),
             previous_stage.id) < (v_stage.calendar_date, v_stage.starts_at, p_stage_id)
+      ) and not exists (
+        select 1
+        from public.youth_academy_riders as academy
+        join public.development_race_results as previous_result on previous_result.academy_rider_id = academy.id
+        join public.development_race_editions as previous_edition on previous_edition.id = previous_result.race_edition_id
+        join public.development_race_stages as previous_stage on previous_stage.id = previous_result.stage_id
+        join public.season_days as previous_day
+          on previous_day.season_id = previous_edition.season_id and previous_day.day_number = previous_stage.day_number
+        join public.countries as country on country.iso_alpha2 = previous_edition.country_code
+        where academy.promoted_rider_id = rider.rider_id
+          and previous_result.result_scope = 'stage' and country.id = v_stage.country_id
+          and previous_day.calendar_date <= v_stage.calendar_date
       ))
     union all
     select rider.rider_id, rider.personality, beneficiary.rider_id
@@ -244,8 +260,8 @@ begin
         select count(*) from public.rider_morale_events as event
         join public.season_days as day on day.id = event.season_day_id
         where event.rider_id = v_effect.rider_id and day.season_id = v_stage.season_id
-          and event.source_type = 'stage_result'
-          and event.source_reference like 'personality:globe_trotteur:%'
+          and event.source_type in ('stage_result', 'academy_promotion')
+          and event.metadata ->> 'personalityKey' = 'globe_trotteur'
       ) >= 3 then continue; end if;
     end if;
 

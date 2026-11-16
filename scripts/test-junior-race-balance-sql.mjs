@@ -27,12 +27,14 @@ const ratings=['mountain','hills','flat','time_trial','cobbles','sprint','accele
 async function event(key,profile='hilly',type='open',stages=1){
  await db.query(`insert into development_race_editions(id,season_id,name,status,start_day_number,end_day_number,is_world_championship,competition_type,race_format,points_scale)
  values($1,$2,$3,'planned',1,$4,$5,$6,$7,$8)`,[id(key),id('season'),key,stages,type.startsWith('world_'),type,stages>1?'stage_race':'one_day',type==='open'?'standard':'world']);
- for(let n=1;n<=stages;n++)await db.query('insert into development_race_stages values($1,$2,$3,$3,$4,$5,$6)',[id(`${key}-stage-${n}`),id(key),n,profile==='time_trial'?27:142,profile==='time_trial'?'individual_time_trial':'road',profile]);
+ for(let n=1;n<=stages;n++)await db.query(`insert into development_race_stages
+  (id,race_edition_id,stage_number,day_number,distance_km,stage_type,profile_type) values($1,$2,$3::smallint,$3::smallint,$4,$5,$6)`,
+  [id(`${key}-stage-${n}`),id(key),n,profile==='time_trial'?27:142,profile==='time_trial'?'individual_time_trial':'road',profile]);
  return id(key);
 }
 async function rider(key,label,value,country='plain',federal=false,group=label){
  const riderId=id(`${key}-${label}`),team=id(`team-${key}-${group}`),registration=id(`reg-${key}-${group}`);
- await db.query('insert into development_teams values($1,$2) on conflict do nothing',[team,group]);
+ await db.query('insert into development_teams(id,display_name) values($1,$2) on conflict do nothing',[team,group]);
  await db.query(`insert into youth_academy_riders(id,country_id,first_name,last_name,${ratings.join(',')}) values($1,$2,$3,'Rider',${ratings.map((_,i)=>`$${i+4}`).join(',')})`,[riderId,id(country),label,...ratings.map(()=>value)]);
  if(federal){
   await db.query("insert into national_federation_junior_race_registrations values($1,$2,$3,'registered',now()) on conflict do nothing",[registration,id(key),id(country)]);
@@ -45,6 +47,41 @@ async function rider(key,label,value,country='plain',federal=false,group=label){
 }
 const simulate=key=>db.query('select simulate_development_race($1)',[id(key)]);
 const results=(key,scope='general')=>query('select competitor_key,academy_rider_id,rank,elapsed_time_seconds,gap_to_winner_seconds,points from development_race_results where race_edition_id=$1 and result_scope=$2 order by stage_id,rank',[id(key),scope]);
+const stageTimes=key=>query(`select stage.stage_number,result.academy_rider_id,result.competitor_key,result.elapsed_time_seconds
+ from development_race_results result join development_race_stages stage on stage.id=result.stage_id
+ where result.race_edition_id=$1 and result.result_scope='stage' order by stage.stage_number,result.competitor_key`,[id(key)]);
+const simulateDaily=(key,n)=>db.query('select simulate_development_race_stage($1,$2)',[id(key),id(`${key}-stage-${n}`)]);
+const character=(riderId,key)=>db.query('update youth_academy_riders set personality_key=$2 where id=$1',[riderId,key]);
+async function rollbackAfter(action){
+ await db.exec('begin');
+ try{return await action();}
+ finally{await db.exec('rollback');}
+}
+async function pickImprevisible(key,options={}){
+ const candidates=await query(`select label from unnest($2::text[],$3::uuid[]) as candidates(label,rider_id)
+ where floor(development_hash_unit('junior-imprevisible:' || $1::uuid::text || ':' || rider_id::text)*3)=$4 limit 1`,
+ [id(key),Array.from({length:24},(_,i)=>`imprevisible-${i}`),Array.from({length:24},(_,i)=>id(`${key}-imprevisible-${i}`)),options.roll??2]);
+ assert(candidates[0],`No deterministic score roll for ${key}`);
+ return rider(key,candidates[0].label,3,options.country,options.federal);
+}
+async function compareCharacterTimes(key,riderId,run,changedStage,direction=-1){
+ const baseline=await rollbackAfter(async()=>{await run();return stageTimes(key);});
+ await character(riderId,'imprevisible');
+ await run();
+ const adjusted=await stageTimes(key);
+ eq(adjusted.length,baseline.length,`${key}: same riders and stages`);
+ eq(adjusted.filter(row=>row.academy_rider_id===riderId&&row.stage_number===changedStage).length,1,`${key}: the affected rider has a stage result`);
+ for(let i=0;i<baseline.length;i++){
+  const before=baseline[i],after=adjusted[i];
+  const delta=after.elapsed_time_seconds-before.elapsed_time_seconds;
+  eq(after.competitor_key,before.competitor_key,`${key}: same rider`);
+  if(before.academy_rider_id===riderId&&before.stage_number===changedStage){
+   assert(Math.sign(delta)===direction&&Math.abs(delta)<=5,`${key}: expected a small signed road time change, got ${delta}`);
+   checks++;
+  }else eq(delta,0,`${key}: only the chosen rider and road stage change`);
+ }
+ return adjusted;
+}
 async function checkHumansAhead(key,count,scope='general'){
  const rows=await results(key,scope),human=rows.filter(r=>r.academy_rider_id),bots=rows.filter(r=>!r.academy_rider_id);
  eq(human.length,count,`${key}: real entrants retained`);assert(bots.length>0);checks++;
@@ -54,7 +91,7 @@ async function checkHumansAhead(key,count,scope='general'){
 }
 
 async function checkJuniorTactics() {
- await db.exec(`create schema private;
+ await db.exec(`create schema if not exists private;
    create table public.development_race_stage_plans (
      stage_id uuid not null, academy_rider_id uuid not null, development_registration_id uuid,
      federation_registration_id uuid, instruction text not null
@@ -182,13 +219,16 @@ async function checkJuniorTactics() {
  eq(await attributes(), attributesBefore, 'Tactical migration still preserves function execution settings after reapplication');
 }
 try{
- await db.exec(`create role anon;create role authenticated;create role service_role;
+ await db.exec(`create role anon;create role authenticated;create role service_role;create schema private;
  create table countries(id uuid primary key,name text,iso_alpha2 text,continent_code text,is_active boolean);
- create table seasons(id uuid primary key,current_day_number integer,game_year integer);
- create table development_race_editions(id uuid primary key,season_id uuid,name text,status text,start_day_number integer,end_day_number integer,is_world_championship boolean,competition_type text,race_format text,points_scale text,championship_continent_code text,simulated_at timestamptz,updated_at timestamptz);
- create table development_race_stages(id uuid primary key,race_edition_id uuid,stage_number integer,day_number integer,distance_km numeric,stage_type text,profile_type text);
- create table development_teams(id uuid primary key,display_name text);
- create table youth_academy_riders(id uuid primary key,country_id uuid,first_name text,last_name text,${ratings.map(key=>`${key} numeric not null check(${key} between 1 and 6)`).join(',')});
+ create table seasons(id uuid primary key,current_day_number integer,game_year integer,status text);
+ create table season_days(id uuid primary key,season_id uuid,day_number integer,calendar_date date);
+ create table development_race_editions(id uuid primary key default gen_random_uuid(),season_id uuid,name text,status text default 'planned',start_day_number integer,end_day_number integer,is_world_championship boolean,competition_type text,race_format text,points_scale text,championship_continent_code text,simulated_at timestamptz,updated_at timestamptz,slug text,short_name text,location_name text,country_code text,profile_type text,selection_minimum integer,selection_maximum integer,selection_mode text,reward_pool integer,unique(season_id,slug));
+ create table development_race_stages(id uuid primary key default gen_random_uuid(),race_edition_id uuid,stage_number smallint,day_number integer,distance_km numeric,stage_type text,profile_type text,name text,unique(race_edition_id,stage_number));
+ create table development_teams(id uuid primary key,display_name text,season_id uuid);
+ create table development_team_roster(development_team_id uuid,academy_rider_id uuid);
+ create table youth_academy_riders(id uuid primary key,country_id uuid,first_name text,last_name text,${ratings.map(key=>`${key} numeric not null check(${key} between 1 and 6)`).join(',')},personality_key text,morale numeric default 60,updated_at timestamptz,status text default 'active',birth_game_year integer default 2);
+ create table youth_rider_morale_events(id uuid primary key default gen_random_uuid(),academy_rider_id uuid,season_day_id uuid,source_type text,source_reference text,requested_delta numeric,applied_delta numeric,morale_before numeric,morale_after numeric,description text,metadata jsonb,unique(academy_rider_id,source_type,source_reference));
  create table development_race_registrations(id uuid primary key,race_edition_id uuid,development_team_id uuid,status text,updated_at timestamptz);
  create table development_race_registration_riders(registration_id uuid,academy_rider_id uuid);
  create table national_federation_junior_race_registrations(id uuid primary key,race_edition_id uuid,country_id uuid,status text,synced_at timestamptz);
@@ -220,7 +260,7 @@ try{
   await db.exec(`revoke all on function ${signature} from public,anon,authenticated;grant execute on function ${signature} to service_role;`);
   if(signature.includes('get_national_federation_equipment'))await db.exec(`grant execute on function ${signature} to authenticated;`);
  }
- await db.query('insert into seasons values($1,28,4)',[id('season')]);
+ await db.query("insert into seasons values($1,28,4,'active')",[id('season')]);
  for(const [country,code] of [['plain','FR'],['equipped','BR'],['other','JP']])await db.query("insert into countries values($1,$2,$3,'europe',true)",[id(country),country,code]);
  await db.query('insert into national_federation_equipment_contracts values($1,$2,$3)',[id('contract'),id('equipped'),id('season')]);
  const payload={ratingBonuses:Object.fromEntries(['mountain','hills','flat','timeTrial','cobbles','sprint','acceleration','downhill','endurance','resistance','recovery','prologue'].map(key=>[key,1])),timeTrialRatingBonuses:{timeTrial:.5,prologue:.5,flat:.5,endurance:.5,resistance:.5}};
@@ -274,6 +314,89 @@ try{
  eq(await results('old'),oldResults,'Historical classifications remain byte-for-byte unchanged');
  eq(await attributes(),attrs,'All permissions/settings remain identical after repeated application');
  await checkJuniorTactics();
- console.log(`PASS ${checks} isolated SQL checks: equipment units, virtual riders, club and federation tactics, stages/final consistency, historical results, retries and permissions.`);
+
+ await db.exec(definition(read('20260905150000_polish_federations_and_add_lightweight_junior_nationals'),'settle_due_lightweight_junior_national_championships'));
+ const moraleSource=read('20260927233500_reapply_persistent_rider_morale');
+ await db.exec(definition(moraleSource,'apply_youth_rider_morale_event'));
+ await db.exec(definition(moraleSource,'apply_development_result_morale'));
+ await db.exec('create trigger development_race_results_apply_morale after insert on development_race_results for each row execute function apply_development_result_morale()');
+ for(let day=1;day<=10;day++)await db.query('insert into season_days values($1,$2,$3,$4)',[id(`day-${day}`),id('season'),day,`2026-11-${10+day}`]);
+ await event('legacy-tour','hilly','open',2);
+ const legacyRider=await pickImprevisible('legacy-tour');
+ await character(legacyRider,'imprevisible');
+ await simulateDaily('legacy-tour',1);
+ const legacyExpected=await rollbackAfter(async()=>{await simulate('legacy-tour');return stageTimes('legacy-tour');});
+
+ await db.exec(read('20261117102000_apply_junior_race_personalities'));
+ eq(await scalar("select rider_personalities_enabled from development_race_editions where id=$1",[id('legacy-tour')]),false,'A partially published tour keeps its original scoring');
+ await simulate('legacy-tour');
+ eq(await stageTimes('legacy-tour'),legacyExpected,'Old tour results remain consistent during final settlement');
+ eq(await results('old'),oldResults,'Character migration leaves completed classifications unchanged');
+
+ await event('character-tour','hilly','open',3);
+ const tourRider=await pickImprevisible('character-tour');
+ await db.query("update development_race_stages set stage_type='individual_time_trial',profile_type='time_trial' where id=$1",[id('character-tour-stage-3')]);
+ const dailyTour=await compareCharacterTimes('character-tour',tourRider,async()=>{for(let n=1;n<=3;n++)await simulateDaily('character-tour',n);},2);
+ await simulate('character-tour');
+ eq(await stageTimes('character-tour'),dailyTour,'Daily and final engines apply the identical road delta and leave the trailing time trial unchanged');
+
+ await event('character-world','hilly','world_road');
+ const worldRider=await pickImprevisible('character-world',{federal:true,roll:0});
+ await compareCharacterTimes('character-world',worldRider,()=>simulate('character-world'),1,1);
+
+ await db.exec("update countries set is_active=false; update youth_academy_riders set status='retired'");
+ await db.query("insert into countries values($1,'National','GB','europe',true)",[id('national')]);
+ const nationalRoad='championnat-junior-gb-route',nationalTt='championnat-junior-gb-clm';
+ for(const [key,type,profile] of [[nationalRoad,'national_road','hilly'],[nationalTt,'national_time_trial','time_trial']]){
+  await event(key,profile,type);
+  await db.query("update development_race_editions set slug=$2,country_code='GB' where id=$1",[id(key),key]);
+ }
+ const nationalRider=await pickImprevisible(nationalRoad,{country:'national'});
+ await db.query("update youth_academy_riders set birth_game_year=(select game_year-17 from seasons where id=$2) where id=$1",[nationalRider,id('season')]);
+ const settleNational=()=>db.exec('select settle_due_lightweight_junior_national_championships()');
+ const nationalTtBaseline=await rollbackAfter(async()=>{await settleNational();return stageTimes(nationalTt);});
+ eq(nationalTtBaseline[0]?.academy_rider_id,nationalRider,'The same junior starts the national time trial');
+ await compareCharacterTimes(nationalRoad,nationalRider,settleNational,1);
+ eq(await stageTimes(nationalTt),nationalTtBaseline,'The junior national time trial ignores the road character');
+
+ await event('globe-trotteur-start');
+ const globe=await rider('globe-trotteur-start','globe',3);
+ await character(globe,'globe_trotteur');
+ const travels=()=>query(`select event.requested_delta,event.source_reference,event.metadata,day.day_number
+ from youth_rider_morale_events event join season_days day on day.id=event.season_day_id
+ where event.academy_rider_id=$1 and event.metadata->>'personalityKey'='globe_trotteur'
+ order by day.day_number`,[globe]);
+ async function recordTravel(key,country,day,scope='stage',season='season'){
+  await event(key);
+  await db.query('update development_race_editions set country_code=$2,season_id=$3 where id=$1',[id(key),country,id(season)]);
+  await db.query('update development_race_stages set day_number=$2 where id=$1',[id(`${key}-stage-1`),day]);
+  await db.query(`insert into development_race_results(race_edition_id,stage_id,result_scope,competitor_key,academy_rider_id,rank)
+   values ($1,$2,$3,$4,$5,4)`,[id(key),id(`${key}-stage-1`),scope,key,globe]);
+ }
+ for(const [country,code] of [['new-one','IT'],['new-two','ES'],['new-three','AU']]){
+  await db.query("insert into countries values($1,$2,$3,'europe',true)",[id(country),country,code]);
+ }
+ await db.query("update development_race_editions set country_code='FR' where id=$1",[id('globe-trotteur-start')]);
+ await simulate('globe-trotteur-start');
+ eq((await travels()).length,1,'An actual junior result in a new country gives one bonus');
+ eq(Number((await travels())[0].requested_delta),1,'The persistent junior bonus is +1 morale');
+ eq((await travels())[0].metadata.countryId,id('plain'),'The ledger names the visited country');
+ await recordTravel('globe-repeat','FR',2);
+ await recordTravel('globe-general','JP',2,'general');
+ eq((await travels()).length,1,'A country revisit and a general-only result give no bonus');
+ await recordTravel('globe-new-country-2','JP',3);
+ await recordTravel('globe-new-country-3','IT',4);
+ await recordTravel('globe-season-cap','ES',5);
+ eq((await travels()).map(event=>event.day_number),[1,3,4],'The first three new junior countries of the season give a bonus');
+ await db.query('delete from development_race_results where race_edition_id=$1',[id('globe-new-country-2')]);
+ await db.query("insert into development_race_results(race_edition_id,stage_id,result_scope,competitor_key,academy_rider_id,rank) values ($1,$2,'stage','retry',$3,4)",[id('globe-new-country-2'),id('globe-new-country-2-stage-1'),globe]);
+ eq((await travels()).length,3,'A junior result replay cannot duplicate the reward');
+ await db.query("insert into seasons values($1,28,5,'planned')",[id('next-season')]);
+ await db.query('insert into season_days values($1,$2,1,$3),($4,$2,2,$5)',[id('next-day-1'),id('next-season'),'2026-12-01',id('next-day-2'),'2026-12-02']);
+ await recordTravel('globe-once-per-career','ES',1,'stage','next-season');
+ eq((await travels()).length,3,'A country visited after the previous season cap is still a career visit');
+ await recordTravel('globe-season-reset','AU',2,'stage','next-season');
+ eq((await travels()).length,4,'A new country earns the bonus again after the season rolls over');
+ console.log(`PASS ${checks} isolated SQL checks: junior balance, club and federation tactics, all character scoring paths, authoritative published stages, in-progress tours, junior morale and retries.`);
 }catch(error){console.error('FAIL:',error.message,error.where??'',error.detail??'');process.exitCode=1;}
 finally{await db.close();}

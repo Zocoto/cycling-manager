@@ -20,7 +20,7 @@ const query = async (sql, args=[]) => (await db.query(sql,args)).rows;
 const order = async stage => (await query('select sprint_train_order from race_stage_strategies where stage_id=$1',[id(stage)]))[0].sprint_train_order;
 try {
   await db.exec(`
-    create role anon; create role authenticated; create role service_role;
+    create role anon; create role authenticated; create role service_role bypassrls;
     create schema auth; create schema private;
     create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('test.uid',true),'')::uuid$$;
     grant usage on schema auth to authenticated;
@@ -28,6 +28,12 @@ try {
     create table team_manager_assignments(sporting_director_id uuid,team_id uuid,status text,role text);
     create table race_registrations(id uuid primary key,race_edition_id uuid);
     create table race_rosters(race_registration_id uuid,rider_id uuid,status text,primary key(race_registration_id,rider_id));
+    create table riders(id uuid primary key,personality_key text);
+    alter table public.riders enable row level security;
+    insert into riders values('${id(52)}','cooperatif'),('${id(61)}','tenace'),('${id(62)}','metronome');
+    create function get_registration_season_race_days_v2(uuid,uuid[])
+    returns table(rider_id uuid,season_race_days integer,projected_season_race_days integer,has_etapovore boolean)
+    language sql stable as $$select r.id, 3, 6, true from public.riders r where r.id=any($2) and $1='${id(1)}'::uuid$$;
     create table stages(id uuid primary key,closed boolean default false);
     create table race_stage_strategies(race_registration_id uuid,stage_id uuid,team_id uuid,race_edition_id uuid,
       primary key(race_registration_id,stage_id),unique(team_id,stage_id));
@@ -67,6 +73,7 @@ try {
     language sql security definer as $$select ${projection} from race_stage_strategies s join race_rosters r
       on r.race_registration_id=s.race_registration_id where s.team_id='${id(13)}' and $1='MU' and auth.uid()='${id(101)}'$$;
     revoke all on all tables in schema public from public,anon,authenticated;
+    grant select on public.riders to authenticated,service_role;
     alter function public.save_current_team_race_preparation(uuid,uuid,jsonb,jsonb) set search_path=public;
     alter function public.save_national_federation_race_preparation(text,uuid,uuid,jsonb,jsonb) set search_path=public;
     alter function private.assert_federation_race_preparation_context(text,uuid,uuid,boolean) set search_path=public;
@@ -75,6 +82,7 @@ try {
   `);
   const hashes = await query("select proname,md5(pg_get_functiondef(oid)) hash from pg_proc where proname in('save_current_team_race_preparation','save_national_federation_race_preparation','get_current_team_race_preparation','get_current_national_federation_race_preparation') order by proname");
   await db.exec(migration);
+  await db.exec(await readFile('supabase/migrations/20261117101000_expose_personality_in_race_preparation.sql','utf8'));
   check(await order(41), [], 'existing rows default to automatic without a rewrite');
   check(await query("select proname,md5(pg_get_functiondef(oid)) hash from pg_proc where proname in('save_current_team_race_preparation','save_national_federation_race_preparation','get_current_team_race_preparation','get_current_national_federation_race_preparation') order by proname"), hashes, 'canonical RPCs untouched');
   const roles = Array.from({length:8},(_,i)=>({riderId:id(51+i),role:i===0?'sprinter':'leadout'}));
@@ -90,22 +98,41 @@ try {
   check(await order(41),[id(52)],'changed roles are not silently reassigned');
   for(const malformed of [null,'broken',{},12,[]]) { await save(malformed); check(await order(41),[],'malformed optional order falls back to auto'); }
   await save([id(52)]);
+  await db.exec('set role authenticated');
+  check(await query('select personality_key from public.riders'),[],'fixture RLS denies direct personality reads');
   const own = await query('select * from get_current_team_race_preparation_with_sprint() order by race_edition_id,stage_id,rider_id limit 3 offset 2');
   check(own.length,3,'new getter remains sortable and pageable');
   check(own.every(r=>r.sprint_train_order[0]===id(52)&&r.team_id===id(11)),true,'reader preserves ownership scope');
+  const ownPersonalities = await query('select * from get_current_team_race_preparation_with_personality() order by race_edition_id,stage_id,rider_id');
+  check(ownPersonalities.map(r=>r.personality_key),[null,'cooperatif',null,null,null,null,null,null],'only team roster personalities joined; legacy riders stay in result');
+  const personalityPage = await query('select * from get_current_team_race_preparation_with_personality() order by race_edition_id,stage_id,rider_id limit 3 offset 2');
+  check(personalityPage,own.map((row,index)=>({...row,personality_key:ownPersonalities[index+2].personality_key})),'personality projection leaves pagination and sprint train intact');
+  await db.exec('reset role');
   check((await query("select has_function_privilege('authenticated','private.store_sprint_train_order(uuid,uuid,jsonb,jsonb)','execute') allowed"))[0].allowed,false,'helper is private');
   check((await query("select has_function_privilege('anon','public.get_current_team_race_preparation_with_sprint()','execute') allowed"))[0].allowed,false,'anonymous reader forbidden');
-  await db.exec('reset role');
+  for (const signature of ['public.get_current_team_race_preparation_with_personality()', 'public.get_current_national_federation_race_preparation_with_personality(text)', 'public.get_registration_season_race_days_v3(uuid,uuid[])']) {
+    check((await query("select has_function_privilege('anon',$1,'execute') allowed",[signature]))[0].allowed,false,'new projection excludes public/anonymous roles');
+  }
+  check((await query("select has_function_privilege('authenticated','public.get_registration_season_race_days_v3(uuid,uuid[])','execute') allowed"))[0].allowed,false,'registration projection is service only');
   await db.exec(`select set_config('test.uid','${id(102)}',false)`);
   await assert.rejects(()=>save([id(54)]),/canonical context rejected/); checks++;
   check(await order(41),[id(52)],'unauthorized mutation has no effect');
   check((await query('select distinct team_id from get_current_team_race_preparation_with_sprint()'))[0].team_id,id(12),'other manager only sees own team');
+  await db.exec('set role authenticated');
+  check(await query('select personality_key from get_current_team_race_preparation_with_personality()'),[{personality_key:'tenace'}],'a different manager can only read their own preparation roster');
+  check(await query("select personality_key from get_current_national_federation_race_preparation_with_personality('MU')"),[],'unmanaged federation cannot be read');
+  await db.exec('reset role');
   await db.exec(`select set_config('test.uid','${id(101)}',false);update stages set closed=true where id='${id(41)}'`);
   await assert.rejects(()=>save([id(54)]),/canonical context rejected/); checks++;
   check(await order(41),[id(52)],'deadline checked by canonical writer before saving sprint');
   await query('select save_national_federation_race_preparation_with_sprint($1,$2,$3,$4,$5)', ['MU',id(31),id(43),JSON.stringify([{riderId:id(62),role:'leadout'}]),JSON.stringify({sprintTrainOrder:[id(62),id(52)]})]);
   check(await order(43),[id(62)],'federation context and roster respected');
   check((await query("select sprint_train_order from get_current_national_federation_race_preparation_with_sprint('MU')"))[0].sprint_train_order,[id(62)],'federation order reloads in same request');
+  await db.exec('set role authenticated');
+  check(await query("select sprint_train_order, personality_key from get_current_national_federation_race_preparation_with_personality('MU')"),[{sprint_train_order:[id(62)],personality_key:'metronome'}],'federation reader adds personality and keeps sprint train');
+  await db.exec('reset role; set role service_role');
+  check(await query('select * from get_registration_season_race_days_v3($1,$2)',[id(1),[id(61),id(9)]]),[{rider_id:id(61),season_race_days:3,projected_season_race_days:6,has_etapovore:true,personality_key:'tenace'}],'registration reader adds personality for authorized batch without altering projections');
+  await db.exec('reset role');
   check(await order(42),[],'other team / stage never touched');
   console.log(JSON.stringify({checks,status:'passed',database:'isolated PGlite',canonicalFunctions:'unchanged contract doubles'}));
 } catch(error) {

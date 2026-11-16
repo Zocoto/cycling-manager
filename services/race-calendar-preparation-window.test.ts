@@ -5,7 +5,7 @@ const fixture = vi.hoisted(() => ({
   calls: [] as Array<{ source: string; args?: Record<string, unknown> }>,
   filters: [] as Array<{ source: string; operator: string; key: string; value: unknown }>,
   compactUnavailable: false,
-  projectionUnavailable: false,
+  projectionError: null as { message: string; code?: string } | null,
   client: null as unknown,
 }));
 vi.mock("next/cache", () => ({ unstable_cache: (fn: unknown) => fn }));
@@ -26,7 +26,7 @@ function createClient(): Client {
   function query(source: string, args?: Record<string, unknown>) {
     let rows = [...(fixture.rows[source] ?? [])];
     let from = 0, to = Infinity;
-    let error: { message: string } | null = null;
+    let error: { message: string; code?: string } | null = null;
     if (source === "get_race_calendar_rider_context") {
       if (fixture.compactUnavailable) error = { message: "bounded RPC not deployed yet" };
       rows = (fixture.rows.riders ?? []).map((rider) => ({
@@ -37,8 +37,8 @@ function createClient(): Client {
             && Number(row.bonus_end_game_day) >= Number(args?.p_min_game_day)),
       }));
     }
-    if (source === "get_registration_season_race_days_v2" && fixture.projectionUnavailable) {
-      error = { message: "race-days projection not available" };
+    if (source === "get_registration_season_race_days_v3") {
+      error = fixture.projectionError;
     }
     const result = () => {
       fixture.calls.push({ source, args });
@@ -86,7 +86,7 @@ function riderPreparations(calendar: Awaited<ReturnType<typeof load>>) {
 describe("race preparation context season window", () => {
   beforeEach(() => {
     fixture.calls = []; fixture.filters = []; fixture.compactUnavailable = false;
-    fixture.projectionUnavailable = false;
+    fixture.projectionError = null;
     fixture.rows = {
       seasons: [{ id: "season", status: "active", game_year: 4, name: "S4", starts_on: "2026-10-09", ends_on: "2026-11-05", current_day_number: 28 }],
       season_days: [1, 28].map((day) => ({ id: `day-${day}`, season_id: "season", day_number: day, calendar_date: day === 1 ? "2026-10-09" : "2026-11-05", label: `J${day}` })),
@@ -196,32 +196,51 @@ describe("race preparation context season window", () => {
     });
   });
 
-  it("loads actual and projected race days in one batch for the active season and selectable roster", async () => {
+  it("loads actual and projected race days and personalities in one batch for the selectable roster", async () => {
     fixture.rows.get_current_team_race_roster_options = [
       { rider_id: RIDER, country_iso_alpha2: "FR", current_form: 80 },
       { rider_id: "debutant", country_iso_alpha2: "BE", current_form: 75 },
     ];
-    fixture.rows.get_registration_season_race_days_v2 = [
-      { rider_id: RIDER, season_race_days: 29, projected_season_race_days: 34, has_etapovore: true },
+    fixture.rows.get_registration_season_race_days_v3 = [
+      { rider_id: RIDER, season_race_days: 29, projected_season_race_days: 34, has_etapovore: true, personality_key: "metronome" },
       { rider_id: "debutant", season_race_days: 0, projected_season_race_days: 2, has_etapovore: false },
     ];
     fixture.rows.rider_condition_states = [{ rider_id: RIDER, season_day_id: "day-28", morale: 71 }];
 
     const riders = await getCurrentTeamRaceRosterOptions(fixture.client as Client, "edition");
 
-    expect(riders.map(({ riderId, morale, seasonRaceDays, projectedSeasonRaceDays, hasEtapovore }) =>
-      ({ riderId, morale, seasonRaceDays, projectedSeasonRaceDays, hasEtapovore }))).toEqual([
-      { riderId: RIDER, morale: 71, seasonRaceDays: 29, projectedSeasonRaceDays: 34, hasEtapovore: true },
-      { riderId: "debutant", morale: 60, seasonRaceDays: 0, projectedSeasonRaceDays: 2, hasEtapovore: false },
+    expect(riders.map(({ riderId, morale, seasonRaceDays, projectedSeasonRaceDays, hasEtapovore, personalityKey }) =>
+      ({ riderId, morale, seasonRaceDays, projectedSeasonRaceDays, hasEtapovore, personalityKey }))).toEqual([
+      { riderId: RIDER, morale: 71, seasonRaceDays: 29, projectedSeasonRaceDays: 34, hasEtapovore: true, personalityKey: "metronome" },
+      { riderId: "debutant", morale: 60, seasonRaceDays: 0, projectedSeasonRaceDays: 2, hasEtapovore: false, personalityKey: null },
     ]);
-    expect(fixture.calls.filter(({ source }) => source === "get_registration_season_race_days_v2")).toEqual([
-      { source: "get_registration_season_race_days_v2", args: { p_season_id: "season", p_rider_ids: [RIDER, "debutant"] } },
+    expect(fixture.calls.filter(({ source }) => source === "get_registration_season_race_days_v3")).toEqual([
+      { source: "get_registration_season_race_days_v3", args: { p_season_id: "season", p_rider_ids: [RIDER, "debutant"] } },
     ]);
     expect(fixture.calls.some(({ source }) => source === "rider_season_ratings")).toBe(false);
   });
 
-  it("keeps actual race days available when the projection fails", async () => {
-    fixture.projectionUnavailable = true;
+  it("keeps the season projection before the new RPC is visible", async () => {
+    fixture.projectionError = { message: "RPC not visible", code: "PGRST202" };
+    fixture.rows.get_current_team_race_roster_options = [
+      { rider_id: RIDER, country_iso_alpha2: "FR", current_form: 80 },
+    ];
+    fixture.rows.get_registration_season_race_days_v2 = [
+      { rider_id: RIDER, season_race_days: 29, projected_season_race_days: 34, has_etapovore: true },
+    ];
+
+    const [rider] = await getCurrentTeamRaceRosterOptions(fixture.client as Client, "edition");
+
+    expect(rider).toMatchObject({ seasonRaceDays: 29, projectedSeasonRaceDays: 34, hasEtapovore: true, personalityKey: null });
+    expect(fixture.calls.filter(({ source }) => source.startsWith("get_registration_season_race_days"))).toEqual([
+      { source: "get_registration_season_race_days_v3", args: { p_season_id: "season", p_rider_ids: [RIDER] } },
+      { source: "get_registration_season_race_days_v2", args: { p_season_id: "season", p_rider_ids: [RIDER] } },
+    ]);
+    expect(fixture.calls.some(({ source }) => source === "rider_season_ratings")).toBe(false);
+  });
+
+  it("keeps actual race days and personalities available when the projection fails", async () => {
+    fixture.projectionError = { message: "race-days projection not available" };
     fixture.rows.seasons[0].game_year = 5;
     fixture.rows.get_current_team_race_roster_options = [
       { rider_id: RIDER, country_iso_alpha2: "FR", current_form: 80 },
@@ -229,7 +248,7 @@ describe("race preparation context season window", () => {
     ];
     fixture.rows.rider_season_ratings = [
       { rider_id: RIDER, season_id: "previous-season", season_race_days: 45 },
-      { rider_id: RIDER, season_id: "season", season_race_days: 29, riders: { rider_special_abilities: [{ ability_code: "etapovore" }] } },
+      { rider_id: RIDER, season_id: "season", season_race_days: 29, riders: { personality_key: "metronome", rider_special_abilities: [{ ability_code: "etapovore" }] } },
       { rider_id: "debutant", season_id: "season", season_race_days: 0 },
       { rider_id: "other-team", season_id: "season", season_race_days: 18 },
     ];
@@ -245,6 +264,7 @@ describe("race preparation context season window", () => {
     ]);
     expect(riders.every((rider) => rider.projectedSeasonRaceDays === undefined)).toBe(true);
     expect(riders[0].hasEtapovore).toBe(true);
+    expect(riders[0].personalityKey).toBe("metronome");
     expect(fixture.calls.filter(({ source }) => source === "rider_season_ratings")).toHaveLength(1);
     expect(fixture.filters.filter(({ source }) => source === "rider_season_ratings")).toEqual([
       { source: "rider_season_ratings", operator: "eq", key: "season_id", value: "season" },

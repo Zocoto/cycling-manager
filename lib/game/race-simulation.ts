@@ -316,6 +316,12 @@ export type RiderSimulationInput = {
 export type StageSimulationInput = {
   /** Public pre-race favorite ranking, frozen before running the engine. */
   careerAchievementFavorites?: string[];
+  /** Explicit DS appointments for result morale, frozen before automatic roles. */
+  personalityLeadershipByRiderId?: Record<string, {
+    personalityKey: "ambitieux" | "colerique";
+    stageRole?: RaceRole;
+    generalRole?: RaceRole;
+  }>;
   id: string;
   name: string;
   stageType: SimulationStageType;

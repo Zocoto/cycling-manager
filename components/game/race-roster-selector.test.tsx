@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
+import { RIDER_PERSONALITIES } from "@/lib/game/rider-personalities";
 import { FREE_AGENT_RIDER_JERSEY } from "@/lib/rider-jersey";
 import type { RaceRosterOption } from "@/services/race-calendar";
 
@@ -33,6 +34,7 @@ const rider = {
   breakaway: 73,
   form: 87.5,
   morale: 72,
+  personalityKey: "metronome",
   seasonRaceDays: 0,
   squadStatus: "lieutenant",
   protectedLeaderId: null,
@@ -56,6 +58,7 @@ describe("RaceRosterSelector", () => {
               riderId: "00000000-0000-4000-8000-000000000002",
               seasonRaceDays: 24,
               projectedSeasonRaceDays: 32,
+              isSelected: true,
             },
           ]}
           minimum={1}
@@ -73,6 +76,8 @@ describe("RaceRosterSelector", () => {
     expect(markup).toContain("Surcharge prévue");
     expect(markup).toContain("Au-delà de 30 JDC, le malus est de 1 point de moral par jour supplémentaire pour les coureurs sans le talent Étapovore.");
     expect(markup).toContain("Lieutenant");
+    expect(markup).toContain(`>${RIDER_PERSONALITIES.metronome.label}</span>`);
+    expect(markup).toContain(`>${RIDER_PERSONALITIES.metronome.description}</span>`);
     expect(markup).toContain("MON 78 · VAL 76 · PLA 69");
     expect(markup).toContain("CLM 66 · PAV 63 · SPR 61 · BAR 73");
     expect(markup).toContain("Trier par");

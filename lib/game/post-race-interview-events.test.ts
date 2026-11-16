@@ -187,6 +187,39 @@ describe("événements de zone mixte", () => {
     expect(selectZoneMixteEvent({ seed, context: { ...context, rivalry: null } })?.id).not.toBe(event.id);
   });
 
+  it("cible le leader concerné même si un équipier a terminé devant lui", () => {
+    const leader = {
+      riderId: "00000000-0000-4000-8000-000000000002",
+      riderName: "Julien Leader",
+      riderPersonalityKey: "franc_parleur",
+      bestRank: 14,
+      wasTeamLeader: true,
+    } as const;
+    const { seed } = findEventWithId("personality-franc-parleur-debrief", { ...CONTEXT, ...leader });
+    const event = selectZoneMixteEvent({ context: CONTEXT, seed, personalityRiders: [leader] });
+    expect(event?.riderId).toBe(leader.riderId);
+    expect(event?.story).toContain("Julien Leader");
+    expect(event?.story).not.toContain(CONTEXT.riderName);
+    expect(selectZoneMixteEvent({ context: CONTEXT, seed })?.id).not.toBe(event?.id);
+  });
+
+  it("propose un débrief au Discret impliqué dans un incident même sans mention dans le résumé", () => {
+    const rider = {
+      riderId: "00000000-0000-4000-8000-000000000003",
+      riderName: "Daniel Discret",
+      riderPersonalityKey: "discret",
+      bestRank: null,
+      riderHadSetback: true,
+    } as const;
+    const { seed } = findEventWithId("personality-discret-debrief", { ...CONTEXT, ...rider });
+    const event = selectZoneMixteEvent({ context: CONTEXT, seed, personalityRiders: [rider] });
+    expect(event?.riderId).toBe(rider.riderId);
+    expect(event?.story).toContain(rider.riderName);
+    expect(selectZoneMixteEvent({
+      context: CONTEXT, seed, personalityRiders: [{ ...rider, riderHadSetback: false }],
+    })?.id).not.toBe(event?.id);
+  });
+
   it("réserve le débriefing de chute au coureur impliqué qui a terminé", () => {
     const detailedRaceFacts = {
       starters: 5,

@@ -14,10 +14,14 @@ export async function getCurrentFederationRacePreparation(
   supabase: SupabaseServerClient,
   countryCode: string,
 ): Promise<RacePreparationEditionPlan[]> {
-  const { data, error } = await supabase.rpc(
-    "get_current_national_federation_race_preparation_with_sprint",
-    { p_country_code: countryCode.toUpperCase() },
+  const parameters = { p_country_code: countryCode.toUpperCase() };
+  const personalityPreparation = await supabase.rpc(
+    "get_current_national_federation_race_preparation_with_personality",
+    parameters,
   );
+  const { data, error } = personalityPreparation.error?.code === "PGRST202"
+    ? await supabase.rpc("get_current_national_federation_race_preparation_with_sprint", parameters)
+    : personalityPreparation;
 
   if (error) {
     throw new Error(

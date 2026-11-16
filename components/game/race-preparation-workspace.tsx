@@ -8,6 +8,7 @@ import { confirmManagementDraftNavigation } from "@/lib/game/management-navigati
 
 import { RaceEquipmentPlanner } from "@/components/game/race-equipment-planner";
 import { RaceRoleGuide } from "@/components/game/race-role-guide";
+import { RiderPersonalityBadge } from "@/components/game/rider-personality";
 import { SprintTrainEditor } from "@/components/game/sprint-train-editor";
 import { readSprintTrainOrder } from "@/lib/game/sprint-train";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
@@ -700,6 +701,11 @@ function StagePreparationForm({
                     <span className="mt-0.5 block text-[9px] font-bold uppercase tracking-wide text-[#789487]">
                       Général · {RACE_ROLE_LABELS[rider.generalRole]}
                     </span>
+                    {rider.personalityKey ? (
+                      <span className="mt-1.5 block text-[#42675E]">
+                        <RiderPersonalityBadge personality={rider.personalityKey} compact showDescription />
+                      </span>
+                    ) : null}
                     {isLockedTourLeader ? (
                       <span className="mt-1 inline-flex rounded-full bg-[#278B70]/12 px-2 py-1 text-[9px] font-black uppercase tracking-wide text-[#176951]">
                         Leader du tour · verrouillé
@@ -1819,6 +1825,11 @@ function TimeTrialPreparationForm({
                       <span className="mt-0.5 block text-[9px] font-bold uppercase tracking-wide text-[#789487]">
                         Général · {RACE_ROLE_LABELS[rider.generalRole]}
                       </span>
+                      {rider.personalityKey ? (
+                        <span className="mt-1.5 block text-[#42675E]">
+                          <RiderPersonalityBadge personality={rider.personalityKey} compact showDescription />
+                        </span>
+                      ) : null}
                       {isLockedTourLeader ? (
                         <>
                           <span className="mt-1 inline-flex rounded-full bg-[#278B70]/12 px-2 py-1 text-[9px] font-black uppercase tracking-wide text-[#176951]">
@@ -1899,12 +1910,20 @@ function TimeTrialPreparationForm({
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-black text-[#0B302B]">
-                        {rider.firstName} {rider.lastName}
+                      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-black text-[#0B302B]">
+                        <span>{rider.firstName} {rider.lastName}</span>
+                        {isTeamTimeTrial ? (
+                          <RiderPersonalityBadge personality={rider.personalityKey} compact />
+                        ) : null}
                       </p>
                       <p className="mt-1 text-[10px] font-bold text-[#66877C]">
                         CLM {rider.ratings.timeTrial} · END {rider.ratings.endurance} · RES {rider.ratings.resistance}
                       </p>
+                      {!isTeamTimeTrial && rider.personalityKey ? (
+                        <div className="mt-1.5 text-[#42675E]">
+                          <RiderPersonalityBadge personality={rider.personalityKey} compact showDescription />
+                        </div>
+                      ) : null}
                     </div>
                     {isTeamTimeTrial ? (
                       <label className="text-right text-[9px] font-black uppercase tracking-wide text-[#397A67]">

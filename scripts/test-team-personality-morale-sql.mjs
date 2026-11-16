@@ -16,6 +16,11 @@ try {
     create table seasons(id uuid primary key, game_year int, current_day_number int, status text);
     create table season_days(id uuid primary key, season_id uuid, day_number int, calendar_date date);
     create table riders(id uuid primary key, personality_key text);
+    create table countries(id uuid primary key, iso_alpha2 text);
+    create table youth_academy_riders(id uuid primary key, promoted_rider_id uuid, status text);
+    create table development_race_editions(id uuid primary key, season_id uuid, country_code text);
+    create table development_race_stages(id uuid primary key, day_number int);
+    create table development_race_results(academy_rider_id uuid, race_edition_id uuid, stage_id uuid, result_scope text);
     create table rider_contracts(id uuid primary key, rider_id uuid, team_id uuid, start_season_id uuid,
       end_season_id uuid, left_season_id uuid, left_day_number int, acquisition_type text, status text, signed_at timestamptz);
     create table races(id uuid primary key, country_id uuid);
@@ -56,6 +61,7 @@ try {
     { id: id(9), personalityKey: "meticuleux", age: 30, reconnaissanceBonus: 2.1 },
     { id: id(10), personalityKey: "globe_trotteur", age: 30 },
     { id: id(15), personalityKey: "fidele", age: 25 },
+    { id: id(16), personalityKey: "globe_trotteur", age: 19 },
   ];
   for (const rider of riders) {
     await db.query("insert into riders values ($1,$2)", [rider.id, rider.personalityKey]);
@@ -109,6 +115,32 @@ try {
     assert.equal(await settle(stage), day < 6 ? 1 : 0);
   }
   assert.equal((await moraleOf(3)).length, 3);
+
+  await db.query("insert into countries values ($1,'FR')", [id(50)]);
+  await db.query("insert into youth_academy_riders values ($1,$2,'promoted')", [id(160), id(16)]);
+  await db.query("insert into development_race_editions values ($1,$2,'FR')", [id(170), id(13)]);
+  await db.query("insert into development_race_stages values ($1,1)", [id(171)]);
+  await db.query("insert into development_race_results values ($1,$2,$3,'stage')", [id(160), id(170), id(171)]);
+  await db.query(`insert into rider_morale_events
+    (rider_id, season_day_id, source_type, source_reference, metadata)
+    values ($1,$2,'academy_promotion','junior-1','{"personalityKey":"globe_trotteur"}'),
+      ($1,$2,'academy_promotion','junior-2','{"personalityKey":"globe_trotteur"}'),
+      ($1,$2,'academy_promotion','junior-unrelated','{"personalityKey":"sociable"}'),
+      ($1,$3,'academy_promotion','junior-last-season','{"personalityKey":"globe_trotteur"}')`,
+    [id(16), id(31), id(29)]);
+  const beforePromotion = await moraleOf(16);
+  await db.query("insert into race_rosters values ($1,$2,$3)", [id(172), id(16), id(173)]);
+  for (let day = 2; day <= 5; day += 1) {
+    await db.query("insert into stage_results values ($1,$2,16,'finished')", [id(140 + day), id(172)]);
+  }
+  assert.equal(await settle(first), 0, "A prior junior start in the country blocks the professional bonus");
+  await db.query("update youth_academy_riders set status='free_agent' where id=$1", [id(160)]);
+  assert.equal(await settle(first), 0, "Moving directly to the free-agent market preserves junior travel history");
+  assert.deepEqual(await moraleOf(16), beforePromotion);
+  assert.equal(await settle(id(144)), 1, "A new country can earn the third same-season bonus after promotion");
+  assert.equal(await settle(id(145)), 0, "Inherited Globe-trotteur bonuses count toward the shared cap");
+  assert.equal((await moraleOf(16)).length, beforePromotion.length + 1);
+
   const future = await fixture({ day: 7, country: 65, snapshot: riders, results: [[4, 1, 8]] });
   await db.query("update stages set departure_at='3000-01-01' where id=$1", [future]);
   assert.equal(await settle(future), 0);

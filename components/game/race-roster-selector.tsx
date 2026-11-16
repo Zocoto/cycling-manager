@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { RiderAvatar } from "@/components/game/rider-avatar";
+import { RiderPersonalityBadge } from "@/components/game/rider-personality";
 import { RaceRoleGuide } from "@/components/game/race-role-guide";
 import {
   isSeasonRaceDaysOverloaded,
@@ -462,6 +463,9 @@ export function RaceRosterSelector({
                       <span>
                         {rider.firstName} {rider.lastName}
                       </span>
+                      {!isSelected ? (
+                        <RiderPersonalityBadge personality={rider.personalityKey} compact />
+                      ) : null}
                       <span
                         className={`rounded-full border px-2 py-0.5 text-[10px] font-black ${getRosterFormClasses(rider.form)}`}
                       >
@@ -496,6 +500,11 @@ export function RaceRosterSelector({
                     <span className="mt-1 block text-[11px] font-semibold text-[#9FB5A8]">
                       {rider.age} ans · MON {rider.mountain} · VAL {rider.hills} · PLA {rider.flat} · CLM {rider.timeTrial} · PAV {rider.cobbles} · SPR {rider.sprint} · BAR {rider.breakaway}
                     </span>
+                    {isSelected && rider.personalityKey ? (
+                      <span className="mt-1.5 block text-[#B9CFC2]">
+                        <RiderPersonalityBadge personality={rider.personalityKey} compact showDescription />
+                      </span>
+                    ) : null}
                   </span>
                 </label>
 

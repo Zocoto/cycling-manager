@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { RaceCalendarStage, RaceFormat } from "@/lib/game/race-calendar";
 import type { RaceRole } from "@/lib/game/race-simulation";
 import { DEFAULT_RACE_TEAM_STRATEGY } from "@/lib/game/race-strategy";
+import { RIDER_PERSONALITIES } from "@/lib/game/rider-personalities";
 import type { RacePreparationRider } from "@/services/race-calendar";
 import {
   RacePreparationWorkspace,
@@ -95,6 +96,15 @@ function saveButton(html: string) {
 }
 
 describe.each(["road", "team_time_trial"] as const)("rôles de préparation — %s", (stageType) => {
+  it("explique le caractère du coureur à côté de ses rôles", () => {
+    const html = renderPreparation({
+      stageType,
+      riders: [{ ...rider("gc", "leader"), personalityKey: "metronome" }],
+    });
+    expect(html).toContain(`>${RIDER_PERSONALITIES.metronome.label}</span>`);
+    expect(html).toContain(`>${RIDER_PERSONALITIES.metronome.description}</span>`);
+  });
+
   it("permet de désigner un leader après un leader / sprinteur", () => {
     const html = renderPreparation({ stageType, riders: [rider("sprint", "leader_sprinter"), rider("gc", "auto")] });
     expect(roleOption(roleSelect(html, "gc"), "gc", "leader")).not.toContain("disabled");

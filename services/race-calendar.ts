@@ -32,7 +32,7 @@ import {
 } from "@/lib/game/race-calendar";
 import { buildDevelopmentRaceDisplaySegments } from "@/lib/game/development-race-profile";
 import type { RiderRatings } from "@/lib/game/rider-profile";
-import { parseRiderPersonalityKey } from "@/lib/game/rider-personalities";
+import { parseRiderPersonalityKey, type RiderPersonalityKey } from "@/lib/game/rider-personalities";
 import { readStageEquipmentItems, readPermanentStageEquipmentPayloads, type StageEquipmentChange } from "@/lib/game/race-stage-equipment";
 import {
   parseSquadStatus,
@@ -711,6 +711,7 @@ export type RaceRosterOption = {
   seasonRaceDays?: number;
   projectedSeasonRaceDays?: number;
   hasEtapovore?: boolean;
+  personalityKey?: RiderPersonalityKey | null;
   squadStatus: SquadStatus | null;
   protectedLeaderId: string | null;
   climateProfile: RiderClimateProfile;
@@ -739,6 +740,7 @@ export type RaceStageRolePlanRider = {
 export type RacePreparationRider = RaceStageRolePlanRider & {
   firstName: string;
   lastName: string;
+  personalityKey?: RiderPersonalityKey | null;
   ratings: RiderRatings;
   timeTrialPlans: Record<string, TimeTrialRiderPlan>;
 };
@@ -772,6 +774,7 @@ type RacePreparationRow = {
   rider_id: string;
   rider_first_name: string;
   rider_last_name: string;
+  personality_key?: string | null;
   mountain: number;
   hills: number;
   flat: number;
@@ -2365,6 +2368,10 @@ export async function getCurrentTeamRaceRosterOptions(
     projectedSeasonRaceDays: raceDaysByRiderId.get(rider.rider_id)?.projected_season_race_days,
     hasEtapovore: raceDaysByRiderId.get(rider.rider_id)?.has_etapovore ??
       raceDaysByRiderId.get(rider.rider_id)?.riders?.rider_special_abilities.some((ability) => ability.ability_code === "etapovore"),
+    personalityKey: parseRiderPersonalityKey(
+      raceDaysByRiderId.get(rider.rider_id)?.personality_key ??
+        raceDaysByRiderId.get(rider.rider_id)?.riders?.personality_key,
+    ),
     squadStatus: parseSquadStatus(rider.squad_status),
     protectedLeaderId: rider.squad_protected_leader_id ?? null,
     climateProfile: getRiderClimateProfile({
@@ -2402,7 +2409,11 @@ type RegistrationSeasonRaceDaysRow = {
   season_race_days: number;
   projected_season_race_days?: number;
   has_etapovore?: boolean;
-  riders?: { rider_special_abilities: Array<{ ability_code: string }> } | null;
+  personality_key?: string | null;
+  riders?: {
+    personality_key: string | null;
+    rider_special_abilities: Array<{ ability_code: string }>;
+  } | null;
 };
 
 async function loadCurrentRaceRosterCondition(riderIds: string[]) {
@@ -2420,29 +2431,31 @@ async function loadCurrentRaceRosterCondition(riderIds: string[]) {
     .maybeSingle<{ id: string; current_day_number: number | null }>();
   assertQuerySucceeded(seasonResult.error, "la saison active du moral");
   if (!seasonResult.data) return condition;
+  const season = seasonResult.data;
+  const readRaceDays = (rpc: "get_registration_season_race_days_v3" | "get_registration_season_race_days_v2") =>
+    admin.rpc(rpc, { p_season_id: season.id, p_rider_ids: uniqueRiderIds })
+      .abortSignal(AbortSignal.timeout(3_000));
 
-  const [dayResult, projectionResult] = await Promise.all([
+  const [dayResult, personalityProjection] = await Promise.all([
     admin
       .from("season_days")
       .select("id")
-      .eq("season_id", seasonResult.data.id)
-      .eq("day_number", seasonResult.data.current_day_number ?? 1)
+      .eq("season_id", season.id)
+      .eq("day_number", season.current_day_number ?? 1)
       .maybeSingle<{ id: string }>(),
-    admin
-      .rpc("get_registration_season_race_days_v2", {
-        p_season_id: seasonResult.data.id,
-        p_rider_ids: uniqueRiderIds,
-      })
-      .abortSignal(AbortSignal.timeout(3_000)),
+    readRaceDays("get_registration_season_race_days_v3"),
   ]);
+  const projectionResult = personalityProjection.error?.code === "PGRST202"
+    ? await readRaceDays("get_registration_season_race_days_v2")
+    : personalityProjection;
   if (projectionResult.error) {
     console.warn("race_roster_race_days_projection_unavailable", { code: projectionResult.error.code });
   }
   const raceDaysResult = projectionResult.error
     ? await admin
         .from("rider_season_ratings")
-        .select("rider_id, season_race_days, riders(rider_special_abilities(ability_code))")
-        .eq("season_id", seasonResult.data.id)
+        .select("rider_id, season_race_days, riders(personality_key, rider_special_abilities(ability_code))")
+        .eq("season_id", season.id)
         .in("rider_id", uniqueRiderIds)
         .eq("riders.rider_special_abilities.ability_code", "etapovore")
         .returns<RegistrationSeasonRaceDaysRow[]>()
@@ -2511,13 +2524,13 @@ export async function getCurrentTeamRacePreparation(
   // Each row represents one stage/rider pair, including past stages. A busy
   // season can exceed PostgREST's 1,000-row cap before any future race appears.
   // Read pages sequentially with a unique order; never return a partial plan.
-  const { data, error } = await collectPaginatedRows<
+  const readPreparation = (rpc: "get_current_team_race_preparation_with_personality" | "get_current_team_race_preparation_with_sprint") => collectPaginatedRows<
     RacePreparationRow,
-    { message: string }
+    { message: string; code: string }
   >({
     fetchPage: async (from, to) => {
       const result = await supabase
-        .rpc("get_current_team_race_preparation_with_sprint")
+        .rpc(rpc)
         .order("race_edition_id", { ascending: true })
         .order("race_registration_id", { ascending: true })
         .order("stage_id", { ascending: true })
@@ -2529,6 +2542,10 @@ export async function getCurrentTeamRacePreparation(
       };
     },
   });
+  const personalityPreparation = await readPreparation("get_current_team_race_preparation_with_personality");
+  const { data, error } = personalityPreparation.error?.code === "PGRST202"
+    ? await readPreparation("get_current_team_race_preparation_with_sprint")
+    : personalityPreparation;
 
   if (error) {
     throw new Error(
@@ -2562,6 +2579,7 @@ export function parseRacePreparationRows(
       riderId: row.rider_id,
       firstName: row.rider_first_name,
       lastName: row.rider_last_name,
+      personalityKey: parseRiderPersonalityKey(row.personality_key),
       ratings: {
         mountain: Number(row.mountain),
         hills: Number(row.hills),
