@@ -45,7 +45,7 @@ export default async function JuniorInternationalChampionshipsPage() {
 
       <section className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8 sm:py-12">
         <Link
-          href="/jeu/centre-de-formation?dev=calendrier"
+          href="/jeu/centre-de-formation?onglet=development&dev=calendrier"
           className="inline-flex items-center gap-2 text-sm font-extrabold text-[#176951] transition hover:text-[#0B302B]"
         >
           <span aria-hidden="true">←</span>
@@ -69,12 +69,20 @@ export default async function JuniorInternationalChampionshipsPage() {
               sélections fédérales de toutes les épreuves internationales de
               la relève.
             </p>
-            <Link
-              href="/jeu/selections-internationales?categorie=junior"
-              className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-[#F2C94C] px-5 text-sm font-black text-[#183F37] transition hover:bg-[#FFDB63]"
-            >
-              Voir mes convocations juniors →
-            </Link>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link
+                href="/jeu/selections-internationales?categorie=junior"
+                className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#F2C94C] px-5 text-sm font-black text-[#183F37] transition hover:bg-[#FFDB63]"
+              >
+                Voir mes convocations juniors →
+              </Link>
+              <Link
+                href="/jeu/preparation-course/juniors?type=selection"
+                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/25 px-5 text-sm font-black text-white transition hover:bg-white/10"
+              >
+                Préparation des courses juniors
+              </Link>
+            </div>
           </div>
         </header>
 

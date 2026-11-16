@@ -10,6 +10,7 @@ import {
   DEVELOPMENT_RACE_PROFILE_LABELS,
   getDevelopmentMixedProfileDetail,
 } from "@/lib/game/development-race-profile";
+import { getJuniorRacePreparationHref } from "@/lib/game/junior-race-preparation";
 import {
   createAmateurRiderJersey,
   createNationalChampionRiderJersey,
@@ -306,6 +307,12 @@ function RaceRegistrationCard({
     isRiderEligibleForDevelopmentRace(rider, race),
   );
   const mixedProfileDetail = getDevelopmentMixedProfileDetail(race);
+  const canPrepare =
+    race.status === "planned" &&
+    race.registration?.status === "registered" &&
+    !race.competitionType.startsWith("national_") &&
+    !isJuniorFederationSelectionRace(race) &&
+    race.stages.some((stage) => stage.dayNumber > overview.currentDayNumber);
   return (
     <article id={`dev-race-${race.id}`} className="scroll-mt-20 overflow-hidden rounded-2xl border border-[#315B3E]/12 bg-white shadow-sm">
       <div className="grid gap-4 p-4 lg:grid-cols-[100px_minmax(0,1fr)_auto] lg:items-center sm:p-5">
@@ -352,11 +359,21 @@ function RaceRegistrationCard({
             </div>
           ) : null}
         </div>
-        <DevelopmentRaceStatus
-          race={race}
-          registeredCount={registeredRiders.length}
-          currentDayNumber={overview.currentDayNumber}
-        />
+        <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+          <DevelopmentRaceStatus
+            race={race}
+            registeredCount={registeredRiders.length}
+            currentDayNumber={overview.currentDayNumber}
+          />
+          {canPrepare ? (
+            <Link
+              href={getJuniorRacePreparationHref({ slug: race.slug })}
+              className="inline-flex min-h-11 items-center rounded-xl bg-[#176951] px-3 text-xs font-black text-white transition hover:bg-[#0B302B]"
+            >
+              Préparer la course
+            </Link>
+          ) : null}
+        </div>
       </div>
 
       {race.canRegister ? (

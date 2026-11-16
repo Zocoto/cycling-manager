@@ -8,6 +8,7 @@ import {
 } from "./actions";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
+import { RacePreparationDivisionTabs } from "@/components/game/race-preparation-division-tabs";
 import {
   RacePreparationWorkspace,
   type RacePreparationWorkspaceEdition,
@@ -221,6 +222,7 @@ export default async function RacePreparationPage({
 
       <section className="mx-auto max-w-[1600px] px-4 py-8 sm:px-8 sm:py-12">
         <BackToOfficeLink />
+        <RacePreparationDivisionTabs division="pro" />
 
         <header className="relative mt-5 overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17,#176951)] px-6 py-8 text-white shadow-[0_24px_70px_rgba(7,26,23,0.2)] sm:px-10 sm:py-10">
           <div

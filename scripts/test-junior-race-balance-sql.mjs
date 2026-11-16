@@ -30,15 +30,15 @@ async function event(key,profile='hilly',type='open',stages=1){
  for(let n=1;n<=stages;n++)await db.query('insert into development_race_stages values($1,$2,$3,$3,$4,$5,$6)',[id(`${key}-stage-${n}`),id(key),n,profile==='time_trial'?27:142,profile==='time_trial'?'individual_time_trial':'road',profile]);
  return id(key);
 }
-async function rider(key,label,value,country='plain',federal=false){
- const riderId=id(`${key}-${label}`),team=id(`team-${key}-${label}`),registration=id(`reg-${key}-${label}`);
- await db.query('insert into development_teams values($1,$2)',[team,label]);
+async function rider(key,label,value,country='plain',federal=false,group=label){
+ const riderId=id(`${key}-${label}`),team=id(`team-${key}-${group}`),registration=id(`reg-${key}-${group}`);
+ await db.query('insert into development_teams values($1,$2) on conflict do nothing',[team,group]);
  await db.query(`insert into youth_academy_riders(id,country_id,first_name,last_name,${ratings.join(',')}) values($1,$2,$3,'Rider',${ratings.map((_,i)=>`$${i+4}`).join(',')})`,[riderId,id(country),label,...ratings.map(()=>value)]);
  if(federal){
-  await db.query("insert into national_federation_junior_race_registrations values($1,$2,$3,'registered',now())",[registration,id(key),id(country)]);
+  await db.query("insert into national_federation_junior_race_registrations values($1,$2,$3,'registered',now()) on conflict do nothing",[registration,id(key),id(country)]);
   await db.query('insert into national_federation_junior_race_registration_riders values($1,$2,$3)',[registration,riderId,team]);
  }else{
-  await db.query("insert into development_race_registrations values($1,$2,$3,'registered',now())",[registration,id(key),team]);
+  await db.query("insert into development_race_registrations values($1,$2,$3,'registered',now()) on conflict do nothing",[registration,id(key),team]);
   await db.query('insert into development_race_registration_riders values($1,$2)',[registration,riderId]);
  }
  return riderId;
@@ -51,6 +51,135 @@ async function checkHumansAhead(key,count,scope='general'){
  assert(Math.max(...human.map(r=>r.rank))<Math.min(...bots.map(r=>r.rank)),`${key}: even the weakest player rider beats virtual fillers`);checks++;
  assert(rows.every(r=>r.elapsed_time_seconds>=300&&r.gap_to_winner_seconds>=0));checks++;
  return rows;
+}
+
+async function checkJuniorTactics() {
+ await db.exec(`create schema private;
+   create table public.development_race_stage_plans (
+     stage_id uuid not null, academy_rider_id uuid not null, development_registration_id uuid,
+     federation_registration_id uuid, instruction text not null
+   );
+   create unique index club_plan on development_race_stage_plans(stage_id, development_registration_id, academy_rider_id)
+     where development_registration_id is not null;
+   create unique index federation_plan on development_race_stage_plans(stage_id, federation_registration_id, academy_rider_id)
+     where federation_registration_id is not null;`);
+ const plan = (key, stage, riderLabel, group, instruction, federation = false) => db.query(
+  `insert into development_race_stage_plans values ($1,$2,$3,$4,$5)`,
+  [id(`${key}-stage-${stage}`), id(`${key}-${riderLabel}`), federation ? null : id(`reg-${key}-${group}`),
+   federation ? id(`reg-${key}-${group}`) : null, instruction],
+ );
+ const tacticalRows = (key, stage = 1, federation = false) => query(
+  `select academy_rider_id, adjustment::float8
+   from private.get_development_race_tactical_adjustments($1,$2,$3) order by academy_rider_id`,
+  [id(key), id(`${key}-stage-${stage}`), federation],
+ );
+ const reopen = (key, federation = false) => db.query(
+  `with deleted as (delete from development_race_results where race_edition_id=$1),
+   reopened as (update development_race_editions set status='planned' where id=$1)
+   update ${federation ? 'national_federation_junior_race_registrations' : 'development_race_registrations'}
+   set status='registered' where race_edition_id=$1`, [id(key)],
+ );
+ const times = async (key) => new Map((await results(key, 'stage')).map(row => [row.competitor_key, row.elapsed_time_seconds]));
+
+ const clubKey = 'tactics-club-road';
+ await event(clubKey, 'hilly');
+ for (const [label, value] of [['captain', 4], ['helper', 5], ['helper2', 5], ['neutral', 3]]) {
+  await rider(clubKey,label,value,'plain',false,'home');
+ }
+ await rider(clubKey,'rival',1);
+ await rider(clubKey,'orphan',2);
+ await simulate(clubKey);
+ const clubBase = await results(clubKey, 'stage');
+ const clubTimes = await times(clubKey);
+ await reopen(clubKey);
+
+ const migration = read('20261116225000_apply_junior_race_tactics');
+ const attributesBefore = await attributes();
+ await db.exec(migration);
+ eq(await attributes(), attributesBefore, 'Tactical migration preserves public grants and execution settings');
+ eq(await scalar("select has_function_privilege('authenticated', 'private.get_development_race_tactical_adjustments(uuid,uuid,boolean)', 'execute')"), false, 'Private scorer cannot be called by players');
+ await plan(clubKey,1,'neutral','home','free');
+ await simulate(clubKey);
+ eq(await results(clubKey, 'stage'), clubBase, 'Neutral road and absent plans reproduce exact times and ranks');
+ await reopen(clubKey);
+
+ await plan(clubKey,1,'captain','home','leader');
+ await plan(clubKey,1,'helper','home','domestique');
+ await plan(clubKey,1,'helper2','home','domestique');
+ await plan(clubKey,1,'rival','rival','leader');
+ await plan(clubKey,1,'orphan','orphan','domestique');
+ await plan(clubKey,1,'rival','home','domestique'); // Wrong roster must never provide support.
+ const adjustments = new Map((await tacticalRows(clubKey)).map(row => [row.academy_rider_id,row.adjustment]));
+ assert(adjustments.get(id(`${clubKey}-captain`)) > .16 && adjustments.get(id(`${clubKey}-captain`)) <= .18); checks++;
+ assert(adjustments.get(id(`${clubKey}-helper`)) < 0); checks++;
+ eq(adjustments.get(id(`${clubKey}-rival`)), 0, 'Leader without helpers gains nothing');
+ eq(adjustments.get(id(`${clubKey}-orphan`)), 0, 'Helper without a leader spends no effort');
+ eq(adjustments.size, 5, 'Wrong-roster and neutral plans are excluded');
+ await simulate(clubKey);
+ const plannedClubTimes = await times(clubKey);
+ for (const [label, relation] of [['captain', -1], ['helper', 1], ['helper2', 1], ['neutral', 0], ['rival', 0], ['orphan', 0]]) {
+  const key = `youth:${id(`${clubKey}-${label}`)}`;
+  eq(Math.sign(plannedClubTimes.get(key) - clubTimes.get(key)), relation, `Road tactical effect in published result: ${label}`);
+ }
+ await checkHumansAhead(clubKey, 6, 'stage');
+
+ const tourKey = 'tactics-club-tour';
+ await event(tourKey,'mountain','open',2);
+ await rider(tourKey,'attacker',1);
+ await rider(tourKey,'captain',6,'plain',false,'elite');
+ await rider(tourKey,'helper',5,'plain',false,'elite');
+ await plan(tourKey,1,'attacker','attacker','attack');
+ await plan(tourKey,1,'captain','elite','leader');
+ await plan(tourKey,1,'helper','elite','domestique');
+ const attacks = await tacticalRows(tourKey);
+ eq(await tacticalRows(tourKey), attacks, 'Risk uses a deterministic stage and rider seed');
+ assert(attacks.every(row => Number.isFinite(row.adjustment) && Math.abs(row.adjustment) <= .18)); checks++;
+ await db.query('select simulate_development_race_stage($1,$2)', [id(tourKey), id(`${tourKey}-stage-1`)]);
+ const publishedStage = () => query('select * from development_race_results where stage_id=$1 and result_scope=$2 order by rank', [id(`${tourKey}-stage-1`),'stage']);
+ const priorStage = await publishedStage();
+ await db.query('update youth_academy_riders set mountain=1, recovery=1, endurance=1 where id=$1', [id(`${tourKey}-captain`)]);
+ await plan(tourKey,2,'attacker','attacker','attack');
+ await simulate(tourKey);
+ eq(await publishedStage(), priorStage, 'Final settlement preserves every published stage value despite changed training ratings');
+ const tourStages = await results(tourKey,'stage');
+ eq(tourStages.length,96,'Missing second stage settles with the same scorer and real/virtual field counts');
+ for (const row of await results(tourKey)) {
+  eq(row.elapsed_time_seconds, tourStages.filter(stageRow => stageRow.competitor_key === row.competitor_key)
+   .reduce((total,stageRow) => total + stageRow.elapsed_time_seconds,0), 'Final classification sums authoritative stage times');
+ }
+
+ for (const [kind, profile, instruction, federation] of [
+  ['world_time_trial','time_trial','progressive',true],
+  ['continental_road','hilly','leader',true],
+  ['open','time_trial','aggressive',false],
+ ]) {
+  const key = `tactics-${kind}-${instruction}`;
+  await event(key, profile, kind);
+  await rider(key,'target',6,'equipped',federation,'squad');
+  await rider(key,'helper',4,'equipped',federation,'squad');
+  await simulate(key);
+  const baselines = await times(key);
+  const neutral = profile === 'time_trial' ? 'steady' : 'free';
+  const targetKey = `${federation ? 'federation-youth' : 'youth'}:${id(`${key}-target`)}`;
+  await reopen(key, federation);
+  await plan(key,1,'target','squad',neutral,federation);
+  await plan(key,1,'helper','squad',profile === 'time_trial' ? 'domestique' : 'progressive',federation);
+  await simulate(key);
+  eq(await times(key), baselines, `${kind}: neutral and off-discipline orders preserve exact times`);
+  await reopen(key, federation);
+  await db.query('delete from development_race_stage_plans where stage_id=$1', [id(`${key}-stage-1`)]);
+  await plan(key,1,'target','squad',instruction,federation);
+  if (instruction === 'leader') await plan(key,1,'helper','squad','domestique',federation);
+  const riderTactic = (await tacticalRows(key,1,federation)).find(row => row.academy_rider_id === id(`${key}-target`));
+  assert(riderTactic.adjustment > 0 && riderTactic.adjustment <= .18); checks++;
+  await simulate(key);
+  assert((await times(key)).get(targetKey) < baselines.get(targetKey), `${kind}: the calculated tactic changes the actual published time`); checks++;
+ }
+ const settledTour = await results(tourKey);
+ await db.exec(migration);
+ eq(await results(tourKey), settledTour, 'Reapplying tactical migration cannot change published results');
+ eq(await scalar('select simulate_development_race($1)',[id(tourKey)]), 0, 'Settled tour remains immutable on retry');
+ eq(await attributes(), attributesBefore, 'Tactical migration still preserves function execution settings after reapplication');
 }
 try{
  await db.exec(`create role anon;create role authenticated;create role service_role;
@@ -144,6 +273,7 @@ try{
  const hashes=await digest();await db.exec(mutation);eq(await digest(),hashes,'Reapplying the patch cannot divide equipment twice or weaken fillers again');
  eq(await results('old'),oldResults,'Historical classifications remain byte-for-byte unchanged');
  eq(await attributes(),attrs,'All permissions/settings remain identical after repeated application');
- console.log(`PASS ${checks} isolated SQL checks: equipment units, all seven profiles, world/continental road and TT, weakest humans before bots, stages/final consistency, historical results, retries and permissions.`);
+ await checkJuniorTactics();
+ console.log(`PASS ${checks} isolated SQL checks: equipment units, virtual riders, club and federation tactics, stages/final consistency, historical results, retries and permissions.`);
 }catch(error){console.error('FAIL:',error.message,error.where??'',error.detail??'');process.exitCode=1;}
 finally{await db.close();}
