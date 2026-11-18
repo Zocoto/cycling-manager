@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Brouillon privé de l’événement de Noël de Cyclostratège.">
+  <title>Noël du Peloton · Cyclostratège</title>
+  <link rel="icon" href="logo.png">
+  <link rel="stylesheet" href="noel.css">
+  <script src="catalogue.js" defer></script>
+  <script src="portrait.js" defer></script>
+  <script src="noel.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#contenu">Aller au contenu</a>
+  <header class="site-header">
+    <div class="site-bar">
+      <a class="brand" href="#bureau" aria-label="Cyclostratège, bureau du DS">
+        <span class="brand-wheel" aria-hidden="true">
+          <img src="logo.png" width="44" height="44" alt="">
+          <span class="brand-holiday" aria-hidden="true"></span>
+        </span>
+        <span class="brand-name">Cyclo<span class="brand-caption">Stratège</span></span>
+      </a>
+      <nav class="site-links" aria-label="Navigation du site">
+        <a href="#bureau" data-route="bureau">Bureau du DS</a>
+        <a href="#gazette" data-route="gazette">Gazette</a>
+        <a class="event-link" href="#noel" data-route="noel"><span aria-hidden="true">✧</span> Noël</a>
+      </nav>
+      <a class="wallet" href="#inventaire" aria-label="Inventaire et solde de Grelots">
+        <span class="bell" aria-hidden="true"></span>
+        <strong data-balance>540</strong>
+        <span class="wallet-label">Grelots</span>
+      </a>
+      <a class="profile-link" href="#inventaire" aria-label="Portrait et inventaire">
+        <canvas width="80" height="80" data-profile></canvas>
+      </a>
+    </div>
+    <span class="header-garland" aria-hidden="true"></span>
+  </header>
+  <main id="contenu" class="page">
+    <div class="pilot-bar">
+      <div class="pilot-label"><span class="pilot-dot" aria-hidden="true"></span> Pilote local</div>
+      <div class="pilot-controls">
+        <label for="preview-day">Date de l’aperçu</label>
+        <select id="preview-day" aria-label="Date de l’aperçu"></select>
+        <button id="reset-pilot" class="text-button" type="button">Réinitialiser</button>
+      </div>
+    </div>
+
+    <section id="season-hero" class="hero" aria-labelledby="event-title">
+      <div class="hero-inner">
+        <span class="hero-date"><span aria-hidden="true">✦</span> 1er au 31 décembre</span>
+        <h1 id="event-title">Le Noël<br>du Peloton</h1>
+        <p>Survole le village, livre les cadeaux et allume le sapin avec les autres DS.</p>
+        <div class="hero-actions">
+          <a class="button button-gold" href="#tournee">Jouer la tournée <span aria-hidden="true">→</span></a>
+          <a class="button button-glass" href="#avent">Ouvrir l’Avent</a>
+        </div>
+      </div>
+    </section>
+
+    <nav id="event-nav" class="event-nav" aria-label="Événement de Noël">
+      <a href="#noel" data-route="noel"><span aria-hidden="true">⌂</span> Accueil</a>
+      <a href="#tournee" data-route="tournee"><span aria-hidden="true">↗</span> La tournée</a>
+      <a href="#avent" data-route="avent"><span aria-hidden="true">▦</span> L’Avent</a>
+      <a href="#boutique" data-route="boutique"><span aria-hidden="true">◇</span> Boutique</a>
+      <a href="#sapin" data-route="sapin"><span aria-hidden="true">♠</span> Le sapin</a>
+      <a href="#inventaire" data-route="inventaire"><span aria-hidden="true">▣</span> Inventaire</a>
+    </nav>
+
+    <section class="view" data-view="noel" aria-label="Accueil de Noël">
+      <div class="feature-grid">
+        <a class="feature feature-night" href="#tournee">
+          <span class="feature-icon" aria-hidden="true">↗</span>
+          <h2>La tournée aérienne</h2>
+          <p>14 cheminées, un renne à vélo et quelques oies sur la route.</p>
+          <span class="feature-action">Décoller <span aria-hidden="true">→</span></span>
+        </a>
+        <a class="feature feature-cream" href="#avent">
+          <span class="feature-icon" aria-hidden="true">▦</span>
+          <h2>Calendrier de l’Avent</h2>
+          <p>24 fenêtres et des cadeaux à récupérer à ton rythme.</p>
+          <span class="feature-action"><span data-advent-open>12</span> cases disponibles <span aria-hidden="true">→</span></span>
+        </a>
+        <a class="feature feature-burgundy" href="#boutique">
+          <span class="feature-icon" aria-hidden="true">◇</span>
+          <h2>Boutique des Grelots</h2>
+          <p>Des tenues à essayer, des objets de gestion et des vignettes à collectionner.</p>
+          <span class="feature-action">Voir la boutique <span aria-hidden="true">→</span></span>
+        </a>
+        <a class="feature feature-pine" href="#sapin">
+          <span class="feature-icon" aria-hidden="true">♠</span>
+          <h2>Sapin du Peloton</h2>
+          <p>Les livraisons de chaque DS éclairent le même sapin.</p>
+          <span class="feature-action">Voir la progression <span aria-hidden="true">→</span></span>
+        </a>
+      </div>
+    </section>
+
+    <section class="view" data-view="tournee" hidden aria-labelledby="flight-heading">
+      <div class="section-heading">
+        <div><h1 id="flight-heading">La tournée aérienne</h1><p>Flèches pour piloter, souris pour viser, clic ou Espace pour lancer.</p></div>
+        <span class="section-tag">Jusqu’à 45 Grelots par tournée</span>
+      </div>
+      <div class="game-frame">
+        <iframe id="tournee-frame" title="Mini-jeu de la tournée aérienne" data-src="tournee.html" loading="lazy" tabindex="0"></iframe>
+      </div>
+      <p class="flight-note" id="flight-result" role="status">Une tournée récompensée par jour. Les livraisons de cette tournée comptent pour le sapin.</p>
+    </section>
+
+    <section class="view" data-view="avent" hidden aria-labelledby="advent-heading">
+      <div class="section-heading">
+        <div><h1 id="advent-heading">Calendrier de l’Avent</h1><p>Les cases passées restent disponibles jusqu’au 31 décembre.</p></div>
+        <span class="section-tag" id="advent-progress">0 sur 24 ouvertes</span>
+      </div>
+      <div id="advent-grid" class="advent-grid"></div>
+    </section>
+
+    <section class="view" data-view="boutique" hidden aria-labelledby="shop-heading">
+      <div class="section-heading">
+        <div><h1 id="shop-heading">Boutique des Grelots</h1><p>Essaie les cosmétiques sur ton portrait et découvre les objets de Noël.</p></div>
+        <a class="button button-outline" href="#cadeaux">Offrir un cadeau <span aria-hidden="true">↗</span></a>
+      </div>
+      <div class="filter-bar" id="shop-filters" aria-label="Filtres de la boutique"></div>
+      <div id="shop-grid" class="shop-grid"></div>
+    </section>
+
+    <section class="view" data-view="sapin" hidden aria-labelledby="tree-heading">
+      <div class="section-heading">
+        <div><h1 id="tree-heading">Sapin du Peloton</h1><p>Chaque cadeau livré lors d’une tournée récompensée ajoute une lumière.</p></div>
+        <a class="button button-dark" href="#tournee">Faire une tournée <span aria-hidden="true">→</span></a>
+      </div>
+      <div class="tree-layout">
+        <div class="tree-art"><canvas id="tree-canvas" width="560" height="440" role="img" aria-label="Sapin illuminé par les livraisons"></canvas></div>
+        <div id="tree-progress" class="tree-progress"></div>
+      </div>
+    </section>
+
+    <section class="view" data-view="inventaire" hidden aria-labelledby="inventory-heading">
+      <div class="section-heading">
+        <div><h1 id="inventory-heading">Inventaire de Noël</h1><p>Équipe ton portrait, utilise un objet ou ouvre un booster.</p></div>
+        <a class="button button-outline" href="#boutique">Aller à la boutique <span aria-hidden="true">→</span></a>
+      </div>
+      <div class="inventory-layout">
+        <aside class="portrait-panel">
+          <canvas width="460" height="460" data-profile aria-label="Ton portrait équipé" role="img"></canvas>
+          <h2>Ton portrait</h2>
+          <div id="portrait-slots" class="portrait-slots"></div>
+        </aside>
+        <div>
+          <div id="inventory-grid" class="inventory-grid"></div>
+          <div id="activity-log"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" data-view="cadeaux" hidden aria-labelledby="gifts-heading">
+      <div class="section-heading">
+        <div><h1 id="gifts-heading">Atelier des cadeaux</h1><p>Choisis un cosmétique dans la liste de souhaits d’un autre DS.</p></div>
+        <a class="button button-outline" href="#boutique">Retour à la boutique</a>
+      </div>
+      <div id="gifts-grid" class="shop-grid"></div>
+      <div id="gift-history"></div>
+    </section>
+
+    <section class="view" data-view="bureau" hidden aria-labelledby="office-heading">
+      <div class="office-banner">
+        <span class="hero-date">Cyclostratège</span>
+        <h1 id="office-heading">Bureau du DS</h1>
+        <p>Abbaye du Lion <span aria-hidden="true">·</span> Belgique</p>
+      </div>
+      <div class="office-grid">
+        <article class="office-tile"><span>Équipe</span><strong>Abbaye du Lion</strong><p>Directeur sportif · Zocoto</p></article>
+        <article class="office-tile"><span>Trésorerie</span><strong>412 500 €</strong><p>Budget de démonstration</p></article>
+        <a class="office-tile office-event" href="#noel"><span>Événement</span><strong>Le Noël du Peloton</strong><p>Ouvrir le village de Noël →</p></a>
+      </div>
+    </section>
+
+    <section class="view" data-view="gazette" hidden aria-labelledby="gazette-heading">
+      <div class="section-heading"><div><h1 id="gazette-heading">La Gazette</h1><p>L’édition de décembre</p></div></div>
+      <article class="gazette">
+        <div class="gazette-photo" aria-hidden="true"></div>
+        <div class="gazette-body"><time datetime="2026-12-01">1er décembre</time>
+          <h2>Le peloton prend son envol</h2>
+          <p>Un renne a emprunté un vélo de route. On l’a vu s’entraîner au-dessus du village, la hotte pleine. Les DS sont invités à prendre le relais et à illuminer le sapin.</p>
+          <a class="button button-dark" href="#tournee">Jouer la tournée <span aria-hidden="true">→</span></a>
+        </div>
+      </article>
+    </section>
+  </main>
+  <footer class="footer">
+    <span>Cyclostratège</span>
+    <span>Pilote de Noël · Données de démonstration</span>
+    <a href="https://unsplash.com/photos/aerial-view-of-a-snow-covered-village-at-night-2_8h5NgE4EM" target="_blank" rel="noopener noreferrer">Photo de Livia</a>
+  </footer>
+  <div class="toast" id="toast" role="status" hidden></div>
+  <dialog id="pilot-dialog" aria-labelledby="dialog-heading">
+    <div class="dialog-inner">
+      <form method="dialog"><button class="dialog-close" aria-label="Fermer" type="submit">×</button></form>
+      <div id="dialog-body"></div>
+    </div>
+  </dialog>
+</body>
+</html>

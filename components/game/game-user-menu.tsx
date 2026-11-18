@@ -8,6 +8,7 @@ import { PushNotificationControl } from "@/components/pwa/push-notification-cont
 import Link from "@/components/ui/app-link";
 import { CYCLO_STICKERS_SHOW_BOOSTERS_EVENT } from "@/lib/game/cyclo-stickers-booster-sync";
 import { canAccessPcmExport } from "@/lib/game/pcm-export/access";
+import { CHRISTMAS_PREVIEW_HREF } from "@/lib/game/christmas-preview";
 import { CycloStickersBoosterBadge, CycloStickersStickerIcon } from "./cyclo-stickers-shortcut";
 import { MarketingEmailPreferenceControl } from "./marketing-email-preference-control";
 import { useGameHeaderIndicators } from "./game-header-indicators-provider";
@@ -182,6 +183,16 @@ export function GameUserMenu({
                   : "Générez la base et le pack d’installation"
               }
               icon={<DatabaseExportIcon />}
+            />
+          ) : null}
+
+          {indicators?.christmasPreviewAvailable ? (
+            <UserMenuLink
+              href={CHRISTMAS_PREVIEW_HREF}
+              target="_blank"
+              label={isEnglish ? "Christmas draft" : "Brouillon de Noël"}
+              description={isEnglish ? "Test the delivery ride, Advent calendar and shop" : "Tester la tournée, l’Avent et la boutique"}
+              icon={<GuideIcon />}
             />
           ) : null}
 

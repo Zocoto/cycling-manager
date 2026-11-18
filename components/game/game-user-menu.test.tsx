@@ -5,10 +5,12 @@ import type { GameStaffRole } from "@/lib/game/game-product-news";
 const indicators = vi.hoisted(() => ({
   role: null as GameStaffRole, pcmExportAvailable: false, collectorAlbumAvailable: false, collectorAlbumHasUnopenedBoosters: false,
   collectorAlbumPendingTradeCount: 0,
+  christmasPreviewAvailable: false,
 }));
 vi.mock("./game-header-indicators-provider", () => ({
   useGameHeaderIndicators: () => ({
     gameStaffRole: indicators.role,
+    christmasPreviewAvailable: indicators.christmasPreviewAvailable,
     pcmExportAvailable: indicators.pcmExportAvailable,
     collectorAlbumAvailable: indicators.collectorAlbumAvailable,
     collectorAlbumHasUnopenedBoosters: indicators.collectorAlbumHasUnopenedBoosters,
@@ -25,6 +27,7 @@ import { CycloStickersShortcut } from "./cyclo-stickers-shortcut";
 
 beforeEach(() => {
   indicators.role = null;
+  indicators.christmasPreviewAvailable = false;
   indicators.pcmExportAvailable = false;
   indicators.collectorAlbumAvailable = false;
   indicators.collectorAlbumHasUnopenedBoosters = false;
@@ -32,6 +35,16 @@ beforeEach(() => {
 });
 
 describe("GameUserMenu", () => {
+  it("shows the Christmas draft only when the account indicator allows it", () => {
+    indicators.role = "game_staff";
+    expect(renderToStaticMarkup(<GameUserMenu />)).not.toContain("/apercus/noel/");
+
+    indicators.christmasPreviewAvailable = true;
+    const menu = renderToStaticMarkup(<GameUserMenu />);
+    expect(menu).toContain('href="/apercus/noel/index.html"');
+    expect(menu).toContain("Brouillon de Noël");
+  });
+
   it.each(["owner", "game_staff", null] as const)("ne déduit pas l’accès à l’album du rôle %s", (role) => {
     indicators.role = role;
     expect(renderToStaticMarkup(<GameUserMenu displayName="Zocoto" />)).not.toContain('href="/jeu/album"');

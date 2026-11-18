@@ -29,6 +29,7 @@ import { GLOBAL_CHAT_QUIZ_READ_EVENT } from "@/lib/game/global-chat-quiz";
 import { createVisibleRefreshScheduler } from "@/lib/game/visible-refresh-scheduler";
 import type { GameStaffRole } from "@/lib/game/game-product-news";
 import { canAccessCollectorAlbum } from "@/lib/game/collector-album-access";
+import { showChristmasPreviewInMenu } from "@/lib/game/christmas-preview";
 import { canAccessDelegatedPcmExport } from "@/lib/game/pcm-export/access";
 
 type SupabaseBrowserClient = ReturnType<
@@ -37,6 +38,7 @@ type SupabaseBrowserClient = ReturnType<
 
 type GameHeaderIndicators = {
   gameStaffRole: GameStaffRole;
+  christmasPreviewAvailable: boolean;
   mailboxUnreadCount: number;
   directMessageUnreadCount: number;
   hasUnreadGlobalChat: boolean;
@@ -61,6 +63,7 @@ type StickerTradeNotification = { senderName: string | null };
 
 const EMPTY_INDICATORS: GameHeaderIndicators = {
   gameStaffRole: null,
+  christmasPreviewAvailable: false,
   mailboxUnreadCount: 0,
   directMessageUnreadCount: 0,
   hasUnreadGlobalChat: false,
@@ -148,6 +151,7 @@ export function GameHeaderIndicatorsProvider({
 
       setIndicators({
         gameStaffRole: row?.game_role === "owner" || row?.game_role === "game_staff" ? row.game_role : null,
+        christmasPreviewAvailable: showChristmasPreviewInMenu(row?.current_sporting_director_id),
         mailboxUnreadCount: Math.max(
           0,
           Number(row?.mailbox_unread_count ?? 0),

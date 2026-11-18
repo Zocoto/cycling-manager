@@ -1,8 +1,11 @@
 import type { NextConfig } from "next";
 
+const christmasPreviewCsp = "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-src 'self'; base-uri 'none'; form-action 'self'; object-src 'none'";
+
 const nextConfig: NextConfig = {
   serverExternalPackages: ["cdb-converter", "sql.js"],
   outputFileTracingIncludes: {
+    "/apercus/noel/*": ["./assets/christmas-preview/*"],
     "/api/admin/gala-s4-export": [
       "./assets/pcm/OfficialRelease.template.cdb",
       "./assets/pcm/OfficialLocal.template.cdb",
@@ -66,6 +69,20 @@ const nextConfig: NextConfig = {
             key: "X-Permitted-Cross-Domain-Policies",
             value: "none",
           },
+        ],
+      },
+      {
+        source: "/apercus/noel/:fichier",
+        headers: [
+          { key: "Content-Security-Policy", value: christmasPreviewCsp + "; frame-ancestors 'none'" },
+          { key: "X-Frame-Options", value: "DENY" },
+        ],
+      },
+      {
+        source: "/apercus/noel/tournee.html",
+        headers: [
+          { key: "Content-Security-Policy", value: christmasPreviewCsp + "; frame-ancestors 'self'" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
         ],
       },
       {

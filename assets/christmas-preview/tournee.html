@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La tournée aérienne · Cyclostratège</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --font-size-base: 1rem;
+    --foreground: #fff7e3;
+    --muted: #233f42;
+    --soft: #c7d9d3;
+    --gold: #f8d991;
+    --line: #e8ecd52b;
+    font-family: "DM Sans", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: transparent; }
+  .flight-shell {
+    width: 100%;
+    padding: clamp(12px, 2.6vw, 25px);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    color: var(--foreground);
+    background: linear-gradient(155deg, #152e30 0%, #0c2427 67%, #172d33 100%);
+  }
+  .flight-hud {
+    padding: 0 0 .3rem;
+    font-size: .88rem;
+    color: var(--soft);
+  }
+  .flight-hud strong { color: var(--gold); font-variant-numeric: tabular-nums; }
+  .flight-hud .viz-row { gap: clamp(8px, 2.5vw, 20px); }
+  .viz-row { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+  .text-small { font-size: .78rem; }
+  [data-wind] {
+    margin-left: auto;
+    padding: .32rem .6rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: var(--soft);
+  }
+  .progress {
+    height: 5px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #ffffff20;
+  }
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #91b4a4, #f4d17b);
+    transition: width .16s linear;
+  }
+  .flight-controls { color: var(--soft); font-size: .87rem; }
+  .btn {
+    border: 1px solid #ffffff34;
+    border-radius: 10px;
+    padding: .62rem 1.05rem;
+    color: #1d2925;
+    background: var(--gold);
+    font: 750 .9rem "DM Sans", system-ui, sans-serif;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .btn:hover { background: #ffe8b4; }
+  .btn:focus-visible { outline: 3px solid #fff2c9; outline-offset: 3px; }
+  .btn[aria-disabled="true"] { cursor: wait; color: #fff7e3; background: #8d4e55; }
+  .cursor-interaction { cursor: crosshair; }
+  .flight-help {
+    margin: .65rem 0 0;
+    padding-top: .65rem;
+    border-top: 1px solid var(--line);
+    color: var(--soft);
+    font-size: .79rem;
+    line-height: 1.5;
+  }
+  .flight-help p { margin: 0; }
+  .flight-help p + p { margin-top: .28rem; }
+  kbd {
+    padding: .04rem .27rem;
+    border: 1px solid #f5dc9c4d;
+    border-radius: 4px;
+    font: inherit;
+    font-weight: 650;
+    color: var(--gold);
+  }
+  .touch-help { display: none; }
+  @media (any-pointer: coarse) { .touch-help { display: block; } }
+  @media (pointer: coarse) and (hover: none) { .keyboard-help { display: none; } }
+  @media (max-width: 430px) {
+    .flight-shell { border-radius: 13px; }
+    #cyclo-winter-flight canvas { min-height: 170px; }
+    .flight-controls .btn { margin-left: auto; }
+  }
+  @media (prefers-reduced-motion: reduce) { .progress-bar { transition: none; } }
+</style>
+</head>
+<body>
+<main class="flight-shell" data-flight-shell aria-label="Tournée aérienne">
+<div id="cyclo-winter-flight">
+  <style>
+    #cyclo-winter-flight {
+      display: grid;
+      gap: calc(var(--font-size-base) * .65);
+      color: var(--foreground);
+    }
+    #cyclo-winter-flight .flight-hud,
+    #cyclo-winter-flight .flight-controls {
+      justify-content: space-between;
+    }
+    #cyclo-winter-flight .flight-hud {
+      column-gap: calc(var(--font-size-base) * 1.2);
+    }
+    #cyclo-winter-flight .flight-hud strong { font-weight: 500; }
+    #cyclo-winter-flight .flight-stage {
+      display: grid;
+      overflow: clip;
+      border-radius: calc(var(--font-size-base) * .7);
+      background: var(--muted);
+    }
+    #cyclo-winter-flight canvas {
+      display: block;
+      width: 100%;
+      aspect-ratio: 2 / 1;
+      min-height: 190px;
+      touch-action: none;
+      user-select: none;
+    }
+    #cyclo-winter-flight .flight-controls { min-height: 44px; }
+    #cyclo-winter-flight [data-drop] { min-height: 44px; }
+  </style>
+  <div class="viz-row flight-hud tabular-nums">
+    <div class="viz-row">
+      <span><strong data-score>0</strong> pts</span>
+      <span><strong data-gifts>14</strong> cadeaux</span>
+      <span>Série <strong data-streak>0</strong></span>
+    </div>
+    <span class="text-small" data-wind>Vent calme</span>
+  </div>
+  <div class="flight-stage">
+    <canvas width="1200" height="600" role="img" aria-label="Renne sur un vélo volant. Flèches pour piloter, souris pour viser, clic ou Espace pour lancer. En tactile, glisser pour piloter et toucher pour viser." class="cursor-interaction"></canvas>
+  </div>
+  <div class="progress" data-progress role="progressbar" aria-label="Progression de la tournée" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+    <div class="progress-bar" style="width: 0%"></div>
+  </div>
+  <div class="viz-row flight-controls">
+    <span role="status" data-status>14 cheminées à livrer</span>
+    <button type="button" class="btn btn-primary" data-drop aria-keyshortcuts="Space">Décoller</button>
+  </div>
+  <script src="tournee.js"></script>
+</div>
+
+<div class="flight-help">
+  <p class="keyboard-help">Pilote avec les <kbd>flèches</kbd>, vise à la souris, puis clique ou presse <kbd>Espace</kbd> pour lâcher un cadeau.</p>
+  <p class="touch-help">Glisse pour piloter. Touche une cheminée pour la viser, puis appuie sur <strong>Lâcher un cadeau</strong>.</p>
+  <p>Le viseur passe au doré si le cadeau va entrer dans une cheminée. Évite les oies et les ballons, qui bloquent brièvement les lancers.</p>
+</div>
+</main>
+</body>
+</html>
