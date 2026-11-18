@@ -69,6 +69,19 @@ export async function recallYouthScoutingMissionAction(formData: FormData) {
   redirectWithMessage("scouting", "succes", "Le scout est de nouveau disponible. Aucun rapport n’a été généré.");
 }
 
+export async function markYouthScoutingReportViewedAction(formData: FormData) {
+  const missionId = readValue(formData, "missionId");
+  if (!isUuid(missionId)) redirectWithMessage("scouting", "erreur", "Le rapport transmis est invalide.");
+
+  const supabase = await authenticatedClient();
+  const result = await supabase.rpc("mark_current_team_scouting_report_viewed", { p_mission_id: missionId });
+  if (result.error) redirectWithMessage("scouting", "erreur", result.error.message);
+
+  revalidatePath(CENTER_PATH);
+  revalidatePath("/jeu");
+  redirectWithMessage("scouting", "succes", "Le rapport a été marqué comme consulté.");
+}
+
 export async function rejectYouthCandidateAction(formData: FormData) {
   const candidateId = readValue(formData, "candidateId");
   if (!isUuid(candidateId)) redirectWithMessage("scouting", "erreur", "Le jeune transmis est invalide.");

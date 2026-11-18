@@ -130,6 +130,8 @@ try {
   const beforeReview = await snapshot();
   await db.exec(await read('../supabase/migrations/20261119100500_review_youth_scouting_candidates.sql'));
   check(await snapshot(), beforeReview, 'installing individual review leaves existing reports and finances intact');
+  await db.exec(await read('../supabase/migrations/20261119101000_restore_manual_youth_scouting_report_archive.sql'));
+  check(await snapshot(), beforeReview, 'restoring manual archive preserves existing data');
   await db.exec(`update seasons set status=case when game_year=4 then 'active' else 'completed' end;
     update team_seasons set cash_balance=100000 where id='${id(70)}';`);
   const reject = n => `select reject_current_team_youth_candidate('${id(n)}')`;
@@ -140,7 +142,6 @@ try {
   await makeCandidate(121, 17, 4, false, 'spotted', 10, 1120, 2);
   const priorFinanceCount = await financeCount();
   await db.exec('set role authenticated');
-  await rejects(`select mark_current_team_scouting_report_viewed('${id(1120)}')`, /Chaque profil doit être signé ou rejeté/);
   await db.query(reject(120));
   await db.query(reject(120));
   await rejects(sign(120), /plus disponible/);
@@ -169,6 +170,19 @@ try {
   check(await candidateStatus(123), 'rejected', 'a stored expired candidate can be declined');
   check(await reviewedAt(1122) !== null, true, 'the last rejection archives an all-rejected report');
   check(await financeCount(), priorFinanceCount + 1, 'rejecting does not require a positive balance or add finance entries');
+
+  await makeCandidate(124, 17, 4);
+  const markViewed = `select mark_current_team_scouting_report_viewed('${id(1124)}')`;
+  await db.exec('set role authenticated');
+  await db.query(markViewed);
+  await db.exec('reset role');
+  const manuallyViewedAt = await reviewedAt(1124);
+  check(manuallyViewedAt !== null, true, 'manual archive works with an undecided profile');
+  await db.exec('set role authenticated');
+  await db.query(markViewed);
+  await db.exec('reset role');
+  check(await reviewedAt(1124), manuallyViewedAt, 'manual archive preserves the first viewed timestamp');
+  check(await candidateStatus(124), 'spotted', 'manual archive preserves the candidate status');
   console.log(JSON.stringify({isolated:true,productionActions:false,assertions,unreadAndArchivedCovered:true,age18Eligible:true,age19Blocked:true,noRejuvenation:true}));
 } catch(error) {
   console.error(JSON.stringify({phase,message:error.message,where:error.where})); process.exitCode=1;

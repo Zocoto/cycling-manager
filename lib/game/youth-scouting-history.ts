@@ -17,7 +17,8 @@ export function isYouthScoutingMissionArchived(
     return false;
   }
 
-  return mission.candidates.length
-    ? mission.candidates.every(({ status }) => isYouthScoutingCandidateReviewed(status))
-    : mission.viewedAt !== null;
+  return mission.viewedAt !== null || (
+    mission.candidates.length > 0 &&
+    mission.candidates.every(({ status }) => isYouthScoutingCandidateReviewed(status))
+  );
 }

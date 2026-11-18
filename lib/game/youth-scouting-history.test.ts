@@ -9,14 +9,14 @@ describe("isYouthScoutingMissionArchived", () => {
     ).toBe(false);
   });
 
-  it("reprend un ancien rapport consulté s’il contient encore des profils sans décision", () => {
+  it("archive un rapport déjà consulté même avec des profils sans décision", () => {
     expect(
       isYouthScoutingMissionArchived({
         status: "completed",
         viewedAt: "2026-07-29T12:00:00.000Z",
         candidates: [{ status: "signed" }, { status: "spotted" }],
       }),
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it("conserve dans l’historique un ancien rapport vide déjà consulté", () => {

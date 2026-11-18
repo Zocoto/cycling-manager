@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { SponsorProjectSlot } from "@/components/game/sponsor-project-slot";
 
 import {
+  markYouthScoutingReportViewedAction,
   naturalizeYouthRiderAction,
   recallYouthScoutingMissionAction,
 } from "@/app/jeu/centre-de-formation/actions";
@@ -455,26 +456,22 @@ function ScoutingTab({
             description={
               showReportHistory
                 ? "Retrouvez vos décisions pour chaque junior."
-                : "Signez ou rejetez chaque profil pour terminer le rapport."
+                : "Traitez les profils un par un ou marquez le rapport comme consulté pour l’archiver."
             }
           />
-          <Link
-            href={
-              showReportHistory
-                ? "/jeu/centre-de-formation?onglet=scouting"
-                : "/jeu/centre-de-formation?onglet=scouting&rapports=historique"
-            }
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#176951]/25 bg-white px-4 py-2.5 text-center text-[10px] font-black uppercase tracking-[0.12em] text-[#176951] shadow-sm transition hover:border-[#176951]/50 hover:bg-[#EAF5F3]"
-          >
-            {showReportHistory
-              ? "Rapports à traiter"
-              : "Rapports consultés"}
-            {!showReportHistory && archivedMissions.length > 0 ? (
-              <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#176951] px-1.5 text-[10px] text-white">
-                {archivedMissions.length}
-              </span>
-            ) : null}
-          </Link>
+          <details key={showReportHistory ? "history" : "pending"} className="relative text-sm text-[#176951]">
+            <summary className="min-h-11 cursor-pointer rounded-xl border border-[#176951]/25 bg-white px-4 py-3 font-bold">
+              {showReportHistory ? "Rapports consultés" : "Rapports à traiter"}
+            </summary>
+            <div className="absolute end-0 z-10 mt-1 w-max rounded-xl border border-[#176951]/25 bg-white p-1 shadow-md">
+              <Link href="/jeu/centre-de-formation?onglet=scouting" aria-current={!showReportHistory ? "page" : undefined} className="block rounded-lg px-3 py-2 hover:bg-[#EAF5F3]">
+                Rapports à traiter
+              </Link>
+              <Link href="/jeu/centre-de-formation?onglet=scouting&rapports=historique" aria-current={showReportHistory ? "page" : undefined} className="block rounded-lg px-3 py-2 hover:bg-[#EAF5F3]">
+                Rapports consultés <span className="ms-1 font-bold">{archivedMissions.length}</span>
+              </Link>
+            </div>
+          </details>
         </div>
         {displayedMissions.length ? (
           <div className="mt-4 space-y-5">
@@ -1468,10 +1465,18 @@ function MissionReport({
             Consulté
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FFF5D6] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-[#806114]">
-            <span>{reviewedCount}/{mission.candidates.length}</span>
-            <span>Profils traités</span>
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FFF5D6] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-[#806114]">
+              <span>{reviewedCount}/{mission.candidates.length}</span>
+              <span>Profils traités</span>
+            </span>
+            <form action={markYouthScoutingReportViewedAction}>
+              <input type="hidden" name="missionId" value={mission.id} />
+              <button type="submit" className="min-h-11 rounded-xl border border-[#176951]/25 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-[#176951] hover:bg-[#EAF5F3]">
+                Marquer comme consulté
+              </button>
+            </form>
+          </div>
         )}
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-2">
