@@ -25,7 +25,7 @@ await db.exec(`
     withdrawal_closes_at timestamptz, registration_closes_at timestamptz, detection_teams_finalized_at timestamptz);
   create table public.season_days(id uuid primary key, day_number int, calendar_date date);
   create table public.stages(id uuid primary key, race_edition_id uuid, season_day_id uuid, departure_at timestamptz,
-    day_slot text, stage_number int, profile_type text, distance_km numeric);
+    day_slot text, stage_number int, profile_type text, distance_km numeric, status text not null default 'planned');
   create table public.riders(id uuid primary key, country_id uuid, status text);
   create table public.rider_season_ratings(rider_id uuid, season_id uuid, mountain int, hills int, flat int, time_trial int,
     cobbles int, sprint int, acceleration int, downhill int, endurance int, resistance int, recovery int, prologue int);
@@ -40,6 +40,8 @@ await db.exec(`
   create table public.race_rosters(id uuid primary key default gen_random_uuid(), race_registration_id uuid, rider_id uuid,
     bib_number smallint, race_role text, status text, selected_at timestamptz, unique(race_registration_id,rider_id));
   create table public.stage_results(stage_id uuid, rank int);
+  create table public.official_stage_simulations(stage_id uuid primary key);
+  create table public.official_stage_simulation_claims(stage_id uuid primary key, claimed_at timestamptz not null);
   create table public.team_seasons(id uuid, cash_balance numeric);
   insert into public.stage_results values ('${uid(90, 1)}',1);
   insert into public.team_seasons values ('${uid(91, 1)}',123456);
@@ -56,7 +58,8 @@ const migration = await readFile(new URL("../supabase/migrations/20261009140000_
 const localGeographyMigration = await readFile(new URL("../supabase/migrations/20261009143000_prioritize_local_detection_geography.sql", import.meta.url), "utf8");
 
 async function reset() {
-  await db.exec("truncate public.race_categories,public.races,public.race_editions,public.stages,public.riders,public.rider_season_ratings,public.rider_contracts,public.rider_injuries,public.rider_form_camps,public.race_registrations,public.race_rosters;");
+  await db.exec("truncate public.race_categories,public.races,public.race_editions,public.stages,public.riders,public.rider_season_ratings,public.rider_contracts,public.rider_injuries,public.rider_form_camps,public.race_registrations,public.race_rosters,public.official_stage_simulations,public.official_stage_simulation_claims;");
+  await db.query("delete from public.stage_results where stage_id<>$1", [uid(90, 1)]);
 }
 async function rider(index, country = 1, status = "free_agent", rating = 50) {
   await db.query("insert into public.riders values ($1,$2,$3)", [uid(4, index), uid(2, country), status]);
@@ -293,6 +296,47 @@ for (const baseline of [
   check((await db.query("select pg_get_functiondef('public.settle_due_free_agent_detection_teams(timestamptz)'::regprocedure) as source")).rows[0].source, before);
   await db.exec(definition);
 }
+
+// A future E2 used to add four detection teams to a tour whose E1 ran with only the club.
+const firstStage = uid(8, 1);
+async function setupTour(departure = "2026-10-09T12:00:00Z") {
+  await setup({ pool: 24, departure });
+  await db.query("insert into stages(id,race_edition_id,season_day_id,departure_at,day_slot,stage_number,profile_type,distance_km) values ($1,$2,$3,'2026-10-09T16:00Z','late',2,'hilly',100)", [uid(8, 2), uid(7, 1), uid(3, 1)]);
+}
+await setupTour("2026-10-09T09:00:00Z");
+await db.query("insert into official_stage_simulations values ($1)", [firstStage]);
+await db.query("insert into stage_results values ($1,1)", [firstStage]);
+check((await settle()).selected_riders, 24);
+const beforeCutoff = await snapshots();
+const cutoffMigration = (await readFile(new URL("../supabase/migrations/20261118160100_freeze_detection_teams_at_first_start.sql", import.meta.url), "utf8")).replace(/\r?\n/g, "\r\n");
+await db.exec(cutoffMigration);
+await db.exec(cutoffMigration);
+check(await snapshots(), beforeCutoff);
+
+await setupTour("2026-10-09T09:00:00Z");
+check((await settle()).processed_editions, 0);
+check(await teams(), 1);
+check(await selected(), 0);
+await setupTour(now);
+check((await settle()).processed_editions, 0);
+
+await setupTour();
+await db.query("insert into official_stage_simulations values ($1)", [firstStage]);
+check((await settle()).processed_editions, 0);
+await setupTour();
+await db.query("insert into stage_results values ($1,1)", [firstStage]);
+check((await settle()).processed_editions, 0);
+await setupTour();
+await db.query("update stages set status='in_progress' where id=$1", [firstStage]);
+check((await settle()).processed_editions, 0);
+
+await setupTour();
+await db.query("insert into official_stage_simulation_claims values ($1,'2026-10-09T09:28:00Z')", [firstStage]);
+check((await settle()).processed_editions, 0);
+await db.query("update official_stage_simulation_claims set claimed_at='2026-10-09T09:27:59Z' where stage_id=$1", [firstStage]);
+check((await settle()).selected_riders, 24);
+await setup({ pool: 24 });
+check((await settle()).selected_riders, 24);
 
 for (const role of ["anon", "authenticated", "service_role"]) {
   check((await db.query("select has_function_privilege($1,'public.settle_due_free_agent_detection_teams(timestamptz)','execute') as allowed", [role])).rows[0].allowed, role === "service_role");
