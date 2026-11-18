@@ -7,7 +7,6 @@ import {
   useActionState,
   useCallback,
   useContext,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -303,38 +302,9 @@ export function TrainingPlansEditor({
     },
   });
 
-  const formRef = useRef<HTMLFormElement>(null);
-  useLayoutEffect(() => {
-    const form = formRef.current;
-    if (!form) return;
-    let frame: number | undefined;
-    const synchronizeSelects = () => {
-      // Hydration preserves browser-restored select values, even when they no
-      // longer match React. Read current attributes so back/forward restoration
-      // also preserves unsaved edits, without changing or saving any program.
-      for (const select of form.querySelectorAll<HTMLSelectElement>("select[data-training-plan-value]")) {
-        const value = select.dataset.trainingPlanValue;
-        if (value !== undefined && select.value !== value) select.value = value;
-      }
-    };
-    const restoreSelects = () => {
-      synchronizeSelects();
-      if (frame !== undefined) window.cancelAnimationFrame(frame);
-      // Some mobile browsers finish restoring controls after pageshow.
-      frame = window.requestAnimationFrame(synchronizeSelects);
-    };
-    restoreSelects();
-    window.addEventListener("pageshow", restoreSelects);
-    return () => {
-      window.removeEventListener("pageshow", restoreSelects);
-      if (frame !== undefined) window.cancelAnimationFrame(frame);
-    };
-  }, []);
-
   return (
     <TrainingPlansEditorContext.Provider value={editorContext}>
       <form
-        ref={formRef}
         action={formAction}
         autoComplete="off"
         data-tutorial-id="training-plan-save"
@@ -434,6 +404,93 @@ export function TrainingThresholdForm({ minimumForm }: { minimumForm: number }) 
   );
 }
 
+type TrainingPlanChoiceOption<Value extends string> = {
+  value: Value;
+  label: ReactNode;
+  disabled?: boolean;
+};
+
+function TrainingPlanChoice<Value extends string>({
+  id,
+  label,
+  currentLabel,
+  value,
+  options,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  currentLabel: string;
+  value: Value;
+  options: TrainingPlanChoiceOption<Value>[];
+  onChange: (value: Value) => void;
+}) {
+  const detailsRef = useRef<HTMLDetailsElement>(null);
+  const summaryRef = useRef<HTMLElement>(null);
+  const labelId = `${id}-label`;
+  const valueId = `${id}-value`;
+
+  function closeChoice() {
+    if (detailsRef.current) detailsRef.current.open = false;
+    summaryRef.current?.focus();
+  }
+
+  return (
+    <>
+      <span id={labelId} className="text-[10px] font-black uppercase tracking-[0.13em] text-[#60756E]">
+        {label}
+      </span>
+      <details
+        ref={detailsRef}
+        name="training-plan-choice"
+        className="group mt-2"
+        onKeyDown={(event) => {
+          if (event.key !== "Escape" || !event.currentTarget.open) return;
+          event.preventDefault();
+          event.stopPropagation();
+          closeChoice();
+        }}
+      >
+        <summary
+          id={id}
+          ref={summaryRef}
+          aria-labelledby={`${labelId} ${valueId}`}
+          className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 rounded-xl border border-[#315B3E]/15 bg-white px-3 py-2 text-sm font-bold text-[#183F37] outline-none focus-visible:border-[#278B70] focus-visible:ring-2 focus-visible:ring-[#278B70]/15 [&::-webkit-details-marker]:hidden"
+        >
+          <span id={valueId} className="min-w-0 break-words">{currentLabel}</span>
+          <span aria-hidden="true" className="shrink-0 text-[#60756E] group-open:rotate-180">⌄</span>
+        </summary>
+        <ul
+          aria-labelledby={labelId}
+          className="mt-1 max-h-64 space-y-1 overflow-y-auto overscroll-contain rounded-xl border border-[#315B3E]/15 bg-white p-1"
+        >
+          {options.map((option) => (
+            <li key={option.value}>
+              <button
+                type="button"
+                aria-pressed={value === option.value}
+                disabled={option.disabled}
+                onClick={() => {
+                  onChange(option.value);
+                  closeChoice();
+                }}
+                className="min-h-11 w-full rounded-lg px-2 py-2 text-left text-xs font-bold leading-4 text-[#183F37] outline-none hover:bg-[#F0F7F3] aria-pressed:bg-[#DFF4EC] aria-pressed:text-[#176951] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#278B70]/40 disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                {option.label}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </details>
+    </>
+  );
+}
+
+const TRAINING_DOMAIN_OPTIONS = TRAINING_DOMAINS.map((domain) => ({
+  value: domain,
+  label: getTrainingDomainChoiceLabel(domain),
+}));
+
 export function RiderTrainingPlanFields({
   riderId,
   riderCountryCode,
@@ -461,6 +518,34 @@ export function RiderTrainingPlanFields({
   const intensityLabelId = `training-intensity-${riderId}`;
   const domainSelectId = `training-domain-${riderId}`;
   const trainerSelectId = `training-trainer-${riderId}`;
+
+  const coachOptions: TrainingPlanChoiceOption<string>[] = [
+    { value: "", label: "Sans entraîneur" },
+    ...trainers.map((trainer) => {
+      const assignedRiderCount = editor.trainerAssignmentCounts[trainer.contractId] ?? 0;
+      const isAtCapacity = assignedRiderCount >= trainer.riderCapacity;
+      const additionalTalents = trainer.talents
+        .map((talent) => `${talent.specialtyLabel} +${talent.efficiencyBonus}%`)
+        .join(", ");
+
+      return {
+        value: trainer.contractId,
+        disabled: isAtCapacity && trainer.contractId !== trainerContractId,
+        label: (
+          <>
+            {trainer.firstName} {trainer.lastName} · {trainer.countryCode} · N
+            {trainer.level} · Base {trainer.specialtyLabel} +
+            {trainer.efficiencyBonus}%
+            {additionalTalents
+              ? ` · Lignes ${additionalTalents}`
+              : " · Sans ligne supplémentaire"}
+            {` · ${assignedRiderCount}/${trainer.riderCapacity}`}
+            {isAtCapacity ? " · Complet" : ""}
+          </>
+        ),
+      };
+    }),
+  ];
 
   function updateIntensity(value: number) {
     if (!Number.isFinite(value)) return;
@@ -531,31 +616,14 @@ export function RiderTrainingPlanFields({
           tutorialTargetPrefix ? `${tutorialTargetPrefix}-domain` : undefined
         }
       >
-        <label
-          htmlFor={domainSelectId}
-          className="text-[10px] font-black uppercase tracking-[0.13em] text-[#60756E]"
-        >
-          Domaine
-        </label>
-        <select
+        <TrainingPlanChoice
           id={domainSelectId}
-          name={`training-domain-${riderId}`}
+          label="Domaine"
+          currentLabel={getTrainingDomainChoiceLabel(domain)}
           value={domain}
-          data-training-plan-value={domain}
-          autoComplete="off"
-          onChange={(event) =>
-            editor.updatePlan(riderId, {
-              domain: event.target.value as TrainingDomain,
-            })
-          }
-          className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/15 bg-white px-3 text-sm font-bold text-[#183F37] outline-none focus:border-[#278B70] focus:ring-2 focus:ring-[#278B70]/15"
-        >
-          {TRAINING_DOMAINS.map((trainingDomain) => (
-            <option key={trainingDomain} value={trainingDomain}>
-              {getTrainingDomainChoiceLabel(trainingDomain)}
-            </option>
-          ))}
-        </select>
+          options={TRAINING_DOMAIN_OPTIONS}
+          onChange={(domain) => editor.updatePlan(riderId, { domain })}
+        />
         <TrainingDomainGainBreakdown domain={domain} className="mt-1.5" />
       </div>
 
@@ -564,56 +632,14 @@ export function RiderTrainingPlanFields({
           tutorialTargetPrefix ? `${tutorialTargetPrefix}-trainer` : undefined
         }
       >
-        <label
-          htmlFor={trainerSelectId}
-          className="text-[10px] font-black uppercase tracking-[0.13em] text-[#60756E]"
-        >
-          Entraîneur assigné
-        </label>
-        <select
+        <TrainingPlanChoice
           id={trainerSelectId}
-          name={`training-trainer-${riderId}`}
+          label="Entraîneur assigné"
+          currentLabel={selectedTrainer ? `${selectedTrainer.firstName} ${selectedTrainer.lastName}` : "Sans entraîneur"}
           value={selectedTrainer?.contractId ?? ""}
-          data-training-plan-value={selectedTrainer?.contractId ?? ""}
-          autoComplete="off"
-          onChange={(event) =>
-            editor.updatePlan(riderId, {
-              trainerContractId: event.target.value || null,
-            })
-          }
-          className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/15 bg-white px-3 text-sm font-bold text-[#183F37] outline-none focus:border-[#278B70] focus:ring-2 focus:ring-[#278B70]/15"
-        >
-          <option value="">Sans entraîneur</option>
-          {trainers.map((trainer) => {
-            const assignedRiderCount =
-              editor.trainerAssignmentCounts[trainer.contractId] ?? 0;
-            const isCurrentTrainer = trainer.contractId === trainerContractId;
-            const isAtCapacity = assignedRiderCount >= trainer.riderCapacity;
-            const additionalTalents = trainer.talents
-              .map(
-                (talent) =>
-                  `${talent.specialtyLabel} +${talent.efficiencyBonus}%`,
-              )
-              .join(", ");
-
-            return (
-              <option
-                key={trainer.contractId}
-                value={trainer.contractId}
-                disabled={isAtCapacity && !isCurrentTrainer}
-              >
-                {trainer.firstName} {trainer.lastName} · {trainer.countryCode} · N
-                {trainer.level} · Base {trainer.specialtyLabel} +
-                {trainer.efficiencyBonus}%
-                {additionalTalents
-                  ? ` · Lignes ${additionalTalents}`
-                  : " · Sans ligne supplémentaire"}
-                {` · ${assignedRiderCount}/${trainer.riderCapacity}`}
-                {isAtCapacity ? " · Complet" : ""}
-              </option>
-            );
-          })}
-        </select>
+          options={coachOptions}
+          onChange={(contractId) => editor.updatePlan(riderId, { trainerContractId: contractId || null })}
+        />
         {selectedTrainer ? (
           <span className="mt-2 block rounded-xl border border-[#315B3E]/12 bg-[#F7FAF8] p-3">
             <span className="block text-[9px] font-black uppercase tracking-[0.13em] text-[#60756E]">

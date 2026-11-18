@@ -1,7 +1,8 @@
-// Offline React 19 integration: SSR, native controls and browser restoration.
+// Offline React 19 integration: SSR, current training settings and browser restoration.
 // Supply an installed playwright-core module and browser executable path.
 // An isolated headless browser is used; no player account or network is used.
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { build } from "esbuild";
@@ -10,8 +11,13 @@ const browserModule = process.argv[2];
 const executablePath = process.argv[3];
 if (!browserModule || !executablePath) throw Error("Supply playwright-core module and browser executable paths");
 const expectBug = process.argv.includes("--expect-bug");
+const expectLateBug = process.argv.includes("--expect-late-bug");
 const sourceIndex = process.argv.indexOf("--controls-source");
 const controlsSource = sourceIndex < 0 ? null : process.argv[sourceIndex + 1];
+const refIndex = process.argv.indexOf("--controls-ref");
+const controlsRef = refIndex < 0 ? null : process.argv[refIndex + 1];
+const legacyControls = controlsSource ? readFileSync(controlsSource, "utf8") : controlsRef
+  ? execFileSync("git", ["show", `${controlsRef}:components/game/training-controls.tsx`], { encoding: "utf8" }) : null;
 const { chromium } = await import(pathToFileURL(browserModule).href);
 
 const bundle = await build({
@@ -51,9 +57,9 @@ const bundle = await build({
       export const saveRiderTrainingPlansAction=(previous,data)=>window.qaSave(previous,data);
       export const saveTeamTrainingSettingsAction=()=>{throw Error("Unexpected threshold save");};
     ` }));
-    if (controlsSource) {
+    if (legacyControls) {
       b.onResolve({ filter: /^@\/components\/game\/training-controls$/ }, () => ({ path: "controls", namespace: "baseline" }));
-      b.onLoad({ filter: /.*/, namespace: "baseline" }, () => ({ contents: readFileSync(controlsSource, "utf8"), loader: "tsx", resolveDir: process.cwd() }));
+      b.onLoad({ filter: /.*/, namespace: "baseline" }, () => ({ contents: legacyControls, loader: "tsx", resolveDir: process.cwd() }));
     }
   } }],
   bundle: true, write: false, platform: "browser", format: "iife", jsx: "automatic",
@@ -77,72 +83,96 @@ try {
   await page.addScriptTag({ content: bundle.outputFiles[0].text });
   const tick = () => page.waitForTimeout(60);
   const field = (kind, rider = "a") => page.locator(`#training-${kind}-${rider}`);
+  const caption = (kind, rider = "a") => page.locator(`#training-${kind}-${rider}-value`).textContent();
+  const options = (kind, rider = "a") => field(kind, rider).locator("xpath=..").getByRole("button");
   const plans = () => page.locator('input[name="plans"]').inputValue().then(JSON.parse);
   const calls = () => page.evaluate(() => window.qaCalls.map(call => call.plans));
-  await page.evaluate(() => { document.getElementById("root").innerHTML = window.qaMarkup; });
-  assert.equal(await field("trainer").inputValue(), "coach-a", "SSR selects the saved active coach");
-  assert.equal(await field("domain").inputValue(), "stage_racer", "SSR selects the saved focus");
-  assert.equal(await field("trainer").evaluate(select => select.selectedOptions[0].disabled), false, "current full coach stays selectable");
-  assert.equal(await field("trainer", "b").inputValue(), "", "unassigned rider initially has no coach");
-
-  // Browser restoration/autofill can alter native properties before hydration
-  // without changing the selected HTML attribute or dispatching a React event.
-  await page.evaluate(() => {
-    document.getElementById("training-trainer-a").value = "";
-    document.getElementById("training-domain-a").value = "climber";
+  const restoreBrowserFields = () => page.evaluate(() => {
+    const trainer = document.getElementById("training-trainer-a");
+    const domain = document.getElementById("training-domain-a");
+    document.querySelector("form").reset();
+    if (trainer instanceof HTMLSelectElement) trainer.value = "";
+    if (domain instanceof HTMLSelectElement) domain.value = "climber";
   });
-  assert.match(await page.locator('[data-rider="a"]').textContent(), /Compétence de base · Montagne/);
-  await page.evaluate(() => window.qaHydrate());
-  await tick(); await tick();
-  const hydrationSnapshot = { trainer: await field("trainer").inputValue(), domain: await field("domain").inputValue() };
-  if (expectBug) {
-    assert.deepEqual(hydrationSnapshot, { trainer: "", domain: "climber" }, "baseline reproduces native/React divergence");
-    await field("domain").selectOption("rouleur"); await tick();
-    assert.equal(await field("trainer").inputValue(), "coach-a", "changing focus makes the applied coach reappear");
-    assert.equal((await plans())[0].trainerContractId, "coach-a", "React always retained the saved coach");
-    assert.equal((await calls()).length, 0, "reproduction never saves or mutates gameplay");
-    console.log(JSON.stringify({ baselineBugReproduced: true, hydrationSnapshot, coachReappearsAfterFocusChange: true, gameplayWrites: 0 }));
-  } else {
-    assert.deepEqual(hydrationSnapshot, { trainer: "coach-a", domain: "stage_racer" }, "hydration reconciles native controls before interaction");
-    assert.deepEqual(await plans(), [], "reconciliation creates no unsaved change");
+  const pageshow = () => page.evaluate(() => window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true })));
+  await page.evaluate(() => { document.getElementById("root").innerHTML = window.qaMarkup; });
+
+  if (expectBug || expectLateBug) {
+    assert.equal(await field("trainer").inputValue(), "coach-a");
+    assert.equal(await field("domain").inputValue(), "stage_racer");
+    await restoreBrowserFields();
+    await page.evaluate(() => window.qaHydrate());
+    await tick(); await tick();
+    if (expectLateBug) {
+      assert.equal(await field("trainer").inputValue(), "coach-a", "previous fix reconciles initial hydration");
+      await pageshow();
+      await tick(); await tick();
+      await restoreBrowserFields();
+    }
+    assert.equal(await field("trainer").inputValue(), "");
+    assert.equal(await field("domain").inputValue(), "climber");
+    assert.match(await page.locator('[data-rider="a"]').textContent(), /Compétence de base · Montagne/);
+    assert.deepEqual(await plans(), []);
     assert.equal((await calls()).length, 0);
-    await field("domain").selectOption("rouleur");
-    await field("trainer").selectOption("coach-b"); await tick();
+    console.log(JSON.stringify({ baselineBugReproduced: true, lateBrowserRestoration: expectLateBug, gameplayWrites: 0 }));
+  } else {
+    assert.equal(await caption("trainer"), "Jean Actif", "SSR displays the saved active coach");
+    assert.match(await caption("domain"), /^Coureur de tour/, "SSR displays the saved focus");
+    assert.equal(await caption("trainer", "b"), "Sans entraîneur");
+    assert.match(await caption("domain", "b"), /^Sprinteur/);
+
+    await restoreBrowserFields();
+    await page.evaluate(() => window.qaHydrate());
+    await tick();
+    await pageshow();
+    await tick(); await tick();
+    await restoreBrowserFields();
+    assert.equal(await caption("trainer"), "Jean Actif", "late restoration cannot overwrite the rendered coach");
+    assert.match(await caption("domain"), /^Coureur de tour/, "late restoration cannot overwrite the rendered focus");
+    assert.deepEqual(await plans(), [], "browser restoration never marks plans dirty");
+
+    await field("trainer", "b").click();
+    assert.equal(await options("trainer", "b").filter({ hasText: "Jean Actif" }).isDisabled(), true, "full coach cannot be assigned to another rider");
+    await field("trainer", "b").press("Escape");
+    assert.equal(await field("trainer", "b").locator("xpath=..").getAttribute("open"), null);
+
+    await field("trainer").press("Enter");
+    const currentCoach = options("trainer").filter({ hasText: "Jean Actif" });
+    assert.equal(await currentCoach.isEnabled(), true, "current full coach stays selectable");
+    assert.equal(await currentCoach.getAttribute("aria-pressed"), "true");
+    await field("trainer").press("Tab");
+    const firstCoachChoice = options("trainer").filter({ hasText: "Sans entraîneur" });
+    assert.equal(await firstCoachChoice.evaluate(button => document.activeElement === button), true);
+    await firstCoachChoice.press("Escape");
+    assert.equal(await field("trainer").evaluate(summary => document.activeElement === summary), true, "Escape returns focus to the selector");
+
+    await field("domain").click();
+    await options("domain").filter({ hasText: /^Rouleur/ }).click();
+    assert.match(await caption("domain"), /^Rouleur/);
+    await field("trainer").click();
+    await options("trainer").filter({ hasText: "Luc Second" }).click();
+    assert.equal(await caption("trainer"), "Luc Second");
+    assert.equal(await field("trainer").locator("xpath=..").getAttribute("open"), null);
     assert.deepEqual(await plans(), [{ riderId: "a", intensity: 58, domain: "rouleur", trainerContractId: "coach-b" }]);
 
-    // Returning from browser history must preserve latest local edits rather
-    // than restore the server baseline or submit them automatically.
-    await page.evaluate(() => {
-      document.getElementById("training-trainer-a").value = "";
-      document.getElementById("training-domain-a").value = "climber";
-      window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }));
-    });
-    await tick();
-    assert.equal(await field("trainer").inputValue(), "coach-b", "history restores the current local coach");
-    assert.equal(await field("domain").inputValue(), "rouleur", "history restores the current local focus");
-    assert.equal(await field("trainer", "b").inputValue(), "", "no coach is invented for an unassigned rider");
-    assert.equal(await field("domain", "b").inputValue(), "sprinter");
-    assert.equal((await calls()).length, 0, "pageshow never saves");
-
-    // Some browsers restore form properties after firing pageshow. A single
-    // deferred reconciliation handles that order too, without polling.
-    await page.evaluate(() => {
-      window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }));
-      document.getElementById("training-trainer-a").value = "";
-      document.getElementById("training-domain-a").value = "climber";
-    });
-    await tick();
-    assert.equal(await field("trainer").inputValue(), "coach-b", "late history restoration is reconciled on the next frame");
-    assert.equal(await field("domain").inputValue(), "rouleur");
+    await pageshow();
+    await restoreBrowserFields();
+    await tick(); await tick();
+    await restoreBrowserFields();
+    assert.equal(await caption("trainer"), "Luc Second", "history retains the current draft coach");
+    assert.match(await caption("domain"), /^Rouleur/, "history retains the current draft focus");
+    assert.equal(await caption("trainer", "b"), "Sans entraîneur");
     assert.equal((await calls()).length, 0);
 
-    await page.locator('select:not([id])').selectOption("rider"); await tick();
+    await page.getByLabel("Trier par").selectOption("rider"); await tick();
     assert.deepEqual(await page.locator("article[data-rider]").evaluateAll(rows => rows.map(row => row.dataset.rider)), ["b", "a"]);
     await field("trainer").scrollIntoViewIfNeeded();
-    assert.equal(await field("trainer").inputValue(), "coach-b", "sort/scroll keep the right coach on its rider");
-    assert.equal(await field("domain").inputValue(), "rouleur");
-    await field("trainer").selectOption(""); await tick();
-    assert.equal(await field("trainer").inputValue(), "", "explicit removal still works");
+    assert.equal(await caption("trainer"), "Luc Second");
+    assert.match(await caption("domain"), /^Rouleur/);
+
+    await field("trainer").click();
+    await options("trainer").filter({ hasText: "Sans entraîneur" }).click();
+    assert.equal(await caption("trainer"), "Sans entraîneur", "the DS can explicitly remove the coach");
     assert.equal((await plans())[0].trainerContractId, null);
     assert.doesNotMatch(await page.locator('[data-rider="a"]').textContent(), /Talents de l’entraîneur/);
 
@@ -154,12 +184,12 @@ try {
       window.qaCalls[0].resolve({ status: "success", message: "Enregistré.", savedPlans: submitted, submittedPlans: submitted, failures: [] });
     });
     await tick();
-    assert.deepEqual(await plans(), [], "accepted programs are acknowledged");
-    assert.deepEqual(await page.evaluate(() => window.qaErrors), [], "hydration has no recoverable mismatch");
+    assert.deepEqual(await plans(), []);
+    assert.deepEqual(await page.evaluate(() => window.qaErrors), []);
     assert.deepEqual(pageErrors, []);
     assert.equal(networkCalls, 0);
-    console.log(JSON.stringify({ offlineChromiumMobileChecks: "passed", hydrationRestoration: true, historyRestoration: true, lateHistoryRestoration: true, localEditsPreserved: true,
-      fullAssignedCoach: true, noCoach: true, rosterSortAndScroll: true, explicitRemoval: true, oneBatchSave: true, networkCalls }));
+    console.log(JSON.stringify({ offlineChromiumMobileChecks: "passed", lateBrowserRestoration: true, localEditsPreserved: true,
+      keyboardAccess: true, coachCapacity: true, rosterSortAndScroll: true, explicitRemoval: true, oneBatchSave: true, networkCalls }));
   }
   await page.evaluate(() => window.qaUnmount());
   await context.close();

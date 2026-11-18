@@ -64,14 +64,14 @@ describe("RiderTrainingPlanFields", () => {
       <RiderTrainingPlanFields riderId="a" riderCountryCode="FR" trainers={[trainer]} />
       <RiderTrainingPlanFields riderId="b" riderCountryCode="BE" trainers={[trainer]} />
     </TrainingPlansEditor>);
-    function selectedOption(selectId: string) {
-      const select = markup.match(new RegExp(`<select[^>]*id="${selectId}"[^>]*>(.*?)</select>`))?.[1];
-      return select?.match(/<option[^>]*value="([^"]*)"[^>]*selected=""/u)?.[1];
+    function visibleChoice(id: string) {
+      return markup.match(new RegExp(`<span id="${id}-value"[^>]*>([^<]*)</span>`))?.[1];
     }
-    expect(selectedOption("training-domain-a")).toBe("stage_racer");
-    expect(selectedOption("training-trainer-a")).toBe(trainer.contractId);
-    expect(selectedOption("training-domain-b")).toBe("sprinter");
-    expect(selectedOption("training-trainer-b")).toBe("");
+    expect(visibleChoice("training-domain-a")).toMatch(/^Coureur de tour/);
+    expect(visibleChoice("training-trainer-a")).toBe("Jean Dupont");
+    expect(visibleChoice("training-domain-b")).toMatch(/^Sprinteur/);
+    expect(visibleChoice("training-trainer-b")).toBe("Sans entraîneur");
+    expect(markup).not.toMatch(/<select[^>]*id="training-(domain|trainer)-/);
     expect(markup).toContain('name="plans" value="[]"');
   });
 
@@ -102,7 +102,7 @@ describe("RiderTrainingPlanFields", () => {
     expect(markup).toContain("Affinité nationale active · +10 %");
     expect(markup).toContain("Base Montagne +20%");
     expect(markup).toContain("Lignes Sprint +20%, Chrono &amp; prologue +20%");
-    expect(markup).toContain('for="training-trainer-rider-1"');
+    expect(markup).toContain('aria-labelledby="training-trainer-rider-1-label training-trainer-rider-1-value"');
     expect(markup).toContain('id="training-trainer-rider-1"');
     expect(markup).toContain("Grimpeur · MON / END");
     expect(markup).toContain(
@@ -114,7 +114,7 @@ describe("RiderTrainingPlanFields", () => {
     expect(markup).toContain("Gain d’entretien");
     expect(markup).toContain("ⓘ Répartition du gain");
     expect(markup).toContain("group-open:rotate-180");
-    expect(markup).toContain('for="training-domain-rider-1"');
+    expect(markup).toContain('aria-labelledby="training-domain-rider-1-label training-domain-rider-1-value"');
     expect(markup).toContain('id="training-domain-rider-1"');
     expect(markup).toContain("whitespace-nowrap");
     expect(markup).not.toContain("Le gain réel varie ensuite");
@@ -158,7 +158,7 @@ describe("RiderTrainingPlanFields", () => {
       initialPlans={[{ riderId: "rider-1", intensity: 58, domain: "stage_racer", trainerContractId: "expired-trainer" }]}
     ><RiderTrainingPlanFields riderId="rider-1" riderCountryCode="RW" trainers={[trainer]} /></TrainingPlansEditor>);
     expect(markup).not.toContain("expired-trainer");
-    expect(markup).toContain('<option value="" selected="">Sans entraîneur</option>');
+    expect(markup).toContain('id="training-trainer-rider-1-value" class="min-w-0 break-words">Sans entraîneur</span>');
     expect(markup).not.toContain("Talents de l’entraîneur");
     expect(markup).toContain('name="plans" value="[]"');
   });
