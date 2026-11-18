@@ -112,6 +112,7 @@ import { getTeamSeasonScoutingVisibility } from "@/services/scouting-visibility"
 import {
   getYouthScoutingCandidateAge,
   getYouthScoutingCandidateStatus,
+  type YouthScoutingCandidateStatus,
 } from "@/lib/game/youth-scouting-candidate-age";
 
 type ServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
@@ -207,7 +208,7 @@ type CandidateRow = {
   signing_fee: number | string;
   tuition_per_season: number | string;
   scout_training_bonus_percentage: number | string;
-  status: "spotted" | "signed" | "expired";
+  status: YouthScoutingCandidateStatus;
   international_center_bonus_applied: boolean;
   international_center_bonus_percentage: number;
   native_special_ability_code: string | null;

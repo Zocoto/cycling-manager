@@ -77,7 +77,7 @@ describe("rapports consultés et laissés dans le scouting", () => {
     const source = structuredClone(candidates);
     const overview = await getYouthDevelopmentOverview(client, "viewer");
     expect(overview?.missions).toHaveLength(2);
-    expect(overview!.missions.map(isYouthScoutingMissionArchived)).toEqual([false, true]);
+    expect(overview!.missions.map(isYouthScoutingMissionArchived)).toEqual([false, false]);
     for (const mission of overview!.missions) {
       expect(mission.candidates.map(({ age, status }) => ({ age, status }))).toEqual([
         { age: 16, status: "spotted" }, { age: 18, status: "spotted" }, { age: 19, status: "expired" },

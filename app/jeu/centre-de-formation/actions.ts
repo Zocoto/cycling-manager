@@ -69,14 +69,17 @@ export async function recallYouthScoutingMissionAction(formData: FormData) {
   redirectWithMessage("scouting", "succes", "Le scout est de nouveau disponible. Aucun rapport n’a été généré.");
 }
 
-export async function markYouthScoutingReportViewedAction(formData: FormData) {
-  const missionId = readValue(formData, "missionId");
-  if (!isUuid(missionId)) redirectWithMessage("scouting", "erreur", "Le rapport transmis est invalide.");
+export async function rejectYouthCandidateAction(formData: FormData) {
+  const candidateId = readValue(formData, "candidateId");
+  if (!isUuid(candidateId)) redirectWithMessage("scouting", "erreur", "Le jeune transmis est invalide.");
   const supabase = await authenticatedClient();
-  const result = await supabase.rpc("mark_current_team_scouting_report_viewed", { p_mission_id: missionId });
-  if (result.error) redirectWithMessage("scouting", "erreur", result.error.message);
-  revalidateCenter();
-  redirectWithMessage("scouting", "succes", "Le rapport a été marqué comme consulté.");
+  const result = await supabase.rpc("reject_current_team_youth_candidate", { p_candidate_id: candidateId });
+  if (result.error) {
+    redirectWithMessage("scouting", "erreur", getInteractiveActionErrorMessage(result.error.message));
+  }
+  revalidatePath(CENTER_PATH);
+  revalidatePath("/jeu");
+  redirectWithMessage("scouting", "succes", "Le profil a été rejeté.", false, candidateId);
 }
 
 export async function signYouthCandidateAction(formData: FormData) {
@@ -86,7 +89,7 @@ export async function signYouthCandidateAction(formData: FormData) {
   const result = await supabase.rpc("sign_current_team_youth_candidate", { p_candidate_id: candidateId });
   if (result.error) redirectWithMessage("scouting", "erreur", result.error.message);
   revalidateCenter();
-  redirectWithMessage("scouting", "succes", "Le jeune rejoint votre école de cyclisme.");
+  redirectWithMessage("scouting", "succes", "Le jeune rejoint votre école de cyclisme.", false, candidateId);
 }
 
 export async function saveYouthTrainingSettingsBulkAction(formData: FormData) {
@@ -425,10 +428,12 @@ function redirectWithMessage(
   key: "succes" | "erreur",
   message: string,
   preserveFinalYearFilter = false,
+  scoutingCandidateId?: string,
 ): never {
   const ageFilter = preserveFinalYearFilter ? "&age=18" : "";
+  const profileAnchor = scoutingCandidateId ? `#profil-${scoutingCandidateId}` : "";
   redirect(
-    `${CENTER_PATH}?onglet=${tab}${ageFilter}&${key}=${encodeURIComponent(message.slice(0, 280))}`,
+    `${CENTER_PATH}?onglet=${tab}${ageFilter}&${key}=${encodeURIComponent(message.slice(0, 280))}${profileAnchor}`,
   );
 }
 

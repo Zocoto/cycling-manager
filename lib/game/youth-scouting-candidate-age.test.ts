@@ -12,6 +12,7 @@ describe("âge actuel des jeunes repérés", () => {
     expect(getYouthScoutingCandidateStatus("spotted", 18)).toBe("spotted");
     expect(getYouthScoutingCandidateStatus("spotted", 19)).toBe("expired");
     expect(getYouthScoutingCandidateStatus("signed", 20)).toBe("signed");
+    expect(getYouthScoutingCandidateStatus("rejected", 20)).toBe("rejected");
     expect(getYouthScoutingCandidateStatus("expired", 17)).toBe("expired");
   });
 });

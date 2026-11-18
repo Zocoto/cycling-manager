@@ -5,24 +5,26 @@ import { isYouthScoutingMissionArchived } from "@/lib/game/youth-scouting-histor
 describe("isYouthScoutingMissionArchived", () => {
   it("conserve un rapport non consulté dans les rapports récents", () => {
     expect(
-      isYouthScoutingMissionArchived({ status: "completed", viewedAt: null }),
+      isYouthScoutingMissionArchived({ status: "completed", viewedAt: null, candidates: [] }),
     ).toBe(false);
   });
 
-  it("archive un rapport dès qu’il est marqué comme consulté", () => {
+  it("reprend un ancien rapport consulté s’il contient encore des profils sans décision", () => {
     expect(
       isYouthScoutingMissionArchived({
         status: "completed",
         viewedAt: "2026-07-29T12:00:00.000Z",
+        candidates: [{ status: "signed" }, { status: "spotted" }],
       }),
-    ).toBe(true);
+    ).toBe(false);
   });
 
-  it("archive aussi les rapports consultés avant ce changement", () => {
+  it("conserve dans l’historique un ancien rapport vide déjà consulté", () => {
     expect(
       isYouthScoutingMissionArchived({
         status: "completed",
         viewedAt: "2026-07-01T12:00:00.000Z",
+        candidates: [],
       }),
     ).toBe(true);
   });
@@ -57,6 +59,25 @@ describe("isYouthScoutingMissionArchived", () => {
     ).toBe(false);
   });
 
+  it.each([
+    [{ status: "signed" }, { status: "rejected" }],
+    [{ status: "rejected" }, { status: "rejected" }],
+  ] as const)("archive un rapport lorsque chaque profil a une décision", (...candidates) => {
+    expect(
+      isYouthScoutingMissionArchived({ status: "completed", viewedAt: null, candidates }),
+    ).toBe(true);
+  });
+
+  it("laisse traiter les profils devenus indisponibles", () => {
+    expect(
+      isYouthScoutingMissionArchived({
+        status: "completed",
+        viewedAt: null,
+        candidates: [{ status: "expired" }, { status: "rejected" }],
+      }),
+    ).toBe(false);
+  });
+
   it("ne considère pas un rapport vide comme entièrement recruté", () => {
     expect(
       isYouthScoutingMissionArchived(
@@ -87,6 +108,7 @@ describe("isYouthScoutingMissionArchived", () => {
         {
           status: "active",
           viewedAt: "2026-07-01T12:00:00.000Z",
+          candidates: [],
         },
       ),
     ).toBe(false);

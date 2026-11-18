@@ -1,19 +1,13 @@
+import type { YouthScoutingCandidateStatus } from "./youth-scouting-candidate-age";
+
 type YouthScoutingMissionArchiveCandidate = {
   status: "active" | "completed" | "cancelled";
   viewedAt: string | null;
-  candidates?: ReadonlyArray<{
-    status: "spotted" | "signed" | "expired";
-  }>;
+  candidates: ReadonlyArray<{ status: YouthScoutingCandidateStatus }>;
 };
 
-export function areAllYouthScoutingCandidatesRecruited(
-  mission: Pick<YouthScoutingMissionArchiveCandidate, "candidates">,
-): boolean {
-  const candidates = mission.candidates;
-
-  return Boolean(candidates?.length) && candidates!.every(
-    (candidate) => candidate.status === "signed",
-  );
+export function isYouthScoutingCandidateReviewed(status: YouthScoutingCandidateStatus) {
+  return status === "signed" || status === "rejected";
 }
 
 export function isYouthScoutingMissionArchived(
@@ -23,7 +17,7 @@ export function isYouthScoutingMissionArchived(
     return false;
   }
 
-  if (areAllYouthScoutingCandidatesRecruited(mission)) return true;
-
-  return mission.viewedAt !== null;
+  return mission.candidates.length
+    ? mission.candidates.every(({ status }) => isYouthScoutingCandidateReviewed(status))
+    : mission.viewedAt !== null;
 }

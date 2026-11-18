@@ -5,7 +5,6 @@ import { Suspense } from "react";
 import { SponsorProjectSlot } from "@/components/game/sponsor-project-slot";
 
 import {
-  markYouthScoutingReportViewedAction,
   naturalizeYouthRiderAction,
   recallYouthScoutingMissionAction,
 } from "@/app/jeu/centre-de-formation/actions";
@@ -46,7 +45,7 @@ import {
 import { TRAINING_DOMAIN_LABELS } from "@/lib/game/training";
 import type { TransferScoutingReport } from "@/lib/game/transfer-scouting";
 import {
-  areAllYouthScoutingCandidatesRecruited,
+  isYouthScoutingCandidateReviewed,
   isYouthScoutingMissionArchived,
 } from "@/lib/game/youth-scouting-history";
 import {
@@ -265,7 +264,9 @@ export default async function YouthDevelopmentPage({
             label="Scouting"
             detail="Carte & rapports"
             count={
-              overview?.missions.filter((mission) => mission.unread).length
+              overview?.missions.filter((mission) =>
+                mission.status === "completed" && !isYouthScoutingMissionArchived(mission),
+              ).length
             }
             tutorialDemo={tutorialDemo}
           />
@@ -448,13 +449,13 @@ function ScoutingTab({
             eyebrow="Rapports de détection"
             title={
               showReportHistory
-                ? "Historique des rapports consultés"
-                : "Talents repérés"
+                ? "Rapports consultés"
+                : "Rapports à traiter"
             }
             description={
               showReportHistory
-                ? "Retrouvez les rapports consultés et ceux dont tous les jeunes ont été recrutés."
-                : "Marquez un rapport comme consulté pour le déplacer immédiatement dans l’historique."
+                ? "Retrouvez vos décisions pour chaque junior."
+                : "Signez ou rejetez chaque profil pour terminer le rapport."
             }
           />
           <Link
@@ -466,8 +467,8 @@ function ScoutingTab({
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#176951]/25 bg-white px-4 py-2.5 text-center text-[10px] font-black uppercase tracking-[0.12em] text-[#176951] shadow-sm transition hover:border-[#176951]/50 hover:bg-[#EAF5F3]"
           >
             {showReportHistory
-              ? "Revenir aux rapports récents"
-              : "Historique des rapports consultés"}
+              ? "Rapports à traiter"
+              : "Rapports consultés"}
             {!showReportHistory && archivedMissions.length > 0 ? (
               <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#176951] px-1.5 text-[10px] text-white">
                 {archivedMissions.length}
@@ -491,11 +492,11 @@ function ScoutingTab({
             title={
               showReportHistory
                 ? "Aucun rapport dans l’historique"
-                : "Aucun rapport récent"
+                : "Aucun rapport à traiter"
             }
             text={
               showReportHistory
-                ? "Les rapports consultés et ceux dont tous les jeunes ont été recrutés apparaissent ici."
+                ? "Les rapports terminés apparaîtront ici."
                 : "Lancez une mission de 3 à 7 jours : un rapport contiendra entre 1 et 4 jeunes."
             }
           />
@@ -1441,7 +1442,7 @@ function MissionReport({
   currency: string;
   balance: number;
 }) {
-  const fullyRecruited = areAllYouthScoutingCandidatesRecruited(mission);
+  const reviewedCount = mission.candidates.filter(({ status }) => isYouthScoutingCandidateReviewed(status)).length;
 
   return (
     <article
@@ -1462,20 +1463,14 @@ function MissionReport({
             </h3>
           </div>
         </div>
-        {fullyRecruited ? (
-          <span className="rounded-full bg-[#EAF5F3] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-[#176951]">
-            Tous recrutés
-          </span>
-        ) : mission.unread ? (
-          <form action={markYouthScoutingReportViewedAction}>
-            <input type="hidden" name="missionId" value={mission.id} />
-            <button className="rounded-xl border border-[#C63F3F]/30 bg-[#FFF7F5] px-3 py-2 text-[9px] font-black uppercase tracking-[0.13em] text-[#B54242]">
-              Marquer comme consulté
-            </button>
-          </form>
-        ) : (
+        {isYouthScoutingMissionArchived(mission) ? (
           <span className="rounded-full bg-[#EAF5F3] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-[#176951]">
             Consulté
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FFF5D6] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-[#806114]">
+            <span>{reviewedCount}/{mission.candidates.length}</span>
+            <span>Profils traités</span>
           </span>
         )}
       </div>
@@ -1567,7 +1562,7 @@ function CandidateCard({
   balance: number;
 }) {
   return (
-    <div className="rounded-2xl border border-[#315B3E]/12 bg-[#FFFDF4] p-4">
+    <div id={`profil-${candidate.id}`} className="scroll-mt-28 rounded-2xl border border-[#315B3E]/12 bg-[#FFFDF4] p-4">
       <div className="flex items-start gap-4">
         <RiderAvatar
           profileKey={candidate.profileKey}

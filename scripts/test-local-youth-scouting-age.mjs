@@ -42,6 +42,8 @@ try {
     await db.exec(original.match(new RegExp(`create table public\\.${table} \\([\\s\\S]*?\\n\\);`))[0]);
   }
   await db.exec(original.match(/create or replace function public\.sign_current_team_youth_candidate[\s\S]*?\$\$;/i)[0]);
+  await db.exec(original.match(/create or replace function public\.current_user_manages_team[\s\S]*?\$\$;/i)[0]);
+  await db.exec(original.match(/create or replace function public\.mark_current_team_scouting_report_viewed[\s\S]*?\$\$;/i)[0]);
   await db.exec(`alter table youth_scouting_candidates add scout_training_bonus_percentage numeric not null default 0;
     alter table youth_academy_riders add scout_training_bonus_percentage numeric not null default 0;
     revoke all on function sign_current_team_youth_candidate(uuid) from public,anon;
@@ -50,12 +52,12 @@ try {
   await db.exec(bonus.match(/do \$patch_signing\$[\s\S]*?\$patch_signing\$;/)[0]);
   const archive=await read('../supabase/migrations/20260809150000_auto_archive_fully_recruited_youth_reports.sql');
   await db.exec(archive.slice(archive.indexOf('create or replace function'),archive.indexOf('\nupdate public.youth_scouting_missions')));
-  const makeCandidate=async(n,age,season=3,viewed=false,status='spotted',team=10)=>{
-    await db.exec(`insert into youth_scouting_missions(id,team_id,season_id,scout_contract_id,country_id,start_day_number,duration_days,completes_day_number,status,report_ready_at,report_viewed_at)
-      values('${id(n+1000)}','${id(team)}','${id(season)}','${id(30)}','${id(20)}',1,3,4,'completed',now(),${viewed?'now()':'null'});
-      insert into youth_scouting_candidates(id,mission_id,report_slot,country_id,first_name,last_name,age,archetype,potential_steps,avatar_profile_key,avatar_seed,
+  const makeCandidate=async(n,age,season=3,viewed=false,status='spotted',team=10,mission=n+1000,slot=1)=>{
+    if (slot === 1) await db.exec(`insert into youth_scouting_missions(id,team_id,season_id,scout_contract_id,country_id,start_day_number,duration_days,completes_day_number,status,report_ready_at,report_viewed_at)
+      values('${id(mission)}','${id(team)}','${id(season)}','${id(30)}','${id(20)}',1,3,4,'completed',now(),${viewed?'now()':'null'});`);
+    await db.exec(`insert into youth_scouting_candidates(id,mission_id,report_slot,country_id,first_name,last_name,age,archetype,potential_steps,avatar_profile_key,avatar_seed,
         mountain,hills,flat,time_trial,cobbles,sprint,acceleration,downhill,endurance,resistance,recovery,breakaway,prologue,signing_fee,tuition_per_season,status,scout_training_bonus_percentage)
-      values('${id(n)}','${id(n+1000)}',1,'${id(20)}','Test','Junior',${age},'climber',4,'default',123,
+      values('${id(n)}','${id(mission)}',${slot},'${id(20)}','Test','Junior',${age},'climber',4,'default',123,
         4,3,3,3,3,3,3,3,3,3,3,3,3,1000,100,'${status}',7.5);`);
   };
   const sign=n=>`select sign_current_team_youth_candidate('${id(n)}')`;
@@ -124,6 +126,49 @@ try {
   await rejects(sign(108),/plus de 18 ans/);
   check(await scalar(`select birth_game_year from youth_academy_riders where id='${laterId}'`),-12,'later rollover needs no candidate age mutation');
   check(await scalar(`select count(*)::int from team_finance_transactions where team_season_id='${id(78)}'`),0,'old reports never charge the future season');
+  phase = 'decisions on individual scouting candidates';
+  const beforeReview = await snapshot();
+  await db.exec(await read('../supabase/migrations/20261119100500_review_youth_scouting_candidates.sql'));
+  check(await snapshot(), beforeReview, 'installing individual review leaves existing reports and finances intact');
+  await db.exec(`update seasons set status=case when game_year=4 then 'active' else 'completed' end;
+    update team_seasons set cash_balance=100000 where id='${id(70)}';`);
+  const reject = n => `select reject_current_team_youth_candidate('${id(n)}')`;
+  const reviewedAt = mission => scalar(`select report_viewed_at from youth_scouting_missions where id='${id(mission)}'`);
+  const candidateStatus = n => scalar(`select status from youth_scouting_candidates where id='${id(n)}'`);
+  const financeCount = () => scalar('select count(*)::int from team_finance_transactions');
+  await makeCandidate(120, 17, 4);
+  await makeCandidate(121, 17, 4, false, 'spotted', 10, 1120, 2);
+  const priorFinanceCount = await financeCount();
+  await db.exec('set role authenticated');
+  await rejects(`select mark_current_team_scouting_report_viewed('${id(1120)}')`, /Chaque profil doit être signé ou rejeté/);
+  await db.query(reject(120));
+  await db.query(reject(120));
+  await rejects(sign(120), /plus disponible/);
+  await db.exec('reset role');
+  check(await candidateStatus(120), 'rejected', 'rejection is persistent and idempotent');
+  check(await reviewedAt(1120), null, 'a remaining candidate keeps the report pending');
+  check(await financeCount(), priorFinanceCount, 'rejection and failed signing have no financial effect');
+  await db.exec('set role authenticated');
+  await scalar(sign(121));
+  await rejects(reject(121), /ne peut plus être rejeté/);
+  await db.exec('reset role');
+  check(await reviewedAt(1120) !== null, true, 'successful signature archives a mixed report');
+  check(await financeCount(), priorFinanceCount + 1, 'only the genuine signature is charged');
+
+  await makeCandidate(122, 18, 3);
+  await makeCandidate(123, 17, 3, false, 'expired', 10, 1122, 2);
+  await db.exec(`update team_seasons set cash_balance=0 where id='${id(70)}'; set role authenticated;`);
+  await rejects(sign(122), /plus de 18 ans/);
+  await db.query(reject(122));
+  await db.query(reject(123));
+  await rejects(reject(107), /ne peut plus être rejeté/);
+  await db.exec('reset role; set role anon;');
+  await rejects(reject(107), /permission denied/);
+  await db.exec('reset role;');
+  check(await candidateStatus(122), 'rejected', 'an over-age candidate can still be declined');
+  check(await candidateStatus(123), 'rejected', 'a stored expired candidate can be declined');
+  check(await reviewedAt(1122) !== null, true, 'the last rejection archives an all-rejected report');
+  check(await financeCount(), priorFinanceCount + 1, 'rejecting does not require a positive balance or add finance entries');
   console.log(JSON.stringify({isolated:true,productionActions:false,assertions,unreadAndArchivedCovered:true,age18Eligible:true,age19Blocked:true,noRejuvenation:true}));
 } catch(error) {
   console.error(JSON.stringify({phase,message:error.message,where:error.where})); process.exitCode=1;
