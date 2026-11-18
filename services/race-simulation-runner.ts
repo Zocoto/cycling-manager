@@ -13,6 +13,7 @@ import {
   PROFESSIONAL_NATIONS_CUP_HEAT_BATCH_SIZE,
 } from "@/lib/game/nations-cup-heats";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { settleFreeAgentDetectionForEditions } from "@/services/free-agent-detection";
 import { ensureLockedOfficialRaceSimulations } from "@/services/official-race-simulations";
 import { syncDueNationalFederationChampionshipLineups } from "@/services/international-championship-selections";
 import {
@@ -103,6 +104,7 @@ export async function precomputeDueOfficialRaceSimulations(
     {
       includeEngagedCounts: true,
       includeEngagedRiders: false,
+      includeDetectionFinalization: true,
       includeIneligibleRegionalRaces: true,
       includeNationsCupHeats: true,
       raceEditionIds: dueEditionIds,
@@ -126,7 +128,8 @@ export async function precomputeDueOfficialRaceSimulations(
 
   const liveEditions = discoveryCalendar.editions.filter(
     (edition) =>
-      hasMinimumRaceEditionField(edition) &&
+      (hasMinimumRaceEditionField(edition) ||
+        (edition.engagedRiderCount > 0 && needsDetectionBeforeDeparture(edition, now))) &&
       edition.competitionType !== "national_road" &&
       edition.competitionType !== "national_time_trial" &&
       edition.stages.some(
@@ -193,7 +196,19 @@ export async function precomputeDueOfficialRaceSimulations(
       ? Math.max(maxEditions, PROFESSIONAL_NATIONS_CUP_HEAT_BATCH_SIZE)
       : maxEditions,
   });
-  const targetedEditionIds = jobPack.items.map((edition) => edition.id);
+  const processingStartedAt = Date.now();
+  const detectionEditionIds = jobPack.items
+    .filter((edition) => needsDetectionBeforeDeparture(edition, now))
+    .map((edition) => edition.id);
+  // Complete the registration before reading the roster used in the immutable
+  // simulation. The six-minute simulation horizon does not advance registration.
+  const detection = detectionEditionIds.length > 0
+    ? await settleFreeAgentDetectionForEditions(admin, detectionEditionIds, now)
+    : null;
+  const failedDetectionIds = new Set(detection?.failedEditionIds);
+  const targetedEditionIds = jobPack.items
+    .filter((edition) => !failedDetectionIds.has(edition.id))
+    .map((edition) => edition.id);
 
   if (targetedEditionIds.length === 0) {
     return createResult({
@@ -202,20 +217,20 @@ export async function precomputeDueOfficialRaceSimulations(
       liveEditions: liveEditions.length,
       targetedEditions: 0,
       eligibleEditions: jobPack.eligibleItems,
-      deferredEditions: jobPack.deferredItems,
+      deferredEditions: jobPack.deferredItems + failedDetectionIds.size,
       loadedStages: 0,
       packIndex,
       packCount,
     });
   }
 
-  const processingStartedAt = Date.now();
   const simulationCalendar = await getActiveSeasonRaceCalendar(
     admin,
     simulationClock,
     {
       includeIneligibleRegionalRaces: true,
       includeNationsCupHeats: true,
+      includeDetectionFinalization: detectionEditionIds.length > 0,
       raceEditionIds: targetedEditionIds,
     },
   );
@@ -223,8 +238,22 @@ export async function precomputeDueOfficialRaceSimulations(
     throw new Error("La saison active a disparu pendant la préparation du live.");
   }
 
+  const detectionTargetIds = new Set(detectionEditionIds);
+  const insufficientPoolIds = new Set(detection?.insufficientPoolEditionIds);
+  const pendingDetection = simulationCalendar.editions.filter((edition) =>
+    detectionTargetIds.has(edition.id) && !edition.detectionTeamsFinalizedAt &&
+    !insufficientPoolIds.has(edition.id),
+  );
+  const pendingDetectionIds = new Set(pendingDetection.map((edition) => edition.id));
+  if (pendingDetectionIds.size > 0) {
+    console.warn("free_agent_detection_pending_precompute", { editionIds: [...pendingDetectionIds] });
+  }
+  const readyEditions = simulationCalendar.editions.filter((edition) =>
+    !pendingDetectionIds.has(edition.id) &&
+    (!detectionTargetIds.has(edition.id) || hasMinimumRaceEditionField(edition)),
+  );
   const directory = await ensureLockedOfficialRaceSimulations(
-    simulationCalendar,
+    { ...simulationCalendar, editions: readyEditions },
     simulationClock,
   );
   const loadedStages = Object.values(directory).reduce(
@@ -236,14 +265,29 @@ export async function precomputeDueOfficialRaceSimulations(
     startedAt,
     discoveryDurationMs,
     liveEditions: liveEditions.length,
-    targetedEditions: targetedEditionIds.length,
+    targetedEditions: readyEditions.length,
     eligibleEditions: jobPack.eligibleItems,
-    deferredEditions: jobPack.deferredItems,
+    deferredEditions: jobPack.deferredItems + failedDetectionIds.size + pendingDetectionIds.size,
     loadedStages,
     packIndex,
     packCount,
     processingDurationMs: Date.now() - processingStartedAt,
   });
+}
+
+function needsDetectionBeforeDeparture(edition: SeasonRaceCalendar["editions"][number], now: Date) {
+  if (
+    edition.competitionType !== "standard" ||
+    (edition.categoryCode !== "local" && edition.categoryCode !== "regional") ||
+    edition.detectionTeamsFinalizedAt
+  ) {
+    return false;
+  }
+  const closesAt = Date.parse(edition.withdrawalClosesAt ?? edition.registrationClosesAt ?? "");
+  if (!(closesAt <= now.getTime())) return false;
+
+  const first = edition.stages.find((stage) => stage.stageNumber === 1);
+  return first?.status === "planned" && now.getTime() < Date.parse(first.departureAt ?? "");
 }
 
 function getEditionQueueTimestamp(

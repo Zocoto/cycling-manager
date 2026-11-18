@@ -40,7 +40,7 @@ await db.exec(`
   create table public.race_rosters(id uuid primary key default gen_random_uuid(), race_registration_id uuid, rider_id uuid,
     bib_number smallint, race_role text, status text, selected_at timestamptz, unique(race_registration_id,rider_id));
   create table public.stage_results(stage_id uuid, rank int);
-  create table public.official_stage_simulations(stage_id uuid primary key);
+  create table public.official_stage_simulations(stage_id uuid primary key, race_edition_id uuid);
   create table public.official_stage_simulation_claims(stage_id uuid primary key, claimed_at timestamptz not null);
   create table public.team_seasons(id uuid, cash_balance numeric);
   insert into public.stage_results values ('${uid(90, 1)}',1);
@@ -340,6 +340,147 @@ check((await settle()).selected_riders, 24);
 
 for (const role of ["anon", "authenticated", "service_role"]) {
   check((await db.query("select has_function_privilege($1,'public.settle_due_free_agent_detection_teams(timestamptz)','execute') as allowed", [role])).rows[0].allowed, role === "service_role");
+}
+// The current settlement discovers bounded work and commits one edition at a time.
+await db.exec(`
+  create schema private;
+  create table public.seasons(id uuid primary key, status text);
+  insert into public.seasons values ('${season}', 'active');
+  alter table public.team_seasons add column team_id uuid;
+  create table public.team_manager_assignments(team_id uuid, sporting_director_id uuid, role text, status text);
+  create table public.sporting_directors(id uuid primary key, auth_user_id uuid);
+  create table public.alpha_bot_managers(sporting_director_id uuid, auth_user_id uuid);
+  create table public.race_results(race_edition_id uuid);
+`);
+const gazette = (await readFile(new URL("../supabase/migrations/20261021100000_filter_gazette_races_without_human_participants.sql", import.meta.url), "utf8")).replaceAll("\r\n", "\n");
+await db.exec(gazette.slice(
+  gazette.indexOf("create or replace function private.is_cyclogazette_human_team("),
+  gazette.indexOf("create or replace function public.get_cyclogazette_human_race_editions"),
+));
+const beforeStartMigration = await readFile(new URL("../supabase/migrations/20261118235000_finalize_detection_before_official_start.sql", import.meta.url), "utf8");
+await db.exec(beforeStartMigration);
+
+const fixtureNow = "2030-10-09T09:30:00Z";
+const fixtureCutoff = "2030-10-09T06:00:00Z";
+const fixtureDeparture = "2030-10-09T12:00:00Z";
+const prepareCase = async (options = {}) => {
+  await db.exec("truncate public.team_manager_assignments, public.sporting_directors, public.alpha_bot_managers, public.official_stage_simulations, public.official_stage_simulation_claims, public.race_results");
+  return setup({ closure: fixtureCutoff, departure: fixtureDeparture, ...options });
+};
+const authorize = async (index, bot = false) => {
+  const teamId = uid(20, index);
+  const directorId = uid(21, index);
+  const authId = uid(22, index);
+  await db.query("delete from public.team_seasons where id=$1", [uid(10, index)]);
+  await db.query("insert into public.team_seasons(id,team_id) values($1,$2)", [uid(10, index),teamId]);
+  await db.query("insert into public.sporting_directors values($1,$2)", [directorId,authId]);
+  await db.query("insert into public.team_manager_assignments values($1,$2,'general_manager','active')", [teamId,directorId]);
+  if (bot) await db.query("insert into public.alpha_bot_managers values($1,$2)", [directorId,authId]);
+};
+const discover = async () => (await db.query("select race_edition_id from public.get_due_free_agent_detection_edition_ids($1)", [fixtureNow])).rows.map(row => row.race_edition_id);
+const scopedSettle = async (editions = [uid(7, 1)], at = fixtureNow) => (await db.query(
+  "select * from public.settle_free_agent_detection_teams_for_editions($1::uuid[],$2::timestamptz)", [editions,at],
+)).rows[0];
+const finalStamp = async () => (await db.query("select detection_teams_finalized_at stamp from race_editions where id=$1", [uid(7,1)])).rows[0].stamp;
+const extraEdition = async (index, departure = "2030-10-09T10:00:00Z") => {
+  await db.query("insert into race_editions values($1,$2,$3,$4,'registration_closed',$5,$5,null)",
+    [uid(7,index), season, uid(6,1), uid(5,1), fixtureCutoff]);
+  await db.query("insert into stages values($1,$2,$3,$4,'early',1,'hilly',100)",
+    [uid(8,index), uid(7,index), uid(3,1), departure]);
+};
+const standardizeExtra = async (index, teamIndex) => {
+  await db.query("insert into race_registrations(id,race_edition_id,team_season_id,status) values($1,$2,$3,'accepted')",
+    [uid(9,index), uid(7,index), uid(10,teamIndex)]);
+  await db.query("insert into race_rosters(race_registration_id,rider_id,status) values($1,$2,'confirmed')",
+    [uid(9,index), uid(4,10000+teamIndex)]);
+};
+
+await prepareCase({ teams: 2 });
+await authorize(1);
+await authorize(2, true);
+for (let index = 2; index <= 36; index++) await extraEdition(index);
+await extraEdition(37);
+await standardizeExtra(37,1);
+check(await discover(), [uid(7,37), uid(7,1)]);
+check((await scopedSettle()).created_teams, 3);
+check(await teams(), 5);
+check(await selected(), 18);
+check((await scopedSettle()).created_teams, 0);
+check(await discover(), [uid(7,37)]);
+check(await count("select count(*) n from race_registrations where race_edition_id=$1", [uid(7,37)]), 1);
+
+await prepareCase();
+await authorize(1, true);
+check((await scopedSettle()).skipped_without_managed_team, 1);
+check(await teams(), 1);
+
+await prepareCase({ teams: 0 });
+check(await discover(), []);
+check((await scopedSettle()).skipped_without_managed_team, 1);
+check(await teams(), 0);
+
+await prepareCase({ departure: "2030-10-09T08:00:00Z" });
+await authorize(1);
+await db.query("insert into stages values($1,$2,$3,$4,'late',2,'flat',90)",
+  [uid(8,2),uid(7,1),uid(3,2),fixtureDeparture]);
+check(await discover(), []);
+check((await scopedSettle()).processed_editions, 0);
+check(await finalStamp(), null);
+check(await teams(), 1);
+
+for (const state of ["official lock", "official claim", "stage results", "race results"]) {
+  await prepareCase();
+  await authorize(1);
+  if (state === "official lock") await db.query("insert into official_stage_simulations values($1,$2)", [uid(8,1),uid(7,1)]);
+  if (state === "official claim") await db.query("insert into official_stage_simulation_claims values($1,$2)", [uid(8,1),fixtureNow]);
+  if (state === "stage results") await db.query("insert into stage_results values($1,1)", [uid(8,1)]);
+  if (state === "race results") await db.query("insert into race_results values($1)", [uid(7,1)]);
+  check(await discover(), []);
+  check((await scopedSettle()).processed_editions, 0);
+  check(await teams(), 1);
+  if (state === "stage results") await db.query("delete from stage_results where stage_id=$1", [uid(8,1)]);
+}
+
+await prepareCase();
+await authorize(1);
+await db.query("insert into official_stage_simulation_claims values($1,'2030-10-09T09:27:59Z')", [uid(8,1)]);
+check((await scopedSettle()).created_teams, 4);
+
+await prepareCase({ pool: 7 });
+await authorize(1);
+check((await scopedSettle()).created_teams, 1);
+check(await finalStamp(), null);
+for (let index = 100; index < 120; index++) await rider(index);
+check((await scopedSettle()).created_teams, 3);
+check(await teams(), 5);
+check(Boolean(await finalStamp()), true);
+
+await prepareCase();
+await authorize(1);
+await extraEdition(2);
+await standardizeExtra(2, 1);
+check((await scopedSettle([uid(7,1)])).created_teams, 4);
+check((await scopedSettle([uid(7,2)])).created_teams, 4);
+check(await count("select count(*) as n from (select rider_id from race_rosters rr join race_registrations reg on reg.id=rr.race_registration_id where detection_team_number is not null group by rider_id having count(*)>1) duplicates"), 0);
+
+await prepareCase();
+await authorize(1);
+await db.exec("update public.seasons set status='completed'");
+check(await discover(), []);
+check((await scopedSettle()).processed_editions, 0);
+await db.exec("update public.seasons set status='active'");
+for (const invalid of [[], Array.from({length: 9}, (_, i) => uid(7, i + 1)), [null]]) {
+  await assert.rejects(scopedSettle(invalid), /Invalid detection-team settlement batch/);
+  passed++;
+}
+for (const role of ["anon", "authenticated", "service_role"]) {
+  for (const signature of [
+    "public.get_due_free_agent_detection_edition_ids(timestamptz)",
+    "public.settle_free_agent_detection_teams_for_editions(uuid[], timestamptz)",
+    "public.settle_due_free_agent_detection_teams(timestamptz)",
+  ]) {
+    check((await db.query("select has_function_privilege($1,$2,'execute') as allowed", [role,signature])).rows[0].allowed, role === "service_role");
+  }
 }
 await db.close();
 console.log(JSON.stringify({ passed, isolated: true, productionTouched: false }));

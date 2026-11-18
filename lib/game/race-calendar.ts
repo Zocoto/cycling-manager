@@ -188,6 +188,7 @@ export type RaceCalendarEdition = {
   registrationClosesAt: string | null;
   wildcardClosesAt: string | null;
   withdrawalClosesAt: string | null;
+  detectionTeamsFinalizedAt?: string | null;
   registrationPolicy: RegistrationPolicy;
   minimumReputation: number | null;
   fieldLimit?: number | null;

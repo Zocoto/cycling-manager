@@ -228,6 +228,7 @@ type RaceEditionRow = {
   registration_closes_at: string | null;
   wildcard_closes_at: string | null;
   withdrawal_closes_at: string | null;
+  detection_teams_finalized_at?: string | null;
   minimum_reputation: number | null;
   registration_policy: RegistrationPolicy;
   field_limit: number | null;
@@ -509,6 +510,7 @@ type ActiveSeasonCalendarLoadOptions = {
   includeCancelledEditions?: boolean;
   includeEngagedCounts?: boolean;
   includeEngagedRiders?: boolean;
+  includeDetectionFinalization?: boolean;
   /** Resolved late so the header and calendar can keep loading in parallel. */
   viewerTeamId?: string | null | Promise<string | null>;
   includeIneligibleRegionalRaces?: boolean;
@@ -971,7 +973,7 @@ export async function getActiveSeasonRaceCalendar(
           wildcard_closes_at,
           minimum_reputation,
           registration_policy,
-          field_limit
+          field_limit${options.includeDetectionFinalization ? ", detection_teams_finalized_at" : ""}
         `,
       )
       .eq("season_id", season.id);
@@ -1915,6 +1917,9 @@ export async function getActiveSeasonRaceCalendar(
             : null,
         wildcardClosesAt: edition.wildcard_closes_at,
         withdrawalClosesAt: edition.withdrawal_closes_at,
+        ...(options.includeDetectionFinalization
+          ? { detectionTeamsFinalizedAt: edition.detection_teams_finalized_at ?? null }
+          : {}),
         registrationPolicy: edition.registration_policy,
         minimumReputation: edition.minimum_reputation,
         fieldLimit: edition.field_limit,

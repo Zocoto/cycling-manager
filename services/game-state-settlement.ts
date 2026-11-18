@@ -2,6 +2,7 @@ import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { settleDueYouthAutomaticTrainingSessions } from "@/services/youth-development";
+import { settleDueFreeAgentDetectionTeams } from "@/services/free-agent-detection";
 import { isCycloStickersPublicationWindow } from "@/lib/game/cyclo-stickers-publication-window";
 
 export const GAME_MAINTENANCE_TASKS = [
@@ -162,17 +163,13 @@ export async function runGameMaintenanceTask(
     } else if (task === "elite-wildcards") {
       // Ce traitement reste hors des parcours interactifs : il profite du
       // passage de maintenance déjà planifié après les clôtures d'inscription.
-      const detectionTeams = await admin.rpc(
-        "settle_due_free_agent_detection_teams",
-        { p_now: new Date().toISOString() },
-      );
-      assertSettlement(
-        detectionTeams.error,
-        "les équipes de détection d’agents libres",
-      );
+      const detectionTeams = await settleDueFreeAgentDetectionTeams(admin, new Date());
+      if (detectionTeams.failedEditionIds.length > 0) {
+        throw new Error(`Detection settlement failed for ${detectionTeams.failedEditionIds.length} edition(s)`);
+      }
       resolvedResult = {
         ...(isRecord(result.data) ? result.data : {}),
-        detection_teams: detectionTeams.data,
+        detection_teams: detectionTeams,
       };
     }
   } catch (error) {

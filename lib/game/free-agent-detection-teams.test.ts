@@ -75,7 +75,7 @@ describe("free-agent detection teams", () => {
     );
     expect(maintenanceService).toContain('task === "elite-wildcards"');
     expect(maintenanceService).toContain(
-      '"settle_due_free_agent_detection_teams"',
+      "settleDueFreeAgentDetectionTeams(admin, new Date())",
     );
   });
 
