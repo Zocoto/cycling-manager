@@ -10,7 +10,9 @@ export function DirectTransferOfferTerms({ offer }: { offer: DirectTransferOffer
   return (
     <div className="space-y-3">
       {offer.effectiveSeasonYear ? <div className="rounded-xl border border-[#D9A247]/35 bg-[#FFF8E5] p-3 text-xs font-bold leading-5 text-[#71580A]">
-        <p>Début de la saison {offer.effectiveSeasonYear}</p>
+        <p className="font-black">Offre en attente de votre décision</p>
+        <p className="mt-1">Début de la saison {offer.effectiveSeasonYear}</p>
+        <p className="mt-1">Acceptez l’offre avant la fin de la saison en cours. Le transfert se fera automatiquement à la date indiquée.</p>
         <p className="mt-1">L’indemnité est bloquée à l’acceptation, puis versée au vendeur au début de la saison suivante. Les coureurs restent dans leurs équipes jusque-là, avec leurs inscriptions et entraînements.</p>
         <p className="mt-1">Le nouveau contrat couvre uniquement la saison suivante. Les prolongations déjà prévues avec l’équipe actuelle seront remplacées par cet accord.</p>
       </div> : null}
@@ -33,7 +35,7 @@ export function DirectTransferOfferTerms({ offer }: { offer: DirectTransferOffer
           </Link>
           <p className="mt-2 text-xs font-bold leading-5 text-[#48665F]">Salaire à votre charge : {money(offer.offeredRider.salaryPerSeason)} / saison.</p>
           <p className="mt-2 text-xs font-semibold leading-5 text-[#48665F]">{offer.effectiveSeasonYear
-            ? "Les deux arrivées et le versement de l’indemnité sont programmés ensemble au début de la saison suivante."
+            ? "Si vous acceptez, les deux coureurs changeront d’équipe à la date prévue, en même temps que le versement de l’indemnité."
             : "L’échange des deux coureurs et le paiement sont indivisibles. Les deux contrats couvrent la saison en cours et la saison suivante. En acceptant, vous désinscrivez votre coureur de toutes ses courses à venir."}</p>
           {!offer.effectiveSeasonYear ? <p className="mt-2 text-xs font-semibold leading-5 text-[#48665F]">Une course commencée ou un départ déjà figé bloque l’échange. Les stages et reconnaissances doivent toujours être terminés ou annulés. Ces conditions sont revérifiées pour les deux coureurs à l’acceptation.</p> : null}
         </div>

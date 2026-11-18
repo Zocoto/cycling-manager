@@ -16,6 +16,7 @@ describe("scheduled direct transfers", () => {
       rider: { id: "target", firstName: "Paul", lastName: "Cédé", overall: 60 }, offeredRider: null, effectiveSeasonYear: 5 }];
     const html = renderToStaticMarkup(<ScheduledDirectTransfers offers={offers} />);
     expect(html).toContain("Transferts programmés");
+    expect(html).toContain("Accords acceptés. Les transferts se feront automatiquement au début de la saison indiquée.");
     expect(html).toContain("Début de la saison 5");
     expect(html).toContain("Adversaire");
     expect(html).toContain("Indemnité bloquée");

@@ -5,13 +5,13 @@ export function ScheduledDirectTransfers({ offers }: {
   offers: NonNullable<TransferMarketOverview["scheduledTransfers"]>;
 }) {
   if (offers.length === 0) return null;
-  return <section className="mt-7 rounded-[2rem] border border-[#D9A247]/30 bg-[#FFF8E5] p-5 sm:p-6">
+  return <section className="mt-7 rounded-[2rem] border border-[#278B70]/25 bg-[#EAF5F3] p-5 sm:p-6">
     <h2 className="text-xl font-black text-[#183F37]">Transferts programmés</h2>
-    <p className="mt-2 text-xs font-semibold leading-5 text-[#60756E]">Accords acceptés. Les indemnités sont bloquées puis versées au vendeur lors du transfert. Les places d’effectif sont réservées pour la saison suivante.</p>
+    <p className="mt-2 text-xs font-semibold leading-5 text-[#60756E]">Accords acceptés. Les transferts se feront automatiquement au début de la saison indiquée. Les indemnités seront alors versées aux vendeurs.</p>
     <div className="mt-4 grid gap-4 lg:grid-cols-2">{offers.map(offer => {
       const money = (amount: number) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: offer.currency, maximumFractionDigits: 0 }).format(amount);
       return <article key={offer.id} className="rounded-2xl border border-[#315B3E]/12 bg-white p-4">
-        <p className="text-[10px] font-black uppercase tracking-wider text-[#8A6B16]">{offer.offeredRider ? "Échange programmé" : offer.direction === "arrival" ? "Arrivée" : "Départ"} · Début de la saison {offer.effectiveSeasonYear}</p>
+        <p className="text-[10px] font-black uppercase tracking-wider text-[#176951]">{offer.offeredRider ? "Échange programmé" : offer.direction === "arrival" ? "Arrivée" : "Départ"} · Début de la saison {offer.effectiveSeasonYear}</p>
         {offer.offeredRider ? <p className="mt-3 text-[10px] font-black uppercase tracking-wide text-[#60756E]">{offer.direction === "arrival" ? "Arrivée" : "Départ"}</p> : null}
         <Link href={`/jeu/coureurs/${offer.rider.id}`} className="mt-2 block text-lg font-black text-[#183F37] underline decoration-[#315B3E]/25 underline-offset-4">{offer.rider.firstName} {offer.rider.lastName} ↗</Link>
         <p className="mt-1 text-xs font-bold text-[#60756E]">{offer.counterpartTeamName}</p>

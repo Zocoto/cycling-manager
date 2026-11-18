@@ -15,7 +15,10 @@ const cashOffer: DirectTransferOffer = {
 describe("direct transfer offer terms", () => {
   it("makes the future season, reserved funds and replacement of renewals explicit", () => {
     const html = renderToStaticMarkup(<DirectTransferOfferTerms offer={{ ...cashOffer, effectiveSeasonYear: 5, offeredRider: { id: "counter-rider", firstName: "Jean", lastName: "Reçu", overall: 65, salaryPerSeason: 12000 } }} />);
+    expect(html).toContain("Offre en attente de votre décision");
     expect(html).toContain("Début de la saison 5");
+    expect(html).toContain("Acceptez l’offre avant la fin de la saison en cours. Le transfert se fera automatiquement à la date indiquée.");
+    expect(html).toContain("Si vous acceptez, les deux coureurs changeront d’équipe");
     expect(html).toContain("bloquée à l’acceptation");
     expect(html).toContain("Indemnité à recevoir");
     expect(html).not.toContain("Indemnité reçue");

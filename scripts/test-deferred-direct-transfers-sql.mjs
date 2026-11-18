@@ -81,13 +81,92 @@ async function regressions({
   // Recruitment duration normalization also changes immediate contracts. Load
   // the real draft function patched by that additive migration, with only its
   // unrelated table shape represented here (draft selection has its own suite).
-  await db.exec("create table public.season_draft_editions(id uuid primary key,season_id uuid,status text); create table public.season_draft_riders(edition_id uuid,rider_id uuid,selected_team_id uuid); create table public.season_draft_participants(edition_id uuid,team_id uuid,sporting_director_id uuid,status text);");
+  await db.exec("create table public.season_draft_settings(singleton boolean,enabled boolean,first_game_year integer); create table public.season_draft_editions(id uuid primary key,season_id uuid,game_year integer,status text,pool_reserved_at timestamptz); create table public.season_draft_riders(edition_id uuid,rider_id uuid,selected_team_id uuid); create table public.season_draft_participants(edition_id uuid,team_id uuid,sporting_director_id uuid,status text,selected_rider_id uuid);");
   const draftSource=readFileSync("supabase/migrations/20261022160000_create_recurring_season_draft.sql","utf8").replaceAll("\r\n","\n");
+  const draftConstraintStart = draftSource.indexOf("do $constraint$");
+  const draftConstraintEnd = draftSource.indexOf("$constraint$;", draftConstraintStart);
+  assert(draftConstraintStart > 0 && draftConstraintEnd > draftConstraintStart);
+  await db.exec(draftSource.slice(draftConstraintStart, draftConstraintEnd + "$constraint$;".length));
   const draftStart=draftSource.indexOf("create function public.try_season_draft_pick(");
   const draftEnd=draftSource.indexOf("\n$$;",draftStart);
   assert(draftStart>0&&draftEnd>draftStart);
   await db.exec(draftSource.slice(draftStart,draftEnd+4));
   await db.exec(readFileSync("supabase/migrations/20261106140000_guarantee_recruited_rider_next_season.sql","utf8").replaceAll("\r\n","\n"));
+
+  // Install the deployed draft guards on the real deferred response path.
+  const draftGuardStart = draftSource.indexOf("create function public.guard_season_draft_resale()");
+  const draftGuardEnd = draftSource.indexOf("create function public.initialize_season_draft(", draftGuardStart);
+  assert(draftGuardStart > 0 && draftGuardEnd > draftGuardStart);
+  await db.exec(draftSource.slice(draftGuardStart, draftGuardEnd));
+  await db.exec(historicalFunction("supabase/migrations/20261105210000_reserve_season_draft_from_midnight.sql", "guard_season_draft_reservation"));
+  await db.exec("create trigger aa_season_draft_contract_reservation before insert or update of rider_id,team_id,status on public.rider_contracts for each row execute function public.guard_season_draft_reservation();");
+
+  const markDrafted = async (rider, team, director) => {
+    await db.query("insert into public.season_draft_editions(id,season_id,game_year,status) values($1,$2,4,'completed') on conflict (id) do nothing", [id(4000),id(4)]);
+    await db.query("insert into public.season_draft_participants(edition_id,team_id,sporting_director_id,status,selected_rider_id) values($1,$2,$3,'picked',$4)", [id(4000),id(team),id(director),id(rider)]);
+    await db.query("update public.rider_contracts set acquisition_type='season_draft', end_season_id=$1 where rider_id=$2 and status='active'", [id(5),id(rider)]);
+  };
+  const draftGuardError = "Un coureur drafté ne peut pas changer d’équipe pendant cette saison.";
+  const respondSql = "select public.respond_to_direct_transfer_offer($1,true)";
+
+  await scenario("the old draft guard rejects even a next-season acceptance", async () => {
+    await markDrafted(202,11,2);
+    await auth(1); const offer = offerId(await submit(202,20000)); await root();
+    const before = await snapshot();
+    await auth(2); await reject(respondSql,[offer],draftGuardError); await root();
+    check(await snapshot(),before,"The failed acceptance leaves the offer and all accounting untouched");
+  });
+
+  await db.exec(readFileSync("supabase/migrations/20261118235500_allow_deferred_transfers_for_drafted_riders.sql","utf8").replaceAll("\r\n","\n"));
+
+  await scenario("a drafted rider can sign for next season while the current club and escrow are preserved", async () => {
+    await markDrafted(202,11,2);
+    const registration = await bookRace(202, {status:"in_progress",stageStatus:"in_progress"});
+    await auth(1); const offer = offerId(await submit(202,20000));
+    await auth(2); await respond(offer); await root();
+    check(await owner(202),id(11),"Drafted rider remains with the seller");
+    check((await contract(202,"active")).end_season_id,id(4),"The seller's active term stops at the handover");
+    const arrival = await contract(202,"planned");
+    check([arrival.team_id,arrival.start_season_id,arrival.end_season_id,arrival.transfer_locked_season_id], [id(10),id(5),id(5),id(5)]);
+    check(await scalar("select status from public.direct_transfer_offers where id=$1",[offer]),"accepted");
+    check(await scalar("select status from public.race_rosters where id=$1",[registration.roster]),"confirmed");
+    check(await cash(104),980000); check(await cash(114),1000000);
+    const accepted = await snapshot();
+    await auth(2); await reject(respondSql,[offer]); await root();
+    check(await snapshot(),accepted,"A retry does not duplicate escrow, contracts or notifications");
+    await db.query("update public.seasons set status='completed',current_day_number=28 where id=$1",[id(4)]);
+    await db.query("update public.team_seasons set status='completed' where season_id=$1",[id(4)]);
+    await db.query("update public.team_seasons set status='active' where season_id=$1",[id(5)]);
+    await db.query("update public.seasons set status='active' where id=$1",[id(5)]);
+    check(await owner(202),id(10),"The real season hooks switch clubs at the following start");
+    check(await cash(115),1020000,"The seller is paid on arrival");
+  });
+
+  await scenario("a deferred swap permits drafted riders on both legs", async () => {
+    await markDrafted(201,10,1);
+    await markDrafted(202,11,2);
+    await auth(1); const offer = offerId(await submit(202,0,201));
+    await auth(2); await respond(offer); await root();
+    check(await owner(201),id(10)); check(await owner(202),id(11));
+    check((await contract(201,"planned")).team_id,id(11));
+    check((await contract(202,"planned")).team_id,id(10));
+    check(await cash(104),1000000); check(await cash(114),1000000);
+  });
+
+  await scenario("the draft guard still rejects current-team changes and unbound future contracts", async () => {
+    await markDrafted(202,11,2);
+    const insert = "insert into public.rider_contracts(rider_id,team_id,start_season_id,end_season_id,status,acquisition_type,transfer_locked_season_id) values($1,$2,$3,$4,$5,$6,$3)";
+    await reject(insert,[id(202),id(10),id(5),id(5),"planned","direct_offer"],draftGuardError);
+    await auth(1); const offer = offerId(await submit(202,20000)); await root();
+    await reject(insert,[id(202),id(10),id(4),id(5),"active","direct_offer"],draftGuardError);
+    await reject(insert,[id(202),id(12),id(5),id(5),"planned","direct_offer"],draftGuardError);
+    await reject(insert,[id(202),id(10),id(5),id(6),"planned","direct_offer"],draftGuardError);
+    await reject(insert,[id(202),id(10),id(6),id(6),"planned","direct_offer"],draftGuardError);
+    await reject(insert,[id(202),id(10),id(5),id(5),"planned","renewal"],draftGuardError);
+    await reject("insert into public.transfer_market_listings(rider_id,season_id,status,seller_team_id) values($1,$2,'open',$3)",[id(202),id(4),id(11)],"Un coureur drafté ne peut pas être revendu pendant cette saison.");
+    check(await scalar("select status from public.direct_transfer_offers where id=$1",[offer]),"pending");
+    check(await owner(202),id(11));
+  });
 
   await scenario("future cash keeps current programs and blocks funds without paying the seller", async () => {
     const booking = await bookRace(202, {status:"in_progress",stageStatus:"in_progress"});

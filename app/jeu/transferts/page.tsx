@@ -391,7 +391,7 @@ function ReceivedDirectOffers({ offers, returnPath }: {
                   <DirectTransferOfferTerms offer={offer} />
                   <p className="mt-4 text-xs font-semibold leading-5 text-[#60756E]">
                     {offer.effectiveSeasonYear
-                      ? "L’acceptation bloque l’indemnité et réserve les places dans les effectifs de la saison suivante. Le vendeur sera payé lors du transfert ; chaque coureur termine la saison avec son équipe actuelle."
+                      ? "L’acceptation réserve les places nécessaires dans les effectifs de la saison suivante."
                       : offer.offeredRider
                       ? "L’acceptation vérifie à nouveau les deux coureurs, les effectifs et les budgets. Les inscriptions aux courses futures sont retirées ; si une composition devient insuffisante, son DS est averti. Aucune course en cours ni aucun stage ne sera annulé pour forcer l’échange."
                       : "En acceptant, votre équipe reçoit l’indemnité et l’acheteur prend immédiatement en charge le coureur. Les équipements, inscriptions et stages sont nettoyés automatiquement."}
@@ -402,7 +402,7 @@ function ReceivedDirectOffers({ offers, returnPath }: {
                       <input type="hidden" name="decision" value="accept" />
                       <input type="hidden" name="returnPath" value={returnPath} />
                       <TransferSubmitButton pendingLabel="Acceptation…" tone="green">
-                        Accepter l’offre
+                        {offer.effectiveSeasonYear ? "Accepter et programmer" : "Accepter l’offre"}
                       </TransferSubmitButton>
                     </form>
                     <form action={respondToDirectTransferOfferAction}>
@@ -448,7 +448,7 @@ function ReceivedDirectOffers({ offers, returnPath }: {
                 </thead>
                 <tbody className="divide-y divide-[#315B3E]/10">
                   {history.map((offer) => {
-                    const status = getDirectOfferStatus(offer.status);
+                    const status = getDirectOfferStatus(offer);
                     return (
                       <tr key={offer.id} className="hover:bg-[#F7FBF9]">
                         <td className="px-5 py-4">
@@ -806,8 +806,8 @@ function getTeamInitials(name: string) { return name.split(/\s+/).filter(Boolean
 function formatMoney(value: number, currency: string) { return new Intl.NumberFormat("fr-FR", { style: "currency", currency, maximumFractionDigits: 0 }).format(value); }
 function formatDate(value: string) { return new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" }).format(new Date(`${value}T12:00:00Z`)); }
 function formatDateTime(value: string) { return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Paris" }).format(new Date(value)); }
-function getDirectOfferStatus(status: DirectTransferOffer["status"]) {
-  if (status === "accepted") return { label: "Acceptée", className: "bg-[#DDF3E7] text-[#176951]" };
+function getDirectOfferStatus({ status, effectiveSeasonYear }: DirectTransferOffer) {
+  if (status === "accepted") return { label: effectiveSeasonYear ? "Transfert programmé" : "Acceptée", className: "bg-[#DDF3E7] text-[#176951]" };
   if (status === "rejected") return { label: "Refusée", className: "bg-[#FFF0EE] text-[#8A2F2F]" };
   if (status === "cancelled") return { label: "Caduque", className: "bg-[#EEF1EF] text-[#60756E]" };
   return { label: "En attente", className: "bg-[#FFF4D6] text-[#8A6516]" };
