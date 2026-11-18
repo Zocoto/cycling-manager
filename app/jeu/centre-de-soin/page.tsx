@@ -156,7 +156,7 @@ export default async function HealthCenterPage({
   ] =
     await Promise.all([
       getGameHeaderData(supabase, user.id),
-      getCurrentTeamHealthOverview(user.id),
+      getCurrentTeamHealthOverview(user.id, { includeConsumableWeight: activeTab === "nutrition" }),
       getTeamAmateurIdentityForAuthUser(user.id),
       getAuthenticatedTutorialProgress(
         supabase,
@@ -847,7 +847,7 @@ function NutritionPanel({
   );
 
   return (
-    <section data-tutorial-id="medical-center-nutrition" className="mt-7">
+    <section data-tutorial-id="medical-center-nutrition" className="mt-7 min-w-0">
       <SectionHeading
         eyebrow="Nutrition"
         title="Récupération quotidienne et interventions ciblées"
@@ -983,7 +983,7 @@ function NutritionPanel({
             balance={overview.balance}
             currency={overview.currency}
           >
-            <div className="mt-6 grid gap-4 xl:grid-cols-2">
+            <div className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
               {nutritionRiders.map((rider) => {
                 const applied = interventionByRiderId.get(rider.id);
                 const weightStatus = getRiderWeightStatus({ heightCm: rider.heightCm, weightKg: rider.weightKg, ratings: rider.ratings });
@@ -992,9 +992,9 @@ function NutritionPanel({
                   <article
                     key={rider.id}
                     id={`nutrition-rider-${rider.id}`}
-                    className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_36px_rgba(19,60,46,0.06)]"
+                    className="min-w-0 rounded-[2rem] border border-[#315B3E]/12 bg-white p-4 shadow-[0_12px_36px_rgba(19,60,46,0.06)] sm:p-5"
                   >
-                    <div className="flex items-center gap-4">
+                    <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 gap-y-2 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center">
                       <RiderAvatar
                         profileKey={rider.avatarProfileKey}
                         seed={rider.avatarSeed}
@@ -1002,11 +1002,11 @@ function NutritionPanel({
                         age={rider.age}
                         jersey={jersey}
                         label={`Portrait de ${rider.firstName} ${rider.lastName}`}
-                        className="h-14 w-14"
+                        className="h-12 w-12 sm:h-14 sm:w-14"
                       />
-                      <div className="min-w-0 flex-1">
+                      <div className="min-w-0">
                         <div className="flex min-w-0 flex-wrap items-center gap-2">
-                          <p className="min-w-0 flex-1 truncate text-base font-black text-[#183F37]">
+                          <p className="min-w-0 flex-1 break-words text-base font-black text-[#183F37]">
                             {rider.firstName} {rider.lastName}
                           </p>
                           {rider.injury ? (
@@ -1061,10 +1061,18 @@ function NutritionPanel({
                                 </span>
                               </>
                             ) : null}
+                            {rider.seasonTeaWeightLossKg > 0 ? (
+                              <span className="basis-full text-[10px] text-[#2F6FB5]">
+                                Tisane du spectre · −{rider.seasonTeaWeightLossKg.toLocaleString("fr-FR", {
+                                  minimumFractionDigits: 1,
+                                  maximumFractionDigits: 1,
+                                })} kg
+                              </span>
+                            ) : null}
                           </div>
                         ) : null}
                       </div>
-                      <span className="rounded-full bg-[#EEF7E8] px-3 py-2 text-sm font-black text-[#527633]">
+                      <span className="col-start-2 w-fit rounded-full bg-[#EEF7E8] px-3 py-2 text-sm font-black text-[#527633] sm:col-start-auto sm:justify-self-end">
                         {applied ? `+${applied.formGain}` : `${rider.form} %`}
                       </span>
                     </div>

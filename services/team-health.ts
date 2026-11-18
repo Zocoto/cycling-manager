@@ -19,6 +19,7 @@ import type { RiderRatings } from "@/lib/game/rider-profile";
 import type { RiderMoraleEvent } from "@/lib/game/rider-morale";
 import { getWeightProgramCooldownDays, normalizeWeightProgramFormPreservationPercentage } from "@/lib/game/weight-program";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { collectPaginatedRows } from "@/lib/supabase/pagination";
 
 type DirectorRow = { id: string };
 type AssignmentRow = { team_id: string };
@@ -26,6 +27,7 @@ type SeasonRow = {
   id: string;
   name: string;
   game_year: number;
+  starts_on: string;
   current_day_number: number | null;
 };
 type TeamSeasonRow = {
@@ -236,6 +238,7 @@ export type TeamHealthRider = {
   weightKg: number | null;
   baselineWeightKg: number | null;
   seasonWeightDeltaKg: number;
+  seasonTeaWeightLossKg: number;
   recentNutritionInterventionCount: number;
   physiologyVersion: number;
   nextWeightCutGameDayIndex: number | null;
@@ -315,6 +318,7 @@ export type TeamHealthOverview = {
 
 export async function getCurrentTeamHealthOverview(
   authUserId: string,
+  { includeConsumableWeight = false }: { includeConsumableWeight?: boolean } = {},
 ): Promise<TeamHealthOverview | null> {
   const admin = createSupabaseAdminClient();
 
@@ -337,7 +341,7 @@ export async function getCurrentTeamHealthOverview(
       .maybeSingle<AssignmentRow>(),
     admin
       .from("seasons")
-      .select("id, name, game_year, current_day_number")
+      .select("id, name, game_year, starts_on, current_day_number")
       .eq("status", "active")
       .maybeSingle<SeasonRow>(),
   ]);
@@ -510,6 +514,7 @@ export async function getCurrentTeamHealthOverview(
     treatmentsResult,
     nutritionInterventionsResult,
     weightEventsResult,
+    teaDosesResult,
     moraleEventsResult,
     nutritionRegularityResult,
   ] = await Promise.all([
@@ -557,6 +562,19 @@ export async function getCurrentTeamHealthOverview(
       .in("rider_id", riderIds)
       .order("applied_at", { ascending: false })
       .returns<WeightEventRow[]>(),
+    includeConsumableWeight
+      ? collectPaginatedRows<{ rider_id: string }, { message: string }>({
+          fetchPage: async (from, to) => admin
+            .from("halloween_rider_effects")
+            .select("rider_id")
+            .in("rider_id", riderIds)
+            .eq("item_id", "spectres-tea")
+            .gte("used_at", `${season.starts_on} 00:00:00 Europe/Paris`)
+            .order("id")
+            .range(from, to)
+            .returns<{ rider_id: string }[]>(),
+        })
+      : Promise.resolve({ data: [], error: null }),
     admin
       .from("rider_morale_events")
       .select(
@@ -582,6 +600,7 @@ export async function getCurrentTeamHealthOverview(
     "les interventions nutritionnelles",
   );
   assertQuery(weightEventsResult.error, "l’historique de poids");
+  assertQuery(teaDosesResult.error, "l’historique de poids");
   assertQuery(moraleEventsResult.error, "l’historique de moral");
   assertQuery(nutritionRegularityResult.error, "la fréquence des compléments");
 
@@ -628,6 +647,12 @@ export async function getCurrentTeamHealthOverview(
   });
   const currentCalendarDate = (daysResult.data ?? [])[0]?.calendar_date ??
     calendarDateFormatter.format(new Date());
+  // Halloween records every applied dose separately instead of writing a
+  // weight event. Each successful dose removes one kilogram.
+  const seasonTeaWeightLossByRiderId = new Map<string, number>();
+  for (const dose of teaDosesResult.data) {
+    seasonTeaWeightLossByRiderId.set(dose.rider_id, (seasonTeaWeightLossByRiderId.get(dose.rider_id) ?? 0) + 1);
+  }
   const seasonWeightDeltaByRiderId = new Map<string, number>();
   for (const event of weightEventsResult.data ?? []) {
     if (event.season_id === season.id) {
@@ -700,6 +725,7 @@ export async function getCurrentTeamHealthOverview(
         const camp = campByRiderId.get(rider.id);
         const rating = ratingByRiderId.get(rider.id);
         const ratings = toRiderRatings(rating);
+        const seasonTeaWeightLossKg = seasonTeaWeightLossByRiderId.get(rider.id) ?? 0;
 
         return {
           id: rider.id,
@@ -720,8 +746,9 @@ export async function getCurrentTeamHealthOverview(
               : toNumber(rider.baseline_weight_kg),
           seasonWeightDeltaKg:
             Math.round(
-              (seasonWeightDeltaByRiderId.get(rider.id) ?? 0) * 10,
+              ((seasonWeightDeltaByRiderId.get(rider.id) ?? 0) - seasonTeaWeightLossKg) * 10,
             ) / 10,
+          seasonTeaWeightLossKg,
           physiologyVersion: Number(rider.physiology_version ?? 0),
           recentNutritionInterventionCount: recentNutritionUsesByRiderId.get(rider.id) ?? 0,
           nextWeightCutGameDayIndex: latestWeightCutByRiderId.has(rider.id)

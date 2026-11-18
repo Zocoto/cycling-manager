@@ -473,8 +473,8 @@ export function NutritionInterventionFields({
   }
 
   return (
-    <div className="mt-4 grid min-w-0 gap-4 md:grid-cols-[minmax(190px,1fr)_minmax(220px,1.15fr)_minmax(150px,0.7fr)] md:items-end">
-      <label className="grid gap-1.5">
+    <div className="mt-4 grid min-w-0 grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)_minmax(0,0.7fr)] md:items-end">
+      <label className="grid min-w-0 grid-cols-1 gap-1.5">
         <span className="text-[10px] font-black uppercase tracking-[0.14em] text-[#658F42]">
           Complément
         </span>
@@ -487,7 +487,7 @@ export function NutritionInterventionFields({
               (event.target.value || null) as NutritionInterventionCode | null,
             )
           }
-          className="min-h-11 min-w-0 rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-black text-[#183F37] outline-none focus:border-[#78A94E] disabled:cursor-not-allowed disabled:bg-[#F4F7F5] disabled:text-[#809189]"
+          className="min-h-11 w-full min-w-0 max-w-full rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-black text-[#183F37] outline-none focus:border-[#78A94E] disabled:cursor-not-allowed disabled:bg-[#F4F7F5] disabled:text-[#809189]"
         >
           <option value="">Aucun complément</option>
           {INTERVENTION_CODES.map((code) => {
@@ -502,7 +502,7 @@ export function NutritionInterventionFields({
         </select>
       </label>
 
-      <label className="grid gap-1.5">
+      <label className="grid min-w-0 grid-cols-1 gap-1.5">
         <span className="text-[10px] font-black uppercase tracking-[0.14em] text-[#658F42]">
           Nutritionniste
         </span>
@@ -542,7 +542,7 @@ export function NutritionInterventionFields({
               nutritionistContractId: nextContractId,
             });
           }}
-          className="min-h-11 min-w-0 rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-black text-[#183F37] outline-none focus:border-[#78A94E] disabled:cursor-not-allowed disabled:bg-[#F4F7F5] disabled:text-[#809189]"
+          className="min-h-11 w-full min-w-0 max-w-full rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-black text-[#183F37] outline-none focus:border-[#78A94E] disabled:cursor-not-allowed disabled:bg-[#F4F7F5] disabled:text-[#809189]"
         >
           <option value="">Choisir un nutritionniste</option>
           {editor.nutritionists.map((nutritionist) => {
@@ -580,7 +580,7 @@ export function NutritionInterventionFields({
         </select>
       </label>
 
-      <div className="min-h-11 rounded-xl bg-[#EEF7E8] px-3 py-2.5 text-xs font-bold text-[#527633]">
+      <div className="min-h-11 min-w-0 break-words rounded-xl bg-[#EEF7E8] px-3 py-2.5 text-xs font-bold text-[#527633]">
         {outcome ? (
           <>
             <span className="block font-black">
@@ -626,10 +626,10 @@ export function NutritionWeightProgramFields({ riderId, isUnderweight = false, i
   const gain = editor.supplementFormGain(riderId);
   const preservation = editor.weightProgramFormPreservationPercentage;
   const quote = delta ? getWeightProgramQuote(rider, delta, gain, preservation) : null;
-  return <details className="group mt-3 border-t border-[#315B3E]/10 pt-2">
-    <summary className="flex cursor-pointer list-none items-center justify-between gap-2 py-1 text-[11px] font-semibold text-[#60756E] marker:content-none [&::-webkit-details-marker]:hidden">
+  return <details className="group mt-3 min-w-0 border-t border-[#315B3E]/10 pt-2">
+    <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-x-2 gap-y-0.5 py-1 text-[11px] font-semibold text-[#60756E] marker:content-none [&::-webkit-details-marker]:hidden">
       <span>Ajuster le poids <span className="font-normal text-[#809189]">· optionnel</span></span>
-      <span className="text-[10px] text-[#658F42]">{delta ? `${delta > 0 ? "+" : "−"}${formatWeight(Math.abs(delta))} kg sélectionné` : isUnderweight ? "Sous-poids" : isOverweight ? "Surpoids" : "Affûtage / athlétisation"} <span className="inline-block transition group-open:rotate-180">⌄</span></span>
+      <span className="flex max-w-full items-center gap-1 text-[10px] text-[#658F42]">{delta ? `${delta > 0 ? "+" : "−"}${formatWeight(Math.abs(delta))} kg sélectionné` : isUnderweight ? "Sous-poids" : isOverweight ? "Surpoids" : "Affûtage / athlétisation"} <span className="inline-block transition group-open:rotate-180">⌄</span></span>
     </summary>
     <div className="mt-2 rounded-xl bg-[#F4F7F5] p-3 text-xs text-[#60756E]">
       <p className="text-[11px]">±0,2 à 1 kg · −{formatForm(getWeightProgramFormCost(0.2, preservation))} forme par 0,2 kg · un programme tous les 5 jours, dans les deux sens.</p>
@@ -637,18 +637,18 @@ export function NutritionWeightProgramFields({ riderId, isUnderweight = false, i
         Préservation de la forme : −{formatPercentage(preservation)} sur le coût des deux programmes. Seul le meilleur affixe s’applique.
       </p> : null}
       {rider.cooldownDays > 0 ? <p className="mt-2 font-bold">Prochain programme dans {rider.cooldownDays} j.</p> : <>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <label className="grid gap-1"><span className="text-[10px] font-bold">Programme</span>
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <label className="grid min-w-0 grid-cols-1 gap-1"><span className="text-[10px] font-bold">Programme</span>
             <select aria-label="Programme de poids" value={delta === 0 ? "" : direction > 0 ? "gain" : "cut"}
               onChange={event => { const sign = event.target.value === "gain" ? 1 : -1; setDirection(sign); editor.setWeightDraft(riderId, event.target.value ? sign * 0.2 : 0); }}
-              className="min-h-10 min-w-0 rounded-lg border border-[#315B3E]/15 bg-white px-2 text-xs">
+              className="min-h-10 w-full min-w-0 max-w-full rounded-lg border border-[#315B3E]/15 bg-white px-2 text-xs">
               <option value="">Aucun programme</option><option value="cut">Affûtage · alléger</option><option value="gain">Athlétisation · renforcer</option>
             </select>
           </label>
-          <label className="grid gap-1"><span className="text-[10px] font-bold">Poids / coût en forme</span>
+          <label className="grid min-w-0 grid-cols-1 gap-1"><span className="text-[10px] font-bold">Poids / coût en forme</span>
             <select aria-label="Variation de poids et coût en forme" disabled={!delta} value={Math.abs(delta) || 0.2}
               onChange={event => editor.setWeightDraft(riderId, direction * Number(event.target.value))}
-              className="min-h-10 min-w-0 rounded-lg border border-[#315B3E]/15 bg-white px-2 text-xs disabled:opacity-50">
+              className="min-h-10 w-full min-w-0 max-w-full rounded-lg border border-[#315B3E]/15 bg-white px-2 text-xs disabled:opacity-50">
               {WEIGHT_PROGRAM_STEPS.map(step => <option key={step} value={step}
                 disabled={!getWeightProgramQuote(rider, direction * step, gain, preservation).allowed}>
                 {direction > 0 ? "+" : "−"}{formatWeight(step)} kg · −{formatForm(getWeightProgramFormCost(step, preservation))} forme
