@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { collectPaginatedRows } from "@/lib/supabase/pagination";
 import { loadTeamTrainingHistory } from "@/services/team-training-history";
 import {
   TRAINER_SPECIALTY_LABELS,
@@ -220,7 +221,7 @@ export async function getCurrentTeamTrainingOverview(
   if (!context) return null;
 
   const { teamSeason, season } = context;
-  const [daysResult, contractsResult, settingsResult, plansResult, staffContractsResult] =
+  const [daysResult, contractsResult, settingsResult, staffContractsResult] =
     await Promise.all([
       admin
         .from("season_days")
@@ -243,16 +244,6 @@ export async function getCurrentTeamTrainingOverview(
         .order("created_at", { ascending: false })
         .returns<SettingRow[]>(),
       admin
-        .from("rider_training_plan_versions")
-        .select(
-          "rider_id, intensity, domain, trainer_contract_id, effective_from_day_number, created_at",
-        )
-        .eq("team_id", teamSeason.team_id)
-        .eq("season_id", season.id)
-        .order("effective_from_day_number", { ascending: false })
-        .order("created_at", { ascending: false })
-        .returns<PlanRow[]>(),
-      admin
         .from("staff_contracts")
         .select("id, staff_member_id")
         .eq("team_id", teamSeason.team_id)
@@ -263,7 +254,6 @@ export async function getCurrentTeamTrainingOverview(
   assertQuery(daysResult.error, "les journées de saison");
   assertQuery(contractsResult.error, "les contrats des coureurs");
   assertQuery(settingsResult.error, "le seuil de forme");
-  assertQuery(plansResult.error, "les programmes d’entraînement");
   assertQuery(staffContractsResult.error, "les contrats des entraîneurs");
 
   const days = daysResult.data ?? [];
@@ -276,6 +266,7 @@ export async function getCurrentTeamTrainingOverview(
   const staffMemberIds = staffContracts.map((contract) => contract.staff_member_id);
 
   const [
+    plansResult,
     ridersResult,
     ratingsResult,
     conditionsResult,
@@ -291,6 +282,21 @@ export async function getCurrentTeamTrainingOverview(
     trainingRewardEffectsResult,
   ] =
     await Promise.all([
+      riderIds.length
+        ? collectPaginatedRows<PlanRow, { message: string }>({
+            fetchPage: async (from, to) => admin
+              .from("rider_training_plan_versions")
+              .select("rider_id, intensity, domain, trainer_contract_id, effective_from_day_number, created_at")
+              .eq("team_id", teamSeason.team_id)
+              .eq("season_id", season.id)
+              .in("rider_id", riderIds)
+              .order("effective_from_day_number", { ascending: false })
+              .order("created_at", { ascending: false })
+              .order("id", { ascending: false })
+              .range(from, to)
+              .returns<PlanRow[]>(),
+          })
+        : Promise.resolve({ data: [] as PlanRow[], error: null }),
       riderIds.length
         ? admin
             .from("riders")
@@ -388,6 +394,7 @@ export async function getCurrentTeamTrainingOverview(
         .returns<TrainingRewardEffectRow[]>(),
     ]);
 
+  assertQuery(plansResult.error, "les programmes d’entraînement");
   assertQuery(ridersResult.error, "les coureurs");
   assertQuery(ratingsResult.error, "les caractéristiques des coureurs");
   assertQuery(conditionsResult.error, "la forme des coureurs");

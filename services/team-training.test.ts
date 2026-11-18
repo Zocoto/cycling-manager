@@ -33,22 +33,35 @@ function fixture(trainerContractId: string | null) {
     countries: [{ id: "country", name: "Rwanda", iso_alpha2: "RW" }],
   };
   const calls: string[] = [];
+  const returnedPlanRiderIds = new Set<unknown>();
   let failingTable: string | null = null;
   const client = { from(table: string) {
     calls.push(table);
     const filters: Array<(row: Row) => boolean> = [];
-    const result = () => ({ data: (tables[table] ?? []).filter(row => filters.every(filter => filter(row))), error: table === failingTable ? { message: "read failed" } : null });
+    let pageStart = 0;
+    let pageEnd = 1_000;
+    const result = () => ({
+      data: (tables[table] ?? []).filter(row => filters.every(filter => filter(row))).slice(pageStart, pageEnd),
+      error: table === failingTable ? { message: "read failed" } : null,
+    });
     const builder = {
       select: () => builder,
       eq(key: string, value: unknown) { filters.push(row => row[key] === value); return builder; },
       in(key: string, values: unknown[]) { filters.push(row => values.includes(row[key])); return builder; },
       order: () => builder,
-      async returns() { return result(); },
+      range(from: number, to: number) { pageStart = from; pageEnd = to + 1; return builder; },
+      async returns() {
+        const page = result();
+        if (table === "rider_training_plan_versions") {
+          for (const row of page.data) returnedPlanRiderIds.add(row.rider_id);
+        }
+        return page;
+      },
       async maybeSingle() { const value = result(); return { ...value, data: value.data[0] ?? null }; },
     };
     return builder;
   }, rpc: vi.fn().mockResolvedValue({ data: null, error: null }) };
-  return { client, calls, plan, fail(table: string) { failingTable = table; } };
+  return { client, calls, plan, tables, returnedPlanRiderIds, fail(table: string) { failingTable = table; } };
 }
 beforeEach(() => { vi.clearAllMocks(); mocks.history.mockResolvedValue({ data: [], error: null }); });
 
@@ -67,6 +80,28 @@ describe("editable training coach references", () => {
     expect(overview?.riders[0].plan.trainerContractId).toBe("active-coach");
     expect(overview?.trainers[0].assignedRiderCount).toBe(1);
   });
+  it("loads an active rider’s saved plan past the first response and excludes former riders", async () => {
+    const test = fixture("active-coach");
+    const fillerRiders = Array.from({ length: 35 }, (_, index) => `rider-${index}`);
+    test.tables.rider_contracts.push(...fillerRiders.map((rider_id) => ({ rider_id, team_id: "team", status: "active" })));
+    const newerPlans = fillerRiders.flatMap((rider_id) =>
+      Array.from({ length: 29 }, (_, index) => ({
+        ...test.plan, id: `${rider_id}-${index}`, rider_id, effective_from_day_number: 29 - index,
+      })),
+    );
+    test.plan.effective_from_day_number = 1;
+    test.plan.domain = "rouleur";
+    test.tables.rider_training_plan_versions.unshift(
+      { ...test.plan, rider_id: "departed", effective_from_day_number: 29 },
+      ...newerPlans,
+    );
+    mocks.admin.mockReturnValue(test.client);
+    const overview = await getCurrentTeamTrainingOverview("user");
+    expect(overview?.riders[0].plan).toMatchObject({ domain: "rouleur", trainerContractId: "active-coach", intensity: 58 });
+    expect(test.calls.filter(table => table === "rider_training_plan_versions")).toHaveLength(2);
+    expect(test.returnedPlanRiderIds).not.toContain("departed");
+  });
+
   it("never treats an unavailable staff query as an empty list of coaches", async () => {
     const test = fixture("active-coach"); test.fail("staff_contracts"); mocks.admin.mockReturnValue(test.client);
     await expect(getCurrentTeamTrainingOverview("user")).rejects.toThrow("contrats des entraîneurs");
