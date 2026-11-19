@@ -88,7 +88,7 @@ export function MediaCenterArticleEditor({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
-  const nextBlockId = useRef(1);
+  const nextBlockId = useRef(Math.max(0, ...draft.map(({ id }) => id)) + 1);
   const uploadLock = useRef(false);
   const id = useId();
   const images = draft.filter(({ block }) => block.type === "image").length;

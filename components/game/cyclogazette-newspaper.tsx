@@ -603,6 +603,42 @@ export function CyclogazetteNewspaper({
           </section>
         ) : null}
 
+        {mediaArticles.length > 0 ? (
+          <section className="mt-8 border-t-4 border-double border-[var(--gazette-ink)] pt-5">
+            <SectionTitle
+              eyebrow={isEnglish ? "From the peloton" : "Les tribunes du peloton"}
+              title={isEnglish ? "The teams have their say" : "La parole aux équipes"}
+              sportsDaily={isSportsDailyEdition}
+            />
+            <div className={`mt-4 grid gap-4 ${hasFormattedMediaArticles ? "mx-auto max-w-3xl" : "lg:grid-cols-2"}`}>
+              {mediaArticles.map((article) => (
+                <article
+                  key={article.id}
+                  id={`article-${article.id}`}
+                  className="scroll-mt-24 border border-[var(--gazette-rule)]/45 bg-[var(--gazette-card)] p-5"
+                >
+                  <p className="text-[9px] font-black uppercase tracking-[.18em] text-[var(--gazette-accent)]">
+                    {isEnglish ? "Guest column" : "Carte blanche"} · {article.teamName}
+                  </p>
+                  <h3 className="mt-2 font-serif text-2xl font-black leading-6 [overflow-wrap:anywhere]">
+                    {article.title}
+                  </h3>
+                  <MediaCenterArticleContent
+                    blocks={article.blocks}
+                    body={article.body}
+                    className="mt-4 text-sm font-medium leading-6 text-[var(--gazette-body)]"
+                  />
+                  <p className="mt-4 border-t border-[var(--gazette-rule)]/35 pt-3 text-[9px] font-black uppercase tracking-[.14em] text-[var(--gazette-muted)]">
+                    {isEnglish ? "Column submitted by the SD" : "Tribune proposée par le DS"} · Media Center {isEnglish ? "L" : "N"}
+                    {article.buildingLevel}
+                  </p>
+                  <ArticleReactions kind="media" id={article.id} />
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
         {nationsCupSpecial ? (
           <NationsCupMovementsArticle special={nationsCupSpecial} />
         ) : null}
@@ -614,21 +650,23 @@ export function CyclogazetteNewspaper({
               title={isEnglish ? "The riders who made the race" : "Ceux qui ont animé la course"}
               sportsDaily={isSportsDailyEdition}
             />
-            <p className="mt-3 max-w-4xl font-serif text-sm italic leading-5 text-[var(--gazette-muted)]">
-              {isEnglish
-                ? "Breakaway riders, chasers, caught-out contenders and tireless domestiques: our newsroom tells the stories behind the result."
-                : "Échappés, chasseurs, coureurs piégés et équipiers infatigables : la rédaction raconte celles et ceux qui ont fait la course au-delà du résultat brut."}
-            </p>
-            <div className="mt-4 flex flex-wrap items-stretch gap-4">
-              {roadStories.map((item) => (
-                <NewsBrief
-                  key={item.id}
-                  item={item}
-                  showRaceEvent
-                  balancedCard
-                />
+            <div className="mt-3 grid gap-x-5 sm:grid-cols-2 lg:grid-cols-3">
+              {roadStories.slice(0, 3).map((item) => (
+                <NewsBrief key={item.id} item={item} showRaceEvent compact />
               ))}
             </div>
+            {roadStories.length > 3 ? (
+              <details className="mt-2 border-t border-[var(--gazette-rule)]/35 pt-3">
+                <summary className="cursor-pointer text-sm font-bold text-[var(--gazette-accent)]">
+                  {isEnglish ? "More stories from the race" : "Les autres récits de course"} ({roadStories.length - 3})
+                </summary>
+                <div className="mt-2 grid gap-x-5 sm:grid-cols-2 lg:grid-cols-3">
+                  {roadStories.slice(3).map((item) => (
+                    <NewsBrief key={item.id} item={item} showRaceEvent compact />
+                  ))}
+                </div>
+              </details>
+            ) : null}
           </section>
         ) : null}
 
@@ -690,41 +728,7 @@ export function CyclogazetteNewspaper({
           )}
         </section>
 
-        {mediaArticles.length > 0 ? (
-          <section className="mt-8 border-t-4 border-double border-[var(--gazette-ink)] pt-5">
-            <SectionTitle
-              eyebrow={isEnglish ? "From the peloton" : "Les tribunes du peloton"}
-              title={isEnglish ? "The teams have their say" : "La parole aux équipes"}
-              sportsDaily={isSportsDailyEdition}
-            />
-            <div className={`mt-4 grid gap-4 ${hasFormattedMediaArticles ? "mx-auto max-w-3xl" : "lg:grid-cols-2"}`}>
-              {mediaArticles.map((article) => (
-                <article
-                  key={article.id}
-                  id={`article-${article.id}`}
-                  className="scroll-mt-24 border border-[var(--gazette-rule)]/45 bg-[var(--gazette-card)] p-5"
-                >
-                  <p className="text-[9px] font-black uppercase tracking-[.18em] text-[var(--gazette-accent)]">
-                    {isEnglish ? "Guest column" : "Carte blanche"} · {article.teamName}
-                  </p>
-                  <h3 className="mt-2 font-serif text-2xl font-black leading-6 [overflow-wrap:anywhere]">
-                    {article.title}
-                  </h3>
-                  <MediaCenterArticleContent
-                    blocks={article.blocks}
-                    body={article.body}
-                    className="mt-4 text-sm font-medium leading-6 text-[var(--gazette-body)]"
-                  />
-                  <p className="mt-4 border-t border-[var(--gazette-rule)]/35 pt-3 text-[9px] font-black uppercase tracking-[.14em] text-[var(--gazette-muted)]">
-                    {isEnglish ? "Column submitted by the SD" : "Tribune proposée par le DS"} · Media Center {isEnglish ? "L" : "N"}
-                    {article.buildingLevel}
-                  </p>
-                  <ArticleReactions kind="media" id={article.id} />
-                </article>
-              ))}
-            </div>
-          </section>
-        ) : null}
+
 
         {featureStories.length > 0 ? (
           <EditorialFeatureSection

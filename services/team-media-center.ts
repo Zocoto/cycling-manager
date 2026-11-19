@@ -1,12 +1,15 @@
 import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { parseMediaCenterArticleBlocks, type MediaCenterArticleBlock } from "@/lib/game/media-center-article";
 
 type ArticleRow = {
   id: string;
   season_id: string;
   day_number: number;
   title: string;
+  body: string;
+  content_blocks: unknown;
   sponsor_name: string | null;
   building_level: number;
   reputation_awarded: number | string;
@@ -29,6 +32,8 @@ export type TeamMediaCenterOverview = {
     id: string;
     dayNumber: number;
     title: string;
+    body: string;
+    blocks: MediaCenterArticleBlock[] | null;
     sponsorName: string | null;
     reputationAwarded: number;
     supportersAwarded: number;
@@ -92,7 +97,7 @@ export async function getCurrentTeamMediaCenterOverview(
     admin
       .from("media_center_articles")
       .select(
-        "id,season_id,day_number,title,sponsor_name,building_level,reputation_awarded,supporters_awarded,status,created_at",
+        "id,season_id,day_number,title,body,content_blocks,sponsor_name,building_level,reputation_awarded,supporters_awarded,status,created_at",
       )
       .eq("team_id", teamId)
       .order("created_at", { ascending: false })
@@ -159,6 +164,8 @@ export async function getCurrentTeamMediaCenterOverview(
       id: article.id,
       dayNumber: Number(article.day_number),
       title: article.title,
+      body: article.body,
+      blocks: parseMediaCenterArticleBlocks(article.content_blocks),
       sponsorName: article.sponsor_name,
       reputationAwarded: Number(article.reputation_awarded),
       supportersAwarded: Number(article.supporters_awarded),

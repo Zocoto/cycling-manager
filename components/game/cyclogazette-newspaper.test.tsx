@@ -338,9 +338,9 @@ describe("CyclogazetteNewspaper", () => {
     expect(markup).not.toContain("lg:col-span-4");
   });
 
-  it("équilibre les articles sans grande colonne latérale vide", () => {
+  it("présente les récits de course dans une grille compacte", () => {
     const markup = renderToStaticMarkup(<CyclogazetteNewspaper edition={edition} />);
-    expect(markup.match(/flex-\[1_1_290px\]/g)?.length).toBeGreaterThanOrEqual(1);
+    expect(markup).toContain("mt-3 grid gap-x-5 sm:grid-cols-2 lg:grid-cols-3");
   });
 
   it("affiche les réactions propres à chaque article et respecte les restrictions du lecteur", () => {
@@ -389,6 +389,8 @@ describe("CyclogazetteNewspaper", () => {
     expect(markup).toContain('data-gazette-article-reactions="edition:edition-1:feature:feature-1"');
     expect(markup).toContain('data-gazette-article-reactions="media:media-1"');
     expect(markup).toContain("Le peloton est prêt.");
+    expect(markup.indexOf("Les vainqueurs des étapes")).toBeLessThan(markup.indexOf("Tribune du DS"));
+    expect(markup.indexOf("Tribune du DS")).toBeLessThan(markup.indexOf("Ceux qui ont animé la course"));
     expect(markup).toContain('disabled="" aria-label="J’adore · 2"');
     expect(markup).not.toMatch(/<a\b[^>]*>(?:(?!<\/a>)[\s\S])*data-gazette-article-reactions=/);
   });

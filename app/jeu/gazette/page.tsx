@@ -57,6 +57,7 @@ export default async function CyclogazettePage({
   searchParams: Promise<{
     edition?: string | string[];
     article?: string | string[];
+    revision?: string | string[];
     erreur?: string | string[];
     onglet?: string | string[];
   }>;
@@ -206,8 +207,10 @@ export default async function CyclogazettePage({
           <>
             {mediaCenterOverview ? (
               <MediaCenterComposer
+                key={JSON.stringify([readQuery(params.article), readQuery(params.revision), mediaCenterOverview.recentArticles[0]])}
                 overview={mediaCenterOverview}
-                success={readQuery(params.article) === "propose"}
+                updated={readQuery(params.article) === "modifie"}
+                success={["propose", "modifie"].includes(readQuery(params.article) ?? "")}
                 errorMessage={readQuery(params.erreur)}
               />
             ) : null}

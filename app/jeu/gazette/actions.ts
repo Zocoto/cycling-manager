@@ -117,6 +117,10 @@ export async function publishMediaCenterArticleAction(
   const title = String(formData.get("title") ?? "").trim();
   const rawBlocks = formData.get("blocks");
   const includeSponsor = formData.get("includeSponsor") === "on";
+  const articleId = String(formData.get("articleId") ?? "").trim();
+  if (articleId && !/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(articleId)) {
+    return { error: "La tribune transmise est invalide." };
+  }
   if (typeof rawBlocks !== "string" || rawBlocks.length > 160_000) {
     return { error: "La mise en page de la tribune est invalide." };
   }
@@ -135,7 +139,8 @@ export async function publishMediaCenterArticleAction(
   }
 
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.rpc("publish_current_team_rich_media_article", {
+  const { error } = await supabase.rpc(articleId ? "update_current_team_rich_media_article" : "publish_current_team_rich_media_article", {
+    ...(articleId ? { p_article_id: articleId } : {}),
     p_title: title,
     p_blocks: blocks,
     p_include_sponsor: includeSponsor,
@@ -145,7 +150,7 @@ export async function publishMediaCenterArticleAction(
   revalidatePath("/jeu/gazette");
   revalidatePath("/jeu");
   revalidatePath("/jeu/profil");
-  redirect("/jeu/gazette?article=propose");
+  redirect(articleId ? `/jeu/gazette?article=modifie&revision=${Date.now()}` : "/jeu/gazette?article=propose");
 }
 
 export async function sendRivalryTauntAction(

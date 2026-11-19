@@ -14,14 +14,17 @@ import {
   type MediaCenterArticleActionState,
 } from "@/lib/game/media-center-article";
 import { MediaCenterArticleEditor, type MediaCenterDraftBlock } from "./media-center-article-editor";
+import { MediaCenterArticleContent } from "./media-center-article-content";
 
 export function MediaCenterComposer({
   overview,
   success,
+  updated = false,
   errorMessage,
 }: {
   overview: TeamMediaCenterOverview;
   success: boolean;
+  updated?: boolean;
   errorMessage: string | null;
 }) {
   const { locale } = useLocale();
@@ -36,6 +39,20 @@ export function MediaCenterComposer({
     { id: 0, block: { type: "text", font: "default", content: [] } },
   ]);
   const [uploading, setUploading] = useState(false);
+  const [editingArticleId, setEditingArticleId] = useState<string | null>(null);
+  const latestArticle = overview.recentArticles[0];
+
+  function editLatestArticle() {
+    if (!latestArticle || latestArticle.status !== "queued") return;
+    setEditingArticleId(latestArticle.id);
+    setTitle(latestArticle.title);
+    setIncludeSponsor(Boolean(latestArticle.sponsorName));
+    setDraft((latestArticle.blocks?.length ? latestArticle.blocks : [{
+      type: "text" as const,
+      font: "default" as const,
+      content: [{ text: latestArticle.body }],
+    }]).map((block, id) => ({ id, block })));
+  }
   const blocks = draft.map(({ block }) => block).filter((block) =>
     block.type === "image" || block.content.some(({ text }) => text.trim()),
   );
@@ -70,7 +87,9 @@ export function MediaCenterComposer({
         <div className="p-6 sm:p-8">
           {success ? (
             <Alert tone="success">
-              {overview.hasFanClub
+              {updated
+                ? isEnglish ? "Changes saved. Your article is awaiting publication." : "Modifications enregistrées. Votre article attend le bouclage."
+                : overview.hasFanClub
                 ? isEnglish
                   ? "Column sent to the newsroom. Reputation, popularity and new supporters have been credited."
                   : "Tribune transmise à la rédaction. Réputation, popularité et nouveaux supporters ont été crédités."
@@ -97,8 +116,9 @@ export function MediaCenterComposer({
                 {isEnglish ? "Build the Media Center" : "Construire le Média Center"}
               </Link>
             </div>
-          ) : overview.canSubmit ? (
+          ) : overview.canSubmit || editingArticleId ? (
             <form action={action} onSubmit={(event) => { if (!canSend) event.preventDefault(); }}>
+              <input type="hidden" name="articleId" value={editingArticleId ?? ""} />
               <input type="hidden" name="blocks" value={JSON.stringify(blocks)} />
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
@@ -106,7 +126,9 @@ export function MediaCenterComposer({
                     {isEnglish ? "Column by" : "Tribune de"} {overview.teamName}
                   </p>
                   <h3 className="mt-1 text-2xl font-black text-[#183F37]">
-                    {isEnglish ? "Submit an article" : "Proposer un article"}
+                    {editingArticleId
+                      ? isEnglish ? "Edit your article" : "Modifier votre article"
+                      : isEnglish ? "Submit an article" : "Proposer un article"}
                   </h3>
                 </div>
                 <span className="rounded-full bg-[#EAF5F3] px-3 py-2 text-xs font-black text-[#176951]">
@@ -131,6 +153,7 @@ export function MediaCenterComposer({
                 className="mt-5 w-full rounded-xl border border-[#315B3E]/20 bg-white px-4 py-3 text-sm font-bold"
               />
               <MediaCenterArticleEditor
+                key={editingArticleId ?? "new"}
                 draft={draft}
                 setDraft={setDraft}
                 title={title}
@@ -162,8 +185,15 @@ export function MediaCenterComposer({
                 <button type="submit" disabled={!canSend} className="rounded-xl bg-[#176951] px-5 py-3 text-sm font-black text-white hover:bg-[#0B302B] disabled:cursor-not-allowed disabled:opacity-50">
                   {pending
                     ? isEnglish ? "Sending…" : "Envoi en cours…"
-                    : isEnglish ? "Send to the newsroom" : "Envoyer à la rédaction"}
+                    : editingArticleId
+                      ? isEnglish ? "Save changes" : "Enregistrer les modifications"
+                      : isEnglish ? "Send to the newsroom" : "Envoyer à la rédaction"}
                 </button>
+                {editingArticleId ? (
+                  <button type="button" disabled={pending || uploading} onClick={() => setEditingArticleId(null)} className="rounded-xl border border-[#315B3E]/20 px-5 py-3 text-sm font-bold text-[#176951]">
+                    {isEnglish ? "Cancel" : "Annuler"}
+                  </button>
+                ) : null}
               </div>
               {!overview.hasFanClub ? (
                 <p className="mt-4 rounded-xl border border-[#E2A63B]/35 bg-[#FFF9E8] px-4 py-3 text-xs font-bold leading-5 text-[#6D5A27]">
@@ -182,16 +212,27 @@ export function MediaCenterComposer({
                 {isEnglish ? "You can submit again in" : "Nouvelle proposition possible dans"}{" "}
                 {overview.nextSubmissionInDays} {isEnglish ? "day(s)." : "jour(s)."}
               </p>
-              {overview.recentArticles[0] ? (
-                <p className="mt-4 rounded-xl bg-[#EAF5F3] p-4 text-sm font-black text-[#176951]">
-                  « {overview.recentArticles[0].title} » ·{" "}
-                  {overview.recentArticles[0].status === "published"
-                    ? isEnglish ? "published" : "publiée"
-                    : isEnglish ? "waiting for the deadline" : "en attente du bouclage"}
-                </p>
-              ) : null}
             </div>
           )}
+          {latestArticle && !editingArticleId ? (
+            <details key={latestArticle.id} open={success || undefined} className="mt-5 rounded-xl border border-[#315B3E]/20 bg-white p-4 text-[#183F37]">
+              <summary className="cursor-pointer font-bold">
+                {isEnglish ? "Preview your latest article" : "Aperçu de votre dernier article"} · {latestArticle.status === "queued"
+                  ? isEnglish ? "Awaiting publication" : "En attente de publication"
+                  : isEnglish ? "Published" : "Publié"}
+              </summary>
+              <article className="mt-4">
+                <p className="text-xs font-bold uppercase text-[#176951]">{isEnglish ? "Guest column" : "Carte blanche"} · {overview.teamName}</p>
+                <h3 className="mt-2 font-serif text-2xl font-black [overflow-wrap:anywhere]">{latestArticle.title}</h3>
+                <MediaCenterArticleContent blocks={latestArticle.blocks ?? undefined} body={latestArticle.body} className="mt-4 text-sm leading-6" />
+              </article>
+              {latestArticle.status === "queued" ? (
+                <button type="button" onClick={editLatestArticle} className="mt-4 min-h-11 rounded-xl bg-[#176951] px-5 py-3 text-sm font-bold text-white">
+                  {isEnglish ? "Edit before publication" : "Modifier avant publication"}
+                </button>
+              ) : null}
+            </details>
+          ) : null}
         </div>
       </div>
     </section>

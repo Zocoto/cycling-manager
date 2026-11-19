@@ -484,21 +484,6 @@ export async function publishCyclogazetteEdition(
       `Impossible de publier La Cyclogazette : ${inserted.error?.message ?? "erreur inconnue"}`,
     );
   }
-  if (mediaArticles.length > 0) {
-    const mediaUpdate = await admin
-      .from("media_center_articles")
-      .update({ status: "published", published_edition_id: inserted.data.id })
-      .in(
-        "id",
-        mediaArticles.map((article) => article.id),
-      );
-    if (mediaUpdate.error) {
-      console.error(
-        "Tribunes publiées mais statut non synchronisé :",
-        mediaUpdate.error,
-      );
-    }
-  }
 
   return {
     status: "published",
