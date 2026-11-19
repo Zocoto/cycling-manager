@@ -190,7 +190,12 @@ export function MediaCenterComposer({
                       : isEnglish ? "Send to the newsroom" : "Envoyer à la rédaction"}
                 </button>
                 {editingArticleId ? (
-                  <button type="button" disabled={pending || uploading} onClick={() => setEditingArticleId(null)} className="rounded-xl border border-[#315B3E]/20 px-5 py-3 text-sm font-bold text-[#176951]">
+                  <button type="button" disabled={pending || uploading} onClick={() => {
+                    setEditingArticleId(null);
+                    setTitle("");
+                    setIncludeSponsor(false);
+                    setDraft([{ id: 0, block: { type: "text", font: "default", content: [] } }]);
+                  }} className="rounded-xl border border-[#315B3E]/20 px-5 py-3 text-sm font-bold text-[#176951]">
                     {isEnglish ? "Cancel" : "Annuler"}
                   </button>
                 ) : null}
@@ -227,7 +232,7 @@ export function MediaCenterComposer({
                 <MediaCenterArticleContent blocks={latestArticle.blocks ?? undefined} body={latestArticle.body} className="mt-4 text-sm leading-6" />
               </article>
               {latestArticle.status === "queued" ? (
-                <button type="button" onClick={editLatestArticle} className="mt-4 min-h-11 rounded-xl bg-[#176951] px-5 py-3 text-sm font-bold text-white">
+                <button type="button" disabled={pending || uploading} onClick={editLatestArticle} className="mt-4 min-h-11 rounded-xl bg-[#176951] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">
                   {isEnglish ? "Edit before publication" : "Modifier avant publication"}
                 </button>
               ) : null}
