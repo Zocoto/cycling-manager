@@ -14,20 +14,23 @@ export const RIDER_CLIMATE_LABELS = {
 
 export function RiderClimateProfileCard({
   profile,
+  embedded = false,
 }: {
   profile: RiderClimateProfile;
+  embedded?: boolean;
 }) {
+  const Heading = embedded ? "h3" : "h2";
   return (
     <section
       aria-labelledby="rider-climate-profile-title"
-      className="rounded-2xl border border-[#315B3E]/12 bg-white p-4 shadow-[0_12px_34px_rgba(19,60,46,0.07)]"
+      className={embedded ? "min-w-0" : "rounded-2xl border border-[#315B3E]/12 bg-white p-4 shadow-[0_12px_34px_rgba(19,60,46,0.07)]"}
     >
-      <h2
+      <Heading
         id="rider-climate-profile-title"
-        className="text-lg font-black text-[#183F37]"
+        className={embedded ? "text-sm font-black text-[#183F37]" : "text-lg font-black text-[#183F37]"}
       >
         Affinités météo
-      </h2>
+      </Heading>
 
       <div className="mt-3 grid grid-cols-2 gap-2">
         <ClimateAffinity

@@ -30,8 +30,7 @@ describe("RiderClimateProfileCard", () => {
     );
 
     expect(pageSource).toContain("getRiderClimateProfile({");
-    expect(pageSource).toContain(
-      "<RiderClimateProfileCard profile={riderClimateProfile} />",
-    );
+    expect(pageSource).toContain("<RiderMentalProfile");
+    expect(pageSource).toContain("climateProfile={riderClimateProfile}");
   });
 });

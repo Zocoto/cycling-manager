@@ -30,21 +30,18 @@ import { SquadStatusBadge } from "@/components/game/squad-status-badge";
 import { SquadStatusEditor } from "@/components/game/squad-status-editor";
 import { canLeadCloseGuard } from "@/lib/game/squad-status";
 import { RiderComparisonLauncher } from "@/components/game/rider-comparison-launcher";
-import { RiderConditionGauges } from "@/components/game/rider-condition-gauges";
-import { RiderClimateProfileCard } from "@/components/game/rider-climate-profile-card";
-import { RiderFavoriteRacesCard } from "@/components/game/rider-favorite-races-card";
+import { RiderProfileSportingCard } from "@/components/game/rider-profile-sporting-card";
+import { RiderMentalProfile } from "@/components/game/rider-mental-profile";
+import { RiderSpecialAbilities } from "@/components/game/rider-special-abilities";
 import { RiderEquipmentLoadout } from "@/components/game/rider-equipment-loadout";
 import { RiderSeasonPlanning } from "@/components/game/rider-season-planning";
 import { SeasonRaceDaysBadge } from "@/components/game/season-race-days-badge";
 import { PotentialStars } from "@/components/game/potential-stars";
 import { RankingBadge } from "@/components/game/ranking-badge";
-import { RiderStatsRadar } from "@/components/game/rider-stats-radar";
 import { DeferredRiderProgression } from "@/components/game/deferred-rider-progression";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { TeamJerseyPreview } from "@/components/game/team-jersey-preview";
 import { TeamDivisionBadge } from "@/components/game/team-division-badge";
-import { SpecialAbilityMedallion } from "@/components/game/special-ability-medallion";
-import { TransferScoutingReportPanel } from "@/components/game/transfer-scouting-report";
 import { SeasonPerformancesPopover } from "@/components/game/season-performances-popover";
 import type { AmateurJerseyConfig } from "@/lib/amateur-team";
 import {
@@ -60,12 +57,7 @@ import {
 import { resolveFormerChampionshipBorder } from "@/lib/game/rider-championship-border";
 import { getRiderClimateProfile } from "@/lib/game/race-weather";
 import { isRiderMoraleTooLowForExtension, RIDER_LOW_MORALE_EXTENSION_MESSAGE } from "@/lib/game/rider-morale";
-import { RiderPersonalityCard } from "@/components/game/rider-personality";
 import { shouldDisplayNaturalizationCard } from "@/lib/game/naturalization";
-import {
-  SPECIAL_ABILITY_CATALOG,
-  type RiderSpecialAbility,
-} from "@/lib/game/special-abilities";
 import {
   createAmateurRiderJersey,
   CONTINENTAL_CHAMPION_PALETTES,
@@ -604,56 +596,20 @@ export default async function RiderProfilePage({
           </div>
         </header>
 
-        <div className="mt-6 grid items-start gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.75fr)]">
-          <section
-            data-tutorial-id="rider-profile-stats"
-            className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_16px_45px_rgba(19,60,46,0.08)] sm:p-8"
-          >
-            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">
-              Profil sportif
-            </p>
-            <h2 className="mt-2 text-2xl font-black text-[#183F37]">
-              Caractéristiques de la saison
-            </h2>
-            {profile.ratings ? (
-              <div className="mt-5">
-                <RiderStatsRadar
-                  ratings={profile.ratings}
-                  equipmentBonuses={equipmentRatingBonuses}
-                />
-              </div>
-            ) : profile.scoutingReport ? (
-              <div className="mt-5">
-                <TransferScoutingReportPanel report={profile.scoutingReport} />
-              </div>
-            ) : (
-              <EmptyBlock message="Aucune caractéristique n’est disponible pour ce coureur." />
-            )}
-          </section>
-
-          <aside className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-            {profile.medical ? (
-              <RiderMedicalCard medical={profile.medical} />
-            ) : null}
-            <div data-tutorial-id="rider-profile-form">
-              <RiderConditionGauges
-                form={profile.condition.form}
-                morale={profile.condition.morale}
-                dayNumber={profile.condition.dayNumber}
-                events={profile.condition.events}
-                moraleEvents={profile.condition.moraleEvents}
-              />
-            </div>
-            <RiderClimateProfileCard profile={riderClimateProfile} />
-            <RiderPersonalityCard personality={profile.personalityKey} />
-            <RiderFavoriteRacesCard races={favoriteRaces} />
-            <div
-              data-tutorial-id="rider-profile-abilities"
-              className={profile.medical ? "sm:col-span-2 xl:col-span-1" : ""}
-            >
-              <SpecialAbilitiesCard abilities={profile.specialAbilities} />
-            </div>
-          </aside>
+        <div className="mt-6 space-y-5">
+          <RiderProfileSportingCard
+            ratings={profile.ratings}
+            scoutingReport={profile.scoutingReport}
+            equipmentBonuses={equipmentRatingBonuses}
+            condition={profile.condition}
+            medical={profile.medical ? <RiderMedicalCard medical={profile.medical} /> : null}
+          />
+          <RiderMentalProfile
+            personality={profile.personalityKey}
+            climateProfile={riderClimateProfile}
+            favoriteRaces={favoriteRaces}
+          />
+          <RiderSpecialAbilities abilities={profile.specialAbilities} />
         </div>
 
         <Suspense fallback={<SidebarManagementSkeleton />}>
@@ -1930,39 +1886,6 @@ function CareerSummaryCard({
       <p className="mt-5 rounded-xl border border-[#315B3E]/10 bg-[#F3F8F5] px-4 py-3 text-xs font-semibold leading-5 text-[#60756E]">
         Les informations contractuelles sont réservées au Directeur Sportif de
         l’équipe actuelle.
-      </p>
-    </section>
-  );
-}
-
-function SpecialAbilitiesCard({
-  abilities,
-}: {
-  abilities: RiderSpecialAbility[];
-}) {
-  const unlockedAbilities = new Set(abilities);
-
-  return (
-    <section className="rounded-2xl border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_34px_rgba(19,60,46,0.07)]">
-      <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#278B70]">
-        Capacités spéciales
-      </p>
-      <div
-        className="mt-4 grid grid-cols-5 justify-items-center gap-2 sm:grid-cols-7 sm:gap-3"
-        aria-label="Catalogue des capacités spéciales"
-      >
-        {SPECIAL_ABILITY_CATALOG.map((ability) => (
-          <SpecialAbilityMedallion
-            key={ability.code}
-            ability={ability}
-            unlocked={unlockedAbilities.has(ability.code)}
-          />
-        ))}
-      </div>
-      <p className="mt-3 text-xs font-semibold text-[#60756E]">
-        {abilities.length > 0
-          ? `${abilities.length} capacité${abilities.length > 1 ? "s" : ""} débloquée${abilities.length > 1 ? "s" : ""}. Survolez ou sélectionnez un médaillon pour voir son effet.`
-          : "Les capacités connues restent grisées tant que le coureur ne les a pas débloquées. Survolez ou sélectionnez un médaillon pour voir son effet."}
       </p>
     </section>
   );

@@ -20,21 +20,24 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export function RiderFavoriteRacesCard({
   races,
+  embedded = false,
 }: {
   races: RiderFavoriteRace[];
+  embedded?: boolean;
 }) {
+  const Heading = embedded ? "h3" : "h2";
   return (
     <section
       aria-labelledby="rider-favorite-races-title"
-      className="min-w-0 rounded-2xl border border-[#315B3E]/12 bg-white p-4 shadow-[0_12px_34px_rgba(19,60,46,0.07)]"
+      className={embedded ? "min-w-0" : "min-w-0 rounded-2xl border border-[#315B3E]/12 bg-white p-4 shadow-[0_12px_34px_rgba(19,60,46,0.07)]"}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2
+        <Heading
           id="rider-favorite-races-title"
-          className="text-lg font-black text-[#183F37]"
+          className={embedded ? "text-sm font-black text-[#183F37]" : "text-lg font-black text-[#183F37]"}
         >
           Courses préférées
-        </h2>
+        </Heading>
         <span
           className="rounded-full border border-[#42B99A]/30 bg-[#E5F4ED] px-2.5 py-1 text-[11px] font-black text-[#176951]"
           title="Bonus de 2 points sur chaque statistique, à chaque étape d’un tour."

@@ -26,9 +26,11 @@ const UNLOCKED_TONES: Record<SpecialAbilityDefinition["tone"], string> = {
 export function SpecialAbilityMedallion({
   ability,
   unlocked,
+  tooltipLayout = "standard",
 }: {
   ability: SpecialAbilityDefinition;
   unlocked: boolean;
+  tooltipLayout?: "standard" | "responsive";
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -82,7 +84,7 @@ export function SpecialAbilityMedallion({
       <span
         id={tooltipId}
         role="tooltip"
-        className={`mobile-dock-clearance pointer-events-none absolute bottom-[calc(100%+0.65rem)] left-1/2 z-50 w-64 -translate-x-1/2 rounded-xl border border-white/10 bg-[#071A17] px-3 py-2.5 text-left text-xs leading-5 text-[#D6DFD2] shadow-2xl transition max-sm:fixed max-sm:inset-x-4 max-sm:bottom-4 max-sm:left-auto max-sm:w-auto max-sm:translate-x-0 ${
+        className={`mobile-dock-clearance pointer-events-none absolute bottom-[calc(100%+0.65rem)] left-1/2 z-50 w-64 -translate-x-1/2 rounded-xl border border-white/10 bg-[#071A17] px-3 py-2.5 text-left text-xs leading-5 text-[#D6DFD2] shadow-2xl transition ${tooltipLayout === "responsive" ? "max-2xl:fixed max-2xl:inset-x-4 max-2xl:bottom-4 max-2xl:mx-auto max-2xl:w-auto max-2xl:max-w-sm max-2xl:translate-x-0" : "max-sm:fixed max-sm:inset-x-4 max-sm:bottom-4 max-sm:left-auto max-sm:w-auto max-sm:translate-x-0"} ${
           isOpen
             ? "visible opacity-100"
             : "invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-visible:visible group-focus-visible:opacity-100"

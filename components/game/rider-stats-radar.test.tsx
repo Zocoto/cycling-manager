@@ -31,8 +31,8 @@ describe("RiderStatsRadar", () => {
 
     expect(markup.match(/data-rating-importance="primary"/g)).toHaveLength(6);
     expect(markup.match(/data-rating-importance="secondary"/g)).toHaveLength(7);
-    expect(markup).toContain("bg-[#3F8F5A]");
-    expect(markup).toContain("bg-[#DDEDE1]");
+    expect(markup).toContain("bg-[#478D62]");
+    expect(markup).toContain("bg-[#E0EDE3]");
     expect(markup).toContain("Bonus équipement : +4");
     expect(markup).toContain('data-radar-layer="base"');
     expect(markup).toContain('data-radar-layer="equipment"');

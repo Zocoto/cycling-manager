@@ -12,6 +12,11 @@ const riderPage = readFileSync(
   join(process.cwd(), "app/jeu/coureurs/[identifiant]/page.tsx"),
   "utf8",
 );
+const riderProfileSections = [
+  riderPage,
+  readFileSync(join(process.cwd(), "components/game/rider-profile-sporting-card.tsx"), "utf8"),
+  readFileSync(join(process.cwd(), "components/game/rider-special-abilities.tsx"), "utf8"),
+].join("\n");
 
 describe("roster tutorial page targets", () => {
   it("expose la route concrète du premier coureur depuis l’effectif", () => {
@@ -51,8 +56,8 @@ describe("roster tutorial page targets", () => {
       "rider-profile-equipment",
     ]) {
       expect(
-        riderPage.includes(`data-tutorial-id="${targetId}"`) ||
-          riderPage.includes(`tutorialId="${targetId}"`),
+        riderProfileSections.includes(`data-tutorial-id="${targetId}"`) ||
+          riderProfileSections.includes(`tutorialId="${targetId}"`),
       ).toBe(true);
     }
   });

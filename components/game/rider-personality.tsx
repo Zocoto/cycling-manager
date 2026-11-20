@@ -33,18 +33,21 @@ export function RiderPersonalityBadge({
 
 export function RiderPersonalityCard({
   personality,
+  embedded = false,
 }: {
   personality: RiderPersonalityKey | null | undefined;
+  embedded?: boolean;
 }) {
   if (!personality) return null;
   const { label, description } = RIDER_PERSONALITIES[personality];
+  const Heading = embedded ? "h3" : "h2";
 
   return (
-    <section className="rounded-2xl border border-[#278B70]/20 bg-[#EAF5F3] p-4">
+    <section className={embedded ? "min-w-0" : "rounded-2xl border border-[#278B70]/20 bg-[#EAF5F3] p-4"}>
       <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#235E50]">
         Caractère
       </p>
-      <h2 title={description} className="mt-1 text-lg font-black text-[#183F37]">{label}</h2>
+      <Heading title={description} className="mt-1 text-lg font-black text-[#183F37]">{label}</Heading>
       <p className="mt-1 text-sm font-semibold leading-5 text-[#42675E]">{description}</p>
     </section>
   );

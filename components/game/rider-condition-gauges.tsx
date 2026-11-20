@@ -10,6 +10,7 @@ type RiderConditionGaugesProps = {
   dayNumber: number | null;
   events: RiderFormEvent[];
   moraleEvents?: RiderFormEvent[];
+  embedded?: boolean;
 };
 
 export function RiderConditionGauges({
@@ -18,9 +19,10 @@ export function RiderConditionGauges({
   dayNumber,
   events,
   moraleEvents = [],
+  embedded = false,
 }: RiderConditionGaugesProps) {
   return (
-    <section className="rounded-2xl border border-[#315B3E]/12 bg-white p-4 shadow-[0_12px_34px_rgba(19,60,46,0.07)]">
+    <section className={embedded ? "min-w-0 rounded-2xl border border-[#315B3E]/10 bg-[#F4F8F6] p-4" : "rounded-2xl border border-[#315B3E]/12 bg-white p-4 shadow-[0_12px_34px_rgba(19,60,46,0.07)]"}>
       <div className="flex items-center justify-between gap-4">
         <h2 className="text-lg font-black text-[#183F37]">Santé du coureur</h2>
         {dayNumber ? (
@@ -30,7 +32,7 @@ export function RiderConditionGauges({
         ) : null}
       </div>
 
-      <div className="mt-3">
+      <div className={embedded ? "mt-3 grid gap-3 sm:grid-cols-2 sm:gap-5" : "mt-3"}>
         <Gauge
           label="Forme"
           value={form}
@@ -39,8 +41,9 @@ export function RiderConditionGauges({
           events={events}
           historyLabel="Variations de forme sur 48 h"
           emptyLabel="Aucune variation de forme enregistrée sur les 48 dernières heures."
+          responsiveTooltip={embedded}
         />
-        <div className="mt-4 border-t border-[#315B3E]/10 pt-4">
+        <div className={embedded ? "border-t border-[#315B3E]/10 pt-3 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-5" : "mt-4 border-t border-[#315B3E]/10 pt-4"}>
           <Gauge
             label="Moral"
             value={morale}
@@ -50,6 +53,8 @@ export function RiderConditionGauges({
             events={moraleEvents}
             historyLabel="Éléments ayant influencé le moral"
             emptyLabel="Aucune variation de moral enregistrée."
+            alignTooltipEnd={embedded}
+            responsiveTooltip={embedded}
           />
         </div>
       </div>
@@ -66,6 +71,8 @@ function Gauge({
   events,
   historyLabel,
   emptyLabel,
+  alignTooltipEnd = false,
+  responsiveTooltip = false,
 }: {
   label: string;
   value: number;
@@ -75,6 +82,8 @@ function Gauge({
   events: RiderFormEvent[];
   historyLabel: string;
   emptyLabel: string;
+  alignTooltipEnd?: boolean;
+  responsiveTooltip?: boolean;
 }) {
   const normalizedValue = Math.min(Math.max(value, 0), 100);
   const totalDelta = events.reduce((total, event) => total + event.delta, 0);
@@ -96,7 +105,7 @@ function Gauge({
             </summary>
             <span
               role="tooltip"
-              className="invisible absolute bottom-full left-0 z-30 mb-2 max-h-[min(22rem,calc(100dvh-2rem))] w-[min(19rem,calc(100vw-3rem))] translate-y-1 overflow-y-auto overscroll-contain rounded-xl bg-[#0B302B] p-3 text-left text-white opacity-0 shadow-xl transition group-open/form-tooltip:visible group-open/form-tooltip:translate-y-0 group-open/form-tooltip:opacity-100 group-hover/form-tooltip:visible group-hover/form-tooltip:translate-y-0 group-hover/form-tooltip:opacity-100"
+              className={`invisible absolute bottom-full left-0 z-30 mb-2 max-h-[min(22rem,calc(100dvh-2rem))] w-[min(19rem,calc(100vw-3rem))] translate-y-1 overflow-y-auto overscroll-contain rounded-xl bg-[#0B302B] p-3 text-left text-white opacity-0 shadow-xl transition group-open/form-tooltip:visible group-open/form-tooltip:translate-y-0 group-open/form-tooltip:opacity-100 group-hover/form-tooltip:visible group-hover/form-tooltip:translate-y-0 group-hover/form-tooltip:opacity-100 ${alignTooltipEnd ? "sm:right-0 sm:left-auto" : ""} ${responsiveTooltip ? "mobile-dock-clearance max-sm:fixed max-sm:inset-x-4 max-sm:bottom-4 max-sm:left-auto max-sm:mb-0 max-sm:w-auto max-sm:translate-y-0" : ""}`}
             >
               <span className="block text-[11px] font-black uppercase tracking-[0.14em] text-[#9EDCCB]">
                 {historyLabel}

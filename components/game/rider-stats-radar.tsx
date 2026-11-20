@@ -14,6 +14,7 @@ import { useLocale } from "@/components/i18n/locale-provider";
 type RiderStatsRadarProps = {
   ratings: RiderRatings;
   equipmentBonuses?: Partial<Record<RiderRatingKey, number>>;
+  layout?: "stacked" | "split";
 };
 
 const CENTER = 150;
@@ -22,6 +23,7 @@ const RADIUS = 92;
 export function RiderStatsRadar({
   ratings,
   equipmentBonuses = {},
+  layout = "stacked",
 }: RiderStatsRadarProps) {
   const { locale } = useLocale();
   const isEnglish = locale === "en";
@@ -47,7 +49,8 @@ export function RiderStatsRadar({
   });
 
   return (
-    <div>
+    <div className={layout === "split" ? "grid min-w-0 items-center gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-8" : undefined}>
+      <div className="min-w-0">
       <svg
         viewBox="0 0 300 300"
         role="img"
@@ -60,7 +63,7 @@ export function RiderStatsRadar({
               ? "Rider attributes radar chart"
               : "Graphique radar des caractéristiques sportives"
         }
-        className="mx-auto w-full max-w-[32rem] overflow-visible"
+        className={`mx-auto w-full overflow-visible ${layout === "split" ? "max-w-[24rem]" : "max-w-[32rem]"}`}
       >
         <defs>
           <linearGradient id="rider-radar-fill" x1="0" y1="0" x2="1" y2="1">
@@ -209,8 +212,8 @@ export function RiderStatsRadar({
           </span>
         </div>
       ) : null}
-
-      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
+      </div>
+      <div className={layout === "split" ? "grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3" : "mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4"}>
         {RIDER_RATING_AXES.map((axis) => (
           <div
             key={axis.key}

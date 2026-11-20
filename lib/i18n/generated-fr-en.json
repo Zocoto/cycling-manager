@@ -1,4 +1,5 @@
 {
+  "Mental et affinités": "Mindset and preferences",
   "Ouvrir le chat · nouveau message de Quizz’o Stratège": "Open chat · new message from Quizz’o Stratège",
   "Classé {{0}}e au GPM derrière {{1}}, {{2}} termine {{3}} devant lui.": "At the mountain prime, {{2}} ranked {{0}} behind {{1}} and finished {{3}} ahead of him.",
   "e au GPM derrière": "at the mountain prime behind",
@@ -1063,7 +1064,7 @@
   "Capacité": "Capacity",
   "Capacité disponible :": "Available capacity:",
   "Capacités": "Capacity",
-  "Capacités spéciales": "Special capacity",
+  "Capacités spéciales": "Special abilities",
   "Car double étage": "Double floor car",
   "Car grand tourisme": "Large tourism",
   "Car régional": "Regional",
@@ -12924,7 +12925,7 @@
   "Santé : forme": "Health: form",
   "Santé · Coordination médicale": "Health · Medical coordination",
   "Santé (forme)": "Health (form)",
-  "Santé du coureur": "rider's health",
+  "Santé du coureur": "Rider condition",
   "santé du coureur, triée par forme physique": "racer's health, sorted by fitness",
   "Santé et formation — La planification des stages de forme a été entièrement repensée avec un calendrier lisible, des réservations groupées et un contrôle immédiat des conflits. Les affectations des kinés passent à une matrice adaptée au mobile. L’effectif junior reste modifiable jusqu’au Jour 7 et un jeune peut être libéré du Centre de formation. L’équipe de développement gagne son expérience, son effectif dédié et ses récompenses de podiums juniors. La progression des jeunes, les mini-jeux d’entraînement, les bibliothèques internationales de noms et la diversité visuelle des coureurs ont également été enrichis.": "Health and training — The planning of training courses has been completely redesigned with a readable schedule, pooled bookings and immediate conflict control. The placements of the kines move to a mobile-friendly matrix. The junior roster can be modified until Day 7 and a young person can be released from the Training Centre. The development team gains his experience, dedicated roster and rewards of junior podiums. The progress of young people, mini-training games, international name libraries and visual diversity of riders have also been enriched.",
   "Sardines du Raz": "Sardines of Raz",
@@ -19074,5 +19075,10 @@
   "Garde mieux le moral après un résultat décevant.": "Keeps his spirits up better after a disappointing result.",
   "Préfère les débriefs en privé et supporte mal les critiques publiques.": "Prefers private debriefs and takes public criticism harder.",
   "Apprécie que son DS assume ses erreurs de stratégie devant la presse.": "Appreciates his director owning tactical mistakes in front of the press.",
-  "Ses piques envers un rival peuvent plaire ou se retourner contre son équipe.": "His playful digs at a rival can go down well or backfire on his team."
+  "Ses piques envers un rival peuvent plaire ou se retourner contre son équipe.": "His playful digs at a rival can go down well or backfire on his team.",
+  "Forte chaleur": "Extreme heat",
+  "Froid": "Cold",
+  "Pluie": "Rain",
+  "Neige": "Snow",
+  "Orage": "Storm"
 }
