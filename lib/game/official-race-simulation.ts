@@ -102,7 +102,7 @@ export function buildOfficialStageRaceStandings(
 }
 
 export const OFFICIAL_RACE_ENGINE_VERSION =
-  "2026.11-rider-personalities-v62";
+  "2026.11-pursuit-and-crowd-abilities-v63";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;

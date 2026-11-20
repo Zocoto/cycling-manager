@@ -786,8 +786,9 @@ export async function getFanClubLiveData({
   };
 }
 
-function buildSportingEvents({
+export function buildSportingEvents({
   currentTeamId,
+  currentTeamIdByRider,
   raceRosters,
   registrations,
   teamSeasons,
@@ -802,6 +803,7 @@ function buildSportingEvents({
   seasonDays,
 }: {
   currentTeamId: string;
+  currentTeamIdByRider?: ReadonlyMap<string, string>;
   raceRosters: RaceRosterRow[];
   registrations: RegistrationRow[];
   teamSeasons: TeamSeasonRow[];
@@ -844,7 +846,7 @@ function buildSportingEvents({
       edition,
       season,
       prestigeRank: category?.prestige_rank ?? 4,
-      forCurrentTeam: teamSeason?.team_id === currentTeamId,
+      forCurrentTeam: teamSeason?.team_id === (currentTeamIdByRider?.get(roster?.rider_id ?? "") ?? currentTeamId),
       homeRace:
         !edition?.is_neutral_host &&
         Boolean(teamSeason?.registration_country_id) &&

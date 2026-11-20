@@ -3542,7 +3542,7 @@ function groupCalendarEngagedRiders(
               ) ?? null,
             teamRegistrationCountryCode:
               teamRegistrationCountryCodes.get(row.team_id) ?? null,
-            ...(fanClubRaceBoost && fanClubRaceBoost.ratingBoost > 0
+            ...(fanClubRaceBoost && fanClubRaceBoost.mobilizedSupporters > 0
               ? {
                   fanClubSupport: {
                     mobilizedSupporters:

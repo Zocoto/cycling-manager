@@ -8,6 +8,7 @@ import {
   doesCyclocrossmanAvoidCobbledCrash,
   getCyclocrossmanTerrainBonus,
   getPistardTimeTrialBonus,
+  getCrowdSurgeBonus,
   hasSpecialAbility,
   isRiderSpecialAbility,
   reduceThreeLungsFormLoss,
@@ -18,7 +19,7 @@ describe("special abilities", () => {
     expect(SPECIAL_ABILITY_CATALOG.map((ability) => ability.code)).toEqual(
       RIDER_SPECIAL_ABILITIES,
     );
-    expect(SPECIAL_ABILITY_CATALOG).toHaveLength(16);
+    expect(SPECIAL_ABILITY_CATALOG).toHaveLength(18);
     expect(
       SPECIAL_ABILITY_CATALOG.find((ability) => ability.code === "sandwich_man")
         ?.effect
@@ -92,6 +93,14 @@ describe("special abilities", () => {
     expect(
       getPistardTimeTrialBonus({ hasPistard: false, distanceKm: 8 }),
     ).toBe(0);
+  });
+
+  it.each([
+    [0, false, 0], [25, false, 1], [50, false, 2], [75, false, 3], [100, false, 4],
+    [25, true, 1.5], [50, true, 3], [75, true, 4.5], [100, true, 6],
+    [-1, true, 0], [120, true, 6], [Number.NaN, true, 0], [Number.POSITIVE_INFINITY, false, 0],
+  ])("calcule le Coup de pression pour une popularité de %s et des supporters %s", (popularity, hasTravelingSupporters, expected) => {
+    expect(getCrowdSurgeBonus({ popularity, hasTravelingSupporters })).toBe(expected);
   });
 
   it("plafonne la protection de forme de Trois poumons", () => {

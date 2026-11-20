@@ -15,6 +15,8 @@ export const RIDER_SPECIAL_ABILITIES = [
   "metronome",
   "etapovore",
   "locker_room_favorite",
+  "nail_layer",
+  "crowd_surge",
 ] as const;
 
 export type RiderSpecialAbility =
@@ -40,7 +42,9 @@ export type SpecialAbilityDefinition = {
     | "cyclocross"
     | "metronome"
     | "stage_course"
-    | "team_spirit";
+    | "team_spirit"
+    | "nails"
+    | "beer_mug";
   tone:
     | "silver"
     | "gold"
@@ -68,6 +72,9 @@ export const THREE_LUNGS_MAX_FORM_SAVING = 4;
 export const CYCLOCROSSMAN_TERRAIN_BONUS = 3;
 export const CYCLOCROSSMAN_COBBLED_CRASH_AVOIDANCE = 0.2;
 export const METRONOME_BAD_DAY_MULTIPLIER = 0.5;
+export const NAIL_LAYER_PUNCTURE_CHANCE = 0.2;
+export const NAIL_LAYER_MIN_GAP_SECONDS = 20;
+export const NAIL_LAYER_MIN_ESCAPE_KM = 5;
 
 export const SPECIAL_ABILITY_CATALOG: SpecialAbilityDefinition[] = [
   {
@@ -182,7 +189,34 @@ export const SPECIAL_ABILITY_CATALOG: SpecialAbilityDefinition[] = [
     icon: "team_spirit",
     tone: "sunrise",
   },
+  {
+    code: "nail_layer",
+    name: "Poseur de clous",
+    effect: "Une échappée installée donne 20 % de chance de provoquer une crevaison chez un poursuivant. Une seule tentative par étape.",
+    icon: "nails",
+    tone: "anthracite",
+  },
+  {
+    code: "crowd_surge",
+    name: "Coup de pression",
+    effect: "Sur le secteur décisif, gagne jusqu’à +4 de performance selon sa popularité (+6 avec un car de supporters).",
+    icon: "beer_mug",
+    tone: "amber",
+  },
 ];
+
+export function getCrowdSurgeBonus({
+  popularity,
+  hasTravelingSupporters,
+}: {
+  popularity: number;
+  hasTravelingSupporters: boolean;
+}) {
+  const safePopularity = Number.isFinite(popularity)
+    ? Math.min(100, Math.max(0, popularity))
+    : 0;
+  return (safePopularity / 25) * (hasTravelingSupporters ? 1.5 : 1);
+}
 
 export function getPistardTimeTrialBonus({
   hasPistard,

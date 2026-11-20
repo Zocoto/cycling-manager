@@ -101,14 +101,14 @@ const NATIVE_ABILITY_BY_ARCHETYPE: Record<
   YouthArchetype,
   readonly RiderSpecialAbility[]
 > = {
-  climber: ["three_lungs", "metronome", "panache"],
-  puncheur: ["giclette", "panache", "cyclocrossman"],
-  stage_racer: ["metronome", "three_lungs", "first_in_class"],
-  northern_classics: ["flahute", "cyclocrossman", "three_lungs"],
-  rouleur: ["locomotive", "metronome", "pistard"],
-  breakaway: ["panache", "chase_potato", "three_lungs"],
-  sprinter: ["pistard", "giclette", "locomotive"],
-  all_rounder: ["metronome", "three_lungs", "bottle_carrier"],
+  climber: ["three_lungs", "metronome", "panache", "crowd_surge"],
+  puncheur: ["giclette", "panache", "cyclocrossman", "crowd_surge"],
+  stage_racer: ["metronome", "three_lungs", "first_in_class", "crowd_surge"],
+  northern_classics: ["flahute", "cyclocrossman", "three_lungs", "crowd_surge"],
+  rouleur: ["locomotive", "metronome", "pistard", "crowd_surge"],
+  breakaway: ["panache", "chase_potato", "three_lungs", "nail_layer", "crowd_surge"],
+  sprinter: ["pistard", "giclette", "locomotive", "crowd_surge"],
+  all_rounder: ["metronome", "three_lungs", "bottle_carrier", "nail_layer", "crowd_surge"],
 };
 
 export function getCountryYouthSpecialties(countryCode: string) {

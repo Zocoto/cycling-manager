@@ -55,6 +55,7 @@ import {
   type StageSimulationResult,
 } from "@/lib/game/race-simulation";
 import { createCalendarSimulationInput } from "@/lib/game/race-simulation-demo";
+import { snapshotCrowdSurgePopularity } from "@/services/race-rider-popularity";
 import type { StageEquipmentSnapshot } from "@/lib/game/race-stage-equipment";
 import { calculateStageRaceTimeBonuses } from "@/lib/game/race-time-bonuses";
 import { hasSpecialAbility } from "@/lib/game/special-abilities";
@@ -243,7 +244,7 @@ export async function settleFinishedRaceResults(
         competitionType: edition.competitionType,
       });
       const lockedSimulations = resultsOnly
-        ? createNationalChampionshipResultsOnlySimulations({ edition, now })
+        ? await createNationalChampionshipResultsOnlySimulations({ edition, now, admin, calendar })
         : lockedDirectory
           ? (lockedDirectory[edition.id] ?? [])
           : (
@@ -325,28 +326,36 @@ export async function settleFinishedRaceResults(
   return { processedStages, completedEditions, failedEditions };
 }
 
-function createNationalChampionshipResultsOnlySimulations({
+async function createNationalChampionshipResultsOnlySimulations({
   edition,
   now,
+  admin,
+  calendar,
 }: {
   edition: RaceCalendarEdition;
   now: Date;
-}): LockedOfficialStageSimulation[] {
-  return [...edition.stages]
-    .sort(
+  admin: AdminClient;
+  calendar: SeasonRaceCalendar;
+}): Promise<LockedOfficialStageSimulation[]> {
+  const simulations: LockedOfficialStageSimulation[] = [];
+  for (const stage of [...edition.stages].sort(
       (first, second) =>
         first.stageNumber - second.stageNumber ||
         first.id.localeCompare(second.id),
-    )
-    .flatMap((stage) => {
-      if (getStageLiveState(stage, now).status !== "finished") return [];
+    )) {
+      if (getStageLiveState(stage, now).status !== "finished") continue;
 
-      const input = createCalendarSimulationInput({
+      const baseInput = createCalendarSimulationInput({
         edition,
         stage,
         seed: `${edition.id}:${stage.id}:national-results-only-s2`,
       });
-      return [
+      const input = stage.status === "completed"
+        ? baseInput
+        : await snapshotCrowdSurgePopularity(baseInput, {
+            admin, seasonId: calendar.seasonId, gameYear: calendar.gameYear, dayNumber: stage.dayNumber,
+          });
+      simulations.push(
         {
           stageId: stage.id,
           raceEditionId: edition.id,
@@ -355,8 +364,9 @@ function createNationalChampionshipResultsOnlySimulations({
           input,
           simulation: simulateRaceStageResultsOnly(input),
         },
-      ];
-    });
+      );
+  }
+  return simulations;
 }
 
 async function settleEditionRaceResults({

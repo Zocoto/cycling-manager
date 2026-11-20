@@ -103,7 +103,7 @@ describe("intégration résultats seuls des CN", () => {
   );
   it("écarte les CN S2+ du verrouillage des scénarios de replay", () => {
     expect(service).toContain("const lockedSimulations = resultsOnly");
-    expect(service).toContain("? createNationalChampionshipResultsOnlySimulations({ edition, now })");
+    expect(service).toContain("? await createNationalChampionshipResultsOnlySimulations({ edition, now, admin, calendar })");
     expect(service).toContain("simulateRaceStageResultsOnly(input)");
     expect(resultPage).toContain("!resultsOnlyNationalChampionship");
     expect(resultPage).toContain("getLockedOfficialRaceSimulations");

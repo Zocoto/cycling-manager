@@ -1456,6 +1456,22 @@ function TeamManagementSection() {
             <strong className="block text-[#176951]">Coqueluche du vestiaire</strong>
             {getSpecialAbilityDefinition("locker_room_favorite")?.effect}
           </p>
+          <p className="mt-4 text-sm font-medium leading-7 text-[#60756E]">
+            <strong className="block text-[#176951]">Poseur de clous</strong>
+            {getSpecialAbilityDefinition("nail_layer")?.effect}
+            {" "}La tentative devient possible après 5 km d’échappée avec au moins
+            20 secondes d’avance. Elle cible un adversaire en chasse-patate ou
+            un équipier qui mène la poursuite en tête du peloton. Les mécaniciens
+            réduisent la perte de temps selon leurs effets habituels.
+          </p>
+          <p className="mt-4 text-sm font-medium leading-7 text-[#60756E]">
+            <strong className="block text-[#176951]">Coup de pression</strong>
+            {getSpecialAbilityDefinition("crowd_surge")?.effect}
+            {" "}Le bonus vaut la popularité du coureur divisée par 25 et augmente
+            de 50 % avec un car transportant des supporters. Il s’applique sur un
+            seul tronçon par étape, y compris en contre-la-montre. Sur une course
+            entièrement plate, il concerne le tronçon final.
+          </p>
         </article>
       </div>
       <div className="mt-7">

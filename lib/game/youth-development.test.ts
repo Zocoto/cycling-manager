@@ -329,7 +329,7 @@ describe("youth development", () => {
     );
     expect(schoolNetworkAbilities.length / sampleSize).toBeLessThan(0.075);
     expect(new Set(strongAbilities)).toEqual(
-      new Set(["pistard", "giclette", "locomotive"]),
+      new Set(["pistard", "giclette", "locomotive", "crowd_surge"]),
     );
   });
 

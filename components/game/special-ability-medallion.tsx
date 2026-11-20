@@ -99,6 +99,24 @@ export function SpecialAbilityMedallion({
 }
 
 function AbilityIcon({ icon }: { icon: SpecialAbilityDefinition["icon"] }) {
+  if (icon === "nails") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 32 32" className="h-7 w-7 fill-none stroke-current" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="m8 5 5-1 1 4-5 1-1-4Zm3.5 3.7L17 25l-1 4-2.5-3.2-5-16.4" fill="currentColor" fillOpacity=".13" />
+        <path d="m22 4 4 3-2.4 3.2-4-3L22 4Zm-.4 5.2L10 24l-3.5 1.8.9-3.8L19 7.7" fill="currentColor" fillOpacity=".2" />
+        <path d="m24.5 19 3 3-2.4 2.4-3-3 2.4-2.4Zm-1.7 4L18 28" />
+      </svg>
+    );
+  }
+  if (icon === "beer_mug") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 32 32" className="h-7 w-7 fill-none stroke-current" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M7 11h15v15a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V11Z" fill="currentColor" fillOpacity=".18" />
+        <path d="M22 14h3a3 3 0 0 1 3 3v3a3 3 0 0 1-3 3h-3M11 15v9m7-9v9" />
+        <path d="M7 12a3.3 3.3 0 0 1-1-6.3 3.6 3.6 0 0 1 6.2-2.2A3.8 3.8 0 0 1 19 5a3.4 3.4 0 0 1 3 5.8V15a2 2 0 0 1-4 0v-3H7Z" fill="currentColor" fillOpacity=".3" />
+      </svg>
+    );
+  }
   if (icon === "team_spirit") {
     return (
       <svg aria-hidden="true" viewBox="0 0 32 32" className="h-7 w-7 fill-none stroke-current" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

@@ -61,8 +61,12 @@ import {
   doesCyclocrossmanAvoidCobbledCrash,
   FLAHUTE_ENERGY_COST_REDUCTION,
   getCyclocrossmanTerrainBonus,
+  getCrowdSurgeBonus,
   getPistardTimeTrialBonus,
   hasSpecialAbility,
+  NAIL_LAYER_PUNCTURE_CHANCE,
+  NAIL_LAYER_MIN_GAP_SECONDS,
+  NAIL_LAYER_MIN_ESCAPE_KM,
   type RiderSpecialAbility,
 } from "./special-abilities";
 import {
@@ -267,6 +271,8 @@ export type RiderSimulationInput = {
   age: number;
   form: number;
   morale?: number;
+  popularity?: number;
+  crowdSurgeSegmentNumber?: number;
   personalityKey?: RiderPersonalityKey | null;
   physiology?: RiderPhysiology | null;
   careerRaceDays?: number;
@@ -1255,6 +1261,47 @@ function withContinuousClimbLengths(segments: RaceStageSegment[]): TerrainRating
   return ratedSegments;
 }
 
+export function getCrowdSurgeSegmentNumber(
+  segments: readonly RaceStageSegment[],
+  profileType: RaceProfileType,
+) {
+  let chosen = segments.at(-1)?.segmentNumber;
+  let hardest = 0;
+  for (const segment of segments) {
+    const difficulty = getSegmentSelectionDifficulty(segment, profileType, 0) * segment.distanceKm;
+    if (difficulty > 0 && difficulty >= hardest) {
+      hardest = difficulty;
+      chosen = segment.segmentNumber;
+    }
+  }
+  return chosen;
+}
+
+function getCrowdSurgePerformanceBonus(
+  rider: RiderSimulationInput,
+  segment: Pick<RaceStageSegment, "segmentNumber">,
+) {
+  return rider.crowdSurgeSegmentNumber === segment.segmentNumber &&
+    hasSpecialAbility(rider, "crowd_surge")
+    ? getCrowdSurgeBonus({
+        popularity: rider.popularity ?? 0,
+        hasTravelingSupporters: (rider.fanClubSupport?.mobilizedSupporters ?? 0) > 0,
+      })
+    : 0;
+}
+
+function getCrowdSurgeCommentary(
+  riders: readonly RiderSimulationInput[],
+  segment: RaceStageSegment,
+) {
+  return riders.flatMap((rider) => {
+    const bonus = getCrowdSurgePerformanceBonus(rider, segment);
+    return bonus > 0
+      ? [`Coup de pression · ${rider.name} répond aux encouragements et hausse sa performance de +${round(bonus, 2)} sur ce secteur décisif.`]
+      : [];
+  });
+}
+
 function normalizeStageSimulationInput(
   input: StageSimulationInput,
 ): StageSimulationInput {
@@ -1266,6 +1313,9 @@ function normalizeStageSimulationInput(
       profileType: input.profileType,
     });
   const unavailableRiderIds = new Set(input.unavailableRiderIds ?? []);
+  const crowdSurgeSegmentNumber = input.riders.some((rider) => hasSpecialAbility(rider, "crowd_surge"))
+    ? getCrowdSurgeSegmentNumber(input.segments, input.profileType)
+    : undefined;
   // Match the public forecast before equipment, weather, form and other race
   // adjustments. These bonuses still affect performance, not the Auto hierarchy.
   const automaticFavoriteScores = new Map(
@@ -1404,6 +1454,9 @@ function normalizeStageSimulationInput(
 
         return {
           ...rider,
+          ...(hasSpecialAbility(rider, "crowd_surge") && crowdSurgeSegmentNumber !== undefined
+            ? { crowdSurgeSegmentNumber }
+            : {}),
           ownResearchBonusApplied: hasEffectiveOwnResearchBonus(
             federalSpecializationAdjustedRatings, rider.equipmentEffects,
             { isTimeTrial: input.stageType !== "road" },
@@ -1619,7 +1672,7 @@ function getResultsOnlyRoadRating(
 
   return (
     getStageSuitability(rider, input.segments) * 0.72 +
-    finishRating * 0.28 +
+    (finishRating + getCrowdSurgePerformanceBonus(rider, input.segments.at(-1)!)) * 0.28 +
     getRiderPhysiologyProfileModifier({
       physiology: rider.physiology,
       ratings: rider.ratings,
@@ -2334,6 +2387,9 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     if (!personalityEvents.has(key)) personalityEvents.set(key, event);
   };
   const random = createSeededRandom(`${input.id}:${input.seed}:road`);
+  const nailLayerRandom = createSeededRandom(`${input.id}:${input.seed}:nail-layer`);
+  const nailLayerEscapeStartKm = new Map<string, { distanceKm: number; groupSinceSegment: number }>();
+  let nailLayerAttempted = false;
   const roadWeather = input.weather ?? getRaceWeather(input.seed);
   const dynamicAttackRandom = createSeededRandom(
     `${input.id}:${input.seed}:road:dynamic-attacks`,
@@ -2360,6 +2416,8 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       },
     ]),
   );
+  const crowdSurgeStates = [...states.values()].filter((state) => hasSpecialAbility(state.rider, "crowd_surge"));
+  const nailLayerStates = [...states.values()].filter((state) => hasSpecialAbility(state.rider, "nail_layer"));
   const strategyContext = buildStageStrategyContext(
     input.riders,
     input.segments,
@@ -2501,6 +2559,20 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
 
   input.segments.forEach((segment, segmentIndex) => {
     const commentary: string[] = [];
+    commentary.push(...getCrowdSurgeCommentary(
+      crowdSurgeStates.filter((state) => state.group !== "abandoned").map((state) => state.rider),
+      segment,
+    ));
+    for (const state of nailLayerStates) {
+      if (state.group !== "breakaway") {
+        nailLayerEscapeStartKm.delete(state.rider.id);
+      } else if (nailLayerEscapeStartKm.get(state.rider.id)?.groupSinceSegment !== state.groupSinceSegment) {
+        nailLayerEscapeStartKm.set(state.rider.id, {
+          distanceKm: completedDistanceKm,
+          groupSinceSegment: state.groupSinceSegment,
+        });
+      }
+    }
     if (segmentIndex === 0) {
       commentary.push(
         ...tacticalResolution.reports
@@ -3832,6 +3904,48 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       commentary.unshift(incident.commentary);
     }
 
+    if (nailLayerStates.length > 0 && !nailLayerAttempted && breakawayGapSeconds >= NAIL_LAYER_MIN_GAP_SECONDS &&
+      segmentIndex < input.segments.length - 1) {
+      const holders = nailLayerStates.filter((state) => state.group === "breakaway" &&
+        hasSpecialAbility(state.rider, "nail_layer") &&
+        nailLayerEscapeStartKm.get(state.rider.id)?.groupSinceSegment === state.groupSinceSegment &&
+        completedDistanceKm - (nailLayerEscapeStartKm.get(state.rider.id)?.distanceKm ?? Number.POSITIVE_INFINITY) >= NAIL_LAYER_MIN_ESCAPE_KM,
+      );
+      const allStates = [...states.values()];
+      const chaseWorkerIds = new Set(pelotonChaseWorkers.map((state) => state.rider.id));
+      const targetPools = holders.map((holder) => ({
+        holder,
+        pursuers: getNailLayerPursuitTargets(allStates, holder, chaseWorkerIds)
+          .filter((state) => !incidents.some((incident) => incident.riderIds.includes(state.rider.id))),
+      })).filter(({ pursuers }) => pursuers.length > 0);
+      if (targetPools.length > 0) {
+        nailLayerAttempted = true;
+        if (nailLayerRandom() < NAIL_LAYER_PUNCTURE_CHANCE) {
+          const { holder, pursuers } = targetPools[Math.floor(nailLayerRandom() * targetPools.length)];
+          const victim = pursuers[Math.floor(nailLayerRandom() * pursuers.length)];
+          const timeLoss = reduceMechanicalIncidentTimeLoss(
+            12 + nailLayerRandom() * 12,
+            victim.rider.mechanicalIncidentTimeReductionPct ?? 0,
+          );
+          victim.energy = clamp(victim.energy - 1.5, 0, 100);
+          victim.elapsedTimeSeconds += timeLoss;
+          victim.lostTimeSeconds += timeLoss;
+          if (victim.group === "peloton") victim.group = "delayed";
+          victim.groupSinceSegment = segmentIndex;
+          incidents.push({
+            id: `${segment.segmentNumber}-nail-layer-${victim.rider.id}`,
+            type: "puncture",
+            riderIds: [victim.rider.id],
+            abandonedRiderIds: [],
+            label: `Poseur de clous · Crevaison de ${victim.rider.name}`,
+          });
+          commentary.unshift(
+            `Poseur de clous · ${holder.rider.name} piège la poursuite. ${victim.rider.name} crève et doit retrouver son groupe.`,
+          );
+        }
+      }
+    }
+
     deployLeaderRecoverySupport({
       states,
       segment,
@@ -4393,6 +4507,7 @@ function simulateIndividualTimeTrial(
       abandonments: [],
       commentary: [
         `${ordered[0].rider.name} possède le meilleur temps au pointage des ${formatDistance(completedDistanceKm)} km.`,
+        ...getCrowdSurgeCommentary(input.riders, segment),
       ],
     });
   });
@@ -4802,6 +4917,7 @@ function simulateTeamTimeTrial(
       abandonments: [],
       commentary: [
         `${orderedGroups[0].label} signe le meilleur temps intermédiaire.`,
+        ...getCrowdSurgeCommentary(input.riders, segment),
         ...shelteredThisSegment
           .filter(
             (state, index, entries) =>
@@ -9144,6 +9260,23 @@ export function getRoadCrashRiskProfile({
   };
 }
 
+export function getNailLayerPursuitTargets<T extends {
+  rider: { id: string; teamId: string };
+  group: string;
+  elapsedTimeSeconds: number;
+}>(
+  states: readonly T[],
+  holder: T,
+  pelotonChaseWorkerIds: ReadonlySet<string>,
+) {
+  return states.filter((state) =>
+    state.rider.teamId !== holder.rider.teamId &&
+    state.elapsedTimeSeconds > holder.elapsedTimeSeconds + 0.5 &&
+    (state.group === "chase" || state.group === "breakaway_2" ||
+      state.group === "peloton" && pelotonChaseWorkerIds.has(state.rider.id)),
+  );
+}
+
 function maybeCreateRaceIncident({
   states,
   segment,
@@ -10123,6 +10256,7 @@ function getRoadFinishScores(
     scores.set(
       rider.id,
       score +
+        getCrowdSurgePerformanceBonus(rider, segments.at(-1)!) +
         physiologyFinishBonus -
         (compactSprintFinish ? 0 : getLowEnergyPerformancePenalty(state, attrition)) -
         getCollectiveWorkFinishPenalty({
@@ -12354,6 +12488,7 @@ function getTerrainRating(
 
   return (
     rating +
+    getCrowdSurgePerformanceBonus(rider, segment) +
     getRaceDayBonus(rider) +
     getCyclocrossmanTerrainBonus({
       hasCyclocrossman: hasSpecialAbility(rider, "cyclocrossman"),
@@ -12572,7 +12707,7 @@ function getDecisiveRoadFinishRating(
             ? 0.45
             : 1;
     const weight = Math.max(1, segment.distanceKm) * recency * selectivity;
-    weightedRating += getTerrainRating(rider, segment) * weight;
+    weightedRating += (getTerrainRating(rider, segment) - getCrowdSurgePerformanceBonus(rider, segment)) * weight;
     totalWeight += weight;
   });
 
@@ -12594,6 +12729,7 @@ function getTimeTrialSegmentRating(
     getTerrainRating(rider, segment) * 0.27 +
     rider.ratings.endurance * 0.1 +
     rider.form * 0.05 +
+    getCrowdSurgePerformanceBonus(rider, segment) * 0.73 +
     getRaceDayBonus(rider) * 0.73 +
     getRiderPhysiologyProfileModifier({
       physiology: rider.physiology,

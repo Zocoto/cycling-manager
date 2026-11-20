@@ -65,6 +65,8 @@ describe("SpecialAbilityMedallion", () => {
     ["metronome", "Métronome", "#C4B5FD", "M9 27h14L20 6"],
     ["etapovore", "Étapovore", "#E28A36", "M24 20V6h6v6h-6"],
     ["locker_room_favorite", "Coqueluche du vestiaire", "#D66A77", "M9 25v-2a7 7 0 0 1 14 0v2"],
+    ["nail_layer", "Poseur de clous", "#222929", "m8 5 5-1"],
+    ["crowd_surge", "Coup de pression", "#E28A36", "M7 11h15v15"],
   ] as const)(
     "rend l’illustration et la teinte originales de %s",
     (code, name, color, iconPath) => {

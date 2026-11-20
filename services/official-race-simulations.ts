@@ -26,6 +26,7 @@ import {
 } from "@/lib/game/race-simulation";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { collectChunkedPaginatedRows } from "@/lib/supabase/pagination";
+import { snapshotCrowdSurgePopularity } from "@/services/race-rider-popularity";
 
 type OfficialStageSimulationRow = {
   stage_id: string;
@@ -204,11 +205,16 @@ export async function ensureLockedOfficialRaceSimulations(
                     })),
                   )
                 : null;
-            const input = createCalendarSimulationInput({
+            const input = await snapshotCrowdSurgePopularity(createCalendarSimulationInput({
               edition,
               stage,
               seed: `${edition.id}:${stage.id}:official`,
               unavailableRiderIds,
+            }), {
+              admin: createSupabaseAdminClient(),
+              seasonId: calendar.seasonId,
+              gameYear: calendar.gameYear,
+              dayNumber: stage.dayNumber,
             });
             const mountainObjectiveRiderIds =
               getMountainObjectiveRiderIdsByTeam(
