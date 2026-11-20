@@ -73,6 +73,7 @@ import {
 import {
   parseRosterMobileView,
   ROSTER_MOBILE_VIEW_COOKIE,
+  type RosterMobileView,
 } from "@/lib/game/roster-mobile-view";
 import {
   getCurrentTeamHealthOverview,
@@ -481,6 +482,7 @@ export default async function TeamRosterPage({
             rider,
             currentSortKey,
             healthByRiderId.get(rider.rider_id)?.form ?? 75,
+            healthByRiderId.get(rider.rider_id)?.morale ?? 60,
           ),
         getTieBreaker: getRiderSortName,
       })
@@ -664,6 +666,11 @@ export default async function TeamRosterPage({
                       currentSortKey={currentSortKey}
                       currentDirection={currentSortDirection}
                     />
+                    <MobileRosterSortMenu
+                      mobileView={mobileRosterView}
+                      currentSortKey={currentSortKey}
+                      currentDirection={currentSortDirection}
+                    />
                     {mobileRosterView === "synthese" ? (
                       <MobileRosterSummary
                         currentSortKey={currentSortKey}
@@ -708,10 +715,6 @@ export default async function TeamRosterPage({
                     ) : (
                       <>
                         <MobileRatingCategoryGuide />
-                        <MobileRosterSortMenu
-                          currentSortKey={currentSortKey}
-                          currentDirection={currentSortDirection}
-                        />
                         <div
                           data-tutorial-id="roster-mobile-list"
                           className="space-y-3 bg-[#F3F8F5] p-2 sm:p-3"
@@ -795,12 +798,7 @@ export default async function TeamRosterPage({
                             currentDirection={currentSortDirection}
                           />
 
-                          <SortableTableHeader
-                            sortKey="form"
-                            label="Santé"
-                            fullLabel="santé du coureur : forme physique et moral"
-                            className="min-w-28"
-                            linkClassName="px-2"
+                          <SortableHealthTableHeader
                             currentSortKey={currentSortKey}
                             currentDirection={currentSortDirection}
                           />
@@ -1073,10 +1071,72 @@ function SortableTableHeader({
   );
 }
 
-function MobileRosterSortMenu({
+function SortableHealthTableHeader({
   currentSortKey,
   currentDirection,
 }: {
+  currentSortKey: RosterSortKey | null;
+  currentDirection: RosterSortDirection;
+}) {
+  const isHealthSort = currentSortKey === "form" || currentSortKey === "morale";
+
+  return (
+    <th
+      scope="col"
+      aria-sort={
+        isHealthSort
+          ? currentDirection === "asc" ? "ascending" : "descending"
+          : undefined
+      }
+      className={`sticky top-0 z-20 min-w-28 p-0 text-center text-xs font-extrabold uppercase tracking-wider ${
+        isHealthSort
+          ? "bg-[#E1F0EA] text-[#176951]"
+          : "bg-[#F3F8F6] text-[#48665F]"
+      }`}
+    >
+      <span className="block px-2 pt-2">Santé</span>
+      <div className="flex items-center justify-center">
+        {([
+          { key: "form", label: "Forme" },
+          { key: "morale", label: "Moral" },
+        ] as const).map(({ key, label }) => {
+          const isActive = currentSortKey === key;
+          const nextDirection = getNextRosterSortDirection({
+            sortKey: key,
+            currentSortKey,
+            currentDirection,
+          });
+
+          return (
+            <Link
+              key={key}
+              href={{
+                pathname: "/jeu/effectif",
+                query: { sort: key, direction: nextDirection },
+              }}
+              prefetchOnIntent
+              scroll={false}
+              aria-label={`Trier par ${label.toLocaleLowerCase("fr")}, ordre ${nextDirection === "asc" ? "croissant" : "décroissant"}`}
+              className={`flex items-center gap-1 px-1.5 py-2 text-[10px] tracking-normal transition hover:bg-[#DCEBE5] hover:text-[#0F5944] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#278B70] ${isActive ? "text-[#176951] underline underline-offset-2" : "text-[#48665F]"}`}
+            >
+              {label}
+              <span aria-hidden="true" className={isActive ? "text-[#176951]" : "text-[#91A69F]"}>
+                {isActive ? (currentDirection === "asc" ? "↑" : "↓") : "↕"}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+    </th>
+  );
+}
+
+function MobileRosterSortMenu({
+  mobileView,
+  currentSortKey,
+  currentDirection,
+}: {
+  mobileView: RosterMobileView;
   currentSortKey: RosterSortKey | null;
   currentDirection: RosterSortDirection;
 }) {
@@ -1099,6 +1159,7 @@ function MobileRosterSortMenu({
       label: "Santé (forme)",
       fullLabel: "santé du coureur, triée par forme physique",
     },
+    { key: "morale", label: "Moral", fullLabel: "moral" },
     ...ratingColumns.map((column) => ({
       key: column.key,
       label: column.label,
@@ -1140,7 +1201,7 @@ function MobileRosterSortMenu({
                 pathname: "/jeu/effectif",
                 query: {
                   vue: "statistiques",
-                  mobile: "fiches",
+                  mobile: mobileView,
                   sort: option.key,
                   direction: nextDirection,
                 },
@@ -1797,6 +1858,7 @@ function getRosterSortValue(
   rider: RiderRow,
   sortKey: RosterSortKey,
   form: number,
+  morale: number,
 ): RosterSortValue {
   if (isRatingKey(sortKey)) {
     return rider[sortKey];
@@ -1815,6 +1877,8 @@ function getRosterSortValue(
       return rider.potential_steps;
     case "form":
       return form;
+    case "morale":
+      return morale;
     case "average":
       return getRiderAverage(rider);
   }
