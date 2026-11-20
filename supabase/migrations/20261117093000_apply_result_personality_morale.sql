@@ -1,3 +1,7 @@
+begin;
+set local lock_timeout = '500ms';
+set local statement_timeout = '10s';
+
 -- Match the course with one of the rider's main strengths, relative to their
 -- own notes. A developing rider can have a suitable course too.
 create or replace function private.is_ambitious_rider_terrain(
@@ -155,6 +159,8 @@ begin
     end if;
 
     foreach v_pair slice 1 in array v_replacements loop
+      -- pg_get_functiondef normalizes newlines even when this file uses CRLF.
+      v_pair := array[replace(v_pair[1], chr(13), ''), replace(v_pair[2], chr(13), '')];
       if length(v_definition) - length(replace(v_definition, v_pair[1], '')) <> length(v_pair[1]) then
         raise exception 'Unexpected result morale definition for %, anchor: %', v_signature, v_pair[1];
       end if;
@@ -164,3 +170,5 @@ begin
   end loop;
 end;
 $personality_patch$;
+
+commit;

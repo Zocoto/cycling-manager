@@ -1,3 +1,7 @@
+begin;
+set local lock_timeout = '500ms';
+set local statement_timeout = '10s';
+
 -- Apply Assidu to training gain before rating ceilings and ledger writes.
 -- Read the personality in each engine's existing rider query.
 do $assidu$
@@ -46,3 +50,5 @@ begin
   end loop;
 end;
 $assidu$;
+
+commit;

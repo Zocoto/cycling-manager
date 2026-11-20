@@ -1,103 +1,103 @@
 export const RIDER_PERSONALITIES = {
   franc_tireur: {
     label: "Franc-tireur",
-    description: "Tente plus volontiers sa chance en solitaire quand il a carte blanche et dose mieux son effort seul à l’avant.",
+    description: "Attaque plus volontiers en solitaire et gère mieux son effort seul à l’avant.",
   },
   opportuniste: {
     label: "Opportuniste",
-    description: "Préfère suivre une accélération adverse plutôt que lancer lui-même le mouvement.",
+    description: "Suit volontiers les attaques adverses pour saisir sa chance.",
   },
   calculateur: {
     label: "Calculateur",
-    description: "Préserve davantage sa réserve et laisse plus volontiers passer une relance coûteuse.",
+    description: "Économise ses forces et évite les relances trop coûteuses.",
   },
   solidaire: {
     label: "Solidaire",
-    description: "Se porte plus volontiers au secours d’un leader à protéger lorsque le plan laisse le choix.",
+    description: "Aide volontiers son leader lorsqu’il est en difficulté.",
   },
   sociable: {
     label: "Sociable",
-    description: "Gagne un point de moral en tissant ses premiers liens avec un compatriote ou un équipier d’une langue commune.",
+    description: "Gagne du moral en nouant ses premiers liens avec un équipier de même nationalité ou langue.",
   },
   ambitieux: {
     label: "Ambitieux",
-    description: "Gagne du moral lorsqu’il a réellement sa chance comme leader sur un terrain adapté à ses qualités.",
+    description: "Gagne du moral quand il peut jouer sa chance comme leader sur son terrain.",
   },
   colerique: {
     label: "Colérique",
-    description: "Perd un point de moral de plus après une contre-performance lorsqu’il était attendu comme leader.",
+    description: "Supporte mal les contre-performances lorsqu’il mène l’équipe.",
   },
   charismatique: {
     label: "Charismatique",
-    description: "Sa victoire ou son échappée peut rapporter un point de réputation supplémentaire au DS, une fois par course.",
+    description: "Ses victoires et échappées peuvent renforcer la réputation de son DS.",
   },
   assidu: {
     label: "Assidu",
-    description: "Progresse de 5 % de plus à l’entraînement, dans la limite de ses paliers habituels.",
+    description: "Progresse plus vite à l’entraînement.",
   },
   imprevisible: {
     label: "Imprévisible",
-    description: "Peut avoir un léger sursaut ou un petit creux dans un final sur route, au plus une fois par course.",
+    description: "Peut se surpasser ou connaître un petit creux dans le final.",
   },
   fonceur: {
     label: "Fonceur",
-    description: "Saisit plus volontiers une occasion de contre-attaquer au prix d’un effort supplémentaire.",
+    description: "Contre-attaque volontiers, au prix d’un effort plus intense.",
   },
   cooperatif: {
     label: "Coopératif",
-    description: "Prend plus volontiers sa part des relais dans une échappée ou un gruppetto.",
+    description: "Prend volontiers ses relais pour faire avancer son groupe.",
   },
   metronome: {
     label: "Régulier",
-    description: "Cadence plus régulièrement ses relais en chrono par équipes pour aider son groupe à rester ensemble.",
+    description: "Régularise ses relais pour aider son équipe à rester groupée en chrono.",
   },
   tenace: {
     label: "Tenace",
-    description: "Prolonge un peu son effort pour recoller tant que la jonction reste à portée.",
+    description: "Insiste dans la poursuite tant qu’il peut encore recoller.",
   },
   prudent: {
     label: "Prudent",
-    description: "Se ménage une marge dans les descentes sur route mouillée, quitte à céder quelques longueurs.",
+    description: "Réduit les risques en descente mouillée, quitte à perdre un peu de temps.",
   },
   fidele: {
     label: "Fidèle",
-    description: "Apprécie particulièrement une prolongation et vit moins bien un départ après plusieurs saisons dans le même club.",
+    description: "Apprécie les prolongations et vit moins bien un départ après un long passage au club.",
   },
   mentor: {
     label: "Mentor",
-    description: "Gagne du moral lorsqu’un jeune qu’il a aidé en course signe son premier top 10.",
+    description: "Gagne du moral en aidant un jeune équipier à réussir sa première belle course.",
   },
   collectif: {
     label: "Collectif",
-    description: "Tire davantage de satisfaction de la victoire d’un équipier lorsqu’il a contribué à sa course.",
+    description: "Gagne du moral quand il contribue à la victoire d’un équipier.",
   },
   globe_trotteur: {
     label: "Globe-trotteur",
-    description: "Gagne du moral en courant dans un pays qu’il découvre, avec un nombre limité de bonus par saison.",
+    description: "Gagne du moral en découvrant de nouveaux pays en course.",
   },
   meticuleux: {
     label: "Méticuleux",
-    description: "Apprécie de prendre le départ d’une course dont il a reconnu le parcours.",
+    description: "Gagne du moral quand il a reconnu le parcours avant de courir.",
   },
   perfectionniste: {
     label: "Perfectionniste",
-    description: "Apprécie de franchir un palier et se lasse de répéter le même entraînement quand il a atteint ses plafonds.",
+    description: "Apprécie de progresser et se frustre quand il répète un entraînement sans marge de progression.",
   },
   force_tranquille: {
     label: "Force tranquille",
-    description: "Encaisse plus sereinement une contre-performance et perd un point de moral de moins.",
+    description: "Garde mieux le moral après un résultat décevant.",
   },
   discret: {
     label: "Discret",
-    description: "Apprécie qu’un débrief difficile se fasse en privé et vit moins bien une mise en cause publique.",
+    description: "Préfère les débriefs en privé et supporte mal les critiques publiques.",
   },
   franc_parleur: {
     label: "Franc-parleur",
-    description: "Apprécie que son DS reconnaisse franchement ses erreurs de stratégie en zone mixte.",
+    description: "Apprécie que son DS assume ses erreurs de stratégie devant la presse.",
   },
   chambreur: {
     label: "Chambreur",
-    description: "Une pique adressée à un rival en zone mixte peut rapporter un peu plus de réputation ou mal retomber.",
+    description: "Ses piques envers un rival peuvent plaire ou se retourner contre son équipe.",
   },
 } as const;
 

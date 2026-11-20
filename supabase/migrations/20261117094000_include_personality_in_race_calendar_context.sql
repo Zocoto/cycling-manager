@@ -1,4 +1,6 @@
 begin;
+set local lock_timeout = '500ms';
+set local statement_timeout = '10s';
 
 create function public.get_race_calendar_rider_context(
   p_rider_ids uuid[],

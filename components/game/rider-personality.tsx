@@ -17,7 +17,7 @@ export function RiderPersonalityBadge({
 
   const badge = (
     <span
-      title={showDescription ? undefined : description}
+      title={description}
       className={`inline-flex rounded-full border border-[#278B70]/20 bg-[#EAF5F3] font-black text-[#235E50] ${compact ? "px-2 py-0.5 text-[10px] leading-3.5" : "px-2.5 py-1 text-[11px]"}`}
     >
       {label}
@@ -44,7 +44,7 @@ export function RiderPersonalityCard({
       <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#235E50]">
         Caractère
       </p>
-      <h2 className="mt-1 text-lg font-black text-[#183F37]">{label}</h2>
+      <h2 title={description} className="mt-1 text-lg font-black text-[#183F37]">{label}</h2>
       <p className="mt-1 text-sm font-semibold leading-5 text-[#42675E]">{description}</p>
     </section>
   );

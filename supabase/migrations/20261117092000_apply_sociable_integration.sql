@@ -1,4 +1,6 @@
 begin;
+set local lock_timeout = '500ms';
+set local statement_timeout = '10s';
 
 -- The game stores nationalities without individual languages. Use a
 -- conservative set of countries where the same language is widely used.

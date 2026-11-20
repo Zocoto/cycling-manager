@@ -1,4 +1,6 @@
 begin;
+set local lock_timeout = '500ms';
+set local statement_timeout = '10s';
 
 create function private.rider_personality_for_identity(p_identity uuid)
 returns text

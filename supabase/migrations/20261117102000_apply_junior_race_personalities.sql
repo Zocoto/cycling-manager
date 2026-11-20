@@ -1,5 +1,9 @@
--- The final settlement recomputes every stage of a junior tour. Keep its
--- scoring rules fixed if any stage was published before this migration.
+begin;
+set local lock_timeout = '2s';
+set local statement_timeout = '20s';
+
+-- Final settlement preserves published junior stages. Keep the previous
+-- scoring rules for the remaining stages of tours already in progress.
 alter table public.development_race_editions
   add column rider_personalities_enabled boolean not null default true;
 
@@ -175,3 +179,5 @@ after insert on public.development_race_results
 for each row
 when (new.result_scope = 'stage' and new.academy_rider_id is not null)
 execute function private.apply_junior_globe_trotteur_morale();
+
+commit;

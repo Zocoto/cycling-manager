@@ -168,7 +168,8 @@ it("keeps Escape closed when restoring focus and still opens on ordinary keyboar
   runtime.effects[1]();
   const keydown = vi.mocked(document.addEventListener).mock.calls.find(([name]) => name === "keydown")?.[1];
   expect(keydown).toBeTypeOf("function");
-  (keydown as (event: { key: string }) => void)({ key: "Escape" });
+  if (typeof keydown !== "function") throw new Error("Expected a keyboard event listener");
+  keydown({ key: "Escape" } as KeyboardEvent);
 
   tree = render({ autoOpen: true, previewData: profile });
   expect(focus).toHaveBeenCalledOnce();

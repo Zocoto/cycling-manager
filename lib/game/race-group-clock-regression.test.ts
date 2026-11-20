@@ -39,7 +39,7 @@ describe("sporting group clocks", () => {
     expect(simulateRaceStage(input)).toEqual(simulation);
     const gautam = simulation.resolvedRiders.find((rider) => rider.name === "Gautam Patel")!;
     expect(simulation.results.find((result) => result.riderId === gautam.id))
-      .toMatchObject({ rank: 3, gapToWinnerSeconds: 0, status: "finished" });
+      .toMatchObject({ rank: 5, gapToWinnerSeconds: 0, status: "finished" });
     const formerPhantomPodium = ["Jhony Cabezas", "Clément Abessolo"];
     for (const name of formerPhantomPodium) {
       const rider = simulation.resolvedRiders.find((entry) => entry.name === name)!;

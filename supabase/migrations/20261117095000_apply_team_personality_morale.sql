@@ -1,4 +1,6 @@
 begin;
+set local lock_timeout = '500ms';
+set local statement_timeout = '10s';
 
 -- Keep the personality entries separate from the age-of-tenure calculation.
 -- That calculation sums rows carrying metadata.teamId.

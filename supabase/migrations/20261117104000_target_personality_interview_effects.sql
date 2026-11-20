@@ -1,4 +1,6 @@
 begin;
+set local lock_timeout = '500ms';
+set local statement_timeout = '10s';
 
 -- Only the server may read the saved catalogue of possible consequences.
 -- An authenticated owner retains the readable question set and resolved reply.
@@ -64,6 +66,8 @@ $old$, '']
 begin
   if position('private.resolve_mixed_zone_event_rider(' in v_submit) = 0 then
     foreach v_pair slice 1 in array v_submit_replacements loop
+      -- pg_get_functiondef normalizes newlines even when this file uses CRLF.
+      v_pair := array[replace(v_pair[1], chr(13), ''), replace(v_pair[2], chr(13), '')];
       if length(v_submit) - length(replace(v_submit, v_pair[1], '')) <> length(v_pair[1]) then
         raise exception 'Unexpected mixed-zone submission definition, personality update aborted.';
       end if;
