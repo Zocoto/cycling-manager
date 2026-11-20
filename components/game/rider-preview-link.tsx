@@ -28,6 +28,8 @@ export type RiderPreviewLinkProps = LinkProps &
     riderId: string;
     children?: ReactNode;
     autoOpen?: boolean;
+    previewData?: RiderQuickPreview;
+    profileHref?: LinkProps["href"] | null;
   };
 
 type PreviewPosition = {
@@ -43,6 +45,9 @@ export const RiderPreviewLink = forwardRef<
   {
     riderId,
     autoOpen = false,
+    previewData,
+    profileHref,
+    href,
     children,
     onBlur,
     onClick,
@@ -60,12 +65,18 @@ export const RiderPreviewLink = forwardRef<
   const openTimerRef = useRef<number | null>(null);
   const closeTimerRef = useRef<number | null>(null);
   const lastPointerTypeRef = useRef<string | null>(null);
+  const returningFocusRef = useRef(false);
   const [open, setOpen] = useState(autoOpen);
   const [mobileLayout, setMobileLayout] = useState(false);
-  const [preview, setPreview] = useState<RiderQuickPreview | null>(null);
-  const [loadState, setLoadState] = useState<
-    "idle" | "loading" | "loaded" | "error"
-  >(autoOpen ? "loading" : "idle");
+  const providedPreview = previewData?.id === riderId ? previewData : null;
+  const resolvedProfileHref = profileHref === undefined ? href : profileHref;
+  const [remote, setRemote] = useState<{
+    riderId: string;
+    preview: RiderQuickPreview | null;
+    status: "idle" | "loading" | "loaded" | "error";
+  }>({ riderId, preview: null, status: autoOpen ? "loading" : "idle" });
+  const preview = providedPreview ?? (remote.riderId === riderId ? remote.preview : null);
+  const loadState = providedPreview ? "loaded" : remote.riderId === riderId ? remote.status : "idle";
   const [position, setPosition] = useState<PreviewPosition>({
     left: 12,
     top: 12,
@@ -73,17 +84,18 @@ export const RiderPreviewLink = forwardRef<
   });
 
   useEffect(() => {
-    if (!autoOpen) return;
+    if (!autoOpen || providedPreview) return;
+    let cancelled = false;
 
     getRiderPreview(riderId)
       .then((loadedPreview) => {
-        setPreview(loadedPreview);
-        setLoadState("loaded");
+        if (!cancelled) setRemote({ riderId, preview: loadedPreview, status: "loaded" });
       })
       .catch(() => {
-        setLoadState("error");
+        if (!cancelled) setRemote({ riderId, preview: null, status: "error" });
       });
-  }, [autoOpen, riderId]);
+    return () => { cancelled = true; };
+  }, [autoOpen, riderId, providedPreview]);
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -144,7 +156,12 @@ export const RiderPreviewLink = forwardRef<
     function closeOnEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setOpen(false);
-        triggerRef.current?.focus();
+        returningFocusRef.current = true;
+        try {
+          triggerRef.current?.focus();
+        } finally {
+          returningFocusRef.current = false;
+        }
       }
     }
 
@@ -174,16 +191,19 @@ export const RiderPreviewLink = forwardRef<
   }
 
   function loadPreview() {
-    if (loadState === "loading" || loadState === "loaded") return;
+    if (providedPreview || loadState === "loading" || loadState === "loaded") return;
 
-    setLoadState("loading");
+    setRemote({ riderId, preview: null, status: "loading" });
     getRiderPreview(riderId)
       .then((loadedPreview) => {
-        setPreview(loadedPreview);
-        setLoadState("loaded");
+        setRemote((current) => current.riderId === riderId
+          ? { riderId, preview: loadedPreview, status: "loaded" }
+          : current);
       })
       .catch(() => {
-        setLoadState("error");
+        setRemote((current) => current.riderId === riderId
+          ? { riderId, preview: null, status: "error" }
+          : current);
       });
   }
 
@@ -226,7 +246,7 @@ export const RiderPreviewLink = forwardRef<
     onClick?.(event);
     if (event.defaultPrevented) return;
 
-    if (lastPointerTypeRef.current === "touch" && !open) {
+    if (resolvedProfileHref === null || (lastPointerTypeRef.current === "touch" && !open)) {
       event.preventDefault();
       showPreview();
     }
@@ -265,7 +285,7 @@ export const RiderPreviewLink = forwardRef<
               style={position}
             >
               <PreviewContent
-                riderId={riderId}
+                profileHref={resolvedProfileHref}
                 preview={preview}
                 loadState={loadState}
                 mobileLayout={mobileLayout}
@@ -282,6 +302,7 @@ export const RiderPreviewLink = forwardRef<
     <>
       <NextLink
         {...props}
+        href={href}
         ref={setTriggerRef}
         aria-controls={open ? panelId : undefined}
         aria-expanded={open}
@@ -294,7 +315,7 @@ export const RiderPreviewLink = forwardRef<
         onClick={handleClick}
         onFocus={(event) => {
           onFocus?.(event);
-          if (!event.defaultPrevented) showPreview();
+          if (!event.defaultPrevented && !returningFocusRef.current) showPreview();
         }}
         onPointerDown={(event) => {
           lastPointerTypeRef.current = event.pointerType;
@@ -311,14 +332,14 @@ export const RiderPreviewLink = forwardRef<
 });
 
 function PreviewContent({
-  riderId,
+  profileHref,
   preview,
   loadState,
   mobileLayout,
   onClose,
   onRetry,
 }: {
-  riderId: string;
+  profileHref: LinkProps["href"] | null;
   preview: RiderQuickPreview | null;
   loadState: "idle" | "loading" | "loaded" | "error";
   mobileLayout: boolean;
@@ -467,20 +488,20 @@ function PreviewContent({
         )}
       </div>
 
-      <footer className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-[#315B3E]/12 bg-white px-4 py-3">
+      {profileHref !== null || !mobileLayout ? <footer className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-[#315B3E]/12 bg-white px-4 py-3">
         <p className="text-[9px] font-semibold leading-4 text-[#789087]">
           {mobileLayout
             ? "Utilisez « Voir la fiche » pour ouvrir le profil complet."
             : "Échap pour fermer · survolez sans quitter la page."}
         </p>
-        <NextLink
-          href={`/jeu/coureurs/${riderId}`}
+        {profileHref !== null ? <NextLink
+          href={profileHref}
           onClick={onClose}
           className="shrink-0 rounded-full bg-[#176951] px-3 py-2 text-[10px] font-black text-white transition hover:bg-[#0B302B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
         >
           Voir la fiche
-        </NextLink>
-      </footer>
+        </NextLink> : null}
+      </footer> : null}
     </>
   );
 }

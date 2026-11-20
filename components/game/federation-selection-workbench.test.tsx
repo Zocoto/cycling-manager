@@ -257,5 +257,8 @@ describe("FederationSelectionWorkbench hosting", () => {
     expect(markup).toContain("Affinités météo");
     expect(markup).toContain("Prévision fédérale · parcours officiel");
     expect(markup).toContain("Condition favorite");
+    expect(markup).toContain('href="/jeu/coureurs/rider-1"');
+    expect(markup).toContain('data-rider-preview-trigger=""');
+    expect(markup).toContain('aria-haspopup="dialog"');
   });
 });
