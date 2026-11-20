@@ -2,7 +2,7 @@ import type { RaceCompetitionType } from "./race-calendar";
 
 export const NATIONAL_CHAMPIONSHIP_RESULTS_ONLY_FROM_GAME_YEAR = 2;
 export const NATIONAL_CHAMPIONSHIP_RESULTS_ONLY_ENGINE_VERSION =
-  "2026.10-national-time-trial-effort-balance-v2";
+  "2026.11-national-mountain-time-trial-balance-v3";
 
 export function isNationalChampionshipCompetitionType(
   competitionType: RaceCompetitionType,

@@ -1,4 +1,9 @@
 import { getClimbBlocks, type RaceSegmentPrime, type RaceStageSegment } from "./race-profiles";
+import {
+  getTimeTrialClimbRating,
+  withTimeTrialClimbWeights,
+  type TimeTrialClimbSegment,
+} from "./time-trial-climb-rating";
 import { isUrbanCobbles, normalizeUrbanCobblesSegments } from "./urban-cobbles";
 import { PERFORMANCE_PREPARATION_FACILITIES, type PerformancePreparationType } from "./performance-preparation";
 import type { NationalJerseyDraft } from "./national-jersey-preview";
@@ -1342,13 +1347,14 @@ function normalizeStageSimulationInput(
         backupRiderIds: [...briefing.backupRiderIds],
       }))
     : undefined;
+  const eligibleSegments = withContinuousClimbLengths(normalizeUrbanCobblesSegments({
+    stageType: input.stageType,
+    profileType: input.profileType,
+    segments: input.segments,
+  }));
   const eligibleInput = {
     ...input,
-    segments: withContinuousClimbLengths(normalizeUrbanCobblesSegments({
-      stageType: input.stageType,
-      profileType: input.profileType,
-      segments: input.segments,
-    })),
+    segments: input.stageType === "road" ? eligibleSegments : withTimeTrialClimbWeights(eligibleSegments),
     weather,
     ...(eligibleTeamStrategies
       ? { teamStrategies: eligibleTeamStrategies }
@@ -12452,6 +12458,7 @@ function getPelotonChaseCapacity(
 function getTerrainRating(
   rider: RiderSimulationInput,
   segment: TerrainRatingSegment,
+  climbRatingOverride?: number,
 ) {
   let rating: number;
 
@@ -12465,9 +12472,10 @@ function getTerrainRating(
       0.18,
       0.82,
     );
-    rating =
+    rating = climbRatingOverride ?? (
       rider.ratings.mountain * mountainWeight +
-      rider.ratings.hills * (1 - mountainWeight);
+      rider.ratings.hills * (1 - mountainWeight)
+    );
   } else if (segment.terrain === "descent") {
     rating = rider.ratings.downhill * 0.72 + rider.ratings.resistance * 0.28;
   } else {
@@ -12718,12 +12726,29 @@ function getDecisiveRoadFinishRating(
 
 function getTimeTrialSegmentRating(
   rider: RiderSimulationInput,
-  segment: RaceStageSegment,
+  segment: TimeTrialClimbSegment,
   stageType: SimulationStageType,
   pistardBonus = 0,
 ) {
   const clockRating =
     stageType === "prologue" ? rider.ratings.prologue : rider.ratings.timeTrial;
+  const climbWeights = segment.timeTrialClimbWeights;
+  if (climbWeights) {
+    const terrainWeight = climbWeights.mountain + climbWeights.hills + climbWeights.flat;
+    const terrainRating = (
+      rider.ratings.mountain * climbWeights.mountain +
+      rider.ratings.hills * climbWeights.hills +
+      rider.ratings.flat * climbWeights.flat
+    ) / terrainWeight;
+    const terrainAdjustment = (getTerrainRating(rider, segment, terrainRating) - terrainRating) * terrainWeight;
+    return getTimeTrialClimbRating({ ...rider.ratings, timeTrial: clockRating }, climbWeights) +
+      rider.form * climbWeights.form + terrainAdjustment +
+      getCrowdSurgePerformanceBonus(rider, segment) * 0.73 +
+      getRaceDayBonus(rider) * 0.73 +
+      getRiderPhysiologyProfileModifier({
+        physiology: rider.physiology, ratings: rider.ratings, profileType: "time_trial",
+      }) * 0.73 + pistardBonus;
+  }
   return (
     clockRating * 0.58 +
     getTerrainRating(rider, segment) * 0.27 +

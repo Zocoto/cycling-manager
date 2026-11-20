@@ -8,6 +8,8 @@ import type {
   StageSimulationInput,
 } from "./race-simulation";
 import { getRiderPhysiologyProfileModifier } from "./rider-physiology";
+import { getTimeTrialClimbRating, withTimeTrialClimbWeights } from "./time-trial-climb-rating";
+import { isUrbanCobbles } from "./urban-cobbles";
 
 export type RaceFavoriteStars = 1 | 2 | 3;
 
@@ -263,7 +265,7 @@ function getOneDayFavoriteScore(
   stage: RaceFavoriteStage,
 ) {
   if (stage.stageType === "prologue") {
-    return getPrologueFavoriteRating(ratings);
+    return getPrologueFavoriteRating(ratings, stage);
   }
 
   if (isTimeTrialStage(stage)) {
@@ -401,7 +403,7 @@ function getGeneralClassificationStageRating(
   stage: RaceCalendarStage,
 ) {
   if (stage.stageType === "prologue") {
-    return getPrologueFavoriteRating(ratings);
+    return getPrologueFavoriteRating(ratings, stage);
   }
 
   if (isTimeTrialStage(stage)) {
@@ -454,6 +456,33 @@ function getTimeTrialFavoriteRating(
   ratings: RiderSimulationRatings,
   stage: RaceFavoriteStage,
 ) {
+  const segments = withTimeTrialClimbWeights(stage.segments);
+  if (!segments.some((segment) => segment.timeTrialClimbWeights)) {
+    return getStandardTimeTrialFavoriteRating(ratings, stage);
+  }
+  const distanceKm = segments.reduce((total, segment) => total + segment.distanceKm, 0);
+  if (distanceKm <= 0) return getStandardTimeTrialFavoriteRating(ratings, stage);
+
+  return segments.reduce((total, segment) => {
+    const weights = segment.timeTrialClimbWeights;
+    if (!weights) {
+      return total + getStandardTimeTrialFavoriteRating(ratings, { ...stage, segments: [segment] }) * segment.distanceKm;
+    }
+    let rating = getTimeTrialClimbRating(ratings, weights);
+    if (segment.surface === "cobbles") {
+      const terrainWeight = weights.mountain + weights.hills + weights.flat;
+      const terrainRating = ratings.mountain * weights.mountain +
+        ratings.hills * weights.hills + ratings.flat * weights.flat;
+      rating += (ratings.cobbles * terrainWeight - terrainRating) * (isUrbanCobbles(segment) ? 0.18 : 0.64);
+    }
+    return total + rating / (1 - weights.form) * segment.distanceKm;
+  }, 0) / distanceKm;
+}
+
+function getStandardTimeTrialFavoriteRating(
+  ratings: RiderSimulationRatings,
+  stage: RaceFavoriteStage,
+) {
   const routeRating = getRouteRating(ratings, stage, ratings.timeTrial);
   const terrainDifficulty = getTimeTrialTerrainDifficulty(stage);
   const terrainWeight = 0.16 + terrainDifficulty * 0.12;
@@ -466,7 +495,10 @@ function getTimeTrialFavoriteRating(
   );
 }
 
-function getPrologueFavoriteRating(ratings: RiderSimulationRatings) {
+function getPrologueFavoriteRating(ratings: RiderSimulationRatings, stage: RaceFavoriteStage) {
+  if (stage.segments.some((segment) => segment.terrain === "climb")) {
+    return getTimeTrialFavoriteRating({ ...ratings, timeTrial: ratings.prologue }, stage);
+  }
   return (
     ratings.prologue * 0.62 +
     ratings.timeTrial * 0.16 +
