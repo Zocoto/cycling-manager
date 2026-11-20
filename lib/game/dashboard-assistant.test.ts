@@ -750,6 +750,40 @@ describe("dashboard DS assistant", () => {
     );
   });
 
+  it.each([
+    ["bottle", "Bidon"],
+    ["pennant", "Fanion"],
+    ["cap", "Casquette"],
+    ["supporter-balloon", "Ballon de supporter"],
+    ["collector-jersey-france", "Maillot jaune collector"],
+    ["collector-jersey-italy", "Maillot rose collector"],
+    ["collector-jersey-spain", "Maillot rouge collector"],
+  ])("signale la rupture de %s même si les autres articles restent en stock", (code, label) => {
+    const { alerts } = buildDashboardAssistantLines({
+      snapshot: {
+        ...snapshot,
+        fanClubShopLevel: 5,
+        fanClubStockCount: 100,
+        fanClubOutOfStockProductCodes: [code],
+      },
+      rewardCount: 0,
+      cashBalance: 100_000,
+    });
+    expect(alerts).toContainEqual(expect.objectContaining({
+      id: "fan-club-out-of-stock", metric: "1",
+      detail: expect.stringContaining(label),
+      href: "/jeu/fan-club?onglet=magasin",
+    }));
+  });
+
+  it("ne signale aucune rupture quand les produits disponibles sont en stock", () => {
+    const { alerts } = buildDashboardAssistantLines({
+      snapshot: { ...snapshot, fanClubShopLevel: 5, fanClubOutOfStockProductCodes: [] },
+      rewardCount: 0, cashBalance: 100_000,
+    });
+    expect(alerts.some(({ id }) => id === "fan-club-out-of-stock")).toBe(false);
+  });
+
   it("warns before J1 when firm arrivals and scheduled promotions exceed 35 riders", () => {
     const groups = buildDashboardAssistantLines({
       snapshot: {

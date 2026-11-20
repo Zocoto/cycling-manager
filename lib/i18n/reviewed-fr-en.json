@@ -1,4 +1,8 @@
 {
+  ". Réapprovisionnez ces articles pour reprendre leurs ventes.": ". Restock these products to resume their sales.",
+  "{{0}}. Réapprovisionnez ces articles pour reprendre leurs ventes.": "{{0}}. Restock these products to resume their sales.",
+  "article en rupture de stock": "product out of stock",
+  "articles en rupture de stock": "products out of stock",
   "Aperçu de votre dernier article": "Preview your latest article",
   "Cette tribune a déjà été publiée et ne peut plus être modifiée.": "This article has already been published and can no longer be edited.",
   "Cette tribune est introuvable ou ne vous appartient pas.": "This article could not be found or does not belong to your team.",

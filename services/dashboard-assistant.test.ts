@@ -11,13 +11,15 @@ vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: vi.fn() }));
 
 const authUserId = "00000000-0000-4000-8000-000000000001";
 
-function client(payload: unknown, federationEquipment = false) {
+function client(payload: unknown, federationEquipment = false, shopSummary: unknown = null) {
   const result = { data: null, error: null };
   const rpc = vi.fn((name: string) => {
     const response = name === "get_current_dashboard_assistant_summary"
       ? { data: { game_date: "2026-10-11", journal_items: payload }, error: null }
       : name === "get_current_federation_equipment_alert" && federationEquipment
         ? { data: { selection_required: true, country_code: "BE" }, error: null }
+      : name === "get_current_fan_club_assistant_summary_v2"
+        ? { data: shopSummary, error: null }
       : result;
     const query = Object.assign(Promise.resolve(response), { maybeSingle: vi.fn().mockResolvedValue(response), abortSignal: vi.fn() });
     query.abortSignal.mockReturnValue(query);
@@ -35,6 +37,24 @@ function client(payload: unknown, federationEquipment = false) {
   });
   return { rpc, from, supabase: { rpc, from } as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>> };
 }
+
+describe("shop stock alerts", () => {
+  it("transmet les ruptures par produit depuis le résumé de boutique", async () => {
+    const mock = client({}, false, {
+      shop_level: 2, total_stock: 80, out_of_stock_products: ["bottle"],
+      sales_processed_today: true, today_units_sold: 4, today_revenue: 48,
+    });
+    const summary = await getCurrentDashboardAssistantSummary(mock.supabase);
+    expect(summary).toMatchObject({
+      fanClubStockCount: 80, fanClubOutOfStockProductCodes: ["bottle"],
+      fanClubTodayUnitsSold: 4, fanClubTodayRevenue: 48,
+    });
+    const groups = buildDashboardAssistantLines({ snapshot: summary!, rewardCount: 0, cashBalance: 1000 });
+    expect(groups.alerts).toContainEqual(expect.objectContaining({
+      id: "fan-club-out-of-stock", detail: expect.stringContaining("Bidon"),
+    }));
+  });
+});
 
 describe("first-season dashboard alerts", () => {
   it.each([false, true])("shows advanced alerts only with a completed season of experience (%s)", async (experienced) => {

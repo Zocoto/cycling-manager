@@ -62,6 +62,7 @@ type SponsoringAlertRow = {
 type FanClubAssistantSummaryRow = {
   shop_level: number;
   total_stock: number;
+  out_of_stock_products: string[] | null;
   sales_processed_today: boolean;
   today_units_sold: number;
   today_revenue: number | string;
@@ -175,7 +176,7 @@ export async function getCurrentDashboardAssistantSummary(
       .abortSignal(signal)
       .maybeSingle<SponsoringAlertRow>() : empty,
     enrich ? supabase
-      .rpc("get_current_fan_club_assistant_summary")
+      .rpc("get_current_fan_club_assistant_summary_v2")
       .abortSignal(signal)
       .maybeSingle<FanClubAssistantSummaryRow>() : empty,
     enrich ? supabase.rpc("get_current_dashboard_construction_context").abortSignal(signal) : empty,
@@ -363,6 +364,7 @@ export async function getCurrentDashboardAssistantSummary(
           }),
     fanClubShopLevel: normalizeCount(fanClubSummary?.shop_level),
     fanClubStockCount: normalizeCount(fanClubSummary?.total_stock),
+    fanClubOutOfStockProductCodes: fanClubSummary?.out_of_stock_products ?? undefined,
     fanClubSalesProcessedToday:
       fanClubSummary?.sales_processed_today === true,
     fanClubTodayUnitsSold: normalizeCount(fanClubSummary?.today_units_sold),

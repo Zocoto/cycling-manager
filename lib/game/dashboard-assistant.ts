@@ -6,6 +6,7 @@ import {
 } from "@/lib/game/race-calendar";
 import { getRaceRegistrationHref } from "@/lib/game/race-navigation";
 import { STAFF_RECRUITMENT_ALERTS_HREF } from "@/lib/game/staff-market-navigation";
+import { FAN_CLUB_PRODUCTS } from "@/lib/game/fan-club-pilot";
 import type { OverweightRiderSummary } from "./rider-weight-status";
 import { getWeightProgramCooldownDays } from "./weight-program";
 import {
@@ -128,6 +129,7 @@ export type DashboardAssistantSnapshot = {
   pendingInfrastructureOrientations: DashboardInfrastructureOrientation[];
   fanClubShopLevel: number;
   fanClubStockCount: number;
+  fanClubOutOfStockProductCodes?: readonly string[];
   fanClubSalesProcessedToday: boolean;
   fanClubTodayUnitsSold: number;
   fanClubTodayRevenue: number;
@@ -751,13 +753,20 @@ export function buildDashboardAssistantLines({
     });
   }
 
-  if (snapshot.fanClubShopLevel > 0 && snapshot.fanClubStockCount === 0) {
+  const outOfStockProducts = snapshot.fanClubOutOfStockProductCodes;
+  if (snapshot.fanClubShopLevel > 0 && (
+    outOfStockProducts ? outOfStockProducts.length > 0 : snapshot.fanClubStockCount === 0
+  )) {
     alerts.push({
       id: "fan-club-out-of-stock",
       tone: "alert",
-      metric: "0",
-      title: "Stock de la boutique épuisé",
-      detail: "Réapprovisionnez le magasin pour reprendre les ventes quotidiennes.",
+      metric: outOfStockProducts ? String(outOfStockProducts.length) : "0",
+      title: outOfStockProducts
+        ? pluralize(outOfStockProducts.length, "article en rupture de stock", "articles en rupture de stock")
+        : "Stock de la boutique épuisé",
+      detail: outOfStockProducts
+        ? `${outOfStockProducts.map((code) => FAN_CLUB_PRODUCTS.find((product) => product.id === code)?.name ?? code).join(", ")}. Réapprovisionnez ces articles pour reprendre leurs ventes.`
+        : "Réapprovisionnez le magasin pour reprendre les ventes quotidiennes.",
       href: "/jeu/fan-club?onglet=magasin",
     });
   }
