@@ -41,7 +41,9 @@ const bundle = await build({
       import {RiderProfileSportingCard} from '@/components/game/rider-profile-sporting-card';
       import {RiderMentalProfile} from '@/components/game/rider-mental-profile';
       import {RiderSpecialAbilities} from '@/components/game/rider-special-abilities';
+      import {SPECIAL_ABILITY_CATALOG} from '@/lib/game/special-abilities';
       const root = createRoot(document.getElementById('root'));
+      window.profileCatalogSize = SPECIAL_ABILITY_CATALOG.length;
       const ratings = {mountain:72,hills:81,flat:76,timeTrial:68,cobbles:66,sprint:71,
         acceleration:79,downhill:77,endurance:82,resistance:75,recovery:78,breakaway:70,prologue:65};
       const condition = {form:98.2,morale:65,dayNumber:15,
@@ -157,7 +159,7 @@ try {
       check(await page.locator("[data-rating-importance]").count() === 13, 'all sporting ratings remain present');
       check(await page.locator("[data-radar-layer='equipment']").count() === 1, 'equipment radar remains present');
       check(await page.locator("[data-equipment-bonus='3']").count() > 0, 'equipment bonus remains present');
-      check(await page.locator("[data-qa='abilities'] button[aria-controls^='ability-']").count() === 16, 'entire ability catalog remains present');
+      check(await page.locator("[data-qa='abilities'] button[aria-controls^='ability-']").count() === await page.evaluate(() => window.profileCatalogSize), 'entire ability catalog remains present');
       measurements.push({ width, variant, ...bounds });
     };
 
