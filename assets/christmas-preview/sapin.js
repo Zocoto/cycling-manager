@@ -59,14 +59,14 @@
       <path d="${path}" fill="none" stroke="#102f28" stroke-width="6"/>
       <path d="${path}" fill="none" stroke="#f1c66d" stroke-width="2" pathLength="100" stroke-dasharray="${progress * 100} 100"/>
       <g>${bulbs}${markers}</g>
-      <g class="sapin-star${starOn ? " is-lit" : ""}"><path d="M280 45L290 65L313 69L296 85L301 108L280 96L259 108L264 85L247 69L270 65Z"/><text x="280" y="84">9</text><title>L’étoile · ${num(milestones.at(-1).goal)} lumières · +1 étoile de potentiel pour chaque DS</title></g>
+      <g class="sapin-star${starOn ? " is-lit" : ""}"><path d="M280 45L290 65L313 69L296 85L301 108L280 96L259 108L264 85L247 69L270 65Z"/><text x="280" y="84">9</text><title>L’étoile · ${num(milestones[milestones.length - 1].goal)} lumières · +1 étoile de potentiel pour chaque DS</title></g>
       <g transform="translate(130 660)"><rect width="45" height="37" rx="3" fill="#8b3948"/><path d="M22 0V37M0 12H45" stroke="#efcf8b" stroke-width="5"/></g>
       <g transform="translate(369 658)"><rect width="53" height="43" rx="3" fill="#d8b566"/><path d="M26 0V43M0 12H53" stroke="#7b3744" stroke-width="6"/></g>
       <text x="280" y="725" fill="#e4d8bb" font-family="system-ui,sans-serif" font-size="12" text-anchor="middle">UN SEUL SAPIN · TOUT LE PELOTON</text>
     </svg>`;
   }
   function render({ art, panel, total, personal, participants, claimed, milestones, itemById }) {
-    const ceiling = milestones.at(-1).goal;
+    const ceiling = milestones[milestones.length - 1].goal;
     const next = milestones.find(milestone => total < milestone.goal);
     art.innerHTML = draw({ total, milestones });
     panel.innerHTML = `<div class="collective-label"><span class="collective-dot"></span>Progression commune à tous les joueurs</div>

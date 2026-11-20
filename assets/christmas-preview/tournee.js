@@ -803,7 +803,12 @@
       });
       window.addEventListener("keyup", event => keys.delete(event.code));
       window.addEventListener("blur", () => { keys.clear(); pointer = null; });
-      darkMode.addEventListener("change", () => { if (game.mode !== "playing") draw(); });
+      const redrawTheme = () => { if (game.mode !== "playing") draw(); };
+      if (typeof darkMode.addEventListener === "function") {
+        darkMode.addEventListener("change", redrawTheme);
+      } else if (typeof darkMode.addListener === "function") {
+        darkMode.addListener(redrawTheme);
+      }
       ctx.setTransform(canvas.width / width, 0, 0, canvas.height / height, 0, 0);
       draw();
     })();

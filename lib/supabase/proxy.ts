@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { getLoginReturnPath } from "@/lib/auth/login-return-path";
 
 const protectedRoutePrefixes = ["/jeu"];
 
@@ -85,10 +86,10 @@ export async function updateSession(
   }
 
   if (isAuthenticated && isAuthenticationRoute) {
-    const redirectUrl = request.nextUrl.clone();
-
-    redirectUrl.pathname = "/jeu";
-    redirectUrl.search = "";
+    const returnPath = pathname === "/connexion"
+      ? getLoginReturnPath(request.nextUrl.searchParams.get("returnTo"))
+      : "/jeu";
+    const redirectUrl = new URL(returnPath, request.url);
 
     return createRedirectResponse(
       redirectUrl,

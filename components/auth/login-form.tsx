@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { getLoginReturnPath } from "@/lib/auth/login-return-path";
 
 import { loginAccount } from "../../app/(public)/connexion/actions";
 import {
@@ -11,7 +12,8 @@ import { EmailVerificationResendForm } from "./email-verification-resend-form";
 
 const loginFields: LoginField[] = ["email", "password"];
 
-export function LoginForm() {
+export function LoginForm({ returnTo }: { returnTo?: string }) {
+  const returnPath = getLoginReturnPath(returnTo);
   const [state, formAction, pending] = useActionState(
     loginAccount,
     initialLoginState
@@ -94,6 +96,9 @@ export function LoginForm() {
         onSubmit={() => setDismissedFields([])}
         className="space-y-5"
       >
+        {returnPath !== "/jeu" ? (
+          <input type="hidden" name="returnTo" value={returnPath} />
+        ) : null}
         <FormField
           id="email"
           label="Adresse e-mail"

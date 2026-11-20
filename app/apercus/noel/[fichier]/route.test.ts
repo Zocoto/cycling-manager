@@ -40,15 +40,32 @@ describe("private Christmas preview", () => {
     expect((await request("village-hiver.jpg")).headers.get("content-type")).toBe("image/jpeg");
   });
 
-  it.each([null, "another-authenticated-account"])("hides every requested file from %s", async (userId) => {
+  it.each([null, "another-authenticated-account"])("explains HTML access and protects assets for %s", async (userId) => {
     mocks.auth.mockResolvedValue({ data: { user: userId ? { id: userId, email: "other@example.test" } : null }, error: null });
     expect(showChristmasPreviewInMenu(userId)).toBe(false);
     for (const file of ["index.html", "tournee.html", "tournee.js", "flight-physics.js", "avent.js", "rules.js", "sapin.js", "album-s4.js", "sapin.css", "noel.js", "catalogue.js", "noel.css", "village-hiver.jpg"]) {
       const response = await request(file);
-      expect(response.status).toBe(404);
       expect(response.headers.get("cache-control")).toBe("private, no-store");
-      expect(await response.text()).toBe("");
+      if (file.endsWith(".html")) {
+        expect(response.status).toBe(userId ? 403 : 401);
+        expect(response.headers.get("content-type")).toContain("text/html");
+        const body = await response.text();
+        expect(body).toContain(userId ? "Cet aperçu est privé" : "Connecte-toi pour ouvrir l’aperçu");
+        expect(body).toContain('target="_top"');
+        expect(body).not.toContain("tournee.js");
+        if (!userId) expect(body).toContain("/connexion?returnTo=%2Fapercus%2Fnoel%2Findex.html%23tournee");
+      } else {
+        expect(response.status).toBe(404);
+        expect(await response.text()).toBe("");
+      }
     }
+  });
+
+  it("provides a readable reconnect screen when the session has expired", async () => {
+    mocks.auth.mockResolvedValue({ data: { user: null }, error: new Error("Session expirée") });
+    const response = await request("tournee.html");
+    expect(response.status).toBe(401);
+    expect(await response.text()).toContain("Se connecter et ouvrir le mini-jeu");
   });
 
   it("rejects unlisted files before any read or authentication", async () => {

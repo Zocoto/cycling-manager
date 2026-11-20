@@ -1,4 +1,10 @@
 {
+  "Cet aperçu est privé": "This preview is private",
+  "Connecte-toi pour ouvrir l’aperçu": "Sign in to open the preview",
+  "Le compte actuellement connecté n’a pas accès à ce brouillon. Ouvre-le avec ton compte de test autorisé.": "The signed-in account does not have access to this draft. Open it with your authorized test account.",
+  "Ouvrir mon bureau du DS": "Open my manager's office",
+  "Se connecter et ouvrir le mini-jeu": "Sign in and open the mini-game",
+  "Ton navigateur doit être connecté à Cyclo Stratège pour afficher le brouillon de Noël. Après connexion, tu retrouveras directement le mini-jeu.": "Sign in to Cyclo Stratège in this browser to view the Christmas draft. You will return directly to the mini-game after signing in.",
   "Mental et affinités": "Mindset and preferences",
   "Ouvrir le chat · nouveau message de Quizz’o Stratège": "Open chat · new message from Quizz’o Stratège",
   "Classé {{0}}e au GPM derrière {{1}}, {{2}} termine {{3}} devant lui.": "At the mountain prime, {{2}} ranked {{0}} behind {{1}} and finished {{3}} ahead of him.",

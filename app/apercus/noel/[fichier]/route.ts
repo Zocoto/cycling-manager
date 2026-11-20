@@ -38,6 +38,20 @@ function notFound() {
   return new Response(null, { status: 404, headers: privateHeaders });
 }
 
+function accessNotice(authenticated: boolean) {
+  const loginHref = "/connexion?returnTo=" + encodeURIComponent("/apercus/noel/index.html#tournee");
+  const heading = authenticated ? "Cet aperçu est privé" : "Connecte-toi pour ouvrir l’aperçu";
+  const message = authenticated
+    ? "Le compte actuellement connecté n’a pas accès à ce brouillon. Ouvre-le avec ton compte de test autorisé."
+    : "Ton navigateur doit être connecté à Cyclo Stratège pour afficher le brouillon de Noël. Après connexion, tu retrouveras directement le mini-jeu.";
+  return new Response(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aperçu privé · Cyclo Stratège</title>
+    <style>body{margin:0;min-height:100svh;display:grid;place-items:center;background:#132e28;color:#fff6df;font:16px/1.6 system-ui,sans-serif}main{box-sizing:border-box;width:min(540px,calc(100% - 32px));padding:32px;border:1px solid #c5a361;border-radius:16px;background:#1b3b31}p{color:#e0dfcd}h1{font:600 clamp(1.6rem,6vw,2.2rem)/1.2 Georgia,serif}a{display:inline-block;margin-top:12px;padding:12px 18px;border-radius:8px;background:#f0ce82;color:#19362b;font-weight:750;text-decoration:none}a:focus-visible{outline:3px solid white;outline-offset:4px}.brand{color:#f0ce82;font-size:13px;letter-spacing:.12em;text-transform:uppercase}</style></head>
+    <body><main><p class="brand">Cyclo Stratège · Noël</p><h1>${heading}</h1><p>${message}</p><a href="${authenticated ? "/jeu" : loginHref}" target="_top">${authenticated ? "Ouvrir mon bureau du DS" : "Se connecter et ouvrir le mini-jeu"}</a></main></body></html>`, {
+    status: authenticated ? 403 : 401,
+    headers: { ...privateHeaders, "Content-Type": "text/html; charset=utf-8" },
+  });
+}
+
 export async function GET(_request: Request, { params }: RouteContext<"/apercus/noel/[fichier]">) {
   const { fichier } = await params;
   const contentType = fileTypes.get(fichier);
@@ -45,7 +59,9 @@ export async function GET(_request: Request, { params }: RouteContext<"/apercus/
 
   const supabase = await createSupabaseServerClient();
   const { data: { user }, error } = await getAuthenticatedUser(supabase);
-  if (error || !user || !previewAccountIds.has(user.id)) return notFound();
+  if (error || !user || !previewAccountIds.has(user.id)) {
+    return fichier.endsWith(".html") ? accessNotice(!error && !!user) : notFound();
+  }
 
   const content = await readFile(join(process.cwd(), "assets", "christmas-preview", fichier));
   return new Response(new Uint8Array(content), {

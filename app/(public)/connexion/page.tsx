@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "@/components/ui/app-link";
+import { getLoginReturnPath } from "@/lib/auth/login-return-path";
 
 import { LoginForm } from "../../../components/auth/login-form";
 
@@ -22,13 +23,14 @@ const benefits = [
 type LoginPageProps = {
   searchParams: Promise<{
     status?: string;
+    returnTo?: string | string[];
   }>;
 };
 
 export default async function LoginPage({
   searchParams,
 }: LoginPageProps) {
-  const { status } = await searchParams;
+  const { status, returnTo } = await searchParams;
 
   const passwordWasUpdated =
     status === "password-updated";
@@ -160,7 +162,7 @@ export default async function LoginPage({
             ) : null}
 
             <div className="mt-7">
-              <LoginForm />
+              <LoginForm returnTo={getLoginReturnPath(returnTo)} />
             </div>
 
             <div className="mt-4 text-right">

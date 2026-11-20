@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { getLoginReturnPath } from "@/lib/auth/login-return-path";
 
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import type { LoginState } from "./login-state";
@@ -100,7 +101,7 @@ export async function loginAccount(
     };
   }
 
-  redirect("/jeu");
+  redirect(getLoginReturnPath(formData.get("returnTo")));
 }
 
 function getFormValue(
