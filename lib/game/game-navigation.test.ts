@@ -49,6 +49,7 @@ describe("shared management navigation",()=>{
     ["/jeu/materiel/equiper","/jeu/materiel/equiper","equipment"],
     ["/jeu/materiel/equipementier","/jeu/materiel/equipementier","equipment"],
     ["/jeu/effectif","/jeu/effectif","team"],
+    ["/jeu/pantheon","/jeu/pantheon","races"],
     ["/jeu/staff/formations","/jeu/staff","team"],
     ["/jeu/championnats-nationaux/route","/jeu/championnats-nationaux","federation"],
     ["/jeu/selections-internationales","/jeu/selections-internationales","federation"],
@@ -68,6 +69,7 @@ describe("shared management navigation",()=>{
     const hrefs=groups.flatMap(group=>group.links.map(([,href])=>href));
     for(const href of ["/jeu","/jeu/effectif","/jeu/transferts","/jeu/calendrier","/jeu/preparation-course","/jeu/resultats"])expect(hrefs).not.toContain(href);
     expect(hrefs).toContain("/jeu/materiel/laboratoire");
+    expect(hrefs).toContain("/jeu/pantheon");
     expect(hrefs).toContain("/jeu/guide");
   });
   it("keeps the menu inventory independent of game data and the dashboard",()=>{

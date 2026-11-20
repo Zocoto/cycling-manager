@@ -18,6 +18,7 @@ export const NAVIGATION_GROUPS_FR: ReadonlyArray<GameNavigationGroup> = [
   {id:"races",label:"Courses & résultats",links:[
     ["Calendrier & inscriptions","/jeu/calendrier"], ["Préparation de course","/jeu/preparation-course"],
     ["Directs, résultats & replays","/jeu/resultats"], ["Classements UCI","/jeu/classements"],
+    ["Panthéon","/jeu/pantheon"],
     ["Rivalités","/jeu/rivalites"],
   ]},
   {id:"equipment",label:"Matériel & inventaire",links:[
@@ -51,6 +52,7 @@ export const NAVIGATION_GROUPS_EN: ReadonlyArray<GameNavigationGroup> = [
   {id:"races",label:"Races & results",links:[
     ["Calendar & entries","/jeu/calendrier"], ["Race preparation","/jeu/preparation-course"],
     ["Live, results & replays","/jeu/resultats"], ["UCI rankings","/jeu/classements"],
+    ["Hall of Fame","/jeu/pantheon"],
     ["Rivalries","/jeu/rivalites"],
   ]},
   {id:"equipment",label:"Equipment & inventory",links:[
