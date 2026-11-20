@@ -39,6 +39,10 @@ check(silverTrade(Object.fromEntries(silver.map(c => [c.number, 5])), cards, 0) 
 check(new Set(items.map(item => item.id)).size === items.length, "Catalog identifiers are unique");
 check(!byId.has("billet-neige") && !byId.has("lettre-relais"), "Removed items no longer enter rewards");
 check(advent.length === 24 && advent.every(entry => entry.kind !== "item" || byId.has(entry.itemId)), "All Advent gifts exist");
+const adventSkins = advent.filter(entry => entry.kind === "item" && byId.get(entry.itemId)?.category === "portrait");
+check(adventSkins.length === 5 && adventSkins.every(entry => byId.get(entry.itemId).source === "avent" && !("price" in byId.get(entry.itemId))), "Five Advent cosmetics are exclusive and unavailable for purchase");
+check(items.filter(item => item.category !== "portrait").every(item => !("limit" in item)), "Consumable purchases have no numerical cap");
+check(items.every(item => !("proposal" in item) && !item.description.includes("Proposition")), "Validated items have no proposal labels");
 check(milestones.length === 9 && milestones.at(-1).goal === 28000, "Nine visible collective goals");
 check(milestones.every((m, i) => m.items.every(id => byId.has(id)) && (!i || m.goal > milestones[i - 1].goal)), "Every tier has valid rewards and increasing goals");
 check(milestones.at(-1).items[0] === "potential-notebook" && byId.get("potential-notebook").source === "sapin", "Summit reuses the existing potential consumable");

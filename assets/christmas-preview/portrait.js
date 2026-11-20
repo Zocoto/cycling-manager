@@ -37,6 +37,9 @@
     "tenue-facteur": "tenue", "tenue-pere-noel": "tenue", "tenue-lutin": "tenue", "tenue-aurore": "tenue",
     "cache-cou-renne": "masque", "barbe-pere-noel": "masque", "lunettes-givre": "lunettes",
     "couronne-rayons": "cadre", "halo-etoiles": "cadre", "cadre-grand-sapin": "cadre",
+    "avent-bonnet-constellation": "chapeau", "avent-nuit-lanternes": "fond",
+    "avent-echarpe-pain-epices": "masque", "avent-manteau-casse-noisette": "tenue",
+    "avent-cadre-givre": "cadre",
   };
 
   function fillPath(context, data, color) {
@@ -95,6 +98,40 @@
     context.fill();
   }
 
+  function grelot(context, x, y, radius) {
+    context.save();
+    context.translate(x, y);
+    context.beginPath();
+    context.ellipse(0, -radius, radius * .28, radius * .38, 0, 0, Math.PI * 2);
+    context.strokeStyle = "#a97b43";
+    context.lineWidth = Math.max(.3, radius * .15);
+    context.stroke();
+    const metal = context.createRadialGradient(-radius * .35, -radius * .4, radius * .03, 0, 0, radius);
+    metal.addColorStop(0, "#fff2bb");
+    metal.addColorStop(.35, "#e8c57d");
+    metal.addColorStop(1, "#a6783d");
+    ellipse(context, 0, 0, radius, radius, metal);
+    line(context, `M${-radius * .92} 0Q0 ${radius * .2} ${radius * .92} 0`, "#b38952", Math.max(.2, radius * .06));
+    line(context, `M${-radius * .4} ${radius * .35}Q0 ${radius * .68} ${radius * .4} ${radius * .35}`, "#614525", Math.max(.3, radius * .13));
+    for (const side of [-1, 1]) {
+      ellipse(context, side * radius * .4, radius * .35, radius * .13, radius * .13, "#614525");
+    }
+    line(context, `M${-radius * .5} ${-radius * .39}Q${-radius * .3} ${-radius * .62} ${-radius * .08} ${-radius * .63}`, "#fff6d3", Math.max(.3, radius * .08));
+    context.restore();
+  }
+
+  function snowflake(context, x, y, radius, color) {
+    context.save();
+    context.translate(x, y);
+    for (let arm = 0; arm < 6; arm++) {
+      context.save();
+      context.rotate(arm * Math.PI / 3);
+      line(context, `M0 0V${-radius}M${-radius * .24} ${-radius * .67}L0 ${-radius * .45}L${radius * .24} ${-radius * .67}`, color, Math.max(.4, radius * .12));
+      context.restore();
+    }
+    context.restore();
+  }
+
   function fir(context, x, y, height, color) {
     rounded(context, x - height * .04, y - height * .15, height * .08, height * .2, .5, "#62483a");
     for (let tier = 0; tier < 3; tier++) {
@@ -120,6 +157,33 @@
       context.globalAlpha = .15;
       ellipse(context, 99, 28, 20, 20, "#FFFFFF");
       context.globalAlpha = 1;
+      return;
+    }
+    if (id === "avent-nuit-lanternes") {
+      const sky = context.createLinearGradient(0, 0, 0, 120);
+      sky.addColorStop(0, "#35223f");
+      sky.addColorStop(.6, "#9d7384");
+      sky.addColorStop(1, "#f3d8ca");
+      context.fillStyle = sky;
+      context.fillRect(0, 0, 120, 120);
+      ellipse(context, 96, 19, 8, 8, "#f8dfb0");
+      fillPath(context, "M0 74L15 56L32 70L49 43L74 69L92 50L120 71V120H0Z", "#69546e");
+      fillPath(context, "M0 87Q32 78 60 90T120 87V120H0Z", "#eddbd6");
+      for (const [x, y] of [[7, 67], [96, 74]]) {
+        rounded(context, x, y, 18, 18, 1, "#69494b");
+        fillPath(context, `M${x - 3} ${y}L${x + 9} ${y - 10}L${x + 21} ${y}Z`, "#fff0df");
+        rounded(context, x + 6, y + 4, 6, 7, .5, "#ffd596");
+      }
+      line(context, "M0 28Q60 52 120 28", "#e2b483", .6);
+      for (const [x, y] of [[18, 34], [37, 40], [84, 40], [104, 32]]) {
+        line(context, `M${x} ${y - 4}V${y + 1}`, "#e2b483", .7);
+        context.shadowColor = "#ffc97d";
+        context.shadowBlur = 8;
+        ellipse(context, x, y + 5, 3.6, 4.8, "#ffd79c");
+        context.shadowBlur = 0;
+        line(context, `M${x - 2.5} ${y + 2}H${x + 2.5}M${x - 2.5} ${y + 8}H${x + 2.5}`, "#b77752", .7);
+      }
+      snow(context);
       return;
     }
     const sky = context.createLinearGradient(0, 0, 0, 120);
@@ -164,6 +228,7 @@
       "tenue-pere-noel": ["#b23446", "#fff3df"],
       "tenue-lutin": ["#15573f", "#ddbc73"],
       "tenue-aurore": ["#213b56", "#bdede0"],
+      "avent-manteau-casse-noisette": ["#225b70", "#f4e0b0"],
     }[outfit] ?? ["#176951", "#FFFDF4"];
     const image = new Image();
     image.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
@@ -188,6 +253,17 @@
       line(context, "M21 115Q40 85 60 111T102 106", "#54bca3", 3);
       line(context, "M19 119Q42 93 62 117T104 112", "#b1a2e0", 2);
       for (const [x, y] of [[34, 100], [82, 98], [74, 113]]) star(context, x, y, 2.1, ivory);
+    } else if (id === "avent-manteau-casse-noisette") {
+      fillPath(context, "M42 83L51 92L60 95L69 92L78 83L73 95L60 101L47 95Z", "#ead09a");
+      line(context, "M60 101V120", "#e7c781", 1.3);
+      for (const y of [102, 109, 116]) {
+        line(context, `M47 ${y}Q53 ${y - 4} 60 ${y}Q67 ${y - 4} 73 ${y}`, brass, 1.1);
+        for (const x of [47, 73]) ellipse(context, x, y, 1.4, 1.4, "#f4dba3");
+      }
+      for (const [x, angle] of [[32, -.45], [88, .45]]) {
+        ellipse(context, x, 92, 8, 3.2, "#85394a", angle);
+        line(context, `M${x - 5} 94L${x - 4} 98M${x - 1} 95V99M${x + 3} 94L${x + 4} 98`, brass, 1);
+      }
     } else {
       line(context, "M40 85L60 104L80 85 M60 105V120", brass, 1.1);
       rounded(context, 77, 106, 14, 7, 1.3, "#d38572");
@@ -202,6 +278,13 @@
       ellipse(context, 95, 29, 6, 6, ivory);
       line(context, "M34 31Q60 22 86 31", ivory, 7.5);
       line(context, "M36 32Q60 26 84 32", "#eee0cb", .8);
+    } else if (id === "avent-bonnet-constellation") {
+      fillPath(context, "M33 30Q33 16 44 10Q60 0 72 12L84 29Z", "#375481");
+      fillPath(context, "M35 28Q41 13 56 8Q46 18 47 28Z", "#5c75a0");
+      ellipse(context, 57, 7, 4.9, 4.8, "#dbe7ec");
+      line(context, "M34 31Q60 23 85 31", "#dce7e9", 6);
+      line(context, "M36 32Q60 27 83 32", "#9fb8c8", .9);
+      for (const [x, y, radius] of [[48, 18, 2.4], [62, 16, 2], [73, 23, 2.1]]) star(context, x, y, radius, "#f6d98b");
     } else if (id === "couronne-noel") {
       line(context, "M30 33Q60 10 90 33", "#164b37", 6);
       for (let index = 0; index < 13; index++) {
@@ -216,8 +299,7 @@
       line(context, "M34 31Q60 21 86 31", cranberry, 3.5);
       line(context, "M36 29L29 19L29 7M29 17L20 10M29 12L36 4 M84 29L91 19L91 7M91 17L100 10M91 12L84 4", "#b78954", 3);
       for (const x of [34, 86]) {
-        ellipse(context, x, 32, 2.4, 2.8, brass);
-        line(context, `M${x - 1} 33H${x + 1}`, "#805f38", .6);
+        grelot(context, x, 32, 2.6);
       }
     }
   }
@@ -228,6 +310,16 @@
       fillPath(context, "M41 65Q47 74 60 72Q72 73 79 65Q78 85 60 95Q44 84 41 65Z", "#fffaf0");
       fillPath(context, "M60 64Q49 58 43 67Q48 72 60 67Q72 73 78 66Q70 58 60 64Z", "#fffdf5");
       line(context, "M46 76Q48 85 55 88 M65 78Q69 85 62 91", "#d5d9cf", .9);
+    } else if (id === "avent-echarpe-pain-epices") {
+      fillPath(context, "M37 66Q60 77 83 66L80 80Q61 92 40 81Z", "#b87548");
+      fillPath(context, "M74 80L85 77L84 102L73 106Z", "#a76240");
+      line(context, "M39 71Q60 82 81 71M41 78Q60 88 79 79", "#f5dfb7", 1.3);
+      line(context, "M74 101L74 107M77 102V108M80 101V107M83 100V106", "#edc798", .9);
+      for (const x of [46, 55, 64, 73]) {
+        line(context, `M${x - 2} 75L${x} 77L${x + 2} 75`, "#fff0d1", .8);
+      }
+      ellipse(context, 79, 88, 1.7, 1.7, "#f9dfad");
+      line(context, "M79 90V96M76 91L82 91M79 95L76 98M79 95L82 98", "#f9dfad", 1.6);
     } else if (id === "cache-cou-renne") {
       fillPath(context, "M36 64Q60 73 84 64L80 81Q60 94 40 81Z", "#175447");
       line(context, "M39 69Q60 78 81 69 M41 79Q60 88 79 79", "#71aa87", 1);
@@ -245,6 +337,26 @@
 
   function drawFrame(context, id) {
     if (!id) return;
+    if (id === "avent-cadre-givre") {
+      context.beginPath();
+      context.arc(60, 60, 56, 0, Math.PI * 2);
+      context.strokeStyle = "#acc7d7";
+      context.lineWidth = 3;
+      context.stroke();
+      context.beginPath();
+      context.arc(60, 60, 57.2, 0, Math.PI * 2);
+      context.strokeStyle = "#f5ffff";
+      context.lineWidth = .8;
+      context.stroke();
+      for (let index = 0; index < 12; index++) {
+        const angle = index / 12 * Math.PI * 2;
+        const x = 60 + Math.cos(angle) * 55;
+        const y = 60 + Math.sin(angle) * 55;
+        snowflake(context, x, y, index % 3 === 0 ? 4.9 : 3.4, "#f5ffff");
+        if (index % 3 === 0) ellipse(context, x, y, 1.2, 1.2, "#a5d9ec");
+      }
+      return;
+    }
     const grand = id === "cadre-grand-sapin";
     const radius = grand ? 55 : 57;
     context.beginPath();
@@ -373,12 +485,9 @@
         line(context, "M88 32L97 23M91 45H101M87 54L96 62", brass, 1.4);
         break;
       case "grelot-repechage":
-        ellipse(context, 60, 43, 6, 7, "#e8c989");
-        fillPath(context, "M60 41Q38 43 35 69L31 76Q60 88 89 76L85 69Q82 43 60 41Z", brass);
-        line(context, "M34 75Q60 82 86 75", "#b07c40", 2);
-        ellipse(context, 60, 80, 4.2, 5.2, "#ac713e");
+        grelot(context, 60, 64, 26);
         line(context, "M35 33Q58 15 82 32L86 43M86 43L76 39M86 43L89 33", "#e5efe0", 2.2);
-        star(context, 60, 59, 7, ivory);
+        star(context, 94, 67, 4, ivory);
         break;
       case "hotte-doublons":
         fillPath(context, "M40 43Q30 58 29 83Q60 106 93 84Q92 57 80 43Z", cranberry);

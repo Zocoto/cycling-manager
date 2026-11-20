@@ -5,6 +5,19 @@
   const hitch = { x: -122, y: 21 };
   const clamp = (value, minimum, maximum) => Math.max(minimum, Math.min(maximum, value));
 
+  function getCourseWind(distance) {
+    if (distance <= 1470) return 0;
+    const fade = (start) => {
+      const progress = clamp((distance - start) / 420, 0, 1);
+      return progress * progress * (3 - 2 * progress);
+    };
+    const base = 125 * fade(1470) - 290 * fade(2930)
+      + 165 * fade(4480) + 210 * fade(5260);
+    const gust = Math.sin((distance - 1470) / 330) * 28
+      + Math.sin((distance - 1470) / 730) * 14;
+    return clamp(base + gust * fade(1470), -210, 235);
+  }
+
   function createSleigh(tug) {
     return {
       x: tug.x + hitch.x, y: tug.y + hitch.y,
@@ -87,6 +100,6 @@
   }
 
   globalThis.ChristmasFlightPhysics = Object.freeze({
-    createSleigh, updateSleigh, getSleighOutlet, createParcel, parcelAt, fallTime,
+    createSleigh, updateSleigh, getSleighOutlet, createParcel, parcelAt, fallTime, getCourseWind,
   });
 })();

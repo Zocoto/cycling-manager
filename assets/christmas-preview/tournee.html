@@ -80,6 +80,33 @@
   }
   .flight-help p { margin: 0; }
   .flight-help p + p { margin-top: .28rem; }
+  .flight-summary {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: grid;
+    place-content: center;
+    gap: .45rem;
+    padding: .75rem;
+    color: #fff7e3;
+    background: #10282be8;
+    text-align: center;
+  }
+  .flight-summary[hidden] { display: none; }
+  .flight-summary h2 { margin: 0; font-size: clamp(1.2rem, 4vw, 1.8rem); }
+  .flight-summary p { margin: 0; color: var(--soft); font-size: .85rem; }
+  .flight-summary-values { display: flex; justify-content: center; gap: .8rem; }
+  .flight-summary-values[hidden] { display: none; }
+  .flight-summary-values > div {
+    min-width: 105px;
+    padding: .45rem .6rem;
+    border: 1px solid #f8d99155;
+    border-radius: 12px;
+    background: #ffffff08;
+  }
+  .flight-summary-values strong { color: var(--gold); font-size: 1.8rem; }
+  .flight-summary-values span { display: block; color: var(--soft); font-size: .75rem; }
+  .flight-summary-values svg { width: 20px; height: 24px; margin-right: .2rem; vertical-align: middle; }
   kbd {
     padding: .04rem .27rem;
     border: 1px solid #f5dc9c4d;
@@ -117,6 +144,7 @@
     }
     #cyclo-winter-flight .flight-hud strong { font-weight: 500; }
     #cyclo-winter-flight .flight-stage {
+      position: relative;
       display: grid;
       overflow: clip;
       border-radius: calc(var(--font-size-base) * .7);
@@ -135,7 +163,6 @@
   </style>
   <div class="viz-row flight-hud tabular-nums">
     <div class="viz-row">
-      <span><strong data-score>0</strong> pts</span>
       <span><strong data-gifts>14</strong> cadeaux</span>
       <span>Série <strong data-streak>0</strong></span>
       <span class="text-small" data-sleigh>Traîneau stable</span>
@@ -144,6 +171,25 @@
   </div>
   <div class="flight-stage">
     <canvas width="1200" height="600" role="img" aria-label="Trois rennes sur leurs vélos tirent un traîneau de cadeaux. Flèches ou glisser pour diriger. Bouton ou Espace pour lâcher. Le grand viseur indique où le cadeau tombera, sur téléphone comme sur PC." class="cursor-interaction"></canvas>
+    <section class="flight-summary" data-flight-summary aria-live="polite" hidden>
+      <h2 data-summary-title>Tournée terminée</h2>
+      <p data-summary-deliveries></p>
+      <div class="flight-summary-values" data-summary-values hidden>
+        <div>
+          <svg viewBox="0 0 28 32" aria-hidden="true">
+            <circle cx="14" cy="4" r="3" fill="none" stroke="#e6bf70" stroke-width="2" />
+            <circle cx="14" cy="19" r="11" fill="#e6bf70" />
+            <path d="M7 14c1-3 4-4 7-4" fill="none" stroke="#fff0bb" stroke-width="2" stroke-linecap="round" />
+            <path d="M5 22h18M14 22v8" fill="none" stroke="#5d4524" stroke-width="2" stroke-linecap="round" />
+            <circle cx="9" cy="20" r="1.5" fill="#5d4524" />
+            <circle cx="19" cy="20" r="1.5" fill="#5d4524" />
+          </svg>
+          <strong data-summary-grelots>0</strong><span>Grelots gagnés</span>
+        </div>
+        <div><strong data-summary-lights>0</strong><span>Lumières ajoutées</span></div>
+      </div>
+      <p data-summary-note>Bilan en cours…</p>
+    </section>
   </div>
   <span data-target role="status">Place le viseur sur une cheminée</span>
   <div class="progress" data-progress role="progressbar" aria-label="Progression de la tournée" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
@@ -162,6 +208,7 @@
   <p class="touch-help">Glisse pour diriger les rennes, relâche pour les arrêter, puis appuie sur <strong>Lâcher un cadeau</strong>.</p>
   <p>Le traîneau se balance quand les rennes changent de direction. Stabilise-le avant de lancer : le cadeau garde son élan, puis le vent le dévie.</p>
   <p>Le grand viseur et les pointillés montrent la trajectoire sur tous les appareils. Le viseur passe au vert quand le lancer est aligné avec la cheminée. Il ne corrige pas le tir.</p>
+  <p>Les trois premières cheminées sont à l’abri du vent. Ensuite, les rafales varient doucement : regarde la manche à air et prépare ton prochain lancer.</p>
   <p>Évite les oies et les ballons, qui bloquent brièvement les lancers.</p>
 </div>
 </main>

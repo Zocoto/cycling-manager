@@ -33,7 +33,6 @@
 .tree-challenge { color: #7a6b4d; font-size: .72rem; line-height: 1.5; margin-top: .7rem; }
 .pilot-collective { display: flex; align-items: center; gap: .4rem; font-size: .72rem; }
 .pilot-collective input { width: 115px; accent-color: #406c48; }
-.item-proposal { display: inline-block; padding: .22rem .4rem; border-radius: 4px; background: #eee0c0; color: #745227; font-size: .62rem; font-weight: 750; }
 .reco-stages { display: grid; gap: .65rem; padding: .85rem; border: 1px solid #c6d1c3; border-radius: 8px; background: #eef3e9; }
 .reco-consumable { display: flex; align-items: start; gap: .6rem; color: #34513a; font-size: .85rem; line-height: 1.5; }
 .reco-consumable input { accent-color: #3c6b47; margin-top: 4px; }

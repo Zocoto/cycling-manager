@@ -34,6 +34,7 @@
       const parcelRadius = 5;
       const openingTolerance = 4;
       const dropLockDuration = 1.2;
+      const releaseCooldown = .35;
       const route = [
         [625, 315, 58], [1010, 290, 49], [1430, 320, 40],
         [1820, 280, 54], [2240, 312, 33], [2640, 297, 46],
@@ -58,7 +59,6 @@
       });
       const primary = root.querySelector("[data-drop]");
       const status = root.querySelector("[data-status]");
-      const score = root.querySelector("[data-score]");
       const gifts = root.querySelector("[data-gifts]");
       const streak = root.querySelector("[data-streak]");
       const windLabel = root.querySelector("[data-wind]");
@@ -66,6 +66,13 @@
       const targetLabel = root.querySelector("[data-target]");
       const progress = root.querySelector("[data-progress]");
       const progressBar = progress.firstElementChild;
+      const summary = root.querySelector("[data-flight-summary]");
+      const summaryTitle = root.querySelector("[data-summary-title]");
+      const summaryDeliveries = root.querySelector("[data-summary-deliveries]");
+      const summaryValues = root.querySelector("[data-summary-values]");
+      const summaryGrelots = root.querySelector("[data-summary-grelots]");
+      const summaryLights = root.querySelector("[data-summary-lights]");
+      const summaryNote = root.querySelector("[data-summary-note]");
       const darkMode = matchMedia("(prefers-color-scheme: dark)");
       const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
       const keys = new Set();
@@ -84,6 +91,7 @@
         y: (i * 47.3) % height,
         speed: 13 + (i % 7) * 3,
       }));
+      let runSerial = 0;
       let game = newFlight();
       let pointer = null;
       let previousFrame = 0;
@@ -93,12 +101,15 @@
         const player = { x: 295, y: 143, vx: 0, vy: 0 };
         return {
           mode: "ready", time: 0, distance: 0,
+          runId: "tournee-" + Date.now().toString(36) + "-" + (++runSerial).toString(36),
+          summaryReceived: false,
           player,
           sleigh: physics.createSleigh(player),
           chimneys: route.map(([x, y, size]) => ({ x, y, size, outcome: "open" })),
           parcel: null, available: route.length, score: 0, streak: 0,
           deliveries: 0, flash: null, progress: -1,
           dropLockedUntil: 0, contactedObstacles: new Set(),
+          nextReleaseAt: 0,
         };
       }
 
@@ -107,21 +118,17 @@
       }
 
       function windAt(distance) {
-        if (distance < 1470) return 0;
-        if (distance < 2930) return 125;
-        if (distance < 4480) return -165;
-        if (distance < 5260) return 0;
-        return 210;
+        return physics.getCourseWind(distance);
       }
 
       function syncHud() {
-        if (score.textContent !== String(game.score)) score.textContent = String(game.score);
         if (gifts.textContent !== String(game.available)) gifts.textContent = String(game.available);
         if (streak.textContent !== String(game.streak)) streak.textContent = String(game.streak);
         const wind = windAt(game.distance);
-        const label = wind === 0 ? "Vent calme"
-          : wind < 0 ? "← Vent à gauche"
-          : wind >= 200 ? "Vent fort à droite →" : "Vent à droite →";
+        const strength = Math.abs(wind);
+        const breeze = strength < 85 ? "Brise variable" : strength < 170 ? "Vent variable" : "Rafale";
+        const label = strength < 8 ? "Vent calme"
+          : wind < 0 ? "← " + breeze : breeze + " →";
         if (windLabel.textContent !== label) windLabel.textContent = label;
         const stable = Math.hypot(game.sleigh.vx, game.sleigh.vy) < 65
           && Math.abs(game.sleigh.angle) < .065
@@ -129,13 +136,14 @@
         const sleighState = stable ? "Traîneau stable" : "Traîneau en mouvement";
         if (sleighLabel.textContent !== sleighState) sleighLabel.textContent = sleighState;
         const lock = clamp(game.dropLockedUntil - game.time, 0, dropLockDuration);
+        const reloading = game.nextReleaseAt > game.time;
         if (game.mode === "playing") {
           const action = lock > 0
             ? "Lancer bloqué · " + (Math.ceil(lock * 10) / 10).toFixed(1).replace(".", ",") + " s"
-            : "Lâcher un cadeau";
+            : game.parcel ? "Cadeau en vol" : reloading ? "Préparation du cadeau…" : "Lâcher un cadeau";
           if (primary.textContent !== action) primary.textContent = action;
         }
-        if (lock > 0 && game.mode === "playing") {
+        if ((lock > 0 || reloading || game.parcel) && game.mode === "playing") {
           if (!primary.hasAttribute("aria-disabled")) primary.setAttribute("aria-disabled", "true");
         } else if (primary.hasAttribute("aria-disabled")) {
           primary.removeAttribute("aria-disabled");
@@ -192,9 +200,9 @@
         game.score += earned;
         game.streak += 1;
         game.deliveries += 1;
-        game.flash = { x: chimney.x, y: chimney.y, at: game.time, earned };
+        game.flash = { x: chimney.x, y: chimney.y, at: game.time };
         game.parcel = null;
-        status.textContent = (accuracy >= 43 ? "Plein centre" : "Cadeau livré") + " · +" + earned + " pts";
+        status.textContent = accuracy >= 43 ? "Plein centre · cadeau livré !" : "Cadeau livré !";
       }
 
       function updateParcel() {
@@ -293,8 +301,13 @@
         keys.clear();
         pointer = null;
         primary.textContent = "Rejouer";
-        status.textContent = game.deliveries + "/14 livraisons · " + game.score + " points";
-        notifyPilot("noel:tournee-terminee", { score: game.score, deliveries: game.deliveries });
+        status.textContent = game.deliveries + "/14 cadeaux livrés";
+        summary.hidden = false;
+        summaryTitle.textContent = "Tournée terminée";
+        summaryDeliveries.textContent = game.deliveries + "/14 cadeaux livrés";
+        summaryValues.hidden = true;
+        summaryNote.textContent = "Bilan en cours…";
+        notifyPilot("noel:tournee-terminee", { runId: game.runId, score: game.score, deliveries: game.deliveries });
       }
 
       function line(points, color, size) {
@@ -343,6 +356,14 @@
           ellipse(x + 24, 214, 91, 6, "#b4d3e220", -.04);
           ellipse(x + 144, 150, 53, 4, "#dceef321", -.025);
         }
+        const wind = windAt(game.distance);
+        const extension = Math.min(1, Math.abs(wind) / 235);
+        const direction = wind < 0 ? -1 : 1;
+        const flutter = Math.sin(game.time * 3) * extension * 3;
+        line([[750, 31], [750, 64]], "#e5d6b3", 2);
+        const tip = 750 + direction * (9 + extension * 28);
+        shape([[750, 32], [tip, 37 + flutter], [tip, 43 + flutter], [750, 46]], "#e9b78b");
+        line([[750 + (tip - 750) * .4, 34], [750 + (tip - 750) * .4, 45]], "#fff1d4", 3);
       }
 
       function drawLantern(x, y) {
@@ -652,7 +673,7 @@
         }
         if (!target) return;
         const aligned = landing?.chimney === target.chimney;
-        const locked = game.dropLockedUntil > game.time;
+        const locked = game.dropLockedUntil > game.time || game.nextReleaseAt > game.time;
         const colour = locked ? "#f0b3b5" : aligned ? "#b5ffd0" : "#a9e4ff";
         const s = markerScale;
         const x = target.point.x - game.distance;
@@ -712,7 +733,7 @@
             ctx.fillStyle = "#ffe6a6";
             ctx.font = "500 28px system-ui, sans-serif";
             ctx.textAlign = "center";
-            ctx.fillText("+" + game.flash.earned, game.flash.x - game.distance, game.flash.y - 26 - age * 30);
+            ctx.fillText("Livré !", game.flash.x - game.distance, game.flash.y - 26 - age * 30);
             ctx.globalAlpha = 1;
           }
         }
@@ -735,7 +756,8 @@
         if (game.mode !== "playing") {
           game = newFlight();
           game.mode = "playing";
-          notifyPilot("noel:tournee-demarree");
+          summary.hidden = true;
+          notifyPilot("noel:tournee-demarree", { runId: game.runId });
           previousFrame = performance.now();
           accumulator = 0;
           status.textContent = "Stabilise le traîneau, puis livre les 14 cheminées";
@@ -746,11 +768,12 @@
           requestAnimationFrame(frame);
           return;
         }
-        if (game.parcel || game.available === 0 || game.dropLockedUntil > game.time) return;
+        if (game.parcel || game.available === 0 || game.dropLockedUntil > game.time || game.nextReleaseAt > game.time) return;
         const parcel = launchState();
         parcel.landing = findLanding(parcel);
         game.available -= 1;
         game.parcel = parcel;
+        game.nextReleaseAt = game.time + releaseCooldown;
         syncHud();
       }
 
@@ -813,6 +836,25 @@
         if (!root.contains(event.relatedTarget)) keys.clear();
       });
       window.addEventListener("keyup", event => keys.delete(event.code));
+      window.addEventListener("message", event => {
+        if (event.source !== window.parent || event.origin !== parentOrigin) return;
+        const result = event.data;
+        if (!result || result.type !== "noel:tournee-bilan" || game.mode !== "finished" || game.summaryReceived) return;
+        if (result.runId !== undefined && result.runId !== game.runId) return;
+        if (!Number.isSafeInteger(result.grelots) || result.grelots < 0
+          || !Number.isSafeInteger(result.lights) || result.lights < 0
+          || typeof result.practice !== "boolean" || typeof result.improved !== "boolean") return;
+        game.summaryReceived = true;
+        summaryTitle.textContent = result.practice ? "Tournée d’entraînement" : "Tournée terminée";
+        summaryGrelots.textContent = String(result.grelots);
+        summaryLights.textContent = String(result.lights);
+        summaryValues.hidden = false;
+        summaryNote.textContent = result.practice
+          ? "La tournée du jour a déjà été récompensée : aucun nouveau gain."
+          : result.retry === true
+            ? result.improved ? "Seuls tes gains supplémentaires sont crédités." : "Ton meilleur résultat est conservé : aucun gain supplémentaire."
+            : "Ces Grelots et lumières ont été crédités dans l’aperçu.";
+      });
       window.addEventListener("blur", () => { keys.clear(); pointer = null; });
       const redrawTheme = () => { if (game.mode !== "playing") draw(); };
       if (typeof darkMode.addEventListener === "function") {

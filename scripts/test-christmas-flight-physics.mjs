@@ -18,6 +18,31 @@ function near(actual, expected, tolerance, label) {
 const stillTug = () => ({ x: 295, y: 143, vx: 0, vy: 0 });
 const parcelOptions = { distance: 900, courseSpeed: 236, wind: 0 };
 
+{
+  for (const distance of [0, 625, 1010, 1430, 1470]) {
+    near(physics.getCourseWind(distance), 0, 0, "The first three chimneys are sheltered");
+  }
+  let bounded = true;
+  let smooth = true;
+  let previous = physics.getCourseWind(0);
+  for (let distance = 1; distance <= 6540; distance++) {
+    const wind = physics.getCourseWind(distance);
+    bounded &&= Number.isFinite(wind) && wind >= -210 && wind <= 235;
+    smooth &&= Math.abs(wind - previous) < 1.2;
+    previous = wind;
+  }
+  check(bounded, "Gradual gusts stay within the planned strength");
+  check(smooth, "Wind never jumps at a course transition");
+  check(physics.getCourseWind(2400) > 0 && physics.getCourseWind(3900) < 0,
+    "The visible wind changes direction across the village");
+  const sleigh = physics.createSleigh(stillTug());
+  const parcel = physics.createParcel(sleigh, { ...parcelOptions, wind: physics.getCourseWind(2800) });
+  const beforeGust = physics.parcelAt(parcel, .6);
+  check(Math.abs(physics.getCourseWind(3400) - parcel.wind) > 100, "The test crosses a material wind change");
+  assert.deepEqual(physics.parcelAt(parcel, .6), beforeGust, "An airborne parcel retains its accepted landing through a gust");
+  checks += 1;
+}
+
 for (const [vx, vy] of [[320, 0], [-320, 0], [0, 320], [0, -320]]) {
   const tug = stillTug();
   const sleigh = physics.createSleigh(tug);
@@ -112,7 +137,7 @@ for (const wind of [0, -165, 210]) {
 
 // Aim with the convoy's position and release timing. At the real 120 Hz tick,
 // a settled sleigh can hit even a 24 px opening under every course wind.
-for (const wind of [0, 125, -165, 210]) {
+for (const wind of [0, 125, -210, 235]) {
   for (const targetY of [276, 320]) {
     for (const tugY of [72, 143, 211]) {
       const sleigh = physics.createSleigh({ ...stillTug(), y: tugY });

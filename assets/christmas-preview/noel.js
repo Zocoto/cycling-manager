@@ -17,20 +17,30 @@
   const rarityLabels = { bronze: "Bronze", silver: "Argent", gold: "Or", holographic: "Hors Série" };
   const recoStages = ["Étape 1 · Vallons", "Étape 2 · Montagne", "Étape 3 · Chrono"];
   const previewRiders = [{ id: "rider-a", name: "Alex Martin", potential: 2 }, { id: "rider-b", name: "Camille Leroy", potential: 3 }];
-  let state = load(), view = "noel", shopFilter = "tout", toastTimer, currentRunDay = state.day;
+  let state = load(), view = "noel", shopFilter = "tout", toastTimer, currentRunDay = state.day, activeFlight = null;
   function fresh() {
     return {
       day: 12, balance: 540, opened: [],
       quantities: { "booster-noel": 1, "boussole-polaire": 1, "carnet-eclaireur": 1, "grelot-repechage": 1, "vignette-renne": 1 },
       bought: {}, equipped: {}, runs: {}, retryDays: [], deliveries: 0,
       communityLights: 4200, participants: 42, milestones: [], log: [],
-      stickers: { 6: 4, 7: 1 }, boosters: 0, scoutingUntil: null, reconnaissances: [], potential: {},
+      stickers: { 6: 4, 7: 1 }, boosters: 0, scoutingUntil: null, reconnaissances: [], potential: {}, lastFlight: null,
     };
   }
   function load() {
     try {
       const saved = JSON.parse(localStorage.getItem(storeKey) ?? "null");
-      return saved && typeof saved === "object" && !Array.isArray(saved) ? { ...fresh(), ...saved } : fresh();
+      if (!saved || typeof saved !== "object" || Array.isArray(saved)) return fresh();
+      const restored = { ...fresh(), ...saved };
+      // Already opened preview windows now contain their new Advent-exclusive
+      // portrait. Preserve the rest of the tester's local inventory.
+      restored.quantities = { ...restored.quantities };
+      for (const day of restored.opened) {
+        const gift = advent[day - 1];
+        const item = gift?.kind === "item" ? itemById.get(gift.itemId) : null;
+        if (item?.source === "avent") restored.quantities[item.id] = Math.max(1, restored.quantities[item.id] ?? 0);
+      }
+      return restored;
     } catch { return fresh(); }
   }
   function save() { try { localStorage.setItem(storeKey, JSON.stringify(state)); } catch { /* Preview remains usable without storage. */ } }
@@ -120,40 +130,40 @@
     record("Avent · " + reward); commit("Cadeau récupéré · " + reward); showAdvent(day);
   }
   function shopStatus(item) {
-    if (isUnique(item) && owns(item)) return "Dans ton inventaire";
-    if ((state.bought[item.id] ?? 0) >= item.limit) return "Limite atteinte";
+    if (isUnique(item) && (owns(item) || (state.bought[item.id] ?? 0) >= 1)) return "Déjà obtenu";
     return state.balance < item.price ? "Grelots insuffisants" : "";
   }
+  function shopAvailability(item) { return isUnique(item) ? "Un seul exemplaire" : "Achats sans limite"; }
   function renderShop() {
     find("#shop-filters").innerHTML = Object.entries(categories).map(([id, name]) => `<button class="filter-button" data-action="filter" data-id="${id}" aria-pressed="${shopFilter === id}">${name}</button>`).join("");
-    const visible = items.filter(item => item.source !== "sapin" && (shopFilter === "tout" || shopFilter === item.category));
+    const visible = items.filter(item => !item.source && (shopFilter === "tout" || shopFilter === item.category));
     find("#shop-grid").innerHTML = visible.map(item => `<article class="shop-card">
       <div class="item-art ${item.category}"><canvas width="340" height="190" data-art="${item.art}"></canvas></div>
-      <div class="item-body"><p class="item-category">${esc(slots[item.slot] ?? categories[item.category])}${item.proposal ? ' · <span class="item-proposal">Nouvelle idée</span>' : ""}</p>
-      <h2>${esc(item.name)}</h2><p>${esc(item.description)}</p><div class="item-meta"><strong>${price(item)}</strong><span>${esc(shopStatus(item) || "Limite · " + item.limit)}</span></div>
+      <div class="item-body"><p class="item-category">${esc(slots[item.slot] ?? categories[item.category])}</p>
+      <h2>${esc(item.name)}</h2><p>${esc(item.description)}</p><div class="item-meta"><strong>${price(item)}</strong><span>${esc(shopStatus(item) || shopAvailability(item))}</span></div>
       <div class="item-actions"><button class="button button-outline" data-action="shop-item" data-id="${item.id}">${item.category === "portrait" ? "Essayer" : "Voir l’effet"}</button></div></div></article>`).join("");
     drawItems(find("#shop-grid"));
   }
   function showShopItem(item) {
-    if (!item || item.source === "sapin") return;
+    if (!item || item.source) return;
     const status = shopStatus(item);
     const body = item.slot ? '<canvas class="try-on" width="420" height="420" id="try-on" role="img" aria-label="Aperçu sur ton portrait"></canvas>' : `<canvas class="reward-art" width="340" height="190" data-art="${item.art}"></canvas>`;
     openDialog(`<p class="dialog-kicker">${esc(slots[item.slot] ?? categories[item.category])}</p><h2 id="dialog-heading">${esc(item.name)}</h2>${body}<p>${esc(item.effect)}</p>
-      <div class="dialog-actions"><span>${esc(status || "Limite · " + item.limit)}</span><button class="button button-dark" data-action="buy" data-id="${item.id}" ${status ? "disabled" : ""}>Acheter · ${price(item)}</button></div>`);
+      <div class="dialog-actions"><span>${esc(status || shopAvailability(item))}</span><button class="button button-dark" data-action="buy" data-id="${item.id}" ${status ? "disabled" : ""}>Acheter · ${price(item)}</button></div>`);
     if (item.slot) window.drawNoelPortrait(find("#try-on"), { ...state.equipped, [item.slot]: item.id });
   }
   function buy(item) {
-    if (!item || item.source === "sapin" || shopStatus(item)) return;
+    if (!item || item.source || shopStatus(item)) return;
     state.balance -= item.price; state.bought[item.id] = (state.bought[item.id] ?? 0) + 1;
     gainItem(item); record("Boutique · " + item.name); dialog.close(); commit(item.name + " rejoint ton inventaire.");
   }
   function renderInventory() {
     find("#portrait-slots").innerHTML = Object.entries(slots).map(([slot, label]) => `<div><span>${label}</span><strong>${esc(itemById.get(state.equipped[slot])?.name ?? "—")}</strong></div>`).join("");
-    const inventory = items.filter(owns).map(item => `<article class="inventory-card"><canvas width="128" height="128" data-art="${item.art}"></canvas><div><h3>${esc(item.name)}</h3><p>Quantité · ${quantity(item.id)}</p></div>
+    const inventory = items.filter(owns).map(item => `<article class="inventory-card"><canvas width="128" height="128" data-art="${item.art}"></canvas><div><h3>${esc(item.name)}</h3>${item.source === "avent" ? '<span class="item-exclusive">Exclusivité de l’Avent</span>' : ""}<p>Quantité · ${quantity(item.id)}</p></div>
       <button class="button button-outline" data-action="inventory-item" data-id="${item.id}">${item.slot ? (state.equipped[item.slot] === item.id ? "Retirer" : "Équiper") : item.id === "booster-noel" || item.id === "vignette-renne" ? "Ouvrir" : "Utiliser"}</button></article>`).join("");
     const collection = Object.entries(state.stickers).filter(([, count]) => count > 0);
     const buff = state.scoutingUntil && Date.parse(state.scoutingUntil) > previewNow()
-      ? `<div class="log"><h2>Boussole active · +20 % scouting</h2><p>Jusqu’au ${esc(new Date(state.scoutingUntil).toLocaleDateString("fr-FR", { day: "numeric", month: "long", timeZone: "Europe/Paris" }))} · 7 jours après activation.</p></div>` : "";
+      ? `<div class="log"><h2>Boussole active · +20 % scouting</h2><p>Jusqu’au ${esc(new Date(state.scoutingUntil).toLocaleDateString("fr-FR", { day: "numeric", month: "long", timeZone: "Europe/Paris" }))} · chaque utilisation ajoute 7 jours.</p></div>` : "";
     find("#inventory-grid").innerHTML = (inventory || '<p class="empty-state">Ton inventaire est vide.</p>') + buff +
       (collection.length ? `<div class="log"><h2>Album S4 · vignettes de l’aperçu</h2>${collection.map(([number, count]) => {
         const card = cardByNumber.get(number);
@@ -183,9 +193,9 @@
     if (!item || quantity(item.id) < 1) return;
     let message;
     if (item.id === "boussole-polaire") {
-      if (Date.parse(state.scoutingUntil ?? "") > previewNow()) return notify("La boussole est déjà active. L’objet est conservé.");
-      state.scoutingUntil = new Date(previewNow() + 7 * 86400000).toISOString();
-      message = "Qualité de scouting +20 % pendant 7 jours, pour les missions déjà en cours et les nouvelles.";
+      const startsAt = Math.max(previewNow(), Date.parse(state.scoutingUntil ?? "") || 0);
+      state.scoutingUntil = new Date(startsAt + 7 * 86400000).toISOString();
+      message = "7 jours ajoutés au bonus de scouting +20 %, pour les missions déjà en cours et les nouvelles. L’intensité reste à +20 %.";
     } else if (item.id === "carnet-eclaireur") {
       const first = Number(find("#reco-first")?.value), second = Number(find("#reco-second")?.value);
       const use = find("#reco-notebook")?.checked;
@@ -232,23 +242,57 @@
   }
   function renderFlight() {
     const run = state.runs[state.day];
-    find("#flight-result").textContent = run
-      ? `Tournée du ${dayLabel(state.day)} · ${run.deliveries}/14 livraisons · ${run.reward} Grelots crédités. ${state.retryDays.includes(state.day) ? "Seconde chance activée : ta prochaine tournée peut améliorer ce résultat." : "Tu peux rejouer pour t’entraîner."}`
-      : "Une tournée récompensée par jour. Chaque cadeau livré ajoute une lumière au sapin commun à tous les DS.";
+    const container = find("#flight-result");
+    if (activeFlight && !activeFlight.settled && activeFlight.day === state.day) {
+      container.textContent = "Tournée en cours · tes gains en Grelots et en lumières apparaîtront ici à l’arrivée.";
+      return;
+    }
+    const last = state.lastFlight?.day === state.day ? state.lastFlight : run ? {
+      grelots: run.reward, lights: run.deliveries, deliveries: run.deliveries, previous: true,
+    } : null;
+    if (!last) {
+      container.textContent = "Une tournée récompensée par jour. Chaque cadeau livré ajoute une lumière au sapin commun à tous les DS.";
+      return;
+    }
+    const gainedGrelots = Math.max(0, Number(last.grelots) || 0);
+    const gainedLights = Math.max(0, Number(last.lights) || 0);
+    const delivered = Math.max(0, Math.min(14, Number(last.deliveries) || 0));
+    const note = last.practice ? "Tournée d’entraînement : la récompense du jour a déjà été reçue. Aucun nouveau gain."
+      : last.retry ? (last.improved ? "Seconde chance : seuls les gains supplémentaires sont crédités." : "Seconde chance : ton meilleur résultat est conservé. Aucun gain supplémentaire.")
+        : last.previous ? "Bilan de ta tournée récompensée. Tu peux rejouer pour t’entraîner." : "Ces gains ont été crédités à ton inventaire et au sapin collectif de l’aperçu.";
+    container.innerHTML = `<section class="run-summary"><h2>${last.practice ? "Tournée d’entraînement" : "Bilan de ta tournée"} · ${dayLabel(state.day)}</h2>
+      <div class="run-summary-values"><div class="run-summary-value run-summary-grelots"><span class="bell" aria-hidden="true"></span><strong>${gainedGrelots > 0 ? "+" : ""}${num(gainedGrelots)}</strong><span>Grelots reçus</span></div>
+      <div class="run-summary-value run-summary-lights"><span class="light-spark" aria-hidden="true"></span><strong>${gainedLights > 0 ? "+" : ""}${num(gainedLights)}</strong><span>Lumières pour le sapin</span></div></div>
+      <p class="run-summary-note">${delivered}/14 cadeaux livrés. ${note}${state.retryDays.includes(state.day) ? " Ta seconde chance est prête pour la prochaine tournée." : ""}</p></section>`;
   }
   function receiveFlight(event) {
     if (event.source !== frame.contentWindow || event.origin !== window.location.origin) return;
     const payload = event.data;
     if (!payload || typeof payload !== "object") return;
     if (payload.type === "noel:tournee-hauteur" && Number.isFinite(payload.height)) frame.style.height = Math.max(310, Math.min(1000, payload.height + 3)) + "px";
-    else if (payload.type === "noel:tournee-demarree") currentRunDay = state.day;
+    else if (payload.type === "noel:tournee-demarree") {
+      currentRunDay = state.day;
+      activeFlight = { day: state.day, runId: typeof payload.runId === "string" ? payload.runId : null, settled: false };
+      renderFlight();
+    }
     else if (payload.type === "noel:tournee-terminee") {
-      const result = settleFlight(state.runs[currentRunDay], payload.score, payload.deliveries, state.retryDays.includes(currentRunDay));
-      if (!result) return;
-      state.retryDays = state.retryDays.filter(day => day !== currentRunDay);
-      state.runs[currentRunDay] = result.result; state.balance += result.grelots; state.deliveries += result.lights;
-      record("Tournée · +" + result.grelots + " Grelots · +" + result.lights + " lumières", currentRunDay);
-      commit(`${result.grelots} Grelots crédités · ${result.lights} lumières ajoutées au sapin collectif.`);
+      if (!activeFlight || activeFlight.settled || (activeFlight.runId !== null && payload.runId !== activeFlight.runId)
+        || !Number.isInteger(payload.score) || payload.score < 0 || payload.score > 7000
+        || !Number.isInteger(payload.deliveries) || payload.deliveries < 0 || payload.deliveries > 14) return;
+      const retry = state.retryDays.includes(currentRunDay);
+      const result = settleFlight(state.runs[currentRunDay], payload.score, payload.deliveries, retry);
+      activeFlight.settled = true;
+      const practice = !result;
+      const grelots = result?.grelots ?? 0;
+      const lights = result?.lights ?? 0;
+      if (result) {
+        state.retryDays = state.retryDays.filter(day => day !== currentRunDay);
+        state.runs[currentRunDay] = result.result; state.balance += grelots; state.deliveries += lights;
+        record("Tournée · +" + grelots + " Grelots · +" + lights + " lumières", currentRunDay);
+      }
+      state.lastFlight = { day: currentRunDay, grelots, lights, deliveries: payload.deliveries, practice, retry, improved: result?.improved ?? false };
+      commit();
+      frame.contentWindow.postMessage({ type: "noel:tournee-bilan", runId: activeFlight.runId, grelots, lights, deliveries: payload.deliveries, practice, retry, improved: result?.improved ?? false }, window.location.origin);
     }
   }
   function openDialog(markup) { dialogBody.innerHTML = markup; drawItems(dialogBody); if (!dialog.open) dialog.showModal(); }
@@ -289,6 +333,7 @@
   find("#reset-pilot").addEventListener("click", () => {
     if (!window.confirm("Réinitialiser l’inventaire et les récompenses du pilote ?")) return;
     state = fresh(); currentRunDay = state.day;
+    activeFlight = null;
     if (frame.hasAttribute("src")) frame.src = frame.dataset.src;
     commit("Aperçu réinitialisé.");
   });
