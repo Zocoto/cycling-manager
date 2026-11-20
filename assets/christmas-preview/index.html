@@ -7,8 +7,13 @@
   <title>Noël du Peloton · Cyclostratège</title>
   <link rel="icon" href="logo.png">
   <link rel="stylesheet" href="noel.css">
+  <link rel="stylesheet" href="sapin.css">
   <script src="catalogue.js" defer></script>
   <script src="portrait.js" defer></script>
+  <script src="avent.js" defer></script>
+  <script src="rules.js" defer></script>
+  <script src="album-s4.js" defer></script>
+  <script src="sapin.js" defer></script>
   <script src="noel.js" defer></script>
 </head>
 <body>
@@ -74,13 +79,13 @@
         <a class="feature feature-night" href="#tournee">
           <span class="feature-icon" aria-hidden="true">↗</span>
           <h2>La tournée aérienne</h2>
-          <p>14 cheminées, un renne à vélo et quelques oies sur la route.</p>
+          <p>14 cheminées, un attelage de rennes à vélo et un traîneau à apprivoiser.</p>
           <span class="feature-action">Décoller <span aria-hidden="true">→</span></span>
         </a>
         <a class="feature feature-cream" href="#avent">
           <span class="feature-icon" aria-hidden="true">▦</span>
           <h2>Calendrier de l’Avent</h2>
-          <p>24 fenêtres et des cadeaux à récupérer à ton rythme.</p>
+          <p>24 fenêtres cachées dans le village, et des cadeaux à retrouver à ton rythme.</p>
           <span class="feature-action"><span data-advent-open>12</span> cases disponibles <span aria-hidden="true">→</span></span>
         </a>
         <a class="feature feature-burgundy" href="#boutique">
@@ -92,7 +97,7 @@
         <a class="feature feature-pine" href="#sapin">
           <span class="feature-icon" aria-hidden="true">♠</span>
           <h2>Sapin du Peloton</h2>
-          <p>Les livraisons de chaque DS éclairent le même sapin.</p>
+          <p>Un même sapin pour tous les DS, neuf paliers et des cadeaux pour chaque joueur.</p>
           <span class="feature-action">Voir la progression <span aria-hidden="true">→</span></span>
         </a>
       </div>
@@ -111,7 +116,7 @@
 
     <section class="view" data-view="avent" hidden aria-labelledby="advent-heading">
       <div class="section-heading">
-        <div><h1 id="advent-heading">Calendrier de l’Avent</h1><p>Les cases passées restent disponibles jusqu’au 31 décembre.</p></div>
+        <div><h1 id="advent-heading">Le village de l’Avent</h1><p>Retrouve le numéro du jour dans la fresque. Les fenêtres passées restent disponibles jusqu’au 31 décembre.</p></div>
         <span class="section-tag" id="advent-progress">0 sur 24 ouvertes</span>
       </div>
       <div id="advent-grid" class="advent-grid"></div>
@@ -120,7 +125,6 @@
     <section class="view" data-view="boutique" hidden aria-labelledby="shop-heading">
       <div class="section-heading">
         <div><h1 id="shop-heading">Boutique des Grelots</h1><p>Essaie les cosmétiques sur ton portrait et découvre les objets de Noël.</p></div>
-        <a class="button button-outline" href="#cadeaux">Offrir un cadeau <span aria-hidden="true">↗</span></a>
       </div>
       <div class="filter-bar" id="shop-filters" aria-label="Filtres de la boutique"></div>
       <div id="shop-grid" class="shop-grid"></div>
@@ -128,7 +132,7 @@
 
     <section class="view" data-view="sapin" hidden aria-labelledby="tree-heading">
       <div class="section-heading">
-        <div><h1 id="tree-heading">Sapin du Peloton</h1><p>Chaque cadeau livré lors d’une tournée récompensée ajoute une lumière.</p></div>
+        <div><h1 id="tree-heading">Sapin du Peloton</h1><p>Toutes les livraisons de tous les DS font progresser le même sapin. Chaque palier offre un cadeau à chaque joueur.</p></div>
         <a class="button button-dark" href="#tournee">Faire une tournée <span aria-hidden="true">→</span></a>
       </div>
       <div class="tree-layout">
@@ -155,15 +159,6 @@
       </div>
     </section>
 
-    <section class="view" data-view="cadeaux" hidden aria-labelledby="gifts-heading">
-      <div class="section-heading">
-        <div><h1 id="gifts-heading">Atelier des cadeaux</h1><p>Choisis un cosmétique dans la liste de souhaits d’un autre DS.</p></div>
-        <a class="button button-outline" href="#boutique">Retour à la boutique</a>
-      </div>
-      <div id="gifts-grid" class="shop-grid"></div>
-      <div id="gift-history"></div>
-    </section>
-
     <section class="view" data-view="bureau" hidden aria-labelledby="office-heading">
       <div class="office-banner">
         <span class="hero-date">Cyclostratège</span>
@@ -183,7 +178,7 @@
         <div class="gazette-photo" aria-hidden="true"></div>
         <div class="gazette-body"><time datetime="2026-12-01">1er décembre</time>
           <h2>Le peloton prend son envol</h2>
-          <p>Un renne a emprunté un vélo de route. On l’a vu s’entraîner au-dessus du village, la hotte pleine. Les DS sont invités à prendre le relais et à illuminer le sapin.</p>
+          <p>Les rennes ont sorti leurs vélos, accroché le traîneau et rempli les sacoches. Les DS prennent les commandes au-dessus du village pour livrer les cadeaux et illuminer le même sapin.</p>
           <a class="button button-dark" href="#tournee">Jouer la tournée <span aria-hidden="true">→</span></a>
         </div>
       </article>

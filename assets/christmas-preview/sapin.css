@@ -1,0 +1,48 @@
+.tree-layout { align-items: start; grid-template-columns: minmax(300px, .9fr) minmax(0, 1.1fr); }
+.tree-art { position: sticky; top: 16px; overflow: hidden; border-radius: 18px; }
+.collective-sapin { display: block; width: 100%; height: auto; }
+.collective-sapin .sapin-bulb { fill: #153b30; stroke: #71947b; stroke-width: .6; }
+.collective-sapin .sapin-bulb.is-lit { fill: var(--bulb); stroke: #fff2c1; animation: sapin-twinkle 3.5s var(--twinkle) ease-in-out infinite; }
+.sapin-marker circle { fill: #193b30; stroke: #90a58a; stroke-width: 1.8; }
+.sapin-marker text { fill: #d0d8bb; text-anchor: middle; font: 800 11px system-ui, sans-serif; }
+.sapin-marker.is-unlocked circle { fill: #f4d28a; stroke: #fff1bf; }
+.sapin-marker.is-unlocked text { fill: #18372c; }
+.sapin-star path { fill: #294a37; stroke: #af9b5c; stroke-width: 2; }
+.sapin-star text { fill: #d8cf9c; text-anchor: middle; font: 800 12px system-ui, sans-serif; }
+.sapin-star.is-lit path { fill: #ffe7a4; animation: sapin-star 3s ease-in-out infinite; }
+.sapin-star.is-lit text { fill: #695013; }
+.tree-progress { padding: clamp(17px, 2.6vw, 29px); }
+.collective-label { display: flex; align-items: center; gap: 7px; color: #55704b; font-size: .7rem; letter-spacing: .06em; font-weight: 800; text-transform: uppercase; }
+.collective-dot { width: 8px; height: 8px; border-radius: 50%; background: #5e9c6f; }
+.tree-metric { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 7px; }
+.tree-metric strong { font-size: clamp(2.2rem, 4vw, 3.2rem); }
+.collective-caption { color: #5f6658; line-height: 1.5; font-size: .85rem; }
+.collective-caption strong { color: #224936; font-weight: 650; }
+.personal-contribution { margin-top: .65rem; color: #6f5530; font-size: .8rem; }
+.next-tree-goal { color: #62745b; font-size: .75rem; margin-top: .5rem; }
+.collective-milestones { list-style: none; padding: 0; margin: 1.2rem 0 0; }
+.collective-milestone { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 9px; align-items: center; padding: 13px 0; border-top: 1px solid #ded4be; }
+.milestone-index { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; background: #ebe4d1; color: #7f7b64; border: 1px solid #c9bea2; font-weight: 800; font-size: .7rem; }
+.collective-milestone.is-unlocked .milestone-index { background: #e1ecda; border-color: #7ea17c; color: #356646; }
+.collective-milestone h2 { font: 650 .9rem/1.25 var(--sans); margin: 3px 0; }
+.collective-milestone p { color: #61563e; font-size: .77rem; line-height: 1.45; }
+.milestone-goal { color: #7b7765; font-size: .66rem; font-weight: 750; }
+.collective-milestone .button { padding: .45rem .5rem; min-height: 35px; font-size: .68rem; }
+.collective-milestone.final-star { margin: .3rem -9px 0; padding: 15px 9px; border: 1px solid #ceb56f; border-radius: 9px; background: #f5e7bb; }
+.final-star .milestone-index { color: #99722b; background: #ffefbd; border-color: #c1a05d; }
+.tree-challenge { color: #7a6b4d; font-size: .72rem; line-height: 1.5; margin-top: .7rem; }
+.pilot-collective { display: flex; align-items: center; gap: .4rem; font-size: .72rem; }
+.pilot-collective input { width: 115px; accent-color: #406c48; }
+.item-proposal { display: inline-block; padding: .22rem .4rem; border-radius: 4px; background: #eee0c0; color: #745227; font-size: .62rem; font-weight: 750; }
+.reco-stages { display: grid; gap: .65rem; padding: .85rem; border: 1px solid #c6d1c3; border-radius: 8px; background: #eef3e9; }
+.reco-consumable { display: flex; align-items: start; gap: .6rem; color: #34513a; font-size: .85rem; line-height: 1.5; }
+.reco-consumable input { accent-color: #3c6b47; margin-top: 4px; }
+#dialog-body .dialog-feedback { padding: .7rem; border: 1px solid #c7a96b; border-radius: 7px; background: #f4e7c5; color: #684d28; }
+.sticker-rarity { display: inline-block; border: 1px solid #aeb9b6; border-radius: 6px; padding: .5rem; background: #edf0ed; }
+.sticker-rarity.gold { border-color: #c6a64a; background: #fff0bd; }
+.sticker-rarity.holographic { border-color: #b77bc4; background: linear-gradient(120deg, #f2dcf0, #d4e7ec, #f7e7b6); }
+@keyframes sapin-twinkle { 0%, 100% { opacity: 1; filter: drop-shadow(0 0 4px var(--bulb)); } 50% { opacity: .65; filter: drop-shadow(0 0 1px var(--bulb)); } }
+@keyframes sapin-star { 0%, 100% { filter: drop-shadow(0 0 10px #ffe7a4); } 50% { filter: drop-shadow(0 0 3px #ffe7a4); } }
+@media (max-width: 800px) { .tree-layout { grid-template-columns: 1fr; } .tree-art { position: static; max-width: 430px; margin: 0 auto; } }
+@media (max-width: 430px) { .collective-milestone { grid-template-columns: 26px minmax(0, 1fr); } .collective-milestone .button { grid-column: 2; justify-self: start; } .pilot-collective { width: 100%; } }
+@media (prefers-reduced-motion: reduce) { .collective-sapin .sapin-bulb.is-lit, .sapin-star.is-lit path { animation: none; } }

@@ -34,14 +34,16 @@ describe("private Christmas preview", () => {
     expect(await home.text()).toContain('data-src="tournee.html"');
 
     expect(await (await request("tournee.html")).text()).toContain('src="tournee.js"');
-    expect((await request("tournee.js")).headers.get("content-type")).toContain("text/javascript");
+    for (const file of ["tournee.js", "flight-physics.js", "avent.js", "rules.js", "sapin.js", "album-s4.js"])
+      expect((await request(file)).headers.get("content-type")).toContain("text/javascript");
+    expect((await request("sapin.css")).headers.get("content-type")).toContain("text/css");
     expect((await request("village-hiver.jpg")).headers.get("content-type")).toBe("image/jpeg");
   });
 
   it.each([null, "another-authenticated-account"])("hides every requested file from %s", async (userId) => {
     mocks.auth.mockResolvedValue({ data: { user: userId ? { id: userId, email: "other@example.test" } : null }, error: null });
     expect(showChristmasPreviewInMenu(userId)).toBe(false);
-    for (const file of ["index.html", "tournee.html", "tournee.js", "noel.js", "catalogue.js", "noel.css", "village-hiver.jpg"]) {
+    for (const file of ["index.html", "tournee.html", "tournee.js", "flight-physics.js", "avent.js", "rules.js", "sapin.js", "album-s4.js", "sapin.css", "noel.js", "catalogue.js", "noel.css", "village-hiver.jpg"]) {
       const response = await request(file);
       expect(response.status).toBe(404);
       expect(response.headers.get("cache-control")).toBe("private, no-store");

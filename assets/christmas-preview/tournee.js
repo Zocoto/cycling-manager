@@ -3,6 +3,8 @@
       const canvas = root.querySelector("canvas");
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
+      const physics = globalThis.ChristmasFlightPhysics;
+      if (!physics) return;
 
       const parentOrigin = window.location.origin === "null" ? "*" : window.location.origin;
       function notifyPilot(type, details = {}) {
@@ -21,11 +23,10 @@
       const height = 400;
       const routeEnd = 6540;
       const courseSpeed = 236;
-      const gravity = 670;
       const step = 1 / 120;
       const controlSpeed = 320;
       const dragThreshold = 7;
-      const flightBounds = { left: 44, right: 756, top: 60, bottom: 246 };
+      const flightBounds = { left: 190, right: 708, top: 72, bottom: 211 };
       const parcelRadius = 5;
       const openingTolerance = 4;
       const dropLockDuration = 1.2;
@@ -57,6 +58,7 @@
       const gifts = root.querySelector("[data-gifts]");
       const streak = root.querySelector("[data-streak]");
       const windLabel = root.querySelector("[data-wind]");
+      const sleighLabel = root.querySelector("[data-sleigh]");
       const progress = root.querySelector("[data-progress]");
       const progressBar = progress.firstElementChild;
       const darkMode = matchMedia("(prefers-color-scheme: dark)");
@@ -83,9 +85,11 @@
       let accumulator = 0;
 
       function newFlight() {
+        const player = { x: 295, y: 143, vx: 0, vy: 0 };
         return {
           mode: "ready", time: 0, distance: 0,
-          player: { x: 233, y: 150, vy: 0 },
+          player,
+          sleigh: physics.createSleigh(player),
           chimneys: route.map(([x, y, size]) => ({ x, y, size, outcome: "open" })),
           aim: null, parcel: null, available: route.length, score: 0, streak: 0,
           deliveries: 0, flash: null, progress: -1,
@@ -114,6 +118,11 @@
           : wind < 0 ? "← Vent à gauche"
           : wind >= 200 ? "Vent fort à droite →" : "Vent à droite →";
         if (windLabel.textContent !== label) windLabel.textContent = label;
+        const stable = Math.hypot(game.sleigh.vx, game.sleigh.vy) < 65
+          && Math.abs(game.sleigh.angle) < .065
+          && Math.abs(game.sleigh.angularVelocity) < .2;
+        const sleighState = stable ? "Traîneau stable" : "Traîneau en mouvement";
+        if (sleighLabel.textContent !== sleighState) sleighLabel.textContent = sleighState;
         const lock = clamp(game.dropLockedUntil - game.time, 0, dropLockDuration);
         if (game.mode === "playing") {
           const action = lock > 0
@@ -135,33 +144,20 @@
       }
 
       function launchState() {
-        const { player, aim } = game;
-        const parcel = {
-          x: game.distance + player.x + 8, y: player.y + 16,
-          vx: courseSpeed, vy: 32, wind: windAt(game.distance), age: 0,
-        };
-        if (aim) {
-          const targetX = game.distance + aim.x;
-          const chimney = game.chimneys.find(candidate =>
-            candidate.outcome === "open" && Math.abs(aim.y - candidate.y) <= 24
-            && Math.abs(targetX - candidate.x) <= candidate.size / 2 + openingTolerance,
-          );
-          const targetY = chimney?.y ?? clamp(aim.y, parcel.y + 12, height - 10);
-          parcel.aimTime = fallTime(parcel, targetY);
-          parcel.vx = (targetX - parcel.x) / parcel.aimTime - parcel.wind * parcel.aimTime / 2;
-        }
-        return parcel;
+        return physics.createParcel(game.sleigh, {
+          distance: game.distance,
+          courseSpeed,
+          wind: windAt(game.distance),
+          aim: game.aim,
+        });
       }
 
       function parcelAt(parcel, time) {
-        return {
-          x: parcel.x + parcel.vx * time + parcel.wind * time * time / 2,
-          y: parcel.y + parcel.vy * time + gravity * time * time / 2,
-        };
+        return physics.parcelAt(parcel, time);
       }
 
       function fallTime(parcel, targetY) {
-        return (Math.sqrt(parcel.vy ** 2 + 2 * gravity * (targetY - parcel.y)) - parcel.vy) / gravity;
+        return physics.fallTime(parcel, targetY);
       }
 
       function findLanding(parcel) {
@@ -227,6 +223,7 @@
           if (pointer.id === null && Math.hypot(dx, dy) < 1.2) {
             player.x = pointer.x;
             player.y = pointer.y;
+            player.vx = 0;
             player.vy = 0;
             pointer = null;
             return;
@@ -237,6 +234,7 @@
         const norm = Math.max(1, Math.hypot(x, y));
         const nextX = clamp(player.x + x / norm * controlSpeed * step, flightBounds.left, flightBounds.right);
         const nextY = clamp(player.y + y / norm * controlSpeed * step, flightBounds.top, flightBounds.bottom);
+        player.vx = (nextX - player.x) / step;
         player.vy = (nextY - player.y) / step;
         player.x = nextX;
         player.y = nextY;
@@ -252,16 +250,22 @@
       }
 
       function updateObstacleHits() {
-        const { player, time } = game;
+        const { player, sleigh, time } = game;
+        const convoy = [
+          { x: player.x + 49, y: player.y - 9 },
+          { x: player.x + 3, y: player.y + 1 },
+          { x: player.x - 43, y: player.y - 7 },
+          { x: sleigh.x, y: sleigh.y },
+        ];
         obstacles.forEach((obstacle, index) => {
           if (game.contactedObstacles.has(index)) return;
           const location = obstacleAt(obstacle, time);
           if (!location) return;
           const members = obstacle.kind === "geese" ? flock : [[0, 0]];
-          const contact = members.some(([dx, dy]) => (
-            ((location.x + dx - player.x) / (obstacle.kind === "geese" ? 33 : 38)) ** 2
-            + ((location.y + dy - (player.y - 12)) / (obstacle.kind === "geese" ? 25 : 30)) ** 2
-          ) <= 1);
+          const contact = members.some(([dx, dy]) => convoy.some((member) => (
+            ((location.x + dx - member.x) / (obstacle.kind === "geese" ? 27 : 32)) ** 2
+            + ((location.y + dy - (member.y - 12)) / (obstacle.kind === "geese" ? 22 : 26)) ** 2
+          ) <= 1));
           if (!contact) return;
           game.contactedObstacles.add(index);
           if (game.dropLockedUntil > time) return;
@@ -278,6 +282,7 @@
         game.distance += courseSpeed * step;
         if (wasLocked && game.dropLockedUntil <= game.time) status.textContent = "Lancer de nouveau disponible";
         updatePlayer();
+        physics.updateSleigh(game.sleigh, game.player, step);
         updateObstacleHits();
         updateParcel();
         for (const chimney of game.chimneys) {
@@ -512,10 +517,11 @@
         }
       }
 
-      function drawBike() {
+      function drawBike(x, y, index) {
         const { player, time } = game;
         ctx.save();
-        ctx.translate(player.x, player.y);
+        ctx.translate(x, y);
+        ctx.scale(.79, .79);
         ctx.rotate(clamp(player.vy / 1900, -.12, .12));
         if (game.dropLockedUntil > time) {
           ellipse(0, -12, 43, 41, "#ffdb9223");
@@ -526,7 +532,7 @@
           ellipse(x, 10, 13, 13, "#172744");
           ellipse(x, 10, 10, 10, "#c4d5eb");
           ellipse(x, 10, 8.5, 8.5, "#34415d");
-          const turn = time * 9;
+          const turn = time * 9 + index * 1.4;
           for (let spoke = 0; spoke < 6; spoke++) {
             const angle = spoke * Math.PI / 3 + turn;
             line([[x, 10], [x + Math.cos(angle) * 8, 10 + Math.sin(angle) * 8]], "#a4bcd5", .8);
@@ -535,13 +541,13 @@
         line([[-23, 10], [-13, -9], [-1, 11], [-23, 10], [-13, -9], [15, -8], [-1, 11]], "#f29479", 2.5);
         line([[25, 10], [15, -8], [18, -14], [23, -14]], "#f3c18f", 2.4);
         line([[-18, -10], [-10, -10]], "#252c41", 3);
-        const pedal = [Math.cos(time * 9) * 4 - 1, Math.sin(time * 9) * 4 + 10];
+        const pedal = [Math.cos(time * 9 + index * 1.4) * 4 - 1, Math.sin(time * 9 + index * 1.4) * 4 + 10];
         line([[-12, -13], [1, -3], pedal], "#9a5d51", 5);
         line([pedal, [pedal[0] + 4, pedal[1]]], "#33283b", 4);
         ellipse(-7, -19, 13, 8, "#a87560", -.38);
         ellipse(2, -23, 11, 5, "#d19b71", -.35);
         line([[3, -23], [11, -16], [19, -14]], "#aa775f", 4);
-        shape([[2, -25], [-18, -29], [-30, -23], [-13, -24], [3, -21]], "#f3857c");
+        shape([[2, -25], [-18, -29], [-30, -23], [-13, -24], [3, -21]], ["#f3857c", "#79aa9c", "#e3bd75"][index]);
         ellipse(10, -30, 9, 9, "#c28e69", -.24);
         ellipse(17, -29, 6, 4, "#f0ba83");
         ellipse(22, -30, 2.8, 2.5, "#f68b7a");
@@ -554,6 +560,64 @@
         ellipse(-22, -17, 7, 6, "#457d76", -.2);
         line([[-26, -19], [-18, -15]], "#cbd9ad", 1.8);
         ctx.restore();
+      }
+
+      function drawConvoy() {
+        const { player, sleigh, time } = game;
+        const bikes = [
+          { x: player.x + 49, y: player.y - 9 },
+          { x: player.x + 3, y: player.y + 1 },
+          { x: player.x - 43, y: player.y - 7 },
+        ];
+        const noseX = sleigh.x + Math.cos(sleigh.angle) * 31;
+        const noseY = sleigh.y + Math.sin(sleigh.angle) * 31 - 4;
+        ctx.beginPath();
+        ctx.moveTo(noseX, noseY);
+        ctx.quadraticCurveTo((noseX + bikes[2].x) / 2, noseY + 8, bikes[2].x - 18, bikes[2].y - 3);
+        ctx.strokeStyle = "#d5b576";
+        ctx.lineWidth = 1.7;
+        ctx.stroke();
+        for (let index = 0; index < bikes.length - 1; index++) {
+          line([[bikes[index + 1].x + 19, bikes[index + 1].y - 5],
+            [bikes[index].x - 19, bikes[index].y - 3]], "#d5b576", 1.7);
+        }
+        // The cargo and its hatch rotate together. The outlet used for physics
+        // is the same point as the visible gold opening under the gift pile.
+        ctx.save();
+        ctx.translate(sleigh.x, sleigh.y);
+        ctx.rotate(sleigh.angle);
+        ellipse(-4, 18, 42, 4, "#f8de9e22");
+        line([[-34, 15], [-27, 20], [29, 20], [38, 15], [41, 7]], "#e9c783", 3);
+        line([[-22, 8], [-21, 17]], "#d1a965", 3);
+        line([[19, 7], [21, 17]], "#d1a965", 3);
+        shape([[-35, -9], [-29, -15], [-21, -14], [-17, -7], [22, -7],
+          [29, -17], [35, -18], [32, 4], [25, 11], [-23, 11], [-30, 6]], "#9f4651");
+        line([[-30, -12], [-24, -10], [-19, -3], [25, -3], [32, -14]], "#f3d190", 2.3);
+        line([[-21, 9], [24, 9]], "#d9b373", 1.7);
+        for (const gift of [
+          { x: -21, y: -26, color: "#779c88", ribbon: "#f4d392" },
+          { x: -8, y: -32, color: "#d48a71", ribbon: "#fff0bb" },
+          { x: 6, y: -23, color: "#71919e", ribbon: "#efd49b" },
+        ]) {
+          ctx.fillStyle = gift.color;
+          ctx.fillRect(gift.x, gift.y, 15, 18);
+          line([[gift.x + 7, gift.y], [gift.x + 7, gift.y + 17]], gift.ribbon, 2);
+          line([[gift.x, gift.y + 5], [gift.x + 15, gift.y + 5]], gift.ribbon, 1.7);
+          ellipse(gift.x + 4, gift.y - 1, 4, 2, gift.ribbon, .3);
+          ellipse(gift.x + 10, gift.y - 1, 4, 2, gift.ribbon, -.3);
+        }
+        ctx.fillStyle = "#472a37";
+        ctx.fillRect(-2, 3, 14, 7);
+        line([[-3, 3], [13, 3]], "#f0cd86", 2);
+        if (!game.parcel && game.available > 0) {
+          ctx.fillStyle = "#e58280";
+          ctx.fillRect(1, 4, 8, 5);
+          line([[5, 4], [5, 9]], "#ffe7a6", 1.3);
+        }
+        ellipse(-29, -9, 3.5, 3.5, "#f1d58e");
+        ellipse(-29, -9, 7 + Math.sin(time * 2) * .6, 7, "#f1d58e20");
+        ctx.restore();
+        bikes.forEach((bike, index) => drawBike(bike.x, bike.y, index));
       }
 
       function drawParcel() {
@@ -571,64 +635,27 @@
       }
 
       function drawAim() {
-        if (game.mode === "finished") return;
-        if (game.parcel) {
-          if (game.parcel.aimTime) drawAimedPath(game.parcel, game.parcel.landing);
-          return;
-        }
-        if (game.dropLockedUntil > game.time) return;
+        if (game.mode === "finished" || game.parcel || game.dropLockedUntil > game.time) return;
         const parcel = launchState();
-        if (parcel.aimTime) {
-          drawAimedPath(parcel, findLanding(parcel));
-          return;
-        }
-        const tutorialTarget = game.chimneys.slice(0, 2)
-          .find(chimney => chimney.outcome === "open" && chimney.x > game.distance);
-        if (!tutorialTarget) return;
-        const duration = fallTime(parcel, tutorialTarget.y);
-        const impact = parcelAt(parcel, duration);
-        const arrival = tutorialTarget.x - game.distance - courseSpeed * duration;
-        const half = tutorialTarget.size / 2;
-        const centered = Math.abs(impact.x - tutorialTarget.x) <= half + openingTolerance;
         ctx.save();
-        ctx.setLineDash([4, 4]);
-        line([[arrival - half, tutorialTarget.y], [arrival + half, tutorialTarget.y]],
-          centered ? "#ffe6a6" : "#dfebfb83", 1.3);
+        // Just the beginning of the throw is visible on the first two houses.
+        // Later throws retain the crosshair without revealing a landing point.
+        const introductory = game.chimneys.slice(0, 2).some((chimney) => chimney.outcome === "open");
+        if (introductory) {
+          for (let index = 1; index <= 4; index++) {
+            const time = index * .045;
+            const point = parcelAt(parcel, time);
+            ellipse(point.x - game.distance - courseSpeed * time, point.y, 1.6, 1.6, "#e4f5ff99");
+          }
+        }
+        if (game.aim) {
+          const { x, y } = game.aim;
+          line([[x - 8, y], [x - 3, y]], "#e4f5ffa6", 1.3);
+          line([[x + 3, y], [x + 8, y]], "#e4f5ffa6", 1.3);
+          line([[x, y - 8], [x, y - 3]], "#e4f5ffa6", 1.3);
+          line([[x, y + 3], [x, y + 8]], "#e4f5ffa6", 1.3);
+        }
         ctx.restore();
-        const color = centered ? "#ffe6a6" : "#e4f5ffb8";
-        for (let i = 1; i <= 9; i++) {
-          const time = duration * i / 9;
-          const point = parcelAt(parcel, time);
-          ellipse(point.x - game.distance - courseSpeed * time, point.y, 1.8, 1.8, color);
-        }
-        const impactX = impact.x - game.distance - courseSpeed * duration;
-        ctx.beginPath();
-        ctx.arc(impactX, impact.y, 6, 0, Math.PI * 2);
-        ctx.lineWidth = 1.8;
-        ctx.strokeStyle = color;
-        ctx.stroke();
-      }
-
-      function drawAimedPath(parcel, landing) {
-        const duration = landing?.time ?? parcel.aimTime;
-        if (parcel.age >= duration) return;
-        const color = landing ? "#ffe6a6" : "#e4f5ffb8";
-        for (let i = 1; i < 12; i++) {
-          const time = duration * i / 12;
-          if (time <= parcel.age) continue;
-          const point = parcelAt(parcel, time);
-          ellipse(point.x - game.distance, point.y, 1.8, 1.8, color);
-        }
-        const impact = parcelAt(parcel, duration);
-        const x = impact.x - game.distance;
-        ctx.beginPath();
-        ctx.arc(x, impact.y, 9, 0, Math.PI * 2);
-        ctx.lineWidth = 1.8;
-        ctx.strokeStyle = color;
-        ctx.stroke();
-        line([[x - 14, impact.y], [x - 6, impact.y]], color, 1.5);
-        line([[x + 6, impact.y], [x + 14, impact.y]], color, 1.5);
-        line([[x, impact.y + 6], [x, impact.y + 14]], color, 1.5);
       }
 
       function draw() {
@@ -646,7 +673,7 @@
         }
         drawAim();
         drawObstacles();
-        drawBike();
+        drawConvoy();
         drawParcel();
         if (game.flash) {
           const age = game.time - game.flash.at;
@@ -681,7 +708,7 @@
           notifyPilot("noel:tournee-demarree");
           previousFrame = performance.now();
           accumulator = 0;
-          status.textContent = "Suis le pointillé pour les deux premières cheminées";
+          status.textContent = "Stabilise le traîneau, puis livre les 14 cheminées";
           primary.textContent = "Lâcher un cadeau";
           primary.focus({ preventScroll: true });
           draw();

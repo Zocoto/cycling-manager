@@ -400,3 +400,138 @@ dialog::backdrop { background: #142620b3; }
   .shop-grid, .inventory-grid { grid-template-columns: minmax(0, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) { .feature { transition: none; } }
+
+/* The Advent calendar is a hand-drawn village, not a second card grid. */
+.advent-grid { display: block; min-width: 0; }
+.advent-village-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem 1.2rem;
+  padding: 0 .2rem .9rem;
+  color: #5b6655;
+  font-size: .77rem;
+  line-height: 1.4;
+}
+.advent-village-legend > span { display: inline-flex; align-items: center; gap: .45rem; }
+.advent-village-legend i { flex: 0 0 auto; width: 13px; height: 15px; border-radius: 3px; }
+.advent-village-legend .ready { border: 2px solid #ceaa5e; background: #38583f; box-shadow: 0 0 0 2px #edce8b50; }
+.advent-village-legend .claimed { border: 1px solid #9a996c; background: #f0d892; }
+.advent-village-legend .advent-pan-hint { display: none; margin-left: auto; color: #78522d; font-weight: 700; }
+.advent-panorama {
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 1px solid #ad9463;
+  border-radius: 13px;
+  background: #2f5146;
+  box-shadow: 0 20px 40px #233e3020, inset 0 0 0 3px #f5e2b9;
+  scrollbar-color: #b69557 #e4d7b8;
+  scrollbar-width: thin;
+  overscroll-behavior-x: contain;
+}
+.advent-village-scene { position: relative; isolation: isolate; min-width: 820px; aspect-ratio: 14 / 9; }
+.advent-fresco, .advent-windows { position: absolute; inset: 0; width: 100%; height: 100%; }
+.advent-fresco { display: block; pointer-events: none; }
+.advent-window {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--w);
+  height: var(--h);
+  min-width: 42px;
+  min-height: 44px;
+  padding: 0;
+  isolation: isolate;
+  perspective: 180px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #947240;
+  border-radius: 4px 4px 2px 2px;
+  background: #f4d88e;
+  box-shadow: 0 2px 0 2px #5e4a3426, 0 0 0 3px #eed4a768, inset 0 0 13px #926226;
+  color: #fff1ce;
+  text-align: center;
+  touch-action: manipulation;
+}
+.advent-window::before, .advent-window::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  border: 1px dashed #e7c89a54;
+  background: repeating-linear-gradient(90deg, transparent 0 9px, #11251d30 9px 10px), #315743;
+  box-shadow: inset 0 0 0 3px #142d214a;
+  backface-visibility: visible;
+  transition: transform .35s ease, background .2s;
+}
+.advent-window::before { left: 0; transform-origin: left center; border-right: 1px solid #11261e; }
+.advent-window::after { right: 0; transform-origin: right center; border-left: 1px solid #75967455; }
+.advent-window:nth-child(3n)::before, .advent-window:nth-child(3n)::after { background-color: #843e40; }
+.advent-window:nth-child(4n)::before, .advent-window:nth-child(4n)::after { background-color: #526653; }
+.advent-window-day {
+  position: relative;
+  z-index: 2;
+  align-self: center;
+  margin-bottom: .2rem;
+  font: 700 clamp(1.08rem, 2.45vw, 2.15rem) / 1 Georgia, serif;
+  color: #ffe6a9;
+  text-shadow: 0 1px 3px #1d3029;
+  pointer-events: none;
+}
+.advent-window-status {
+  position: absolute;
+  bottom: 7%;
+  z-index: 2;
+  font: 750 clamp(.48rem, .73vw, .68rem) / 1 var(--sans);
+  letter-spacing: .04em;
+  color: #f9dea6;
+  pointer-events: none;
+}
+.advent-window-reward { position: absolute; inset: 12% 7%; display: grid; place-items: center; overflow: hidden; }
+.advent-window-reward svg { width: 100%; height: 100%; max-width: 69px; max-height: 69px; }
+.advent-window.is-ready {
+  border-color: #eac77b;
+  box-shadow: 0 0 0 3px #f5e0aa70, 0 0 20px #ffe8a047, 0 3px 0 #7a5d37;
+}
+.advent-window.is-ready:hover::before { transform: rotateY(-18deg); }
+.advent-window.is-ready:hover::after { transform: rotateY(18deg); }
+.advent-window:focus-visible { z-index: 4; outline: 3px solid #fff2bd; outline-offset: 5px; }
+.advent-window.is-locked:disabled { opacity: 1; filter: saturate(.58); }
+.advent-window.is-locked .advent-window-day { color: #edddba; }
+.advent-window.is-open { border-color: #c9a35b; box-shadow: 0 0 0 3px #e5d19b70, inset 0 0 13px #b88736; }
+.advent-window.is-open::before { transform: rotateY(-118deg); }
+.advent-window.is-open::after { transform: rotateY(118deg); }
+.advent-window.is-open .advent-window-day {
+  position: absolute;
+  left: -3px;
+  top: -5px;
+  padding: 3px 5px;
+  border: 1px solid #d6bd83;
+  border-radius: 4px;
+  color: #214536;
+  background: #fbefd0;
+  text-shadow: none;
+  font: 800 .75rem / 1 var(--sans);
+}
+.advent-window.is-open .advent-window-status {
+  right: 3px;
+  bottom: 3px;
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  color: #fff7df;
+  background: #32664b;
+  font-size: .65rem;
+}
+@media (max-width: 970px) {
+  .advent-village-legend .advent-pan-hint { display: inline-flex; margin-left: 0; }
+  .advent-panorama { border-radius: 10px; }
+  .advent-window-day { font-size: 1.25rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .advent-window::before, .advent-window::after { transition: none; }
+}
