@@ -99,6 +99,28 @@ describe("first-season dashboard alerts", () => {
 });
 
 describe("dashboard physiotherapist payload", () => {
+  it("includes staff naturalization in both summaries through the existing dashboard request", async () => {
+    const staffNaturalizationOpportunity = {
+      eligibleMemberCount: 3, remainingCount: 2, targetCountryName: "Belgique",
+    };
+    const mock = client({ staffNaturalizationOpportunity });
+    const summaries = getCurrentDashboardAssistantSummaries(mock.supabase, authUserId);
+    expect(await summaries.initial).toMatchObject({ staffNaturalizationOpportunity });
+    expect(await summaries.complete).toMatchObject({ staffNaturalizationOpportunity });
+    expect(mock.rpc.mock.calls.filter(call => call[0] === "get_current_dashboard_assistant_summary")).toHaveLength(1);
+    expect(mock.rpc).toHaveBeenCalledTimes(7);
+    expect(mock.from).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([undefined, null, [], {},
+    { eligibleMemberCount: 1, remainingCount: 0, targetCountryName: "Belgique" },
+    { eligibleMemberCount: 0, remainingCount: 1, targetCountryName: "Belgique" },
+    { eligibleMemberCount: 1, remainingCount: 1, targetCountryName: "" },
+  ])("ignores missing or unavailable staff naturalization metadata (%j)", async staffNaturalizationOpportunity => {
+    const mock = client({ staffNaturalizationOpportunity });
+    expect(await getCurrentDashboardAssistantSummary(mock.supabase)).toMatchObject({ staffNaturalizationOpportunity: null });
+  });
+
   it("includes actual camp gains in both summaries without adding any request", async () => {
     const formCampReport = { dayNumber: 25, riderCount: 2, totalFormGain: 15 };
     const mock = client({ formCampReport, items: [] });

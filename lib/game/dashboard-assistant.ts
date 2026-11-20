@@ -71,6 +71,11 @@ export type DashboardAssistantSnapshot = {
   nationalChampionshipRouteReminder?: DashboardNationalChampionshipRouteReminder | null;
   federationConstructionOpportunity?: DashboardFederationConstructionOpportunity | null;
   staffAcademyOpportunity?: { freeSlotCount: number; eligibleMemberCount: number } | null;
+  staffNaturalizationOpportunity?: {
+    eligibleMemberCount: number;
+    remainingCount: number;
+    targetCountryName: string;
+  } | null;
   halloweenShopEndsAt?: string | null;
   naturalizationAlerts?: DashboardNaturalizationAlert[];
   emptyRosterRecoveryAvailable?: boolean;
@@ -217,6 +222,7 @@ const ALERT_PRIORITY = [
   "untreated-injuries",
   "physiotherapist-assignments",
   "staff-academy-training",
+  "staff-naturalization",
   "overweight-riders",
   "underweight-riders",
   "junior-manual-training",
@@ -291,6 +297,20 @@ export function buildDashboardAssistantLines({
         : `Plus que ${halloweenDaysLeft} jours pour dépenser vos roues`,
       detail: "Ouvrez la boutique Halloween pour échanger vos roues contre des récompenses.",
       href: "/jeu/halloween?onglet=boutique",
+    });
+  }
+
+  const staffNaturalization = snapshot.staffNaturalizationOpportunity;
+  if (staffNaturalization && staffNaturalization.eligibleMemberCount > 0 && staffNaturalization.remainingCount > 0) {
+    alerts.push({
+      id: "staff-naturalization",
+      tone: "info",
+      metric: String(Math.min(staffNaturalization.eligibleMemberCount, staffNaturalization.remainingCount)),
+      title: "Naturalisation du staff disponible",
+      detail: staffNaturalization.remainingCount === 1
+        ? `Vers ${staffNaturalization.targetCountryName} · 1 naturalisation disponible cette saison.`
+        : `Vers ${staffNaturalization.targetCountryName} · ${staffNaturalization.remainingCount} naturalisations disponibles cette saison.`,
+      href: "/jeu/staff?onglet=equipe",
     });
   }
 

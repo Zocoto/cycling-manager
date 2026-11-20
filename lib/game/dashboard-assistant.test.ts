@@ -76,6 +76,35 @@ const snapshot: DashboardAssistantSnapshot = {
 };
 
 describe("individual naturalization alerts", () => {
+  it("links available staff naturalization to the team staff list and caps its count at the quota", () => {
+    const groups = buildDashboardAssistantLines({
+      snapshot: { ...snapshot, staffNaturalizationOpportunity: {
+        eligibleMemberCount: 4, remainingCount: 1, targetCountryName: "Belgique",
+      } },
+      rewardCount: 0,
+      cashBalance: -1,
+    });
+    expect(groups.alerts[0].id).toBe("negative-cash");
+    expect(groups.alerts.find(line => line.id === "staff-naturalization")).toEqual({
+      id: "staff-naturalization",
+      tone: "info",
+      metric: "1",
+      title: "Naturalisation du staff disponible",
+      detail: "Vers Belgique · 1 naturalisation disponible cette saison.",
+      href: "/jeu/staff?onglet=equipe",
+    });
+  });
+
+  it.each([undefined, null,
+    { eligibleMemberCount: 0, remainingCount: 1, targetCountryName: "Belgique" },
+    { eligibleMemberCount: 1, remainingCount: 0, targetCountryName: "Belgique" },
+  ])("hides staff naturalization without an actionable opportunity (%j)", staffNaturalizationOpportunity => {
+    const groups = buildDashboardAssistantLines({
+      snapshot: { ...snapshot, staffNaturalizationOpportunity }, rewardCount: 0, cashBalance: 100,
+    });
+    expect(groups.alerts.some(line => line.id === "staff-naturalization")).toBe(false);
+  });
+
   it("keeps urgent alerts first and exposes one independently dismissible target per rider", () => {
     const target = { subjectType: "professional" as const, subjectId: "rider-1", targetCountryId: "be",
       name: "Pro Test", currentCountryName: "France", targetCountryName: "Belgique", elapsedDays: 84, requiredDays: 84 };

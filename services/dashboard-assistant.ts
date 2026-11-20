@@ -266,6 +266,7 @@ export async function getCurrentDashboardAssistantSummary(
     formCampReport: assistantPayload.formCampReport,
     halloweenShopEndsAt: halloweenEdition?.shopEndsAt ?? null,
     naturalizationAlerts: assistantPayload.naturalizationAlerts,
+    staffNaturalizationOpportunity: assistantPayload.staffNaturalizationOpportunity,
     federationVoteReminder: assistantPayload.federationVoteReminder,
     nationalChampionshipRouteReminder: assistantPayload.nationalChampionshipRouteReminder,
     emptyRosterRecoveryAvailable: assistantPayload.emptyRosterRecoveryAvailable,
@@ -455,6 +456,7 @@ function normalizeAssistantPayload(value: unknown): {
   federationVoteReminder: DashboardFederationVoteReminder | null;
   nationalChampionshipRouteReminder: DashboardNationalChampionshipRouteReminder | null;
   naturalizationAlerts: DashboardNaturalizationAlert[];
+  staffNaturalizationOpportunity: DashboardAssistantSnapshot["staffNaturalizationOpportunity"];
   emptyRosterRecoveryAvailable: boolean;
   riderRecruitmentMatchCount: number;
   staffRecruitmentMatchCount: number;
@@ -484,6 +486,7 @@ function normalizeAssistantPayload(value: unknown): {
       federationVoteReminder: null,
       nationalChampionshipRouteReminder: null,
       naturalizationAlerts: [],
+      staffNaturalizationOpportunity: null,
       emptyRosterRecoveryAvailable: false,
       riderRecruitmentMatchCount: 0,
       staffRecruitmentMatchCount: 0,
@@ -515,6 +518,7 @@ function normalizeAssistantPayload(value: unknown): {
       federationVoteReminder: null,
       nationalChampionshipRouteReminder: null,
       naturalizationAlerts: [],
+      staffNaturalizationOpportunity: null,
       emptyRosterRecoveryAvailable: false,
       riderRecruitmentMatchCount: 0,
       staffRecruitmentMatchCount: 0,
@@ -571,6 +575,7 @@ function normalizeAssistantPayload(value: unknown): {
     federationVoteReminder: normalizeFederationVoteReminder(payload.federationVoteReminder),
     nationalChampionshipRouteReminder: normalizeNationalChampionshipRouteReminder(payload.nationalChampionshipRouteReminder),
     naturalizationAlerts: normalizeNaturalizationAlerts(payload.naturalizationAlerts),
+    staffNaturalizationOpportunity: normalizeStaffNaturalizationOpportunity(payload.staffNaturalizationOpportunity),
     emptyRosterRecoveryAvailable: payload.emptyRosterRecoveryAvailable === true,
     riderRecruitmentMatchCount: normalizeCount(
       payload.riderRecruitmentMatchCount,
@@ -625,6 +630,17 @@ function normalizeAssistantPayload(value: unknown): {
     ),
     journalItems: normalizeJournalItems(payload.items),
   };
+}
+
+function normalizeStaffNaturalizationOpportunity(value: unknown): DashboardAssistantSnapshot["staffNaturalizationOpportunity"] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const opportunity = value as Record<string, unknown>;
+  const eligibleMemberCount = normalizeCount(opportunity.eligibleMemberCount);
+  const remainingCount = normalizeCount(opportunity.remainingCount);
+  const targetCountryName = normalizeOptionalString(opportunity.targetCountryName);
+  return eligibleMemberCount > 0 && remainingCount > 0 && targetCountryName
+    ? { eligibleMemberCount, remainingCount, targetCountryName }
+    : null;
 }
 
 function normalizeStaffAcademyOpportunity(value: unknown): NonNullable<DashboardAssistantSnapshot["staffAcademyOpportunity"]> | null {
