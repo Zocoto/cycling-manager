@@ -43,13 +43,18 @@
         [5550, 295, 40], [5990, 276, 24],
       ];
       const obstacles = [
-        { kind: "geese", start: 3.45, y: 175, speed: 307, swing: 14 },
-        { kind: "balloon", start: 6.6, y: 113, speed: 188, swing: 29 },
-        { kind: "geese", start: 10.2, y: 98, speed: 324, swing: 16 },
-        { kind: "balloon", start: 12.6, y: 220, speed: 195, swing: 25 },
-        { kind: "geese", start: 15.9, y: 207, speed: 316, swing: 13 },
-        { kind: "balloon", start: 19.0, y: 144, speed: 194, swing: 33 },
-        { kind: "geese", start: 22.15, y: 107, speed: 332, swing: 14 },
+        { kind: "geese", start: 2.4, y: 175, speed: 307, swing: 14 },
+        { kind: "snowball", start: 4.25, y: 92, speed: 270, swing: 12, drift: 13 },
+        { kind: "balloon", start: 6.2, y: 113, speed: 188, swing: 29 },
+        { kind: "geese", start: 8.4, y: 148, speed: 324, swing: 16 },
+        { kind: "snowball", start: 10.4, y: 200, speed: 285, swing: 10, drift: -35 },
+        { kind: "balloon", start: 12.4, y: 220, speed: 195, swing: 25 },
+        { kind: "geese", start: 14.4, y: 85, speed: 316, swing: 14 },
+        { kind: "snowball", start: 16.3, y: 105, speed: 278, swing: 14, drift: 14 },
+        { kind: "balloon", start: 18.1, y: 144, speed: 194, swing: 33 },
+        { kind: "geese", start: 20.1, y: 184, speed: 332, swing: 14 },
+        { kind: "snowball", start: 22.2, y: 194, speed: 290, swing: 10, drift: -16 },
+        { kind: "geese", start: 24.2, y: 105, speed: 320, swing: 16 },
       ];
       const flock = [[0, 0], [23, -16], [39, 9]];
       const balloonOutline = Array.from({ length: 10 }, (_, i) => {
@@ -249,8 +254,8 @@
         const x = width + 165 - age * obstacle.speed;
         if (age < 0 || x < -85) return null;
         const phase = obstacle.kind === "geese" ? 3.1 : 2.15;
-        const climb = obstacle.kind === "balloon" ? age * 3 : 0;
-        return { x, y: obstacle.y + Math.sin(age * phase) * obstacle.swing - climb, age };
+        const drift = obstacle.kind === "balloon" ? -age * 3 : age * (obstacle.drift ?? 0);
+        return { x, y: obstacle.y + Math.sin(age * phase) * obstacle.swing + drift, age };
       }
 
       function updateObstacleHits() {
@@ -267,8 +272,8 @@
           if (!location) return;
           const members = obstacle.kind === "geese" ? flock : [[0, 0]];
           const contact = members.some(([dx, dy]) => convoy.some((member) => (
-            ((location.x + dx - member.x) / (obstacle.kind === "geese" ? 27 : 32)) ** 2
-            + ((location.y + dy - (member.y - 12)) / (obstacle.kind === "geese" ? 22 : 26)) ** 2
+            ((location.x + dx - member.x) / (obstacle.kind === "geese" ? 27 : obstacle.kind === "snowball" ? 24 : 32)) ** 2
+            + ((location.y + dy - (member.y - 12)) / (obstacle.kind === "geese" ? 22 : obstacle.kind === "snowball" ? 22 : 26)) ** 2
           ) <= 1));
           if (!contact) return;
           game.contactedObstacles.add(index);
@@ -276,7 +281,8 @@
           game.dropLockedUntil = time + dropLockDuration;
           status.textContent = obstacle.kind === "geese"
             ? "Oie heurtée · lancer suspendu"
-            : "Ballon heurté · lancer suspendu";
+            : obstacle.kind === "snowball" ? "Boule de neige heurtée · lancer suspendu"
+              : "Ballon heurté · lancer suspendu";
         });
       }
 
@@ -519,6 +525,21 @@
         ctx.restore();
       }
 
+      function drawSnowball(x, y, age) {
+        ctx.save();
+        ctx.translate(x, y);
+        line([[19, -3], [37, -7]], "#d8eff67d", 2);
+        line([[22, 4], [32, 6]], "#d8eff650", 1.5);
+        ellipse(0, 0, 16, 16, "#afc9dc");
+        ellipse(-2, -3, 14, 13, "#edf7f5");
+        ellipse(-5, -7, 6, 3, "#fffdf0", -.4);
+        ctx.rotate(age * 2);
+        for (const [dx, dy] of [[5, -6], [-7, 3], [5, 7]]) {
+          ellipse(dx, dy, 1.5, 1.5, "#90afc7");
+        }
+        ctx.restore();
+      }
+
       function drawObstacles() {
         for (const obstacle of obstacles) {
           const location = obstacleAt(obstacle, game.time);
@@ -528,6 +549,8 @@
             line([[width - 15, y - 7], [width - 23, y], [width - 15, y + 7]], "#ffe0a6", 2.5);
           } else if (obstacle.kind === "geese") {
             flock.forEach(([dx, dy], i) => drawGoose(x + dx, y + dy, age - i * .05));
+          } else if (obstacle.kind === "snowball") {
+            drawSnowball(x, y, age);
           } else {
             drawBalloon(x, y, age);
           }
@@ -579,6 +602,34 @@
         ctx.restore();
       }
 
+      function drawSanta() {
+        // Seated at the front, inside the sleigh's rotating coordinate frame.
+        // Keep the gold gift hatch below him visible and physically unchanged.
+        ellipse(17, -16, 13, 17, "#ac3747", -.12);
+        ellipse(14, -20, 10, 12, "#d35358", -.12);
+        line([[9, -8], [28, -8]], "#f9e8cc", 4);
+        line([[8, -14], [27, -14]], "#453345", 3.2);
+        ctx.fillStyle = "#eac277";
+        ctx.fillRect(18, -16, 4, 4);
+        line([[24, -26], [29, -21], [37, -21]], "#bc3e50", 6);
+        ellipse(37, -21, 4, 3, "#f8dfbd");
+        line([[38, -21], [49, -9]], "#dfc18a", 1.2);
+        ellipse(16, -39, 10, 11, "#f0c0a1");
+        ellipse(10, -36, 5, 7, "#fff0da", -.35);
+        ellipse(23, -35, 5, 7, "#fff0da", .35);
+        shape([[7, -34], [26, -34], [24, -24], [17, -20], [10, -25]], "#fff3df");
+        ellipse(14, -34, 5, 2.7, "#fff8e9", -.2);
+        ellipse(21, -34, 5, 2.7, "#fff8e9", .2);
+        ellipse(19, -37, 3.2, 2.8, "#e8a087");
+        ellipse(13, -41, 1.1, 1.3, "#382f43");
+        ellipse(22, -41, 1.1, 1.3, "#382f43");
+        line([[10, -44], [14, -45]], "#fff3df", 1.8);
+        line([[20, -45], [24, -44]], "#fff3df", 1.8);
+        shape([[5, -48], [12, -61], [23, -58], [30, -48], [24, -50], [20, -52], [25, -46]], "#ce4953");
+        line([[6, -48], [26, -47]], "#fff1d9", 5);
+        ellipse(31, -47, 4.5, 4.5, "#fff1d9");
+      }
+
       function drawConvoy() {
         const { player, sleigh, time } = game;
         const bikes = [
@@ -623,6 +674,7 @@
           ellipse(gift.x + 4, gift.y - 1, 4, 2, gift.ribbon, .3);
           ellipse(gift.x + 10, gift.y - 1, 4, 2, gift.ribbon, -.3);
         }
+        drawSanta();
         ctx.fillStyle = "#472a37";
         ctx.fillRect(-2, 3, 14, 7);
         line([[-3, 3], [13, 3]], "#f0cd86", 2);

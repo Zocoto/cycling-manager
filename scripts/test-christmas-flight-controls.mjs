@@ -192,6 +192,8 @@ function createHarness({ width = 800, height = 400 } = {}) {
     advance, pointer, key, space, start, latest, loseCapture, fire,
     primary, canvas, root, browserWindow, bounds, captured,
     samples, launches, messages, physics,
+    element: selector => root.querySelector(selector),
+    elapsed: () => now,
   };
 }
 
@@ -354,4 +356,75 @@ for (const kind of ["mouse", "touch"]) {
   check(harness.launches.length === 1, "Restart does not immediately throw a second parcel");
 }
 
-console.log(`Passed ${checks} Christmas flight keyboard, pointer, capture and parity checks.`);
+function traceObstacleRun({ waypoints = [], kind = "touch", width = 800, height = 400 } = {}) {
+  const harness = createHarness({ width, height });
+  const collisions = [];
+  let previousLock = false;
+  let nextWaypoint = 0;
+  harness.start();
+  harness.pointer("pointerdown", { kind, x: harness.bounds.left + width / 2, y: harness.bounds.top + height / 2 });
+  for (let frame = 0; frame < 1800; frame += 1) {
+    if (nextWaypoint < waypoints.length && harness.elapsed() / 1000 >= waypoints[nextWaypoint][0]) {
+      const [, targetY] = waypoints[nextWaypoint++];
+      harness.pointer("pointermove", {
+        kind,
+        x: harness.bounds.left + width / 2,
+        y: harness.bounds.top + height / 2 + (targetY - initialPosition.y) * height / 400,
+      });
+    }
+    harness.advance(1000 / 60);
+    const locked = harness.primary.textContent.startsWith("Lancer bloqué");
+    if (locked && !previousLock) collisions.push(harness.elapsed() / 1000);
+    previousLock = locked;
+  }
+  return { harness, collisions };
+}
+
+// Obstacles prevent parking in one flight lane, without ending or stalling a run.
+for (const [label, waypoints] of [["centre", []], ["top", [[0, 72]]], ["bottom", [[0, 211]]]]) {
+  const { harness, collisions } = traceObstacleRun({ waypoints });
+  check(collisions.length > 0, `Parking at the ${label} encounters an obstacle`);
+  const results = harness.messages.filter(message => message.type === "noel:tournee-terminee");
+  check(results.length === 1, `Repeated collisions at the ${label} still finish exactly once`);
+  check(results[0].deliveries === 0 && Number.isSafeInteger(results[0].score), `${label} collision run has a valid result`);
+}
+
+// A collision briefly disables a new release, consumes no gift, then recovers.
+{
+  const harness = createHarness();
+  harness.start();
+  for (let frame = 0; frame < 480 && !harness.primary.textContent.startsWith("Lancer bloqué"); frame += 1) {
+    harness.advance(1000 / 60);
+  }
+  check(harness.primary.textContent.startsWith("Lancer bloqué"), "Real convoy collision activates the release lock");
+  const giftsBefore = harness.element("[data-gifts]").textContent;
+  harness.fire(harness.primary, "click", { detail: 1 });
+  check(harness.launches.length === 0, "Blocked release does not create a parcel");
+  check(harness.element("[data-gifts]").textContent === giftsBefore, "Blocked release consumes no gift");
+  harness.advance(1300);
+  check(!harness.primary.textContent.startsWith("Lancer bloqué"), "Collision lock clears after its short 1.2-second penalty");
+  harness.fire(harness.primary, "click", { detail: 1 });
+  check(harness.launches.length === 1, "Throwing works again after collision recovery");
+}
+
+// A visible, deliberately simple altitude route avoids every obstacle. Exercise
+// the shipped handlers at desktop and phone sizes rather than replacing collision
+// rules with a second implementation in the test.
+{
+  const waypoints = [[0, 72], [11.5, 175], [17.4, 72]];
+  const runs = [
+    ["mouse", traceObstacleRun({ waypoints, kind: "mouse" })],
+    ["touch", traceObstacleRun({ waypoints })],
+    ["phone touch", traceObstacleRun({ waypoints, width: 400, height: 200 })],
+  ];
+  for (const [label, { harness, collisions }] of runs) {
+    check(collisions.length === 0, `${label} can fly the complete avoidance route without a collision`);
+    check(harness.messages.filter(message => message.type === "noel:tournee-terminee").length === 1, `${label} avoidance route finishes exactly once`);
+    check(harness.samples.every(({ tug, sleigh }) => Object.values(tug).every(Number.isFinite)
+      && Object.values(sleigh).every(Number.isFinite)), `${label} avoidance route retains finite physics`);
+    assert.deepEqual(harness.samples, runs[0][1].harness.samples, `${label} has identical avoidance physics`);
+    checks += 1;
+  }
+}
+
+console.log(`Passed ${checks} Christmas flight controls, obstacle recovery, avoidance and parity checks.`);

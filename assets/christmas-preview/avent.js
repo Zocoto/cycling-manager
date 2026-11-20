@@ -82,8 +82,16 @@
     <path d="M8 8h1384v884H8z" fill="none" stroke="#f3dfb5" stroke-width="2" opacity=".5"/>
   </svg>`;
 
-  function parcelIcon(kind) {
-    if (kind === "grelots") return `<svg viewBox="0 0 52 52" aria-hidden="true"><path d="M12 32c3-6 3-9 3-15a11 11 0 0 1 22 0c0 6 0 9 3 15l3 5H9z" fill="#efc873" stroke="#9b6c2c" stroke-width="2"/><path d="M21 42q5 7 10 0M26 5V2M21 15q1-5 6-5" fill="none" stroke="#9b6c2c" stroke-width="3" stroke-linecap="round"/><path d="m9 8 3 3m30-3-3 3" stroke="#e3b363" stroke-width="2"/></svg>`;
+  function parcelIcon(kind, day) {
+    if (kind === "grelots") return `<svg viewBox="0 0 52 52" aria-hidden="true">
+      <defs><radialGradient id="av-grelot-metal-${day}" cx="32%" cy="28%" r="75%"><stop stop-color="#fff2bb"/><stop offset=".35" stop-color="#e8c57d"/><stop offset="1" stop-color="#a6783d"/></radialGradient></defs>
+      <ellipse cx="26" cy="8" rx="4" ry="5.5" fill="none" stroke="#a97b43" stroke-width="2.5"/>
+      <circle cx="26" cy="29" r="17" fill="url(#av-grelot-metal-${day})" stroke="#9b6c2c" stroke-width="1.5"/>
+      <path d="M10.4 28Q26 32 41.6 28" fill="none" stroke="#b38952" stroke-width="1"/>
+      <path d="M19.2 35Q26 40.6 32.8 35" fill="none" stroke="#614525" stroke-width="2.2" stroke-linecap="round"/>
+      <g fill="#614525"><circle cx="19.2" cy="35" r="2.2"/><circle cx="32.8" cy="35" r="2.2"/></g>
+      <path d="M17.5 22.4Q20.9 18.5 24.6 18.3" fill="none" stroke="#fff6d3" stroke-width="1.8" stroke-linecap="round"/>
+    </svg>`;
     return `<svg viewBox="0 0 52 52" aria-hidden="true"><path d="M8 21h36v25H8z" fill="#b05149" stroke="#e8c779" stroke-width="2"/><path d="M5 17h42v9H5z" fill="#d4b46c"/><path d="M22 18h8v28h-8z" fill="#f1d696"/><path d="M26 17C9 17 10 1 20 6l6 11c1-19 21-13 12-5z" fill="none" stroke="#edcf87" stroke-width="4" stroke-linejoin="round"/></svg>`;
   }
 
@@ -103,7 +111,7 @@
         style="--x:${x / 14}%;--y:${y / 9}%;--w:${width / 14}%;--h:${height / 9}%;--door-hue:${number % 3}"
         data-action="advent" data-id="${number}" ${!available && !claimed ? "disabled" : ""}
         title="${esc(`${number} décembre · ${caption}`)}" aria-label="${esc(`${number} décembre · ${caption}`)}">
-        <span class="advent-window-reward">${parcelIcon(entry.kind)}</span>
+        <span class="advent-window-reward">${parcelIcon(entry.kind, number)}</span>
         <span class="advent-window-day">${number}</span>
         <span class="advent-window-status">${claimed ? "✓" : available ? "ouvrir" : ""}</span>
       </button>`;
