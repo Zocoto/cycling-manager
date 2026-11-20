@@ -26,6 +26,7 @@ type Mutation = (
 const BOOSTER_SOURCE_LABELS = { login: "Connexion", referral: "Parrainage", edition: "Événement" };
 const BOOSTER_ACQUISITION_LABELS = new Map([
   ["gazette", "Cadeau Cyclogazette"],
+  ["gala_presenter", "Cadeau de l’animateur du gala"],
   ["global_chat_quiz", "Quizz’o Stratège"],
 ]);
 /** Only RPC responses can replace the collection. Browser demonstration saves are never read. */
