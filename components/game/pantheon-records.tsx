@@ -7,6 +7,7 @@ import {
   type PantheonCategory,
   type PantheonFilters,
   type PantheonKind,
+  type PantheonSort,
 } from "@/lib/game/pantheon";
 import type { PantheonData, PantheonRank, PantheonWinner } from "@/services/pantheon";
 
@@ -60,9 +61,9 @@ export function PantheonRecords({ filters, records }: {
             <label className="flex-[1_1_12rem] text-sm font-semibold text-[#415E52]">
               Trier par
               <select name="tri" defaultValue={filters.sort === "wins" ? "victoires" : filters.sort} className={`mt-1 ${field}`}>
-                <option value="prestige">Prestige · mode olympique</option>
-                <option value="victoires">Nombre de victoires</option>
                 <option value="points">Points de prestige</option>
+                <option value="victoires">Nombre de victoires</option>
+                <option value="prestige">Olympique · victoires par catégorie</option>
               </select>
             </label>
           ) : (
@@ -110,7 +111,7 @@ export function PantheonRecords({ filters, records }: {
 
       {records.items.length === 0 ? (
         <p className="px-6 py-10 text-center text-[#415E52]">{ranking ? "Aucun coureur ne correspond à ces filtres." : "Aucune victoire ne correspond à ces filtres."}</p>
-      ) : ranking ? <Ranking rows={records.items} category={filters.category} /> : <Winners rows={records.items} filters={filters} />}
+      ) : ranking ? <Ranking rows={records.items} category={filters.category} sort={filters.sort} /> : <Winners rows={records.items} filters={filters} />}
 
       {pages > 1 || filters.page > 1 ? (
         <nav aria-label="Pages du Panthéon" className="flex flex-wrap items-center justify-between gap-3 border-t border-[#D8E5DE] px-4 py-4 sm:px-6">
@@ -157,7 +158,8 @@ function Winners({ rows, filters }: { rows: PantheonWinner[]; filters: PantheonF
   );
 }
 
-function Ranking({ rows, category }: { rows: PantheonRank[]; category: PantheonCategory | "all" }) {
+function Ranking({ rows, category, sort }: { rows: PantheonRank[]; category: PantheonCategory | "all"; sort: PantheonSort }) {
+  const byPoints = sort === "points";
   return (
     <ol className="divide-y divide-[#D8E5DE]">
       {rows.map((rider) => (
@@ -166,11 +168,13 @@ function Ranking({ rows, category }: { rows: PantheonRank[]; category: PantheonC
             {number.format(rider.rank)}
           </span>
           <RiderIdentity rider={rider} />
-          <div className="text-right">
-            <p className="text-sm font-bold tabular-nums text-[#143D33]">
-              <span className="text-lg">{number.format(rider.wins)}</span>{" "}{rider.wins === 1 ? "victoire" : "victoires"}
+          <div className="flex flex-col text-right tabular-nums">
+            <p className={byPoints ? "" : "order-2"}>
+              <span className={byPoints ? "text-lg font-bold text-[#143D33]" : "text-sm text-[#415E52]"}>{number.format(rider.points)} pts</span>
             </p>
-            <p className="text-xs tabular-nums text-[#415E52]">{number.format(rider.points)} pts</p>
+            <p className={byPoints ? "text-sm text-[#415E52]" : "font-bold text-[#143D33]"}>
+              {number.format(rider.wins)}{" "}{rider.wins === 1 ? "victoire" : "victoires"}
+            </p>
           </div>
           {category === "all" ? (
             <ul className="col-span-2 col-start-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[#415E52]">

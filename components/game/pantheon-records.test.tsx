@@ -28,8 +28,8 @@ describe("Panthéon", () => {
     expect(html).not.toContain("/jeu/resultats/");
   });
 
-  it("shows the career breakdown and keeps the ranking mode in pagination", () => {
-    const filters = readPantheonFilters({ vue: "classement", tri: "points" });
+  it("defaults to points and keeps explicit ranking modes in pagination", () => {
+    const filters = readPantheonFilters({ vue: "classement" });
     const records: PantheonData = {
       view: "classement", total: 31,
       items: [{
@@ -39,9 +39,16 @@ describe("Panthéon", () => {
     };
     const html = renderToStaticMarkup(<PantheonRecords filters={filters} records={records} />);
 
+    expect(filters.sort).toBe("points");
+    expect(html).toContain('<option value="points" selected="">');
     expect(html).toContain("112 pts");
     expect(html).toMatch(/>6<\/span>Élite/);
     expect(html).toMatch(/>7<\/span>Juniors/);
-    expect(html).toContain("vue=classement&amp;tri=points&amp;page=2");
+    expect(html).toContain("vue=classement&amp;page=2");
+
+    const olympic = readPantheonFilters({ vue: "classement", tri: "prestige" });
+    const olympicHtml = renderToStaticMarkup(<PantheonRecords filters={olympic} records={records} />);
+    expect(olympicHtml).toContain('<option value="prestige" selected="">');
+    expect(olympicHtml).toContain("vue=classement&amp;tri=prestige&amp;page=2");
   });
 });

@@ -44,11 +44,12 @@ export function readPantheonFilters(params: PantheonSearchParams): PantheonFilte
   const season = Number(value("saison"));
   const raceKey = value("course").trim();
   const page = Number(value("page"));
+  const sort = value("tri");
   return {
     view,
     category: Object.hasOwn(PANTHEON_CATEGORIES, category) ? category as PantheonCategory : "all",
     kind: view === "palmares" && (kind === "race" || kind === "general" || kind === "stage" || kind === "team") ? kind : "all",
-    sort: value("tri") === "victoires" ? "wins" : value("tri") === "points" ? "points" : "prestige",
+    sort: sort === "victoires" ? "wins" : sort === "prestige" ? "prestige" : "points",
     query: value("q").trim().slice(0, 80),
     season: view === "palmares" && Number.isSafeInteger(season) && season > 0 ? season : null,
     raceKey: view === "palmares" && raceKey.length <= 160 && raceKey ? raceKey : null,
@@ -63,7 +64,7 @@ export function getPantheonHref(filters: PantheonFilters, overrides: Partial<Pan
   if (category !== "all") search.set("categorie", category);
   if (query) search.set("q", query);
   if (view === "classement" && sort === "wins") search.set("tri", "victoires");
-  if (view === "classement" && sort === "points") search.set("tri", "points");
+  if (view === "classement" && sort === "prestige") search.set("tri", "prestige");
   if (view === "palmares") {
     if (kind !== "all") search.set("type", kind);
     if (season) search.set("saison", String(season));
