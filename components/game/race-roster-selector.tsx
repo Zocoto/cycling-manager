@@ -54,6 +54,7 @@ type RaceRosterSelectorProps = {
 export type RaceRosterSortKey =
   | "roster"
   | "form"
+  | "morale"
   | "seasonRaceDays"
   | "mountain"
   | "hills"
@@ -71,6 +72,7 @@ const RACE_ROSTER_SORT_OPTIONS: ReadonlyArray<{
 }> = [
   { value: "roster", label: "Ordre de l’effectif" },
   { value: "form", label: "Forme" },
+  { value: "morale", label: "Moral" },
   { value: "seasonRaceDays", label: "Jours de course disputés (JDC)" },
   { value: "mountain", label: "Montagne (MON)" },
   { value: "hills", label: "Vallons (VAL)" },
@@ -86,6 +88,7 @@ const RACE_ROSTER_SORT_ACCESSORS: Record<
   (rider: RaceRosterOption) => number | undefined
 > = {
   form: (rider) => rider.form,
+  morale: (rider) => rider.morale,
   seasonRaceDays: (rider) => rider.seasonRaceDays,
   mountain: (rider) => rider.mountain,
   hills: (rider) => rider.hills,
