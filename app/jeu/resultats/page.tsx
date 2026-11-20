@@ -191,9 +191,6 @@ export default async function RaceResultsPage({
           </header>
 
           <div className="flex flex-wrap gap-2">
-            <NextLink href="/jeu/pantheon" prefetch={false} className="inline-flex min-h-11 items-center rounded-xl border border-[#176951]/25 bg-white px-4 text-sm font-black text-[#176951] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-              Panthéon
-            </NextLink>
             {calendar && calendar.gameYear >= 7 && calendar.currentDayNumber <= 4 ? (
               <NextLink href="/jeu/resultats/accueils" prefetch={false} className="inline-flex min-h-11 items-center rounded-xl border border-[#176951]/25 bg-white px-4 text-sm font-black text-[#176951] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
                 Résultats de la saison précédente
