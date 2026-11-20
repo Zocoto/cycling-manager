@@ -13,8 +13,12 @@
       }
 
       const shell = document.querySelector("[data-flight-shell]");
+      let markerScale = 1;
       const reportHeight = () => {
+        const displayWidth = canvas.getBoundingClientRect().width;
+        markerScale = Math.max(1, Math.min(3, 800 / (displayWidth || 800)));
         notifyPilot("noel:tournee-hauteur", { height: Math.ceil(shell.getBoundingClientRect().height) });
+        if (game.mode !== "playing") draw();
       };
       if (typeof ResizeObserver === "function") new ResizeObserver(reportHeight).observe(shell);
       window.addEventListener("load", reportHeight, { once: true });
@@ -59,6 +63,7 @@
       const streak = root.querySelector("[data-streak]");
       const windLabel = root.querySelector("[data-wind]");
       const sleighLabel = root.querySelector("[data-sleigh]");
+      const targetLabel = root.querySelector("[data-target]");
       const progress = root.querySelector("[data-progress]");
       const progressBar = progress.firstElementChild;
       const darkMode = matchMedia("(prefers-color-scheme: dark)");
@@ -91,7 +96,7 @@
           player,
           sleigh: physics.createSleigh(player),
           chimneys: route.map(([x, y, size]) => ({ x, y, size, outcome: "open" })),
-          aim: null, parcel: null, available: route.length, score: 0, streak: 0,
+          parcel: null, available: route.length, score: 0, streak: 0,
           deliveries: 0, flash: null, progress: -1,
           dropLockedUntil: 0, contactedObstacles: new Set(),
         };
@@ -148,7 +153,6 @@
           distance: game.distance,
           courseSpeed,
           wind: windAt(game.distance),
-          aim: game.aim,
         });
       }
 
@@ -220,14 +224,6 @@
         if (pointer) {
           const dx = pointer.x - player.x;
           const dy = pointer.y - player.y;
-          if (pointer.id === null && Math.hypot(dx, dy) < 1.2) {
-            player.x = pointer.x;
-            player.y = pointer.y;
-            player.vx = 0;
-            player.vy = 0;
-            pointer = null;
-            return;
-          }
           x = dx * 14 / controlSpeed;
           y = dy * 14 / controlSpeed;
         }
@@ -634,28 +630,62 @@
         ctx.restore();
       }
 
-      function drawAim() {
-        if (game.mode === "finished" || game.parcel || game.dropLockedUntil > game.time) return;
-        const parcel = launchState();
-        ctx.save();
-        // Just the beginning of the throw is visible on the first two houses.
-        // Later throws retain the crosshair without revealing a landing point.
-        const introductory = game.chimneys.slice(0, 2).some((chimney) => chimney.outcome === "open");
-        if (introductory) {
-          for (let index = 1; index <= 4; index++) {
-            const time = index * .045;
-            const point = parcelAt(parcel, time);
-            ellipse(point.x - game.distance - courseSpeed * time, point.y, 1.6, 1.6, "#e4f5ff99");
+      function drawTargetGuide() {
+        if (game.mode === "finished") {
+          if (targetLabel) {
+            targetLabel.textContent = "Tournée terminée";
+            targetLabel.classList.toggle("is-aligned", false);
           }
+          return;
         }
-        if (game.aim) {
-          const { x, y } = game.aim;
-          line([[x - 8, y], [x - 3, y]], "#e4f5ffa6", 1.3);
-          line([[x + 3, y], [x + 8, y]], "#e4f5ffa6", 1.3);
-          line([[x, y - 8], [x, y - 3]], "#e4f5ffa6", 1.3);
-          line([[x, y + 3], [x, y + 8]], "#e4f5ffa6", 1.3);
+        const parcel = game.parcel || launchState();
+        const landing = game.parcel ? parcel.landing : findLanding(parcel);
+        let target = null;
+        for (const chimney of game.chimneys) {
+          const x = chimney.x - game.distance;
+          if (chimney.outcome !== "open" || chimney.y <= parcel.y || x < 8 || x > width - 8) continue;
+          const time = fallTime(parcel, chimney.y);
+          if (time < (parcel.age || 0)) continue;
+          const point = parcelAt(parcel, time);
+          const error = Math.abs(point.x - chimney.x);
+          if (!target || error < target.error) target = { chimney, point, time, error };
+        }
+        if (!target) return;
+        const aligned = landing?.chimney === target.chimney;
+        const locked = game.dropLockedUntil > game.time;
+        const colour = locked ? "#f0b3b5" : aligned ? "#b5ffd0" : "#a9e4ff";
+        const s = markerScale;
+        const x = target.point.x - game.distance;
+        const y = target.chimney.y;
+        const chimneyX = target.chimney.x - game.distance;
+        ctx.save();
+        // One shared ballistic guide: it displays the actual throw and never
+        // changes its direction or the collision tolerance on either device.
+        const age = parcel.age || 0;
+        for (let index = 1; index <= 9; index++) {
+          const t = age + (target.time - age) * index / 10;
+          const point = parcelAt(parcel, t);
+          ellipse(point.x - game.distance, point.y, 1.8 * s, 1.8 * s, colour + "99");
+        }
+        line([[chimneyX - target.chimney.size / 2, y - 2], [chimneyX + target.chimney.size / 2, y - 2]], aligned ? "#b5ffd0" : "#ffe6a3", 3 * s);
+        shape([[chimneyX - 5 * s, y - 24 * s], [chimneyX + 5 * s, y - 24 * s], [chimneyX, y - 17 * s]], "#ffe6a3");
+        if (x > -30 && x < width + 30) {
+          ctx.beginPath();
+          ctx.arc(x, y, 12 * s, 0, Math.PI * 2);
+          ctx.strokeStyle = "#102a3f"; ctx.lineWidth = 6 * s; ctx.stroke();
+          ctx.strokeStyle = colour; ctx.lineWidth = 2 * s; ctx.stroke();
+          line([[x - 18 * s, y], [x - 5 * s, y]], colour, 2 * s);
+          line([[x + 5 * s, y], [x + 18 * s, y]], colour, 2 * s);
+          line([[x, y - 18 * s], [x, y - 5 * s]], colour, 2 * s);
+          line([[x, y + 5 * s], [x, y + 18 * s]], colour, 2 * s);
+          ellipse(x, y, 2.8 * s, 2.8 * s, colour);
         }
         ctx.restore();
+        const label = game.parcel ? "Cadeau en vol" : locked ? "Lancer suspendu"
+          : aligned ? "Cible alignée · lance !"
+            : x < chimneyX ? "Le viseur est à gauche de la cheminée" : "Le viseur est à droite de la cheminée";
+        if (targetLabel && targetLabel.textContent !== label) targetLabel.textContent = label;
+        if (targetLabel) targetLabel.classList.toggle("is-aligned", aligned && !locked && !game.parcel);
       }
 
       function draw() {
@@ -671,7 +701,7 @@
             ellipse(x, y, flake.speed > 22 ? 1.8 : 1.1, 1.15, "#f1eafa83");
           }
         }
-        drawAim();
+        drawTargetGuide();
         drawObstacles();
         drawConvoy();
         drawParcel();
@@ -725,11 +755,12 @@
       }
 
       function drag(event) {
+        const bounds = canvas.getBoundingClientRect();
+        if (!bounds.width || !bounds.height) return;
         if (!pointer.dragging) {
           if (Math.hypot(event.clientX - pointer.clientX, event.clientY - pointer.clientY) < dragThreshold) return;
           pointer.dragging = true;
         }
-        const bounds = canvas.getBoundingClientRect();
         pointer.x = clamp(
           pointer.x + (event.clientX - pointer.clientX) * width / bounds.width,
           flightBounds.left, flightBounds.right,
@@ -742,26 +773,11 @@
         pointer.clientY = event.clientY;
       }
 
-      function aimAt(event) {
-        const bounds = canvas.getBoundingClientRect();
-        if (!bounds.width || !bounds.height) return;
-        game.aim = {
-          x: clamp((event.clientX - bounds.left) * width / bounds.width, 0, width),
-          y: clamp((event.clientY - bounds.top) * height / bounds.height, 0, height),
-        };
-      }
-
       primary.addEventListener("click", act);
       canvas.addEventListener("pointerdown", event => {
         if (game.mode !== "playing" || event.button !== 0) return;
-        if (event.pointerType !== "touch") {
-          event.preventDefault();
-          primary.focus({ preventScroll: true });
-          aimAt(event);
-          act();
-          return;
-        }
         if (pointer?.id != null) return;
+        event.preventDefault();
         primary.focus({ preventScroll: true });
         const { x, y } = game.player;
         pointer = { id: event.pointerId, clientX: event.clientX, clientY: event.clientY, x, y, dragging: false };
@@ -769,18 +785,11 @@
       });
       canvas.addEventListener("pointermove", event => {
         if (game.mode !== "playing") return;
-        if (event.pointerType !== "touch") aimAt(event);
-        else if (pointer?.id === event.pointerId) drag(event);
+        if (pointer?.id === event.pointerId) drag(event);
       });
       canvas.addEventListener("pointerup", event => {
         if (pointer?.id !== event.pointerId) return;
-        drag(event);
-        if (pointer.dragging) {
-          pointer.id = null;
-        } else {
-          aimAt(event);
-          pointer = null;
-        }
+        pointer = null;
       });
       for (const type of ["pointercancel", "lostpointercapture"]) {
         canvas.addEventListener(type, event => {
@@ -788,14 +797,16 @@
         });
       }
       root.addEventListener("keydown", event => {
-        if (game.mode !== "playing") return;
-        if (Object.hasOwn(direction, event.code)) {
-          event.preventDefault();
-          if (pointer?.id === null) pointer = null;
-          keys.add(event.code);
-        } else if (event.code === "Space") {
+        if (event.code === "Space") {
           event.preventDefault();
           if (!event.repeat) act();
+          return;
+        }
+        if (game.mode !== "playing") return;
+        if (Object.prototype.hasOwnProperty.call(direction, event.code)) {
+          event.preventDefault();
+          pointer = null;
+          keys.add(event.code);
         }
       });
       root.addEventListener("focusout", event => {

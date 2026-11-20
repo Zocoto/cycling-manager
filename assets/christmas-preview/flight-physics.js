@@ -59,20 +59,16 @@
     };
   }
 
-  function createParcel(sleigh, { distance, courseSpeed, wind, aim }) {
+  function createParcel(sleigh, { distance, courseSpeed, wind }) {
     const outlet = getSleighOutlet(sleigh);
-    const aimAngle = aim
-      ? clamp(Math.atan2(aim.x - outlet.x, Math.max(35, aim.y - outlet.y)), -1.04, 1.04)
-      : 0;
-    const angle = aimAngle + sleigh.angle;
-    const throwSpeed = aim ? 155 : 42;
+    const throwSpeed = 42;
     return {
       x: distance + outlet.x,
       y: outlet.y,
       // The gift keeps the sleigh's motion at release, including rotation at
-      // the hatch. Aiming adds a limited throw; it never solves the landing.
-      vx: courseSpeed + outlet.vx + Math.sin(angle) * throwSpeed,
-      vy: outlet.vy + Math.cos(angle) * throwSpeed,
+      // the hatch. Every input device releases with the same fixed impulse.
+      vx: courseSpeed + outlet.vx + Math.sin(sleigh.angle) * throwSpeed,
+      vy: outlet.vy + Math.cos(sleigh.angle) * throwSpeed,
       wind,
       age: 0,
     };

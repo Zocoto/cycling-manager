@@ -66,7 +66,10 @@
   .btn:hover { background: #ffe8b4; }
   .btn:focus-visible { outline: 3px solid #fff2c9; outline-offset: 3px; }
   .btn[aria-disabled="true"] { cursor: wait; color: #fff7e3; background: #8d4e55; }
-  .cursor-interaction { cursor: crosshair; }
+  .cursor-interaction { cursor: grab; }
+  .cursor-interaction:active { cursor: grabbing; }
+  [data-target] { display: block; color: #a9e4ff; font-size: .8rem; line-height: 1.4; }
+  [data-target].is-aligned { color: #b5ffd0; font-weight: 800; }
   .flight-help {
     margin: .65rem 0 0;
     padding-top: .65rem;
@@ -140,8 +143,9 @@
     <span class="text-small" data-wind>Vent calme</span>
   </div>
   <div class="flight-stage">
-    <canvas width="1200" height="600" role="img" aria-label="Trois rennes sur leurs vélos tirent un traîneau de cadeaux. Flèches pour piloter, souris pour viser, clic ou Espace pour lancer depuis le traîneau. En tactile, glisser pour piloter et toucher pour viser." class="cursor-interaction"></canvas>
+    <canvas width="1200" height="600" role="img" aria-label="Trois rennes sur leurs vélos tirent un traîneau de cadeaux. Flèches ou glisser pour diriger. Bouton ou Espace pour lâcher. Le grand viseur indique où le cadeau tombera, sur téléphone comme sur PC." class="cursor-interaction"></canvas>
   </div>
+  <span data-target role="status">Place le viseur sur une cheminée</span>
   <div class="progress" data-progress role="progressbar" aria-label="Progression de la tournée" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
     <div class="progress-bar" style="width: 0%"></div>
   </div>
@@ -154,10 +158,11 @@
 </div>
 
 <div class="flight-help">
-  <p class="keyboard-help">Pilote avec les <kbd>flèches</kbd>, vise à la souris, puis clique ou presse <kbd>Espace</kbd> pour lâcher un cadeau.</p>
-  <p class="touch-help">Glisse pour piloter. Touche une cheminée pour la viser, puis appuie sur <strong>Lâcher un cadeau</strong>.</p>
+  <p class="keyboard-help">Dirige avec les <kbd>flèches</kbd> ou en faisant glisser l’attelage. Appuie sur <kbd>Espace</kbd> ou sur <strong>Lâcher un cadeau</strong> pour lancer.</p>
+  <p class="touch-help">Glisse pour diriger les rennes, relâche pour les arrêter, puis appuie sur <strong>Lâcher un cadeau</strong>.</p>
   <p>Le traîneau se balance quand les rennes changent de direction. Stabilise-le avant de lancer : le cadeau garde son élan, puis le vent le dévie.</p>
-  <p>Les premiers pointillés montrent le début du lancer. Évite les oies et les ballons, qui bloquent brièvement les lancers.</p>
+  <p>Le grand viseur et les pointillés montrent la trajectoire sur tous les appareils. Le viseur passe au vert quand le lancer est aligné avec la cheminée. Il ne corrige pas le tir.</p>
+  <p>Évite les oies et les ballons, qui bloquent brièvement les lancers.</p>
 </div>
 </main>
 </body>

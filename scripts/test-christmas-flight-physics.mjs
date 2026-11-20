@@ -16,7 +16,7 @@ function near(actual, expected, tolerance, label) {
   check(Math.abs(actual - expected) <= tolerance, `${label}: ${actual} vs ${expected}`);
 }
 const stillTug = () => ({ x: 295, y: 143, vx: 0, vy: 0 });
-const parcelOptions = { distance: 900, courseSpeed: 236, wind: 0, aim: { x: 390, y: 300 } };
+const parcelOptions = { distance: 900, courseSpeed: 236, wind: 0 };
 
 for (const [vx, vy] of [[320, 0], [-320, 0], [0, 320], [0, -320]]) {
   const tug = stillTug();
@@ -79,11 +79,14 @@ for (const [vx, vy] of [[320, 0], [-320, 0], [0, 320], [0, -320]]) {
   const moving = physics.createParcel({ ...sleigh, vx: 180, vy: -95 }, parcelOptions);
   near(moving.vx - resting.vx, 180, 1e-9, "Gift inherits horizontal sleigh velocity");
   near(moving.vy - resting.vy, -95, 1e-9, "Gift inherits vertical sleigh velocity");
-  const tilted = physics.createParcel({ ...sleigh, angle: .22, angularVelocity: .5 }, parcelOptions);
-  check(Math.abs(tilted.vx - resting.vx) > 6, "Pitch and angular velocity alter the throw");
+  const tilted = physics.createParcel({ ...sleigh, angle: .22 }, parcelOptions);
+  check(Math.abs(tilted.vx - resting.vx) > 6, "Pitch alters the throw");
+  const rotating = physics.createParcel({ ...sleigh, angularVelocity: .5 }, parcelOptions);
+  near(rotating.vx - resting.vx, -3.5, 1e-9, "Angular motion contributes horizontal hatch velocity");
+  near(rotating.vy - resting.vy, 2.5, 1e-9, "Angular motion contributes vertical hatch velocity");
   const rightWind = physics.createParcel(sleigh, { ...parcelOptions, wind: 210 });
   const leftWind = physics.createParcel(sleigh, { ...parcelOptions, wind: -165 });
-  near(rightWind.vx, leftWind.vx, 1e-9, "Aiming never silently compensates wind");
+  near(rightWind.vx, leftWind.vx, 1e-9, "Release never silently compensates wind");
   check(physics.parcelAt(rightWind, .6).x - physics.parcelAt(leftWind, .6).x > 60,
     "Opposite winds visibly change landing");
   const targetTime = physics.fallTime(resting, 300);
@@ -92,25 +95,42 @@ for (const [vx, vy] of [[320, 0], [-320, 0], [0, 320], [0, -320]]) {
   check(physics.fallTime(resting, resting.y - 3) === 0, "Targets above the release do not yield NaN");
 }
 
-// Even the narrow final openings are reachable with a settled sleigh. The
-// control remains timing-based: the pointer adds a capped impulse, not a hit.
+// Old pointer fields must have no effect, even if a stale caller supplies one.
+for (const wind of [0, -165, 210]) {
+  const sleigh = { ...physics.createSleigh(stillTug()), vx: 65, vy: -30, angle: .18, angularVelocity: -.2 };
+  const options = { ...parcelOptions, wind };
+  const release = physics.createParcel(sleigh, options);
+  for (const aim of [undefined, null, false, true, { x: 0, y: 0 }, { x: 800, y: 400 }, { x: NaN, y: Infinity }]) {
+    assert.deepEqual(physics.createParcel(sleigh, { ...options, aim }), release,
+      "Pointer position and presence never alter release physics");
+    checks += 1;
+  }
+  Object.defineProperty(options, "aim", { get() { throw new Error("The obsolete aim field must never be read"); } });
+  assert.deepEqual(physics.createParcel(sleigh, options), release);
+  checks += 1;
+}
+
+// Aim with the convoy's position and release timing. At the real 120 Hz tick,
+// a settled sleigh can hit even a 24 px opening under every course wind.
 for (const wind of [0, 125, -165, 210]) {
   for (const targetY of [276, 320]) {
-    const sleigh = physics.createSleigh(stillTug());
-    let bestError = Infinity;
-    let bestDistance = 0;
-    for (let targetX = 220; targetX <= 600; targetX += .25) {
-      const parcel = physics.createParcel(sleigh, {
-        distance: 0, courseSpeed: 236, wind, aim: { x: targetX, y: targetY },
-      });
-      const error = Math.abs(physics.parcelAt(parcel, physics.fallTime(parcel, targetY)).x - targetX);
-      if (error < bestError) {
-        bestError = error;
-        bestDistance = targetX;
+    for (const tugY of [72, 143, 211]) {
+      const sleigh = physics.createSleigh({ ...stillTug(), y: tugY });
+      const targetX = 850;
+      let bestError = Infinity;
+      let screenTarget = 0;
+      for (let tick = 0; tick < 420; tick++) {
+        const distance = tick * step * 236;
+        const parcel = physics.createParcel(sleigh, { distance, courseSpeed: 236, wind });
+        const error = Math.abs(physics.parcelAt(parcel, physics.fallTime(parcel, targetY)).x - targetX);
+        if (error < bestError) {
+          bestError = error;
+          screenTarget = targetX - distance;
+        }
       }
+      check(bestError < 1.1, `Narrow chimney height ${targetY}, convoy height ${tugY}, wind ${wind} can be hit by timing`);
+      check(screenTarget > 150 && screenTarget < 470, "The release window stays within the visible play area");
     }
-    check(bestError < 1, `Narrow chimney at height ${targetY}, wind ${wind} can be hit`);
-    check(bestDistance > 240 && bestDistance < 460, "Launch timing fits the visible play area");
   }
 }
 
