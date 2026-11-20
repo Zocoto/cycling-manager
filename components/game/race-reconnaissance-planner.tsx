@@ -337,9 +337,10 @@ export function RaceReconnaissancePlanner({
             ) : null}
 
             <p className="mt-4 text-xs font-semibold leading-5 text-[#60756E]">
-              Sélectionnez les coureurs inscrits à la même course. Seules leurs
-              courses communes et les périodes compatibles avec toute la
-              délégation seront proposées.
+              Sélectionnez les coureurs inscrits à la même course, y compris
+              sur une demande de WildCard Élite en attente. Seules leurs courses
+              communes et les périodes compatibles avec toute la délégation
+              seront proposées.
             </p>
             <div className="mt-5 max-h-[540px] space-y-2 overflow-y-auto pr-1">
               {overview.riders.map((rider) => {
@@ -506,6 +507,11 @@ export function RaceReconnaissancePlanner({
                             className="sr-only"
                           />
                           <span className="line-clamp-2">{stage.raceName}</span>
+                          {stage.pendingWildcard ? (
+                            <span className="mt-1 block text-[8px] text-[#875D13]">
+                              WildCard en attente
+                            </span>
+                          ) : null}
                           {stage.raceFormat === "stage_race" ? (
                             <span className="mt-1 block opacity-75">
                               Ét. {stage.stageNumber}
@@ -568,7 +574,11 @@ export function RaceReconnaissancePlanner({
               <p className="mt-5 rounded-2xl border border-dashed border-[#315B3E]/20 bg-[#F7FAF8] px-5 py-5 text-sm font-semibold text-[#60756E]">
                 Aucune course commune aux coureurs sélectionnés ne possède de
                 créneau de reconnaissance compatible. Vérifiez les inscriptions
-                affichées à côté de leurs noms.
+                affichées à côté de leurs noms. Le stage de{" "}
+                {reconnaissanceDurationDays} jour
+                {reconnaissanceDurationDays > 1 ? "s" : ""} commence au plus tôt
+                demain et doit se terminer avant le début de la course ou du tour,
+                même pour une WildCard en attente.
               </p>
             ) : null}
 
