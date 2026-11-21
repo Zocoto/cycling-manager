@@ -48,6 +48,7 @@ export type DashboardFastSummary = {
   divisionCode: TeamDivisionCode;
   inventoryTotalUnits: number;
   inventoryAvailableUnits: number;
+  /** Historical notification count; actionable replacements come from the shared live calendar. */
   raceRosterAlertCount: number;
   objectiveTotalCount: number;
   objectiveReadyCount: number;

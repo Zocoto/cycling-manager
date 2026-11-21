@@ -13,7 +13,7 @@ describe("alignement des cartes principales du bureau", () => {
     expect(dashboardPage).not.toContain("DashboardManagementNavigation");
     expect(dashboardPage).not.toContain("data-dashboard-navigation-group");
     expect(dashboardPage).toContain("grid-cols-2 gap-3 sm:mt-5 sm:gap-4 md:grid-cols-3 xl:grid-cols-5");
-    const managementGrid = dashboardPage.slice(dashboardPage.indexOf("<RaceOperationsCard alertCount="));
+    const managementGrid = dashboardPage.slice(dashboardPage.indexOf("<RaceOperationsCard alertsPromise="));
     expect(managementGrid.match(/<ManagementModuleCard\s/g)).toHaveLength(10);
     const tiles = [...managementGrid.matchAll(/<ManagementModuleCard\s+href="([^"]+)"/g)].map(match => match[1]);
     expect(tiles).toEqual([

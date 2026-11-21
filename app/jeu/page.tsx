@@ -86,7 +86,12 @@ import {
   DASHBOARD_ASSISTANT_ENABLED,
   getDashboardLowReputationRegistrationAlerts,
   getDashboardRaceRosterAlerts,
+  type DashboardRaceRosterAlert,
 } from "../../lib/game/dashboard-assistant";
+import {
+  DashboardRaceRosterStatus,
+  DashboardRaceRosterStatusPlaceholder,
+} from "@/components/game/dashboard-race-roster-status";
 import { getDashboardRaceCalendar } from "../../services/dashboard-race-calendar";
 import {
   getTeamFanClubBuildings,
@@ -475,6 +480,11 @@ export default async function GamePage() {
     null as SeasonRaceCalendar | null,
     "Impossible de récupérer les prochaines courses du bureau :",
   );
+  // Share the actionable compositions with the assistant and the calendar badge.
+  // Historical medical notifications can outlive the race that created them.
+  const raceRosterAlertsPromise = raceCalendarPromise.then((calendar) =>
+    calendar ? getDashboardRaceRosterAlerts(calendar) : null,
+  );
 
   const rosterPromise = loadDashboardValue(
     supabase
@@ -581,7 +591,6 @@ export default async function GamePage() {
   const teamSponsorIdentityError = sponsorIdentityResult.error;
 
   const dashboardFastSummary = await fastSummaryPromise;
-  const raceRosterAlertCount = dashboardFastSummary?.raceRosterAlertCount ?? 0;
   const referralCode = dashboardSportingDirector?.referral_profile?.referral_code;
   const referralInviteUrl = referralCode
     ? buildReferralInviteUrl(getPublicSiteUrl() ?? appConfig.siteUrl, referralCode)
@@ -751,6 +760,7 @@ export default async function GamePage() {
                 summaryPromise={dashboardAssistantPromise}
                 overweightRidersPromise={overweightRidersPromise}
                 raceCalendarPromise={raceCalendarPromise}
+                raceRosterAlertsPromise={raceRosterAlertsPromise}
                 reputationPoints={reputationPoints}
                 rewardCount={baseReadyRewardCount}
                 objectiveSummaryPromise={objectiveSummaryPromise}
@@ -875,7 +885,7 @@ export default async function GamePage() {
             </div>
           </section>
 
-          <RaceOperationsCard alertCount={raceRosterAlertCount} />
+          <RaceOperationsCard alertsPromise={raceRosterAlertsPromise} />
 
           <section className="mt-4 grid grid-cols-2 gap-3 sm:mt-5 sm:gap-4 md:grid-cols-3 xl:grid-cols-5">
             <ManagementModuleCard
@@ -983,6 +993,7 @@ async function DashboardAssistantDeferred({
   summaryPromise,
   overweightRidersPromise,
   raceCalendarPromise,
+  raceRosterAlertsPromise,
   reputationPoints,
   rewardCount,
   objectiveSummaryPromise,
@@ -992,15 +1003,17 @@ async function DashboardAssistantDeferred({
   summaryPromise: ReturnType<typeof getCurrentDashboardAssistantSummary>;
   overweightRidersPromise: ReturnType<typeof getDashboardOverweightRiders>;
   raceCalendarPromise: Promise<SeasonRaceCalendar | null>;
+  raceRosterAlertsPromise: Promise<DashboardRaceRosterAlert[] | null>;
   reputationPoints: number;
   rewardCount: number;
   objectiveSummaryPromise: Promise<DashboardObjectiveSummary>;
   cashBalance: number | null;
   hasTeam: boolean;
 }) {
-  const [summary, calendar, objectives, overweightRiders] = await Promise.all([
+  const [summary, calendar, raceRosterAlerts, objectives, overweightRiders] = await Promise.all([
     summaryPromise,
     raceCalendarPromise,
+    raceRosterAlertsPromise,
     objectiveSummaryPromise,
     overweightRidersPromise,
   ]);
@@ -1008,7 +1021,7 @@ async function DashboardAssistantDeferred({
   return (
     <DashboardAssistant
       summaryPromise={Promise.resolve(summary ? { ...summary, overweightRiders } : null)}
-      raceRosterAlerts={getDashboardRaceRosterAlerts(calendar)}
+      raceRosterAlerts={raceRosterAlerts ?? []}
       raceRegistrationAlerts={getDashboardLowReputationRegistrationAlerts(
         calendar,
         reputationPoints,
@@ -1621,7 +1634,9 @@ function getDashboardRiderAverage(rider: DashboardRider): number {
   return Math.round(ratingsTotal / dashboardRatingKeys.length);
 }
 
-function RaceOperationsCard({ alertCount }: { alertCount: number }) {
+function RaceOperationsCard({ alertsPromise }: {
+  alertsPromise: Promise<DashboardRaceRosterAlert[] | null>;
+}) {
   const entries = [
     {
       href: "/jeu/calendrier",
@@ -1630,10 +1645,11 @@ function RaceOperationsCard({ alertCount }: { alertCount: number }) {
       title: "Inscriptions & calendrier",
       description:
         "Choisissez vos courses, filtrez les catégories et composez les équipes engagées.",
-      status:
-        alertCount > 0
-          ? `${alertCount} remplacement${alertCount > 1 ? "s" : ""} requis`
-          : "Saison ouverte",
+      status: (
+        <Suspense fallback={<DashboardRaceRosterStatusPlaceholder />}>
+          <DashboardRaceRosterStatus alertsPromise={alertsPromise} />
+        </Suspense>
+      ),
     },
     {
       href: "/jeu/preparation-course",
@@ -1708,15 +1724,11 @@ function RaceOperationsCard({ alertCount }: { alertCount: number }) {
                 <span data-site-action-label className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#7CCF9C]">
                   {entry.eyebrow}
                 </span>
-                <span
-                  className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
-                    index === 0 && alertCount > 0
-                      ? "bg-[#EF5B65]/20 text-[#FFB0B6] ring-1 ring-[#EF5B65]/40"
-                      : "bg-white/10 text-[#BFD1C6]"
-                  }`}
-                >
-                  {entry.status}
-                </span>
+                {index === 0 ? entry.status : (
+                  <span className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold text-[#BFD1C6]">
+                    {entry.status}
+                  </span>
+                )}
               </span>
               <span className="mt-2 block text-base font-black text-[#FFFDF4] sm:mt-3 sm:text-xl">
                 {entry.title}
