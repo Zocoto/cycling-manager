@@ -69,6 +69,7 @@
       const windLabel = root.querySelector("[data-wind]");
       const sleighLabel = root.querySelector("[data-sleigh]");
       const targetLabel = root.querySelector("[data-target]");
+      const autoDrop = root.querySelector("[data-auto-drop]");
       const progress = root.querySelector("[data-progress]");
       const progressBar = progress.firstElementChild;
       const summary = root.querySelector("[data-flight-summary]");
@@ -80,6 +81,12 @@
       const summaryNote = root.querySelector("[data-summary-note]");
       const darkMode = matchMedia("(prefers-color-scheme: dark)");
       const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+      let automaticPreference = null;
+      function setTouchControls(isTouch) {
+        autoDrop.checked = automaticPreference ?? isTouch;
+        shell.classList.toggle("is-touch", isTouch);
+      }
+      setTouchControls(matchMedia("(pointer: coarse)").matches);
       const keys = new Set();
       const direction = {
         ArrowLeft: [-1, 0], ArrowRight: [1, 0],
@@ -294,6 +301,15 @@
         updatePlayer();
         physics.updateSleigh(game.sleigh, game.player, step);
         updateObstacleHits();
+        if (autoDrop.checked && canRelease()) {
+          const parcel = launchState();
+          const landing = findLanding(parcel);
+          // Use the same ballistic landing and opening as a manual throw.
+          // Wait for a centred opening rather than spending a gift on its edge.
+          if (landing && landing.error <= Math.max(2, (landing.chimney.size / 2 - parcelRadius) / 2)) {
+            releaseParcel(parcel, landing);
+          }
+        }
         updateParcel();
         for (const chimney of game.chimneys) {
           if (chimney.outcome === "open" && chimney.x < game.distance + 12
@@ -755,7 +771,7 @@
         }
         ctx.restore();
         const label = game.parcel ? "Cadeau en vol" : locked ? "Lancer suspendu"
-          : aligned ? "Cible alignée · lance !"
+          : aligned ? autoDrop.checked ? "Cible alignée · envoi automatique" : "Cible alignée · lance !"
             : x < chimneyX ? "Le viseur est à gauche de la cheminée" : "Le viseur est à droite de la cheminée";
         if (targetLabel && targetLabel.textContent !== label) targetLabel.textContent = label;
         if (targetLabel) targetLabel.classList.toggle("is-aligned", aligned && !locked && !game.parcel);
@@ -812,7 +828,9 @@
           notifyPilot("noel:tournee-demarree", { runId: game.runId });
           previousFrame = performance.now();
           accumulator = 0;
-          status.textContent = "Stabilise le traîneau, puis livre les 14 cheminées";
+          status.textContent = autoDrop.checked
+            ? "Dirige le traîneau : les cadeaux partent quand le viseur est aligné"
+            : "Stabilise le traîneau, puis livre les 14 cheminées";
           primary.textContent = "Lâcher un cadeau";
           primary.focus({ preventScroll: true });
           draw();
@@ -820,13 +838,21 @@
           requestAnimationFrame(frame);
           return;
         }
-        if (game.parcel || game.available === 0 || game.dropLockedUntil > game.time || game.nextReleaseAt > game.time) return;
-        const parcel = launchState();
-        parcel.landing = findLanding(parcel);
+        if (!canRelease()) return;
+        releaseParcel(launchState());
+        syncHud();
+      }
+
+      function canRelease() {
+        return game.mode === "playing" && !game.parcel && game.available > 0
+          && game.dropLockedUntil <= game.time && game.nextReleaseAt <= game.time;
+      }
+
+      function releaseParcel(parcel, landing = findLanding(parcel)) {
+        parcel.landing = landing;
         game.available -= 1;
         game.parcel = parcel;
         game.nextReleaseAt = game.time + releaseCooldown;
-        syncHud();
       }
 
       function drag(event) {
@@ -849,10 +875,17 @@
       }
 
       primary.addEventListener("click", act);
+      autoDrop.addEventListener("change", () => {
+        automaticPreference = autoDrop.checked;
+        status.textContent = autoDrop.checked
+          ? "Lancer automatique activé : concentre-toi sur le pilotage"
+          : "Lancer manuel : bouton ou Espace quand le viseur est vert";
+      });
       canvas.addEventListener("pointerdown", event => {
         if (game.mode !== "playing" || event.button !== 0) return;
         if (pointer?.id != null) return;
         event.preventDefault();
+        setTouchControls(event.pointerType === "touch");
         primary.focus({ preventScroll: true });
         const { x, y } = game.player;
         pointer = { id: event.pointerId, clientX: event.clientX, clientY: event.clientY, x, y, dragging: false };
@@ -880,6 +913,7 @@
         if (game.mode !== "playing") return;
         if (Object.prototype.hasOwnProperty.call(direction, event.code)) {
           event.preventDefault();
+          setTouchControls(false);
           pointer = null;
           keys.add(event.code);
         }
@@ -904,7 +938,7 @@
         summaryNote.textContent = result.practice
           ? "La tournée du jour a déjà été récompensée : aucun nouveau gain."
           : result.retry === true
-            ? result.improved ? "Seuls tes gains supplémentaires sont crédités." : "Ton meilleur résultat est conservé : aucun gain supplémentaire."
+            ? "Second tour : les gains de cette nouvelle tournée s’ajoutent aux précédents."
             : "Ces Grelots et lumières ont été crédités dans l’aperçu.";
       });
       window.addEventListener("blur", () => { keys.clear(); pointer = null; });

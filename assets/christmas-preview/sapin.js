@@ -3,6 +3,50 @@
   const esc = value => String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
   const num = value => new Intl.NumberFormat("fr-FR").format(value);
   const colours = ["#ffe5a4", "#ff8f91", "#9de0bb", "#9ebef5", "#d6a7ef"];
+  const contributionRewards = Object.freeze([
+    { from: 1, to: 1, place: "1er", name: "Traîneau du renne en danseuse", type: "Cadre", effect: "+3 END / RES / REC · +2 MON", bonuses: { endurance: 3, resistance: 3, recovery: 3, mountain: 2 } },
+    { from: 2, to: 3, place: "2e–3e", name: "Roues du chasse-neige volant", type: "Roues", effect: "+2 PAV / END / RES", bonuses: { cobbles: 2, endurance: 2, resistance: 2 } },
+    { from: 4, to: 6, place: "4e–6e", name: "Dérailleur du lutin grognon", type: "Groupe", effect: "+2 ACC · +1 VAL / REC", bonuses: { acceleration: 2, hills: 1, recovery: 1 } },
+    { from: 7, to: 10, place: "7e–10e", name: "Grelot du poisson-pilote", type: "Accessoire", effect: "+1 END / REC", bonuses: { endurance: 1, recovery: 1 } },
+  ]);
+  function rankContributors(contributors) {
+    const seen = new Set();
+    const sorted = contributors.filter(entry => {
+      if (!entry || typeof entry.id !== "string" || typeof entry.name !== "string"
+        || !Number.isSafeInteger(entry.lights) || entry.lights <= 0 || seen.has(entry.id)) return false;
+      seen.add(entry.id);
+      return true;
+    }).sort((a, b) => b.lights - a.lights || a.name.localeCompare(b.name, "fr") || a.id.localeCompare(b.id));
+    let rank = 0;
+    return sorted.map((entry, index) => {
+      if (!index || entry.lights !== sorted[index - 1].lights) rank = index + 1;
+      return { ...entry, rank };
+    });
+  }
+  function contributionPrize(rank) {
+    return contributionRewards.find(reward => rank >= reward.from && rank <= reward.to) ?? null;
+  }
+  function renderContributors(contributors) {
+    const ranked = rankContributors(contributors);
+    const leaders = ranked.filter(entry => entry.rank <= 10);
+    const current = ranked.find(entry => entry.isCurrent);
+    const row = entry => `<tr${entry.isCurrent ? ' class="contributor-current" aria-current="true"' : ""}>
+      <td class="contributor-rank">${entry.rank}</td><th scope="row">${esc(entry.name)}${entry.isCurrent ? '<span class="contributor-you">Toi</span>' : ""}</th><td class="contributor-lights">${num(entry.lights)}</td></tr>`;
+    return `<section class="contribution-board" aria-labelledby="contributors-heading">
+      <p class="contribution-eyebrow">Les éclaireurs du Peloton</p>
+      <h2 id="contributors-heading">Top 10 des contributeurs</h2>
+      <p class="contribution-explainer">Le total de lumières apportées au sapin depuis le début de l’événement, toutes tes tournées récompensées comprises. Le score du mini-jeu n’entre pas dans ce classement. Les ex æquo du top 10 sont tous affichés.</p>
+      <p class="contribution-preview">Exemple de classement · pilote local</p>
+      ${leaders.length ? `<table class="contributor-table"><thead><tr><th scope="col">Rang</th><th scope="col">Directeur sportif</th><th scope="col">Lumières</th></tr></thead><tbody>${leaders.map(row).join("")}</tbody>
+        ${current && !leaders.some(entry => entry.id === current.id) ? `<table class="contributor-table contributor-personal" aria-label="Ta contribution hors du top 10"><tbody>${row(current)}</tbody></table>` : ""}` : '<p class="contribution-empty">Le sapin attend ses premiers éclaireurs. Livre ton premier cadeau pour rejoindre le classement.</p>'}
+      ${!current ? '<a class="contribution-join" href="#tournee">Apporter mes premières lumières →</a>' : ""}
+      <details class="contribution-prizes" open><summary>Les cadeaux du top 10</summary>
+        <p>Barème de travail pour la clôture du 31 décembre : un équipement exclusif de Noël par DS, conservé après l’événement. À égalité de lumières, même rang et même cadeau.</p>
+        <ol>${contributionRewards.map(reward => `<li><span class="contribution-place">${reward.place}</span><div><strong>${esc(reward.name)}</strong><span>${reward.type} · ${reward.effect}</span></div></li>`).join("")}</ol>
+        <p class="contribution-preview">Les équipements de ce barème sont présentés pour les tests ; cet aperçu ne les attribue pas à ton équipe.</p>
+      </details>
+    </section>`;
+  }
   function point(t) {
     const y = 626 - t * 550;
     const x = 280 + Math.sin(t * Math.PI * 6) * (180 * (1 - t) + 3);
@@ -65,14 +109,15 @@
       <text x="280" y="725" fill="#e4d8bb" font-family="system-ui,sans-serif" font-size="12" text-anchor="middle">UN SEUL SAPIN · TOUT LE PELOTON</text>
     </svg>`;
   }
-  function render({ art, panel, total, personal, participants, claimed, milestones, itemById }) {
+  function render({ art, panel, total, personal, participants, claimed, milestones, itemById, contributors = [] }) {
     const ceiling = milestones[milestones.length - 1].goal;
     const next = milestones.find(milestone => total < milestone.goal);
     art.innerHTML = draw({ total, milestones });
     panel.innerHTML = `<div class="collective-label"><span class="collective-dot"></span>Progression commune à tous les joueurs</div>
       <div class="tree-metric"><strong>${num(total)}</strong><span> / ${num(ceiling)} lumières</span></div>
       <p class="collective-caption">${num(participants)} DS réunis autour du même sapin. <strong>Chaque palier débloque sa récompense pour chaque joueur du site.</strong></p>
-      <p class="personal-contribution">Ta contribution · <strong>${num(personal)} livraison${personal > 1 ? "s" : ""}</strong></p>
+      <div class="tree-how-it-works"><strong>1 cadeau livré = 1 lumière</strong><p>C’est le résultat validé à la fin de ta tournée qui allume la guirlande. Les lumières de chaque Second tour s’ajoutent elles aussi et restent acquises.</p><a href="#tournee">Faire grandir la guirlande →</a></div>
+      <p class="personal-contribution">Ta contribution · <strong>${num(personal)} lumière${personal > 1 ? "s" : ""}</strong> apportée${personal > 1 ? "s" : ""} au sapin</p>
       <div class="tree-track" role="progressbar" aria-valuemax="${ceiling}" aria-valuemin="0" aria-valuenow="${Math.min(total, ceiling)}" aria-label="Livraisons de tout le peloton"><span style="width:${Math.min(100, total / ceiling * 100)}%"></span></div>
       <p class="next-tree-goal">${next ? `${num(next.goal - total)} livraisons avant le prochain palier` : "L’étoile brille pour tout le peloton !"}</p>
       <ol class="collective-milestones">${milestones.map((milestone, i) => {
@@ -83,7 +128,7 @@
           <div><span class="milestone-goal">${num(milestone.goal)} lumières · pour chaque DS</span><h2>${esc(milestone.name)}</h2><p>${esc(rewardLabel(milestone, itemById))}</p></div>
           <button class="button button-outline" data-action="claim-tree" data-id="${milestone.goal}" ${collected || !unlocked ? "disabled" : ""}>${collected ? "Récupéré" : unlocked ? "Récupérer" : "À débloquer"}</button>
         </li>`;
-      }).join("")}</ol><p class="tree-challenge">L’étoile est le défi ultime de décembre. Elle donne le Carnet de progression existant (+1 étoile entière, plafond 4 étoiles).</p>`;
+      }).join("")}</ol><p class="tree-challenge">L’étoile est le défi ultime de décembre. Elle donne le Carnet de progression existant (+1 étoile entière, plafond 4 étoiles).</p>${renderContributors(contributors)}`;
   }
-  globalThis.noelTree = Object.freeze({ render, rewardLabel, garlandProgress });
+  globalThis.noelTree = Object.freeze({ render, rewardLabel, garlandProgress, rankContributors, contributionPrize, contributionRewards });
 })();

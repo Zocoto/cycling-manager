@@ -18,6 +18,7 @@ export const DAILY_REWARD_CYCLE_LENGTH = 40;
 export type DailyRewardEffectKind =
   | "form_boost"
   | "morale_boost"
+  | "personality_reroll"
   | "rider_experience"
   | "rating_boost"
   | "training_multiplier"
@@ -228,6 +229,7 @@ export function requiresRiderTarget(kind: DailyRewardEffectKind) {
   return [
     "form_boost",
     "morale_boost",
+    "personality_reroll",
     "rider_experience",
     "rating_boost",
     "special_ability",

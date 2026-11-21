@@ -231,6 +231,10 @@ export async function redeemDailyRewardAction(formData: FormData) {
     );
   }
 
+  if (effectKind === "personality_reroll" && (riderId === null || quantity !== 1)) {
+    redirectDailyRewardError(returnPath, "Choisissez un coureur pour utiliser un seul Nouveau chapitre.");
+  }
+
   if (effectKind === "injury_care") {
     if (
       riderId === null ||
@@ -321,6 +325,15 @@ export async function redeemDailyRewardAction(formData: FormData) {
           p_inventory_id: inventoryId,
           p_rider_id: riderId,
         });
+    if (result.error) {
+      redirectDailyRewardError(returnPath, result.error.message);
+    }
+    resultData = result.data;
+  } else if (effectKind === "personality_reroll") {
+    const result = await supabase.rpc("redeem_personality_reroll_reward", {
+      p_inventory_id: inventoryId,
+      p_rider_id: riderId,
+    });
     if (result.error) {
       redirectDailyRewardError(returnPath, result.error.message);
     }

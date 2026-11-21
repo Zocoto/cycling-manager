@@ -1,3 +1,5 @@
+import { parseRiderPersonalityKey, RIDER_PERSONALITIES, type RiderPersonalityKey } from "./rider-personalities";
+
 export const ITEM_TARGET_RATING_KEYS = [
   "mountain",
   "hills",
@@ -26,6 +28,7 @@ export type ItemTargetRider = {
   canNaturalizeWithPassport?: boolean;
   form: number;
   morale?: number;
+  personalityKey?: RiderPersonalityKey | null;
   experienceDays: number;
   potentialSteps: number;
   ratings: Record<ItemTargetRatingKey, number>;
@@ -47,6 +50,7 @@ export type ItemTargetRider = {
 export type ItemTargetValueContext =
   | { kind: "form" }
   | { kind: "morale" }
+  | { kind: "personality" }
   | { kind: "experience" }
   | { kind: "potential" }
   | { kind: "nationality" }
@@ -77,6 +81,10 @@ export function formatItemTargetValue(
   if (context.kind === "form") return `Forme ${rider.form}/100`;
   if (context.kind === "morale") {
     return rider.morale === undefined ? "Moral indisponible" : `Moral ${rider.morale}/100`;
+  }
+  if (context.kind === "personality") {
+    const key = parseRiderPersonalityKey(rider.personalityKey);
+    return key ? `Caractère ${RIDER_PERSONALITIES[key].label}` : "Caractère indisponible";
   }
   if (context.kind === "experience") {
     return `Expérience ${rider.experienceDays.toLocaleString("fr-FR")} j`;

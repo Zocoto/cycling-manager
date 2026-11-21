@@ -1,4 +1,5 @@
 import "server-only";
+import { parseRiderPersonalityKey } from "@/lib/game/rider-personalities";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -47,6 +48,7 @@ function normalizeItemTargetRider(value: unknown): ItemTargetRider[] {
       name: readString(row.name) || `${firstName} ${lastName}`,
       countryName: readNullableString(row.countryName),
       canNaturalizeWithPassport: readBoolean(row.canNaturalizeWithPassport),
+      personalityKey: parseRiderPersonalityKey(row.personalityKey),
       form: row.weightKg !== undefined ? Math.max(0, Math.min(100, readOptionalNumber(row.form) ?? 75)) : readBoundedInteger(row.form, 75, 0, 100),
       ...(morale !== null ? { morale: Math.max(0, Math.min(100, Math.round(morale))) } : {}),
       experienceDays: readBoundedInteger(

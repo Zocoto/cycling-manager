@@ -284,6 +284,7 @@ function readEffectKind(value: unknown): DailyRewardEffectKind | null {
   const allowed: DailyRewardEffectKind[] = [
     "form_boost",
     "morale_boost",
+    "personality_reroll",
     "rider_experience",
     "rating_boost",
     "training_multiplier",

@@ -99,6 +99,12 @@ export function DailyRewardRedemptionForm({
           Le moral est plafonné à 100.
         </p>
       ) : null}
+      {item.effectKind === "personality_reroll" ? (
+        <p className="text-[11px] font-semibold leading-5 text-[#60756E]">
+          Un nouveau caractère est tiré au hasard parmi les autres caractères.
+          Le résultat est révélé après utilisation. Chaque exemplaire concerne un seul coureur.
+        </p>
+      ) : null}
 
       {item.effectKind === "scouting_boost" &&
       scoutingSupervision.currentPercentage > 0 ? (

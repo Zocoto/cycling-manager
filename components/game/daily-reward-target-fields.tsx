@@ -173,6 +173,7 @@ function getTargetContext(
 ): ItemTargetValueContext | null {
   if (item.effectKind === "form_boost") return { kind: "form" };
   if (item.effectKind === "morale_boost") return { kind: "morale" };
+  if (item.effectKind === "personality_reroll") return { kind: "personality" };
   if (item.effectKind === "rider_experience") {
     return { kind: "experience" };
   }

@@ -16,6 +16,7 @@ function preview(seed = {}, hash = "#tournee") {
   const elements = new Map(), documentListeners = new Map(), windowListeners = new Map();
   const storage = new Map([[storeKey, JSON.stringify(seed)]]);
   const acknowledgements = [];
+  const treeRenders = [];
   class Element {
     constructor() {
       this.dataset = {}; this.style = {}; this.hidden = false; this.value = "";
@@ -72,8 +73,14 @@ function preview(seed = {}, hash = "#tournee") {
   };
   scope.window = scope;
   vm.createContext(scope);
-  for (const file of ["catalogue.js", "rules.js", "album-s4.js", "sapin.js", "noel.js"])
+  for (const file of ["catalogue.js", "rules.js", "album-s4.js", "sapin.js"])
     vm.runInContext(source(file), scope, { filename: file });
+  const renderTree = scope.noelTree.render;
+  scope.noelTree = { ...scope.noelTree, render: options => {
+    treeRenders.push(plain({ total: options.total, personal: options.personal, participants: options.participants, contributors: options.contributors }));
+    renderTree(options);
+  } };
+  vm.runInContext(source("noel.js"), scope, { filename: "noel.js" });
   const field = element("#preview-day");
   field.listeners.get("change")(); // Persist the normal loaded defaults through the real UI handler.
   const click = (action, id) => {
@@ -89,6 +96,7 @@ function preview(seed = {}, hash = "#tournee") {
     start: runId => message({ type: "noel:tournee-demarree", runId }),
     finish: (runId, score = 1100, deliveries = 5) => message({ type: "noel:tournee-terminee", runId, score, deliveries }),
     summary: () => element("#flight-result").innerHTML,
+    tree: () => treeRenders.at(-1),
   };
 }
 
@@ -171,16 +179,26 @@ for (const item of catalog.filter(item => !item.source && item.category !== "por
   p.click("inventory-item", "grelot-repechage"); p.click("use-item", "grelot-repechage");
   same(p.state().quantities["grelot-repechage"], 0, "Arming a retry consumes one owned item");
   p.start("retry"); p.finish("retry", 2200, 8);
-  same(p.state().balance, 510, "Retry credits only ten additional Grelots");
-  same(p.state().deliveries, 8, "Retry credits only three additional collective lights");
+  same(p.state().balance, 528, "Second tour credits its full twenty-eight Grelots");
+  same(p.state().deliveries, 13, "Second tour adds all eight collective lights");
+  same(p.state().runs[12].score, 3300, "Daily scores add rather than replacing the previous result");
+  same(p.state().runs[12].count, 2, "The historical run and the new Second tour both count");
   same(p.state().retryDays, [], "A completed retry is disarmed");
-  check(p.summary().includes("+10") && p.summary().includes("+3") && p.summary().includes("gains supplémentaires"), "Retry summary displays only the improvement");
+  check(p.summary().includes("+28") && p.summary().includes("+8") && p.summary().includes("Cumul du jour") && p.summary().includes("46 Grelots"), "Second tour summary identifies this run's gains and the daily aggregate");
   p.click("buy", "grelot-repechage"); p.click("inventory-item", "grelot-repechage"); p.click("use-item", "grelot-repechage");
   const before = p.state();
   p.start("worse-retry"); p.finish("worse-retry", 100, 1);
-  same(p.state().balance, before.balance, "A worse retry does not remove or add Grelots");
-  same(p.state().deliveries, before.deliveries, "A worse retry does not remove or add lights");
-  same(p.state().runs[12], before.runs[12], "The best daily result survives a worse retry");
+  same(p.state().balance, before.balance + 8, "A weaker Second tour adds its own eight Grelots");
+  same(p.state().deliveries, before.deliveries + 1, "A weaker Second tour adds its own collective light");
+  same(p.state().runs[12].score, before.runs[12].score + 100, "A weaker run also adds to the daily score");
+  same(p.state().runs[12].count, 3, "Three paid tours remain individually recorded");
+  const paid = p.state();
+  p.start("unpaid"); p.finish("unpaid", 7000, 14);
+  same(p.state().balance, paid.balance, "A third replay without another item cannot award Grelots");
+  same(p.state().deliveries, paid.deliveries, "A replay without another item cannot award lights");
+  const restored = preview(p.state()), afterReload = restored.state();
+  restored.start("retry"); restored.finish("retry", 7000, 14);
+  same(restored.state(), afterReload, "A completed run identifier cannot be replayed for rewards after reload");
 }
 {
   const p = preview(), before = p.state();
@@ -198,5 +216,88 @@ for (const item of catalog.filter(item => !item.source && item.category !== "por
   p.message({ type: "noel:tournee-demarree", runId: "forged" }, { origin: "https://other.example.test" });
   p.finish("forged");
   same(p.state(), after, "A different source window or origin cannot start a payable run");
+}
+{
+  const p = preview({ day: 9, balance: 0, quantities: {}, opened: [] });
+  p.click("claim-advent", "9");
+  same(p.state().quantities["grelot-repechage"], 1, "Advent day nine grants the same Second tour consumable as the shop");
+  p.click("inventory-item", "grelot-repechage"); p.click("use-item", "grelot-repechage");
+  same(p.state().quantities["grelot-repechage"], 1, "Before the daily paid run the extra-run consumable is preserved");
+  p.start("advent-first"); p.finish("advent-first");
+  p.click("inventory-item", "grelot-repechage"); p.click("use-item", "grelot-repechage");
+  p.start("advent-extra"); p.finish("advent-extra", 100, 1);
+  same(p.state().runs[9].reward, 26, "The Advent Second tour adds its full eight Grelots even with a weaker result");
+  same(p.state().runs[9].deliveries, 6, "The Advent Second tour adds its one new light to the first five");
+}
+{
+  const p = preview({ quantities: { "grelot-repechage": 3 } });
+  p.start("first"); p.finish("first");
+  p.start("ongoing-practice");
+  p.click("inventory-item", "grelot-repechage"); p.click("use-item", "grelot-repechage");
+  same(p.state().quantities["grelot-repechage"], 3, "An ongoing practice run cannot consume or retrospectively receive an extra-run credit");
+  p.finish("ongoing-practice");
+  p.click("inventory-item", "grelot-repechage"); p.click("use-item", "grelot-repechage");
+  p.click("inventory-item", "grelot-repechage"); p.click("use-item", "grelot-repechage");
+  same(p.state().quantities["grelot-repechage"], 2, "Arming twice preserves the second item while one extra run is already ready");
+  const restored = preview(p.state());
+  same(restored.state().retryDays, [12], "An armed paid extra run survives reload");
+  restored.start("first"); restored.finish("first", 7000, 14);
+  same(restored.state().retryDays, [12], "Replaying an old run identifier cannot consume the newly armed credit");
+  restored.start("next-valid"); restored.finish("next-valid", 0, 0);
+  same(restored.state().runs[12].count, 2, "The valid extra run settles once after reload");
+  same(restored.state().retryDays, [], "Only completing the valid new paid run clears its extra-run credit");
+}
+{
+  const p = preview({ balance: 500, deliveries: 5, runs: { 12: { score: 1100, deliveries: 5, reward: 18 } } });
+  same(p.state().balance, 500, "Migrating historical best-run storage never grants retroactive currency");
+  same(p.state().deliveries, 5, "Migrating historical best-run storage never changes prior tree lights");
+  same(p.state().runs[12].count, 1, "A historical daily result is preserved as one completed run");
+  const restored = preview(p.state());
+  same(restored.state().runs[12], p.state().runs[12], "Repeated storage migrations leave cumulative daily history unchanged");
+}
+{
+  const p = preview({ quantities: { "personality-reroll": 2 } }, "#inventaire");
+  p.click("inventory-item", "personality-reroll");
+  p.element("#item-target").value = "rider-a";
+  p.click("use-item", "personality-reroll");
+  const first = p.state().personalities["rider-a"];
+  check(first && first !== "assidu", "Personality consumable always replaces the rider's current character");
+  same(p.state().quantities["personality-reroll"], 1, "A personality change consumes exactly one item");
+  p.click("inventory-item", "personality-reroll");
+  p.element("#item-target").value = "rider-a";
+  p.click("use-item", "personality-reroll");
+  check(p.state().personalities["rider-a"] !== first, "A repeat personality change excludes the newly current character as well");
+  same(p.state().quantities["personality-reroll"], 0, "A second personality change consumes its own second item");
+  same(p.state().personalities["rider-b"], undefined, "Changing one rider leaves the other rider's character untouched");
+  check(p.state().log[0].message.includes("→"), "The new character is revealed in the result after consumption");
+}
+{
+  const p = preview({ quantities: { "talent-revealed": 2 } });
+  p.click("inventory-item", "talent-revealed");
+  p.element("#item-target").value = "rider-a";
+  p.element("#item-ability").value = "flahute";
+  p.click("use-item", "talent-revealed");
+  same(p.state().abilities["rider-a"], ["flahute"], "The collective talent item reveals the chosen existing capability");
+  same(p.state().quantities["talent-revealed"], 1, "One talent consumes one earned item");
+  p.click("inventory-item", "talent-revealed");
+  p.element("#item-target").value = "rider-a";
+  p.element("#item-ability").value = "flahute";
+  p.click("use-item", "talent-revealed");
+  same(p.state().quantities["talent-revealed"], 1, "A duplicate capability preserves the talent item");
+  const full = preview({ quantities: { "talent-revealed": 1 }, abilities: { "rider-a": ["flahute", "panache", "locomotive", "giclette"] } });
+  full.click("inventory-item", "talent-revealed"); full.element("#item-target").value = "rider-a"; full.element("#item-ability").value = "pistard";
+  full.click("use-item", "talent-revealed");
+  same(full.state().quantities["talent-revealed"], 0, "A distinct capability remains available without inventing a four-capability limit");
+  check(full.state().abilities["rider-a"].includes("pistard"), "An existing rider's talents are preserved when the chosen new talent is revealed");
+}
+{
+  for (const [communityLights, personal] of [[4200, 0], [4200, 23], [500, 250], [0, 7]]) {
+    const p = preview({ communityLights, deliveries: personal, participants: 42 }, "#sapin");
+    const tree = p.tree();
+    same(tree.contributors.reduce((total, row) => total + row.lights, 0), communityLights + personal, "Contributor lights sum exactly to collective progress, including rounding remainder");
+    same(tree.total, communityLights + personal, "Tree progress includes personal paid deliveries once");
+    same(tree.contributors.filter(row => row.isCurrent).length, personal ? 1 : 0, "Personal contribution is represented once and never duplicated among local sample DS");
+    check(tree.contributors.every(row => Number.isInteger(row.lights) && row.lights >= 0), "Every contributor has non-negative whole light counts");
+  }
 }
 console.log(`Passed ${checks} Christmas preview purchase, run balance and replay flow checks.`);

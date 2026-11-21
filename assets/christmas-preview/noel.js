@@ -1,7 +1,7 @@
 (() => {
   "use strict";
   const { items, advent } = window.noelCatalogue;
-  const { milestones, settleFlight, rarity, silverTrade } = window.noelRules;
+  const { milestones, normalizeFlightDay, settleFlight, rarity, silverTrade } = window.noelRules;
   const cards = window.noelAlbumS4;
   const cardByNumber = new Map(cards.map(card => [String(card.number), card]));
   const find = (selector, root = document) => root.querySelector(selector);
@@ -12,19 +12,37 @@
   const itemById = new Map(items.map(item => [item.id, item]));
   const views = all("[data-view]");
   const dialog = find("#pilot-dialog"), dialogBody = find("#dialog-body"), frame = find("#tournee-frame");
-  const categories = { tout: "Tout", portrait: "Portrait", gestion: "Gestion", collection: "Collection" };
+  const categories = { tout: "Tout", portrait: "Portrait", gestion: "Consommables", collection: "Collection" };
   const slots = { fond: "Fond", chapeau: "Chapeau", tenue: "Tenue", masque: "Masque", lunettes: "Lunettes", cadre: "Cadre" };
   const rarityLabels = { bronze: "Bronze", silver: "Argent", gold: "Or", holographic: "Hors Série" };
   const recoStages = ["Étape 1 · Vallons", "Étape 2 · Montagne", "Étape 3 · Chrono"];
-  const previewRiders = [{ id: "rider-a", name: "Alex Martin", potential: 2 }, { id: "rider-b", name: "Camille Leroy", potential: 3 }];
+  const previewRiders = [{ id: "rider-a", name: "Alex Martin", potential: 2, personality: "assidu" }, { id: "rider-b", name: "Camille Leroy", potential: 3, personality: "sociable" }];
+  const personalities = Object.fromEntries([
+    ["franc_tireur", "Franc-tireur"], ["opportuniste", "Opportuniste"], ["calculateur", "Calculateur"],
+    ["solidaire", "Solidaire"], ["sociable", "Sociable"], ["ambitieux", "Ambitieux"],
+    ["colerique", "Colérique"], ["charismatique", "Charismatique"], ["assidu", "Assidu"],
+    ["imprevisible", "Imprévisible"], ["fonceur", "Fonceur"], ["cooperatif", "Coopératif"],
+    ["metronome", "Régulier"], ["tenace", "Tenace"], ["prudent", "Prudent"], ["fidele", "Fidèle"],
+    ["mentor", "Mentor"], ["collectif", "Collectif"], ["globe_trotteur", "Globe-trotteur"],
+    ["meticuleux", "Méticuleux"], ["perfectionniste", "Perfectionniste"], ["force_tranquille", "Force tranquille"],
+    ["discret", "Discret"], ["franc_parleur", "Franc-parleur"], ["chambreur", "Chambreur"],
+  ]);
+  const abilities = Object.fromEntries([
+    ["flahute", "Flahute"], ["panache", "Panache"], ["bottle_carrier", "Porteur de bidon"],
+    ["locomotive", "Locomotive"], ["giclette", "Giclette"], ["chase_potato", "Chasse patate"],
+    ["sandwich_man", "Homme Sandwich"], ["iron_health", "Santé de fer"], ["first_in_class", "Premier de la classe"],
+    ["pistard", "Pistard"], ["three_lungs", "Trois poumons"], ["cyclocrossman", "Cyclocrossman"],
+    ["metronome", "Métronome"], ["etapovore", "Étapovore"], ["locker_room_favorite", "Coqueluche du vestiaire"],
+    ["nail_layer", "Poseur de clous"], ["crowd_surge", "Coup de pression"],
+  ]);
   let state = load(), view = "noel", shopFilter = "tout", toastTimer, currentRunDay = state.day, activeFlight = null;
   function fresh() {
     return {
       day: 12, balance: 540, opened: [],
       quantities: { "booster-noel": 1, "boussole-polaire": 1, "carnet-eclaireur": 1, "grelot-repechage": 1, "vignette-renne": 1 },
-      bought: {}, equipped: {}, runs: {}, retryDays: [], deliveries: 0,
+      bought: {}, equipped: {}, runs: {}, settledRunIds: [], retryDays: [], deliveries: 0,
       communityLights: 4200, participants: 42, milestones: [], log: [],
-      stickers: { 6: 4, 7: 1 }, boosters: 0, scoutingUntil: null, reconnaissances: [], potential: {}, lastFlight: null,
+      stickers: { 6: 4, 7: 1 }, boosters: 0, scoutingUntil: null, reconnaissances: [], potential: {}, personalities: {}, abilities: {}, lastFlight: null,
     };
   }
   function load() {
@@ -32,6 +50,14 @@
       const saved = JSON.parse(localStorage.getItem(storeKey) ?? "null");
       if (!saved || typeof saved !== "object" || Array.isArray(saved)) return fresh();
       const restored = { ...fresh(), ...saved };
+      restored.runs = Object.fromEntries(Object.entries(restored.runs ?? {}).flatMap(([day, run]) => {
+        const normalized = normalizeFlightDay(run);
+        return normalized ? [[day, normalized]] : [];
+      }));
+      restored.settledRunIds = [...new Set([
+        ...(Array.isArray(restored.settledRunIds) ? restored.settledRunIds : []),
+        ...Object.values(restored.runs).flatMap(run => run.history.map(entry => entry.runId)),
+      ].filter(id => typeof id === "string" && id.length > 0 && id.length <= 120))];
       // Already opened preview windows now contain their new Advent-exclusive
       // portrait. Preserve the rest of the tester's local inventory.
       restored.quantities = { ...restored.quantities };
@@ -51,6 +77,20 @@
   function dayLabel(day) { return day === 1 ? "1er décembre" : day + " décembre"; }
   function previewNow() { return Date.UTC(2026, 11, state.day, 12); }
   function totalLights() { return state.communityLights + state.deliveries; }
+  function contributors() {
+    const count = Math.max(1, Math.min(1000, Math.floor(Number(state.participants) || 1)));
+    const names = ["Braise", "Col enneigé", "Pignon givré", "Lanterne", "Chalet", "Moufle", "Pinson", "Houx", "Crête blanche", "Petit braquet"];
+    const denominator = count * (count + 1) / 2;
+    const rows = Array.from({ length: count }, (_, index) => ({
+      id: "preview-ds-" + (index + 1),
+      name: "DS " + (names[index] ?? "du village " + (index + 1)),
+      lights: Math.floor(state.communityLights * (count - index) / denominator),
+      isCurrent: false,
+    }));
+    rows[0].lights += state.communityLights - rows.reduce((total, row) => total + row.lights, 0);
+    if (state.deliveries > 0) rows.push({ id: "preview-current-ds", name: "Toi", lights: state.deliveries, isCurrent: true });
+    return rows;
+  }
   function random() {
     if (window.crypto?.getRandomValues) return window.crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296;
     return Math.random();
@@ -105,7 +145,7 @@
       window.noelAdvent.render({ container: find("#advent-grid"), advent, day: state.day, opened: state.opened, itemById });
     }
     if (view === "boutique") renderShop();
-    if (view === "sapin") window.noelTree.render({ art: find(".tree-art"), panel: find("#tree-progress"), total: totalLights(), personal: state.deliveries, participants: state.participants, claimed: state.milestones, milestones, itemById });
+    if (view === "sapin") window.noelTree.render({ art: find(".tree-art"), panel: find("#tree-progress"), total: totalLights(), personal: state.deliveries, participants: state.participants + (state.deliveries > 0 ? 1 : 0), contributors: contributors(), claimed: state.milestones, milestones, itemById });
     if (view === "inventaire") renderInventory();
     if (view === "tournee") renderFlight();
     all("[data-profile]").forEach(canvas => window.drawNoelPortrait(canvas, state.equipped));
@@ -183,6 +223,8 @@
     }
     let content = "";
     if (item.id === "potential-notebook") content = `<label class="target-field">Coureur<select id="item-target">${previewRiders.map(rider => `<option value="${rider.id}">${rider.name} · ${state.potential[rider.id] ?? rider.potential} étoiles</option>`).join("")}</select></label>`;
+    if (item.id === "personality-reroll") content = `<label class="target-field">Coureur<select id="item-target">${previewRiders.map(rider => `<option value="${rider.id}">${rider.name} · ${esc(personalities[state.personalities[rider.id] ?? rider.personality])}</option>`).join("")}</select></label><p>Le nouveau caractère est tiré au hasard parmi les autres caractères. Le résultat sera annoncé après utilisation.</p>`;
+    if (item.id === "talent-revealed") content = `<label class="target-field">Coureur<select id="item-target">${previewRiders.map(rider => `<option value="${rider.id}">${rider.name} · ${(state.abilities[rider.id] ?? []).length} capacité(s)</option>`).join("")}</select></label><label class="target-field">Capacité à révéler<select id="item-ability">${Object.entries(abilities).map(([code, name]) => `<option value="${code}">${esc(name)}</option>`).join("")}</select></label>`;
     if (item.id === "hotte-doublons") {
       const trade = silverTrade(state.stickers, cards, 0);
       content = `<p>${trade ? "Trois exemplaires Argent en double seront échangés. Tu conserveras au moins un exemplaire de chaque carte." : "Il faut trois exemplaires Argent en double et au moins une Argent manquante. La hotte reste dans ton inventaire si les conditions ne sont pas remplies."}</p>`;
@@ -204,8 +246,9 @@
       state.reconnaissances.push({ first, second }); message = "Reconnaissance préparée · " + recoStages[first] + " et " + recoStages[second] + ".";
     } else if (item.id === "grelot-repechage") {
       if (!state.runs[state.day]) return notify("Termine d’abord ta tournée du jour. Le grelot est conservé.");
-      if (state.retryDays.includes(state.day)) return notify("Ta seconde chance est déjà prête.");
-      state.retryDays.push(state.day); message = "Seconde chance activée : seul le meilleur résultat et son amélioration seront comptés.";
+      if (activeFlight && !activeFlight.settled) return notify("Termine la tournée en cours avant de préparer un Second tour. Le grelot est conservé.");
+      if (state.retryDays.includes(state.day)) return notify("Ton Second tour est déjà prêt. Le grelot est conservé.");
+      state.retryDays.push(state.day); message = "Second tour prêt : les Grelots et les lumières de cette nouvelle tournée s’ajouteront intégralement aux précédents.";
     } else if (item.id === "hotte-doublons") {
       const trade = silverTrade(state.stickers, cards, random());
       if (!trade) return notify("Il faut trois doublons Argent et une Argent manquante. L’objet est conservé.");
@@ -217,6 +260,22 @@
       const before = state.potential[rider.id] ?? rider.potential;
       if (before > 3) return notify("Le coureur doit avoir au plus 3 étoiles. Le carnet est conservé.");
       state.potential[rider.id] = before + 1; message = rider.name + " · " + before + " → " + (before + 1) + " étoiles de potentiel.";
+    } else if (item.id === "personality-reroll") {
+      const rider = previewRiders.find(candidate => candidate.id === find("#item-target")?.value);
+      if (!rider) return;
+      const before = state.personalities[rider.id] ?? rider.personality;
+      const pool = Object.keys(personalities).filter(key => key !== before);
+      const after = pool[Math.floor(random() * pool.length)];
+      state.personalities[rider.id] = after;
+      message = rider.name + " · " + personalities[before] + " → " + personalities[after] + ". Nouveau caractère appliqué dans l’aperçu.";
+    } else if (item.id === "talent-revealed") {
+      const rider = previewRiders.find(candidate => candidate.id === find("#item-target")?.value);
+      const ability = find("#item-ability")?.value;
+      if (!rider || !abilities[ability]) return;
+      const owned = state.abilities[rider.id] ?? [];
+      if (owned.includes(ability)) return notify("Ce coureur possède déjà cette capacité. Choisis une nouvelle capacité. L’objet est conservé.");
+      state.abilities[rider.id] = [...owned, ability];
+      message = rider.name + " · capacité " + abilities[ability] + " révélée dans l’aperçu.";
     } else return;
     state.quantities[item.id] -= 1; record(message); dialog.close(); commit(message);
   }
@@ -247,23 +306,25 @@
       container.textContent = "Tournée en cours · tes gains en Grelots et en lumières apparaîtront ici à l’arrivée.";
       return;
     }
-    const last = state.lastFlight?.day === state.day ? state.lastFlight : run ? {
-      grelots: run.reward, lights: run.deliveries, deliveries: run.deliveries, previous: true,
+    const previousRun = run?.history.at(-1);
+    const last = state.lastFlight?.day === state.day ? state.lastFlight : previousRun ? {
+      grelots: previousRun.reward, lights: previousRun.deliveries, deliveries: previousRun.deliveries, previous: true,
     } : null;
     if (!last) {
-      container.textContent = "Une tournée récompensée par jour. Chaque cadeau livré ajoute une lumière au sapin commun à tous les DS.";
+      container.textContent = "Une première tournée récompensée chaque jour. Un Second tour ajoute une tournée et tous ses gains. Chaque cadeau livré ajoute une lumière au sapin commun à tous les DS.";
       return;
     }
     const gainedGrelots = Math.max(0, Number(last.grelots) || 0);
     const gainedLights = Math.max(0, Number(last.lights) || 0);
     const delivered = Math.max(0, Math.min(14, Number(last.deliveries) || 0));
     const note = last.practice ? "Tournée d’entraînement : la récompense du jour a déjà été reçue. Aucun nouveau gain."
-      : last.retry ? (last.improved ? "Seconde chance : seuls les gains supplémentaires sont crédités." : "Seconde chance : ton meilleur résultat est conservé. Aucun gain supplémentaire.")
+      : last.retry ? "Second tour : tous les gains de cette nouvelle tournée s’ajoutent aux précédents, quel que soit le résultat."
         : last.previous ? "Bilan de ta tournée récompensée. Tu peux rejouer pour t’entraîner." : "Ces gains ont été crédités à ton inventaire et au sapin collectif de l’aperçu.";
     container.innerHTML = `<section class="run-summary"><h2>${last.practice ? "Tournée d’entraînement" : "Bilan de ta tournée"} · ${dayLabel(state.day)}</h2>
       <div class="run-summary-values"><div class="run-summary-value run-summary-grelots"><span class="bell" aria-hidden="true"></span><strong>${gainedGrelots > 0 ? "+" : ""}${num(gainedGrelots)}</strong><span>Grelots reçus</span></div>
       <div class="run-summary-value run-summary-lights"><span class="light-spark" aria-hidden="true"></span><strong>${gainedLights > 0 ? "+" : ""}${num(gainedLights)}</strong><span>Lumières pour le sapin</span></div></div>
-      <p class="run-summary-note">${delivered}/14 cadeaux livrés. ${note}${state.retryDays.includes(state.day) ? " Ta seconde chance est prête pour la prochaine tournée." : ""}</p></section>`;
+      <p class="run-summary-note">${delivered}/14 cadeaux livrés. ${note}${state.retryDays.includes(state.day) ? " Ton Second tour est prêt pour la prochaine tournée." : ""}</p>
+      ${run ? `<p class="run-summary-note">Cumul du jour · ${run.count} tournée${run.count > 1 ? "s" : ""} récompensée${run.count > 1 ? "s" : ""} · ${num(run.reward)} Grelots · ${num(run.deliveries)} lumières.</p>` : ""}</section>`;
   }
   function receiveFlight(event) {
     if (event.source !== frame.contentWindow || event.origin !== window.location.origin) return;
@@ -271,17 +332,20 @@
     if (!payload || typeof payload !== "object") return;
     if (payload.type === "noel:tournee-hauteur" && Number.isFinite(payload.height)) frame.style.height = Math.max(310, Math.min(1000, payload.height + 3)) + "px";
     else if (payload.type === "noel:tournee-demarree") {
+      if (typeof payload.runId !== "string" || !payload.runId.length || payload.runId.length > 120
+        || state.settledRunIds.includes(payload.runId) || activeFlight?.runId === payload.runId) return;
       currentRunDay = state.day;
-      activeFlight = { day: state.day, runId: typeof payload.runId === "string" ? payload.runId : null, settled: false };
+      activeFlight = { day: state.day, runId: payload.runId, settled: false, retry: state.retryDays.includes(state.day) };
       renderFlight();
     }
     else if (payload.type === "noel:tournee-terminee") {
       if (!activeFlight || activeFlight.settled || (activeFlight.runId !== null && payload.runId !== activeFlight.runId)
         || !Number.isInteger(payload.score) || payload.score < 0 || payload.score > 7000
         || !Number.isInteger(payload.deliveries) || payload.deliveries < 0 || payload.deliveries > 14) return;
-      const retry = state.retryDays.includes(currentRunDay);
-      const result = settleFlight(state.runs[currentRunDay], payload.score, payload.deliveries, retry);
+      const retry = activeFlight.retry;
+      const result = settleFlight(state.runs[currentRunDay], payload.score, payload.deliveries, retry, activeFlight.runId);
       activeFlight.settled = true;
+      state.settledRunIds.push(activeFlight.runId);
       const practice = !result;
       const grelots = result?.grelots ?? 0;
       const lights = result?.lights ?? 0;

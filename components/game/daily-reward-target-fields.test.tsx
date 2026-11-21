@@ -90,6 +90,19 @@ describe("DailyRewardTargetFields", () => {
     expect(markup).toMatch(/name="riderId"[^>]*required=""/);
   });
 
+  it("permet de choisir le coureur et montre son caractère avant le tirage", () => {
+    const markup = renderToStaticMarkup(
+      <DailyRewardTargetFields
+        item={buildItem("personality_reroll")}
+        riders={[{ ...rider, personalityKey: "assidu" }]}
+        abilities={[]}
+      />,
+    );
+    expect(markup).toContain("Erik Van Dijk · Caractère Assidu");
+    expect(markup).toMatch(/name="riderId"[^>]*required=""/);
+    expect(markup).not.toContain("Choisir une capacité");
+  });
+
   it("demande la statistique avant d'activer la liste des coureurs", () => {
     const markup = renderToStaticMarkup(
       <DailyRewardTargetFields

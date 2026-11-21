@@ -504,6 +504,21 @@
         star(context, 62, 54, 17, brass);
         line(context, "M49 81H76M53 86H72", "#d7bade", 1.5);
         break;
+      case "personality-reroll":
+        card(context, "#387269", brass);
+        rounded(context, 36, 23, 6, 69, 2, "#214f4c");
+        ellipse(context, 62, 48, 9, 10, "#e8bc91");
+        fillPath(context, "M47 76Q48 61 62 61Q76 61 78 76Z", ivory);
+        line(context, "M44 40Q61 23 79 41L81 49M81 49L73 45M81 49L84 41", brass, 2.2);
+        star(context, 85, 78, 4, brass);
+        break;
+      case "talent-revealed":
+        card(context, "#8b3948", brass);
+        rounded(context, 36, 23, 6, 69, 2, "#622c3d");
+        star(context, 62, 54, 17, brass);
+        line(context, "M47 76L57 82L79 68", ivory, 2.8);
+        line(context, "M85 35L93 28M88 46H98M85 58L94 65", brass, 1.6);
+        break;
       default:
         gift(context);
     }

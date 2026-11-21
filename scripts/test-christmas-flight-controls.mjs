@@ -22,7 +22,7 @@ function plain(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
-function createHarness({ width = 800, height = 400 } = {}) {
+function createHarness({ width = 800, height = 400, coarse = false } = {}) {
   let now = 0;
   let scheduledFrame = null;
   const samples = [];
@@ -115,12 +115,14 @@ function createHarness({ width = 800, height = 400 } = {}) {
   browserWindow.parent = { postMessage: message => messages.push(plain(message)) };
   const media = new Element();
   media.matches = false;
+  const coarseMedia = new Element();
+  coarseMedia.matches = coarse;
 
   const scope = vm.createContext({
     window: browserWindow,
     document,
     performance: { now: () => now },
-    matchMedia: () => media,
+    matchMedia: query => query === "(pointer: coarse)" ? coarseMedia : media,
     getComputedStyle: () => ({ colorScheme: "light" }),
     requestAnimationFrame(callback) { scheduledFrame = callback; return 1; },
     cancelAnimationFrame() { scheduledFrame = null; },
@@ -141,7 +143,7 @@ function createHarness({ width = 800, height = 400 } = {}) {
       // its landing before putting the parcel into the running simulation.
       return new Proxy(parcel, {
         set(target, key, value) {
-          if (key === "landing") launches.push({ options: plain(options), parcel: plain(target) });
+          if (key === "landing") launches.push({ options: plain(options), parcel: plain(target), sleigh: plain(sleigh) });
           return Reflect.set(target, key, value);
         },
       });
@@ -188,8 +190,10 @@ function createHarness({ width = 800, height = 400 } = {}) {
   function start() { fire(primary, "click", { detail: 1 }); }
   function latest() { return samples[samples.length - 1]; }
   function loseCapture(id = 1) { canvas.releasePointerCapture(id); }
+  const autoDrop = root.querySelector("[data-auto-drop]");
+  function setAutomatic(checked) { autoDrop.checked = checked; fire(autoDrop, "change"); }
   return {
-    advance, pointer, key, space, start, latest, loseCapture, fire,
+    advance, pointer, key, space, start, latest, loseCapture, fire, setAutomatic, autoDrop,
     primary, canvas, root, browserWindow, bounds, captured,
     samples, launches, messages, physics,
     element: selector => root.querySelector(selector),
@@ -356,8 +360,9 @@ for (const kind of ["mouse", "touch"]) {
   check(harness.launches.length === 1, "Restart does not immediately throw a second parcel");
 }
 
-function traceObstacleRun({ waypoints = [], kind = "touch", width = 800, height = 400 } = {}) {
+function traceObstacleRun({ waypoints = [], kind = "touch", width = 800, height = 400, automatic = false } = {}) {
   const harness = createHarness({ width, height });
+  harness.setAutomatic(automatic);
   const collisions = [];
   let previousLock = false;
   let nextWaypoint = 0;
@@ -427,4 +432,51 @@ for (const [label, waypoints] of [["centre", []], ["top", [[0, 72]]], ["bottom",
   }
 }
 
-console.log(`Passed ${checks} Christmas flight controls, obstacle recovery, avoidance and parity checks.`);
+// Touch assistance removes the second simultaneous gesture. It remains a user
+// preference, so choosing manual once survives every later touch or keyboard use.
+{
+  const desktop = createHarness();
+  check(desktop.autoDrop.checked === false, "Desktop starts with manual releases");
+  const phone = createHarness({ width: 400, height: 200, coarse: true });
+  check(phone.autoDrop.checked === true, "Phone starts with assisted releases before takeoff");
+  desktop.start();
+  desktop.pointer("pointerdown");
+  check(desktop.autoDrop.checked === true, "Actual touch enables assistance on a hybrid device");
+  desktop.pointer("pointerup");
+  desktop.setAutomatic(false);
+  desktop.pointer("pointerdown");
+  check(desktop.autoDrop.checked === false, "Touch respects the explicit manual choice");
+  desktop.pointer("pointerup");
+  desktop.key("keydown", "ArrowLeft");
+  check(desktop.autoDrop.checked === false, "Keyboard takeover respects the explicit manual choice");
+}
+
+// The real loop chooses only a genuine aligned throw and honours obstacle locks.
+// The same single-finger avoidance route earns exactly the same result at phone
+// size and at desktop size, without any manual click or Space release.
+{
+  const waypoints = [[0, 72], [11.5, 175], [17.4, 72]];
+  const runs = [
+    ["desktop assisted", traceObstacleRun({ waypoints, kind: "mouse", automatic: true })],
+    ["phone assisted", traceObstacleRun({ waypoints, width: 400, height: 200, automatic: true })],
+  ];
+  let reference;
+  for (const [label, { harness, collisions }] of runs) {
+    const results = harness.messages.filter(message => message.type === "noel:tournee-terminee");
+    check(results.length === 1, `${label} finishes exactly once`);
+    const result = { score: results[0].score, deliveries: results[0].deliveries };
+    check(result.deliveries >= 10, `${label} delivers most of the village using one steering gesture`);
+    check(collisions.length === 0, `${label} retains the same obstacle avoidance challenge`);
+    check(harness.launches.length <= 14, `${label} never spends more than the gift allowance`);
+    if (reference) {
+      assert.deepEqual(result, reference, "Phone and desktop assistance earn identical score and deliveries");
+      checks += 1;
+    }
+    reference = result;
+    for (const launch of harness.launches) {
+      assert.deepEqual(launch.parcel, plain(harness.physics.createParcel(launch.sleigh, launch.options)));
+    }
+  }
+}
+
+console.log(`Passed ${checks} Christmas flight controls, obstacle recovery, assistance and parity checks.`);

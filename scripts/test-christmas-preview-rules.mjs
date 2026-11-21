@@ -6,21 +6,30 @@ const context = vm.createContext({});
 context.window = context;
 for (const file of ["catalogue.js", "rules.js", "album-s4.js", "sapin.js"])
   vm.runInContext(readFileSync(new URL(`../assets/christmas-preview/${file}`, import.meta.url), "utf8"), context);
-const { settleFlight, rarity, silverTrade, milestones } = context.noelRules;
+const { settleFlight, normalizeFlightDay, rarity, silverTrade, milestones } = context.noelRules;
 const cards = context.noelAlbumS4;
 const { items, advent } = context.noelCatalogue;
 const byId = new Map(items.map(item => [item.id, item]));
 let checks = 0;
 const check = (value, message) => { assert.ok(value, message); checks++; };
 
-const first = settleFlight(null, 1100, 5);
+const first = settleFlight(null, 1100, 5, false, "first");
 check(first.grelots === 18 && first.lights === 5, "First run awards both currencies");
-check(settleFlight(first.result, 3000, 12) === null, "Practice never rewards again");
-const retry = settleFlight(first.result, 2200, 8, true);
-check(retry.grelots === 10 && retry.lights === 3, "Second chance pays only the improvement");
-const worse = settleFlight(retry.result, 100, 1, true);
-check(worse.grelots === 0 && worse.lights === 0 && worse.result.score === 2200, "A worse retry keeps the best run");
-check(settleFlight(null, 7001, 1) === null && settleFlight(null, 100, 15) === null, "Invalid game messages rejected");
+check(settleFlight(first.result, 3000, 12, false, "practice") === null, "Practice never rewards again");
+const retry = settleFlight(first.result, 2200, 8, true, "second");
+check(retry.grelots === 28 && retry.lights === 8, "Second tour pays its full own rewards");
+check(retry.result.score === 3300 && retry.result.deliveries === 13 && retry.result.reward === 46 && retry.result.count === 2, "Both paid runs accumulate in the daily result");
+const worse = settleFlight(retry.result, 100, 1, true, "third");
+check(worse.grelots === 8 && worse.lights === 1 && worse.result.score === 3400 && worse.result.count === 3, "A weaker new tour also adds its full rewards");
+check(settleFlight(worse.result, 7000, 14, true, "second") === null, "A previously settled run identifier can never pay again");
+check(settleFlight(null, 7001, 1, false, "invalid-score") === null && settleFlight(null, 100, 15, false, "invalid-deliveries") === null, "Invalid game messages rejected");
+check(settleFlight(null, 100, 1, false) === null && settleFlight(null, 100, 1, false, "") === null, "Each paid run requires its unique identifier");
+const legacy = normalizeFlightDay({ score: 1100, deliveries: 5, reward: 18 });
+check(legacy.score === 1100 && legacy.deliveries === 5 && legacy.reward === 18 && legacy.count === 1 && legacy.history.length === 1, "Previous best-result storage migrates as one historical paid run");
+check(normalizeFlightDay({ score: 1100, deliveries: 5, reward: 18 }).reward === legacy.reward, "Storage normalization grants no new reward");
+check(normalizeFlightDay({ score: -1, deliveries: 5, reward: 18 }) === null, "Invalid saved daily results cannot arm extra paid tours");
+const legacyRetry = settleFlight(legacy, 2200, 8, true, "legacy-second");
+check(legacyRetry.result.reward === 46 && legacyRetry.grelots === 28, "An extra run after migration pays only the new tour's full reward");
 for (const [roll, expected] of [[0, "holographic"], [.099999, "holographic"], [.1, "gold"], [.299999, "gold"], [.3, "silver"], [.999999, "silver"]])
   check(rarity(roll, true) === expected, `Precious draw boundary ${roll}`);
 const draws = Array.from({ length: 10000 }, (_, i) => rarity((i + .5) / 10000, true));
@@ -45,6 +54,7 @@ check(items.filter(item => item.category !== "portrait").every(item => !("limit"
 check(items.every(item => !("proposal" in item) && !item.description.includes("Proposition")), "Validated items have no proposal labels");
 check(milestones.length === 9 && milestones.at(-1).goal === 28000, "Nine visible collective goals");
 check(milestones.every((m, i) => m.items.every(id => byId.has(id)) && (!i || m.goal > milestones[i - 1].goal)), "Every tier has valid rewards and increasing goals");
+check(milestones.find(m => m.goal === 10000).items.includes("talent-revealed") && milestones.find(m => m.goal === 14000).items.includes("personality-reroll"), "Intermediate collective tiers grant a talent and a personality change");
 check(milestones.at(-1).items[0] === "potential-notebook" && byId.get("potential-notebook").source === "sapin", "Summit reuses the existing potential consumable");
 check(context.noelTree.garlandProgress(0, milestones) === 0 && context.noelTree.garlandProgress(28000, milestones) === 1, "Garland goes from dark to fully lit");
 check(context.noelTree.garlandProgress(6500, milestones) === 4 / 9, "Garland checkpoints match reward milestones");

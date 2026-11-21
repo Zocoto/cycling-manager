@@ -612,6 +612,7 @@ function buildDailyRewardFromInventory(
     effectKind !== "construction_time_reduction" &&
     effectKind !== "staff_level_boost" &&
     effectKind !== "injury_care" &&
+    effectKind !== "personality_reroll" &&
     effectKind !== "scouting_visibility"
   ) {
     return null;

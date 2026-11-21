@@ -94,6 +94,7 @@ function resolveIllustrationKind({
     return "nutrition";
   }
   if (effectKind === "morale_boost" || iconKey === "morale") return "ability";
+  if (effectKind === "personality_reroll" || iconKey === "personality") return "potential";
   if (effectKind === "rider_experience" || iconKey === "experience") {
     return "experience";
   }

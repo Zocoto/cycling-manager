@@ -29,4 +29,15 @@ describe("item target passport metadata", () => {
     const riders = await getCurrentTeamItemTargetRiders({ rpc } as unknown as SupabaseClient);
     expect(riders.map((rider) => rider.morale)).toEqual([0, 74, undefined]);
   });
+
+  it("normalizes the existing personality without inventing one for old responses", async () => {
+    const rpc = vi.fn().mockResolvedValue({
+      error: null,
+      data: ["assidu", "unknown", undefined].map((personalityKey, index) => ({
+        id: `rider-${index}`, firstName: "Rider", lastName: String(index), personalityKey,
+      })),
+    });
+    const riders = await getCurrentTeamItemTargetRiders({ rpc } as unknown as SupabaseClient);
+    expect(riders.map((rider) => rider.personalityKey)).toEqual(["assidu", null, null]);
+  });
 });
