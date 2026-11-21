@@ -13,7 +13,7 @@ const rider: GalaS5Rider = {
   rider_id: ids[0], first_name: "Fixture", last_name: "Rider",
   mountain: 75, hills: 74, flat: 73, time_trial: 72, cobbles: 71, sprint: 70,
 };
-const selections = { "pt-zoncolan": ids.slice(0, 7), "pt-liege": [], "pt-flanders": [] };
+const selections = { "pt-zoncolan": ids.slice(0, 7), "pt-liege": [], "pt-hamburg": [] };
 const input = { program: "pro-tour", selections };
 const context = {
   isOpen: true,
@@ -35,7 +35,7 @@ describe("season five gala compositions", () => {
     expect(seasonFiveGalaRegistrationSchema.safeParse({
       ...input,
       previousProgram: "continental",
-      selections: { ...selections, "pt-liege": ids.slice(0, 8), "pt-flanders": ids.slice(0, 7) },
+      selections: { ...selections, "pt-liege": ids.slice(0, 8), "pt-hamburg": ids.slice(0, 7) },
     }).success).toBe(true);
   });
 
@@ -47,7 +47,7 @@ describe("season five gala compositions", () => {
     { ...input, selections: { ...selections, "pt-zoncolan": Array(7).fill(ids[0]) } },
     { ...input, selections: { "pt-zoncolan": ids.slice(0, 7), "pt-liege": [], "ct-alpe": [] } },
     { ...input, selections: { ...selections, "ct-alpe": ids.slice(0, 7) } },
-    { ...input, selections: { "pt-zoncolan": [], "pt-liege": [], "pt-flanders": [] } },
+    { ...input, selections: { "pt-zoncolan": [], "pt-liege": [], "pt-hamburg": [] } },
   ])("rejects incomplete, duplicate, mixed or forged composition data", (value) => {
     expect(seasonFiveGalaRegistrationSchema.safeParse(value).success).toBe(false);
   });
@@ -55,7 +55,7 @@ describe("season five gala compositions", () => {
   it("builds an independent draft with only the chosen program's three course keys", () => {
     const source = { "ct-alpe": [ids[0]], "pt-zoncolan": [ids[1]] };
     const draft = buildSeasonFiveGalaSelections("continental", source);
-    expect(draft).toEqual({ "ct-alpe": [ids[0]], "ct-fleche": [], "ct-hamburg": [] });
+    expect(draft).toEqual({ "ct-alpe": [ids[0]], "ct-fleche": [], "ct-flanders": [] });
     draft["ct-alpe"].push(ids[2]);
     expect(source["ct-alpe"]).toEqual([ids[0]]);
   });

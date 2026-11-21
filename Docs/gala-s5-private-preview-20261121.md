@@ -41,16 +41,22 @@ Les empreintes des six CDS sont conservées dans le catalogue JSON.
 |---|---|---|---|---|---|
 | Pro Tour | Zoncolan, Giro 2021 étape 14 | 135 / 14135 | `top_giro.xml` | 23 | 8–8 |
 | Pro Tour | Liège 2019 | 87 / 1087 | `topclas_lbl.xml` | 25 | 7–7 |
-| Pro Tour | Flandres 2024 | 11 / 1011 | `topclas_rondevv.xml` | 25 | 7–7 |
+| Pro Tour | Hambourg 2023 · sprint avec difficultés | 26 / 1026 | `topclas_hamburg.xml` | 24 | 7–7 |
 | Continental | Alpe-d’Huez, Tour 2022 étape 12 | 25 / 12025 | `top_tdf.xml` | 23 | 7–8 |
 | Continental | Flèche Wallonne 2024 | 15 / 1015 | `topclas_fleche.xml` | 25 | 6–8 |
-| Continental | Hambourg 2023 | 26 / 1026 | `topclas_hamburg.xml` | 24 | 7–7 |
+| Continental | Flandres 2024 · pavés | 11 / 1011 | `topclas_rondevv.xml` | 25 | 7–7 |
 
 Les six identités et les six noms XML sont distincts. Aucun parcours S4 repris
 (Hautacam, Amstel, Roubaix, Dunkerque). Les deux montagnes demandent le mode
 étape et leur variante exacte. Les capacités affichées aux participants
 réservent une place à l’équipe de simulation, comme le précédent export.
 Présence des fichiers vérifiée ; aucun lancement de course 3D effectué.
+
+La répartition corrigée place le sprint en Pro Tour et les pavés en Continental.
+La courbe native de Hambourg comporte notamment des bosses vers 142,4, 179,4 et
+187,4 km, avec une arrivée à 203,62 km : la dernière se situe à environ 16 km de
+l’arrivée. Les hauteurs natives ne sont pas présentées comme des mètres. Le
+visuel ne contient désormais aucun cycliste ni vélo : paysage hivernal et lumières.
 
 ## À câbler après arbitrage
 

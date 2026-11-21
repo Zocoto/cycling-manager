@@ -7,10 +7,10 @@ import verifiedProfiles from "./season-five-gala-profiles.json";
 const identities = [
   { id: "pt-zoncolan", program: "pro-tour", pcmRaceId: 135, stageFile: "top_giro_14_2021.cds", startlistFilename: "top_giro.xml" },
   { id: "pt-liege", program: "pro-tour", pcmRaceId: 87, stageFile: "topclas_lbl_2019.cds", startlistFilename: "topclas_lbl.xml" },
-  { id: "pt-flanders", program: "pro-tour", pcmRaceId: 11, stageFile: "topclas_rondevv_2024.cds", startlistFilename: "topclas_rondevv.xml" },
+  { id: "pt-hamburg", program: "pro-tour", pcmRaceId: 26, stageFile: "topclas_hamburg_2023.cds", startlistFilename: "topclas_hamburg.xml" },
   { id: "ct-alpe", program: "continental", pcmRaceId: 25, stageFile: "top_tdf_12_2022.cds", startlistFilename: "top_tdf.xml" },
   { id: "ct-fleche", program: "continental", pcmRaceId: 15, stageFile: "topclas_fleche_2024.cds", startlistFilename: "topclas_fleche.xml" },
-  { id: "ct-hamburg", program: "continental", pcmRaceId: 26, stageFile: "topclas_hamburg_2023.cds", startlistFilename: "topclas_hamburg.xml" },
+  { id: "ct-flanders", program: "continental", pcmRaceId: 11, stageFile: "topclas_rondevv_2024.cds", startlistFilename: "topclas_rondevv.xml" },
 ] as const;
 
 describe("season five gala course proposals", () => {

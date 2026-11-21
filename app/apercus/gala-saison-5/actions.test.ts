@@ -9,7 +9,7 @@ import { saveSeasonFiveGalaRegistrationAction, withdrawSeasonFiveGalaRegistratio
 import { initialGalaS5RegistrationState } from "@/lib/game/season-five-gala-registration";
 
 const ids = Array.from({ length: 8 }, (_, index) => `00000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`);
-const selections = { "pt-zoncolan": ids.slice(0, 7), "pt-liege": [], "pt-flanders": [] };
+const selections = { "pt-zoncolan": ids.slice(0, 7), "pt-liege": [], "pt-hamburg": [] };
 function form(value: unknown = selections, previousProgram = "") {
   const data = new FormData();
   data.set("program", "pro-tour");
@@ -64,7 +64,7 @@ describe("season five gala authorized preparation actions", () => {
     { ...selections, "pt-zoncolan": ids.slice(0, 6) },
     { ...selections, "pt-zoncolan": Array(7).fill(ids[0]) },
     { "pt-zoncolan": ids.slice(0, 7), "pt-liege": [], "ct-alpe": [] },
-    { "pt-zoncolan": [], "pt-liege": [], "pt-flanders": [] },
+    { "pt-zoncolan": [], "pt-liege": [], "pt-hamburg": [] },
     { ...selections, teamId: ids[0] },
   ])("rejects invalid or mixed compositions before calling SQL", async (value) => {
     expect((await saveSeasonFiveGalaRegistrationAction(initialGalaS5RegistrationState, form(value))).status).toBe("error");

@@ -14,7 +14,16 @@ const owner = '58140add-54c6-40af-9528-f823d0051d0f';
 const gouille = 'ee244935-5722-4626-a28f-dc3cf63aa6f4';
 const ordinary = id(42);
 const source = readFileSync('supabase/migrations/20261121121547_wire_season_five_gala_registrations.sql', 'utf8');
-const catalog = JSON.parse(readFileSync('lib/game/season-five-gala-profiles.json', 'utf8'));
+// Historical migration fixture: later programme changes must not rewrite this
+// installed migration or make its original manifest depend on mutable UI data.
+const catalog = { courses: {
+  'pt-zoncolan': { pcmRaceId: 135, pcmStageId: 14135, stageFile: 'top_giro_14_2021.cds', startlistFilename: 'top_giro.xml', nativeCapacity: 23, nativeMinRiders: 8, nativeMaxRiders: 8 },
+  'pt-liege': { pcmRaceId: 87, pcmStageId: 1087, stageFile: 'topclas_lbl_2019.cds', startlistFilename: 'topclas_lbl.xml', nativeCapacity: 25, nativeMinRiders: 7, nativeMaxRiders: 7 },
+  'pt-flanders': { pcmRaceId: 11, pcmStageId: 1011, stageFile: 'topclas_rondevv_2024.cds', startlistFilename: 'topclas_rondevv.xml', nativeCapacity: 25, nativeMinRiders: 7, nativeMaxRiders: 7 },
+  'ct-alpe': { pcmRaceId: 25, pcmStageId: 12025, stageFile: 'top_tdf_12_2022.cds', startlistFilename: 'top_tdf.xml', nativeCapacity: 23, nativeMinRiders: 7, nativeMaxRiders: 8 },
+  'ct-fleche': { pcmRaceId: 15, pcmStageId: 1015, stageFile: 'topclas_fleche_2024.cds', startlistFilename: 'topclas_fleche.xml', nativeCapacity: 25, nativeMinRiders: 6, nativeMaxRiders: 8 },
+  'ct-hamburg': { pcmRaceId: 26, pcmStageId: 1026, stageFile: 'topclas_hamburg_2023.cds', startlistFilename: 'topclas_hamburg.xml', nativeCapacity: 24, nativeMinRiders: 7, nativeMaxRiders: 7 },
+} };
 const courses = { 'pro-tour': ['pt-zoncolan', 'pt-liege', 'pt-flanders'], continental: ['ct-alpe', 'ct-fleche', 'ct-hamburg'] };
 const own = Array.from({ length: 7 }, (_, i) => id(100 + i));
 const selections = (program = 'pro-tour', riders = own, all = false) => Object.fromEntries(courses[program].map((course, i) => [course, i === 0 || all ? riders : []]));

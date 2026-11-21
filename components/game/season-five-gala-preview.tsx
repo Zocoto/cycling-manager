@@ -110,7 +110,7 @@ export function SeasonFiveGalaPreview({ registrationContext }: { registrationCon
                 tabIndex={program === value ? 0 : -1}
                 onClick={() => setProgram(value)} onKeyDown={(event) => handleTabKey(event, index)}>
                 <span><strong>{value === "pro-tour" ? "Pro Tour" : "Continental"}</strong>
-                  <small>{value === "pro-tour" ? "Montagne · Vallons · Pavés" : "Montagne · Vallons · Sprint"}</small></span>
+                  <small>{GALA_S5_COURSES.filter(course => course.program === value).map(course => course.profile).join(" · ")}</small></span>
                 <span className={styles.tabRule}>{value === "pro-tour" ? "Sans plafond" : `${SEASON_FIVE_GALA.continentalCap} max.`}</span>
               </button>
             ))}
@@ -200,8 +200,9 @@ function CourseElevation({ course }: { course: SeasonFiveGalaCourse }) {
   const minimum = Math.min(...heights);
   const maximum = Math.max(...heights);
   const range = Math.max(1, maximum - minimum);
+  const relief = { Montagne: 105, Vallons: 70, Pavés: 45, Sprint: 32 }[course.profile];
   const points = course.elevation.map(([distance, altitude]) =>
-    `${12 + ((distance - start) / (finish - start)) * 456},${119 - ((altitude - minimum) / range) * 105}`,
+    `${12 + ((distance - start) / (finish - start)) * 456},${119 - ((altitude - minimum) / range) * relief}`,
   ).join(" ");
   return (
     <figure className={styles.profile}>

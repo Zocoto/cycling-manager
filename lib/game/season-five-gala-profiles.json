@@ -1584,7 +1584,7 @@
       "pcmEditionYear": 2019,
       "pcmStageNumber": 1
     },
-    "pt-flanders": {
+    "ct-flanders": {
       "pcmRaceId": 11,
       "pcmStageId": 1011,
       "pcmName": "Vlaanderen Classic",
@@ -3954,7 +3954,7 @@
       "pcmEditionYear": 2024,
       "pcmStageNumber": 1
     },
-    "ct-hamburg": {
+    "pt-hamburg": {
       "pcmRaceId": 26,
       "pcmStageId": 1026,
       "pcmName": "GP Hamburg",
