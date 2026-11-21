@@ -6,6 +6,7 @@ describe("getLoginReturnPath", () => {
   it.each([
     "/apercus/noel/index.html",
     "/apercus/noel/index.html#tournee",
+    "/apercus/gala-saison-5",
   ])("preserves the explicitly allowed destination %s", (path) => {
     expect(getLoginReturnPath(path)).toBe(path);
   });
@@ -23,6 +24,9 @@ describe("getLoginReturnPath", () => {
     "/apercus/noel/tournee.html",
     " /apercus/noel/index.html",
     "/apercus/noel/index.html\r\nLocation: https://example.test",
+    "https://example.test/apercus/gala-saison-5",
+    "/apercus/gala-saison-5?returnTo=https://example.test",
+    "/apercus/gala-saison-5/../noel",
   ])("defaults invalid destinations to the game (%j)", (value) => {
     expect(getLoginReturnPath(value)).toBe("/jeu");
   });
