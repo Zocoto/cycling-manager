@@ -20,6 +20,10 @@ import {
   type RiderRatings,
 } from "@/lib/game/rider-profile";
 import { calculateNationRiderOverall } from "@/lib/game/nation-rider-ranking";
+import {
+  assertSponsorObjectivePlanConsistency,
+  haveOverlappingSponsorObjectiveRequirements,
+} from "@/lib/game/sponsor-objective-consistency";
 import { resolveSponsorSportingPhilosophy } from "@/lib/game/sponsor-philosophy";
 import type { Sponsor } from "@/types/sponsor";
 import type { SponsorObjectiveDifficulty } from "@/lib/game/sponsor-negotiation";
@@ -312,12 +316,25 @@ export async function ensureAndLoadSponsorObjectives({
   const { teamRiderCandidates, teamSportingContext } = teamSportingSnapshot;
 
   const rowsToInsert: SponsorObjectiveInsertRow[] = [];
+  const preservedLegacyObjectiveIds = new Set<string>();
+  const newlyGeneratedFutureOffers = new Set<string>();
+  if (targetSeasonGameYear >= 6) {
+    for (const row of existingObjectiveRows) preservedLegacyObjectiveIds.add(row.id);
+  }
 
   for (const offer of offers) {
     const existingRows =
       existingRowsByOfferId.get(offer.offerId) ?? [];
 
     if (sportingContextEnabled && existingRows.length >= OBJECTIVE_COUNT_PER_OFFER) continue;
+    if (targetSeasonGameYear >= 6 && existingRows.length === 0) newlyGeneratedFutureOffers.add(offer.offerId);
+    const preserveLegacyPartialFuturePlan = targetSeasonGameYear >= 6
+      && existingRows.length > 0 && existingRows.length < OBJECTIVE_COUNT_PER_OFFER
+      && existingRows.every(row => row.status === "draft" && row.is_provisional)
+      && existingRows.some(row => (row.target_details.generationVersion ?? 0) < 13);
+    if (preserveLegacyPartialFuturePlan) {
+      for (const row of existingRows) preservedLegacyObjectiveIds.add(row.id);
+    }
 
     const modernizeLegacyObjectiveSet =
       !offer.neutralizeMissingObjectives &&
@@ -332,8 +349,7 @@ export async function ensureAndLoadSponsorObjectives({
       )
     );
 
-    const generatedObjectives =
-      generateProvisionalSponsorObjectives({
+    const generationOptions = {
         sponsorCountryCode:
           offer.sponsor.countryCode,
         sponsorPrestige:
@@ -363,7 +379,17 @@ export async function ensureAndLoadSponsorObjectives({
         random: createSeededRandom(
           `${offer.offerId}:${offer.sponsor.id}`
         ),
-      });
+      };
+    const generatedObjectives = generateProvisionalSponsorObjectives({
+      ...generationOptions,
+      preserveLegacyRequirements: preserveLegacyPartialFuturePlan,
+    });
+
+    // The new consistency policy starts with entirely new S6+ portfolios.
+    // Existing proposals and all S5 commitments retain their original behavior.
+    if (targetSeasonGameYear >= 6 && existingRows.length === 0) {
+      assertSponsorObjectivePlanConsistency(generatedObjectives);
+    }
 
     if (modernizeLegacyObjectiveSet && !sportingContextEnabled) {
       await modernizeLegacyObjectiveWeights({
@@ -373,7 +399,7 @@ export async function ensureAndLoadSponsorObjectives({
       });
     }
 
-    if (sportingContextEnabled) {
+    if (sportingContextEnabled && !preserveLegacyPartialFuturePlan) {
       // Complete a partially persisted S5 plan from the same calibrated draw.
       // Repair first so the missing-slot deduplication sees the actual targets.
       await repairLegacyRaceObjectives({
@@ -410,7 +436,7 @@ export async function ensureAndLoadSponsorObjectives({
         Math.max(0, desiredCount - (existingFamilyCounts.get(family) ?? 0)),
       ]),
     );
-    const objectivesToInsert =
+    let objectivesToInsert =
       existingRows.length === 0
         ? generatedObjectives
         : generatedObjectives
@@ -432,6 +458,41 @@ export async function ensureAndLoadSponsorObjectives({
               ...objective,
               displayOrder: missingDisplayOrders[index],
             }));
+
+    if (preserveLegacyPartialFuturePlan) {
+      const selectedTargets = existingRows.map(row => row.target_details);
+      objectivesToInsert = [];
+      const addComplementary = (candidates: typeof generatedObjectives) => {
+        for (const candidate of candidates) {
+          if (objectivesToInsert.length >= missingDisplayOrders.length) break;
+          if (selectedTargets.some(target => haveOverlappingSponsorObjectiveRequirements(target,candidate.targetDetails))) continue;
+          selectedTargets.push(candidate.targetDetails);
+          objectivesToInsert.push({...candidate,displayOrder:missingDisplayOrders[objectivesToInsert.length]});
+        }
+      };
+      addComplementary(generatedObjectives);
+      if (objectivesToInsert.length < missingDisplayOrders.length) {
+        addComplementary(generateProvisionalSponsorObjectives(generationOptions));
+      }
+      if (!offer.neutralizeMissingObjectives) {
+        const remaining = 100 - existingRows.reduce((total,row) => total + Number(row.satisfaction_points),0);
+        if (!Number.isInteger(remaining) || remaining < objectivesToInsert.length) {
+          throw new Error("Impossible de compléter ce programme sans modifier les engagements déjà proposés.");
+        }
+        const totalWeight = objectivesToInsert.reduce((total,row) => total + row.satisfactionPoints,0);
+        const allocations = objectivesToInsert.map((objective,index) => {
+          const exact = objective.satisfactionPoints/totalWeight*(remaining-objectivesToInsert.length);
+          return {objective,index,points:1+Math.floor(exact),fraction:exact%1};
+        });
+        let remainder = remaining - allocations.reduce((total,row) => total + row.points,0);
+        for (const allocation of [...allocations].sort((a,b) => b.fraction-a.fraction || a.index-b.index)) {
+          if (remainder-- <= 0) break;
+          allocation.points++;
+        }
+        objectivesToInsert = allocations.map(({objective,points}) => ({...objective,satisfactionPoints:points,
+          priority:points>=17?"mandatory":points>=11?"important":points>=6?"standard":"optional"}));
+      }
+    }
 
     if (objectivesToInsert.length !== missingDisplayOrders.length) {
       throw new Error(
@@ -569,7 +630,7 @@ export async function ensureAndLoadSponsorObjectives({
 
   await normalizeObjectiveSatisfactionWeights(
     supabase,
-    completeObjectiveRows
+    completeObjectiveRows.filter(row => targetSeasonGameYear < 6 || newlyGeneratedFutureOffers.has(row.sponsor_offer_id))
   );
 
   completeObjectiveRows = mergeObjectiveRows(
@@ -580,16 +641,30 @@ export async function ensureAndLoadSponsorObjectives({
       seasonId
     )
   );
+  // A creation attempt or automatic rollover may persist the version-13
+  // requirements before their derived links/terms. Those records can be
+  // completed idempotently without changing the proposed portfolio itself.
+  const recoverableFutureOffers = new Set(newlyGeneratedFutureOffers);
+  if (targetSeasonGameYear >= 6) {
+    for (const [offerId, rows] of groupRowsByOfferId(completeObjectiveRows)) {
+      if (rows.length === OBJECTIVE_COUNT_PER_OFFER
+        && rows.every(row => (row.target_details.generationVersion ?? 0) >= 13)) {
+        recoverableFutureOffers.add(offerId);
+      }
+    }
+  }
   await syncRaceResultObjectiveLinks(
     supabase,
-    completeObjectiveRows
+    completeObjectiveRows.filter(row => !preservedLegacyObjectiveIds.has(row.id)
+      || recoverableFutureOffers.has(row.sponsor_offer_id)),
+    targetSeasonGameYear >= 6,
   );
 
   await ensureSponsorMainObjectiveTerms({
     supabase,
     seasonId,
     targetSeasonGameYear,
-    offers,
+    offers: offers.filter(offer => targetSeasonGameYear < 6 || recoverableFutureOffers.has(offer.offerId)),
     objectiveRows: completeObjectiveRows,
     raceCandidates,
   });
@@ -2144,7 +2219,8 @@ async function repairCalibratedDraftObjectives({
 
 async function syncRaceResultObjectiveLinks(
   supabase: SupabaseAdminClient,
-  objectiveRows: readonly SponsorObjectiveRow[]
+  objectiveRows: readonly SponsorObjectiveRow[],
+  preserveExistingLinks = false,
 ): Promise<void> {
   for (const objective of objectiveRows) {
     if (
@@ -2172,7 +2248,7 @@ async function syncRaceResultObjectiveLinks(
           target_rank: details.targetRank,
           required_count: details.requiredCount,
         },
-        { onConflict: "objective_id" }
+        { onConflict: "objective_id", ...(preserveExistingLinks ? { ignoreDuplicates: true } : {}) }
       );
 
     if (error) {

@@ -1,4 +1,12 @@
 {
+  "Impossible de compléter ce programme sans modifier les engagements déjà proposés.": "This plan cannot be completed without changing commitments already proposed.",
+  "Le plan sponsor doit contenir dix objectifs.": "The sponsor plan must contain ten objectives.",
+  "Seul un nouveau programme annuel S6 peut être préparé.": "Only a new S6 annual plan can be prepared.",
+  "Aucun engagement sponsor complémentaire n’est disponible.": "No complementary sponsor commitment is available.",
+  "La difficulté des objectifs sponsor est invalide.": "The sponsor objective difficulty is invalid.",
+  "Le nombre d’objectifs sponsor est invalide.": "The number of sponsor objectives is invalid.",
+  "Le plan sponsor doit contenir dix objectifs totalisant 100 points de satisfaction.": "The sponsor plan must contain ten objectives totalling 100 satisfaction points.",
+  "Les objectifs sponsor ne doivent pas contenir deux engagements équivalents ou imbriqués.": "Sponsor objectives must not contain equivalent or nested commitments.",
   "Aucun coureur de votre effectif n’a encore marqué de points UCI.": "None of your riders have scored UCI points yet.",
   "Impossible de charger votre effectif :": "Unable to load your roster:",
   "Impossible de charger votre effectif : {{0}}": "Unable to load your roster: {{0}}",

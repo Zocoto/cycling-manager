@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { TeamDivisionCode } from "@/lib/game/economy";
 import { calculateNationRiderOverall } from "@/lib/game/nation-rider-ranking";
 import { getRiderSportingProfile, type RiderRatings } from "@/lib/game/rider-profile";
+import { assertSponsorObjectivePlanConsistency } from "@/lib/game/sponsor-objective-consistency";
 import type { SponsorObjectiveDifficulty } from "@/lib/game/sponsor-negotiation";
 import type { SponsorSportingPhilosophy } from "@/lib/game/sponsor-philosophy";
 import type { GeneratedSponsorObjective, RaceResultObjectiveDetails } from "@/types/sponsor-objective";
@@ -105,6 +106,47 @@ function assertPortfolio(objectives: readonly GeneratedSponsorObjective[], minim
   expect(races.length).toBeGreaterThanOrEqual(minimumRaceCount);
   expect(new Set(races.map(objective => objective.targetDetails.raceId)).size).toBe(races.length);
 }
+
+describe("next-season sponsor commitment consistency", () => {
+  it("can finish an existing legacy S6 draft under its original requirements without changing the target season", () => {
+    const options = { sportingPhilosophy: "time_trials" as const, raceCandidates: [],
+      teamRiderCandidates: roster(54), teamSportingContext: context("national", 150),
+      sponsorPrestige: 5 as const, proposedBudget: 2_000_000 };
+    const legacy = generate({ ...options, targetSeasonGameYear: 5 });
+    const preserved = generate({ ...options, targetSeasonGameYear: 6, preserveLegacyRequirements: true });
+    expect(preserved).toEqual(legacy);
+    expect(preserved.every(objective => objective.targetDetails.generationVersion === 12)).toBe(true);
+    expect(generate({ ...options, targetSeasonGameYear: 6 }).every(objective => objective.targetDetails.generationVersion === 13)).toBe(true);
+  });
+
+  it("creates distinct final requirements for varied philosophies, strengths and seeds", () => {
+    const philosophies: SponsorSportingPhilosophy[] = ["cobbled_classics", "ardennes_classics", "medium_stage_races", "grand_tour_general", "time_trials", "sprints", "national_preference", "youth_development"];
+    for (const sportingPhilosophy of philosophies) for (const rating of [54, 78]) for (let seed = 0; seed < 8; seed++) {
+      let state = seed + 1;
+      const objectives = generate({
+        targetSeasonGameYear: 6, sportingPhilosophy,
+        teamRiderCandidates: roster(rating), teamSportingContext: context(rating === 54 ? "national" : "elite", rating === 54 ? 150 : 10),
+        random: () => { state = (Math.imul(state, 1664525) + 1013904223) >>> 0; return state / 4294967296; },
+      });
+      assertPortfolio(objectives, 0);
+      expect(() => assertSponsorObjectivePlanConsistency(objectives), `${sportingPhilosophy}/${rating}/${seed}`).not.toThrow();
+      expect(objectives.every(objective => objective.targetDetails.generationVersion === 13)).toBe(true);
+      if (sportingPhilosophy === "time_trials") expect(objectives.some(objective => objective.targetDetails.kind === "season_wins" && objective.targetDetails.winScope === "stage_race_general")).toBe(false);
+    }
+  });
+
+  it("fills a missing specialty calendar without nested win quotas or escalating building counts", () => {
+    for (const objectiveDifficulty of ["accessible", "balanced", "ambitious"] as const) {
+      const objectives = generate({ targetSeasonGameYear: 6, sportingPhilosophy: "time_trials", objectiveDifficulty,
+        raceCandidates: [], teamRiderCandidates: roster(54), teamSportingContext: context("national", 150), sponsorPrestige: 5, proposedBudget: 2_000_000 });
+      assertPortfolio(objectives, 0);
+      expect(() => assertSponsorObjectivePlanConsistency(objectives)).not.toThrow();
+      expect(objectives.filter(objective => objective.targetDetails.kind === "infrastructure")).toHaveLength(1);
+      expect(objectives.every(objective => objective.targetDetails.kind !== "infrastructure" || objective.targetDetails.minimumCompletedCount === 1)).toBe(true);
+      expect(objectives.every(objective => objective.targetDetails.kind !== "season_wins" || objective.targetDetails.winScope !== "stage_race_general")).toBe(true);
+    }
+  });
+});
 
 function compatibleWithPhilosophy(candidate: SponsorObjectiveRaceCandidate, philosophy: SponsorSportingPhilosophy): boolean {
   const profiles = candidate.profileTypes ?? [];

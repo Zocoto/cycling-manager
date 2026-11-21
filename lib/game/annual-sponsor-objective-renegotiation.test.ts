@@ -125,7 +125,7 @@ describe("renégociation annuelle des objectifs sponsor", () => {
     );
     expect(workflow).toContain("objectivePlan: PersistedSponsorOffer | null");
     expect(futureSection).toContain('negotiationMode="continuing-contract"');
-    expect(futureSection).toContain("Objectifs proposés · 100 points");
+    expect(futureSection).toContain("Objectifs proposés · 100 pts de satisfaction sponsor");
     expect(actions).toContain(
       "negotiateContinuingSponsorObjectivesAction",
     );
