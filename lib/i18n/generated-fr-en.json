@@ -1,4 +1,9 @@
 {
+  "Aucun coureur de votre effectif n’a encore marqué de points UCI.": "None of your riders have scored UCI points yet.",
+  "Impossible de charger votre effectif :": "Unable to load your roster:",
+  "Impossible de charger votre effectif : {{0}}": "Unable to load your roster: {{0}}",
+  "Les rangs UCI globaux sont conservés.": "Overall UCI ranks are preserved.",
+  "Mes coureurs": "My riders",
   "Nouveau chapitre": "New Chapter",
   "Un nouveau départ pour un coureur de votre équipe. Son caractère actuel est remplacé par un autre caractère tiré au hasard.": "A fresh start for one of your riders. Their current personality is replaced by a randomly drawn different personality.",
   "Remplace le caractère d’un coureur par un autre caractère aléatoire": "Replace a rider’s personality with a randomly drawn different personality",

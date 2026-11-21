@@ -11,6 +11,7 @@ import {
 } from "@/components/game/game-section-tabs";
 import { TeamDivisionBadge } from "@/components/game/team-division-badge";
 import { TeamRankingJersey } from "@/components/game/team-ranking-jersey";
+import { UciOwnRidersFilter } from "@/components/game/uci-own-riders-filter";
 import { NationalFederationJersey } from "@/components/game/national-federation-jersey";
 import { loadNationalFederationJerseyDesignsByCountryCode } from "@/services/national-federation-jerseys";
 import type { NationalJerseyDraft } from "@/lib/game/national-jersey-preview";
@@ -49,6 +50,7 @@ export default async function UciRankingsPage({
     vue?: string | string[];
     circuit?: string | string[];
     page?: string | string[];
+    mes_coureurs?: string | string[];
   }>;
 }) {
   const query = await searchParams;
@@ -65,6 +67,8 @@ export default async function UciRankingsPage({
   const juniorView = view as JuniorRankingView;
   const rawPage = Array.isArray(query.page) ? query.page[0] : query.page;
   const page = Math.max(1, Number.parseInt(rawPage ?? "1", 10) || 1);
+  const rawOwnRiders = Array.isArray(query.mes_coureurs) ? query.mes_coureurs[0] : query.mes_coureurs;
+  const onlyOwnRiders = circuit === "uci" && view === "individuel" && rawOwnRiders === "1";
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -81,7 +85,17 @@ export default async function UciRankingsPage({
   ]);
   const rankings = circuit === "uci" ? rankingData as Awaited<ReturnType<typeof getUciRankings>> : null;
   const juniorRankings = circuit === "juniors" ? rankingData as JuniorRankings | null : null;
-  const individualRankings = rankings && view === "individuel" ? paginateUciRiders(rankings.riders, page) : null;
+  let individualRiders = rankings?.riders ?? [];
+  if (onlyOwnRiders) {
+    const ownRiderIds = new Set<string>();
+    if (rankings && headerData.teamId) {
+      const { data, error } = await supabase.rpc("get_current_team_roster").select("rider_id");
+      if (error) throw new Error(`Impossible de charger votre effectif : ${error.message}`);
+      for (const rider of (data ?? []) as { rider_id: string }[]) ownRiderIds.add(rider.rider_id);
+    }
+    individualRiders = individualRiders.filter((rider) => ownRiderIds.has(rider.riderId));
+  }
+  const individualRankings = rankings && view === "individuel" ? paginateUciRiders(individualRiders, page) : null;
   const nationJerseys = circuit === "uci" && view === "nations" && rankings
     ? await loadNationalFederationJerseyDesignsByCountryCode(rankings.nations.map((entry) => entry.countryCode))
     : new Map<string, NationalJerseyDraft>();
@@ -171,7 +185,15 @@ export default async function UciRankingsPage({
           ) : view === "equipes" ? (
             <TeamsTable entries={rankings.teams} />
           ) : view === "individuel" ? (
-            <RidersTable entries={individualRankings?.entries ?? []} />
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-1 border-b border-[#315B3E]/12 bg-[#F3F8F6] px-5 py-3 sm:px-7">
+                <UciOwnRidersFilter checked={onlyOwnRiders} disabled={!headerData.teamId} />
+                {onlyOwnRiders ? <p className="text-xs font-semibold text-[#60756E]">Les rangs UCI globaux sont conservés.</p> : null}
+              </div>
+              {onlyOwnRiders && !individualRankings?.entries.length ? (
+                <p className="px-6 py-10 text-center font-bold text-[#60756E]">Aucun coureur de votre effectif n’a encore marqué de points UCI.</p>
+              ) : <RidersTable entries={individualRankings?.entries ?? []} />}
+            </>
           ) : view === "rookies" ? (
             <RookieRanking entries={rankings.rookies} />
           ) : (
@@ -182,7 +204,7 @@ export default async function UciRankingsPage({
         {circuit === "juniors" && juniorRankings?.enabled ? (
           <RankingPagination rankings={juniorRankings} />
         ) : null}
-        {individualRankings ? <RankingPagination rankings={individualRankings} circuit="uci" /> : null}
+        {individualRankings ? <RankingPagination rankings={individualRankings} circuit="uci" onlyOwnRiders={onlyOwnRiders} /> : null}
 
         {circuit === "uci" && view === "equipes" ? <DivisionAdvantages /> : null}
       </section>
@@ -424,18 +446,20 @@ function JuniorTable({ entries, view }: { entries: JuniorRankingEntry[]; view: J
   );
 }
 
-function RankingPagination({ rankings, circuit = "juniors" }: {
+function RankingPagination({ rankings, circuit = "juniors", onlyOwnRiders = false }: {
   rankings: Pick<JuniorRankings, "page" | "pageCount" | "totalEntries" | "view">;
   circuit?: "juniors" | "uci";
+  onlyOwnRiders?: boolean;
 }) {
   if (rankings.pageCount <= 1) return null;
   const previous = Math.max(1, rankings.page - 1);
   const next = Math.min(rankings.pageCount, rankings.page + 1);
+  const filterQuery = onlyOwnRiders ? "&mes_coureurs=1" : "";
   return (
     <nav aria-label={circuit === "uci" ? "Pagination du classement individuel" : "Pagination du classement junior"} className="mt-5 grid grid-cols-2 items-center gap-3 rounded-2xl border border-[#315B3E]/12 bg-white px-4 py-3 text-sm font-black text-[#315B3E] sm:flex sm:justify-between">
-      <Link aria-disabled={rankings.page === 1} href={`/jeu/classements?circuit=${circuit}&vue=${rankings.view}&page=${previous}`} className={rankings.page === 1 ? "pointer-events-none opacity-40" : "hover:text-[#176951]"}>← Précédent</Link>
+      <Link aria-disabled={rankings.page === 1} href={`/jeu/classements?circuit=${circuit}&vue=${rankings.view}&page=${previous}${filterQuery}`} className={rankings.page === 1 ? "pointer-events-none opacity-40" : "hover:text-[#176951]"}>← Précédent</Link>
       <span className="order-first col-span-2 text-center sm:order-none">Page {rankings.page} / {rankings.pageCount} · {rankings.totalEntries} classés</span>
-      <Link aria-disabled={rankings.page === rankings.pageCount} href={`/jeu/classements?circuit=${circuit}&vue=${rankings.view}&page=${next}`} className={`justify-self-end ${rankings.page === rankings.pageCount ? "pointer-events-none opacity-40" : "hover:text-[#176951]"}`}>Suivant →</Link>
+      <Link aria-disabled={rankings.page === rankings.pageCount} href={`/jeu/classements?circuit=${circuit}&vue=${rankings.view}&page=${next}${filterQuery}`} className={`justify-self-end ${rankings.page === rankings.pageCount ? "pointer-events-none opacity-40" : "hover:text-[#176951]"}`}>Suivant →</Link>
     </nav>
   );
 }
