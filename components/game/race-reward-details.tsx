@@ -48,10 +48,12 @@ export function RaceRewardDetails({
   const preview = buildRewardPreview(edition, gameYear);
   const headline = preview.general[0];
   const isDark = tone === "dark";
-  const noInternationalUci = gameYear >= INTERNATIONAL_CHAMPIONSHIPS_NO_UCI_START_GAME_YEAR
+  const noInternationalUci = edition.competitionType === "national_road"
+    || edition.competitionType === "national_time_trial"
+    || gameYear >= INTERNATIONAL_CHAMPIONSHIPS_NO_UCI_START_GAME_YEAR
     && (edition.competitionType === "world_championship"
       || edition.competitionType === "continental_championship"
-      || isQuadrennialGamesEdition(edition));
+      || edition.competitionType === "nations_cup");
 
   if (!headline) return null;
 
@@ -191,10 +193,11 @@ export function RaceRewardDetails({
           {preview.federationPrize > 0 ? (
             <>Chaque coureur classé rapporte la prime de sa place à son club. Les non-partants, abandons et disqualifications ne donnent droit à aucune prime.</>
           ) : noInternationalUci ? (
-            <>Les titres et le palmarès suivent les résultats officiels.</>
+            <>Les sommes sont versées au club du coureur au départ de l’épreuve ; l’expérience et la réputation au DS. Les titres et le palmarès suivent les résultats officiels.
+            {edition.competitionType === "nations_cup" ? <> Les points du classement Nations Cup sont distincts des points UCI.</> : null}</>
           ) : (
             <>Les primes d’étape et de parcours s’ajoutent au classement final.
-            Les sommes sont versées à l’équipe ; l’expérience et les points au coureur.</>
+            Les sommes sont versées à l’équipe ; l’expérience et la réputation au DS, les points UCI au coureur et à l’équipe.</>
           )}
           {preview.hasTeamTimeTrial ? (
             <>
@@ -317,7 +320,7 @@ function buildRewardPreview(edition: RewardEdition, gameYear: number) {
 
     return {
       generalTitle: "Classement final",
-      formatLabel: "Championnat",
+      formatLabel: edition.competitionType === "nations_cup" ? "Nations Cup" : "Championnat",
       general: groupRewardRanges(getChampionshipReward, 20),
       stage: [] as RewardRange[],
       secondary: null,

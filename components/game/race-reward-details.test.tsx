@@ -21,6 +21,14 @@ function buildEdition(
 }
 
 describe("RaceRewardDetails", () => {
+  it.each(["continental_championship", "world_championship", "nations_cup"] as const)("précise les bénéficiaires des gains de %s", (competitionType) => {
+    const markup = renderToStaticMarkup(<RaceRewardDetails gameYear={5} edition={buildEdition({ competitionType, name: "Sélection nationale", raceFormat: "one_day", stages: [] })} />);
+    expect(markup).toContain("club du coureur au départ");
+    expect(markup).toContain("l’expérience et la réputation au DS");
+    expect(markup).toContain("Aucun point UCI attribué.");
+    if (competitionType === "nations_cup") expect(markup).toContain("distincts des points UCI");
+  });
+
   it.each(["world_championship", "continental_championship"] as const)("supprime les points UCI du barème %s et explique la règle", (competitionType) => {
     const markup = renderToStaticMarkup(<RaceRewardDetails gameYear={4} edition={buildEdition({ competitionType, name: "Championnat", raceFormat: "one_day", stages: [] })} />);
     expect(markup).toContain("Aucun point UCI attribué.");

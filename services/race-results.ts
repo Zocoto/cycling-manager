@@ -1,5 +1,7 @@
 import "server-only";
 
+import { settleFederationRaceClubRewards, usesFederationClubRewards } from "@/services/federation-race-club-rewards";
+
 import {
   calculateCombativityReward,
   calculateInternationalChampionshipReward,
@@ -426,6 +428,9 @@ async function settleEditionRaceResults({
       rosterByRiderId.size,
     );
     if (alreadySettled) {
+      // Repair money independently of the already homologated classification.
+      // This path never regenerates a simulation or rewrites a race result.
+      await settleFederationRaceClubRewards(admin, edition, calendar.gameYear);
       return { processedStages: 0, completedEditions: 0 };
     }
   }
@@ -1805,7 +1810,7 @@ async function persistRaceClassification({
   for (const result of general) {
     // National registrations have no club team_season_id. The dedicated,
     // atomic Games settlement resolves clubs from the selection snapshots.
-    if (isGamesEdition) continue;
+    if (isGamesEdition || usesFederationClubRewards(edition, gameYear)) continue;
     const mountainPrimesWon = countPrimeWins(
       simulations,
       result.riderId,
@@ -1927,6 +1932,10 @@ async function persistRaceClassification({
     );
     assertQuery(gamesRewardError, `les primes des Jeux de ${edition.name}`);
   }
+
+  // Includes all-DNF races: the atomic resolver closes them with zero awards.
+  // A failed payout prevents closing the edition, so the existing cron retries.
+  await settleFederationRaceClubRewards(admin, edition, gameYear);
 
   // Les récompenses ordinaires sont appliquées une à une de façon
   // idempotente, mais le classement UCI est une agrégation globale coûteuse.

@@ -133,6 +133,16 @@ type AttendanceTrophyRow = {
   awarded_at: string;
 };
 
+type SelectionTrophyWinRow = {
+  id: string;
+  race_slug: string;
+  race_name: string;
+  season_id: string;
+  won_at: string;
+  rider_name: string;
+  competition_type: "world_championship" | "continental_championship";
+};
+
 type SponsorAmbassadorTrophyRow = {
   id: string;
   season_id: string;
@@ -323,18 +333,19 @@ async function loadSportingDirectorTrophyGallery({
     trophies: sponsorAmbassadorResult.data ?? [],
     seasonById,
   });
-  const [attendanceTrophies, referralTrophies] = await Promise.all([
+  const [attendanceTrophies, referralTrophies, selectionRaceWins] = await Promise.all([
     loadAttendanceTrophies({
       admin,
       directorId,
       seasonById,
     }),
     loadReferralTrophies({ admin, directorId }),
+    loadSelectionRaceWins({ admin, directorId, seasonById }),
   ]);
 
   if (teamIds.length === 0 || seasons.length === 0) {
     return buildTrophyGallery({
-      raceWins: [],
+      raceWins: selectionRaceWins,
       teamUciTitles: [],
       riderUciTitles: [],
       specialAwards,
@@ -422,7 +433,11 @@ async function loadSportingDirectorTrophyGallery({
   });
 
   return buildTrophyGallery({
-    raceWins,
+    raceWins: [
+      ...new Map(
+        [...raceWins, ...selectionRaceWins].map((win) => [win.id, win]),
+      ).values(),
+    ],
     teamUciTitles,
     riderUciTitles,
     specialAwards,
@@ -430,6 +445,52 @@ async function loadSportingDirectorTrophyGallery({
     attendanceTrophies,
     sponsorAmbassadorTrophies,
     referralTrophies,
+  });
+}
+
+async function loadSelectionRaceWins({
+  admin,
+  directorId,
+  seasonById,
+}: {
+  admin: ReturnType<typeof createSupabaseAdminClient>;
+  directorId: string;
+  seasonById: Map<string, SeasonRow>;
+}): Promise<TrophyRaceWin[]> {
+  const result = await collectPaginatedRows<SelectionTrophyWinRow, QueryError>({
+    fetchPage: async (from, to) => {
+      const query = await admin
+        .rpc("get_sporting_director_selection_trophy_wins", {
+          p_sporting_director_id: directorId,
+        })
+        .order("won_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(from, to)
+        .returns<SelectionTrophyWinRow[]>();
+
+      return {
+        data: Array.isArray(query.data) ? query.data : [],
+        error: query.error,
+      };
+    },
+  });
+  assertQuery(result.error, "les titres remportés en sélection nationale");
+
+  return result.data.flatMap((win) => {
+    const season = seasonById.get(win.season_id);
+    return season
+      ? [{
+          id: win.id,
+          raceSlug: win.race_slug,
+          raceName: win.race_name,
+          seasonName: season.name,
+          wonAt: win.won_at,
+          riderName: win.rider_name,
+          isGrandTour: false,
+          isMonument: false,
+          competitionType: win.competition_type,
+        }]
+      : [];
   });
 }
 
