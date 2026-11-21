@@ -30,7 +30,7 @@ export function RiderProfileSportingCard({
             Profil sportif
           </p>
           <h2 className="mt-2 text-2xl font-black text-[#183F37]">
-            Caractéristiques de la saison
+            Caractéristiques
           </h2>
         </div>
         <div data-tutorial-id="rider-profile-form" className="min-w-0">

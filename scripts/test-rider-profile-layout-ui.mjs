@@ -227,7 +227,7 @@ try {
     await mount({ locale:'en' });
     await checkLayout('en');
     const text = await page.locator("[data-qa='sporting']").textContent();
-    check(!text.includes('Caractéristiques de la saison'), 'sporting heading is translated in English');
+    check(!text.includes('Caractéristiques'), 'sporting heading is translated in English');
     check(!(await page.locator("[data-qa='mental']").textContent()).includes('Mental et affinités'), 'mental heading is translated in English');
     check(await page.locator("[data-qa='abilities'] h2").textContent() === 'Special abilities', 'ability heading is translated in English');
     const mentalText = await page.locator("[data-qa='mental']").textContent();
