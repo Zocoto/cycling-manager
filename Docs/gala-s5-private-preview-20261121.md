@@ -1,8 +1,31 @@
 # Gala S5 — aperçu privé
 
 Page : `/apercus/gala-saison-5`, réservée aux comptes vérifiés de Zocoto et Gouille.
-Programme, date et lots proposés pour arbitrage. Inscriptions fermées ; aucune
-tuile dans le bureau, aucune écriture en base ni modification du package Steam.
+Programme et lots proposés pour arbitrage. Inscriptions câblées en accès privé,
+avec clôture au **4 décembre 2026 à 12 h Europe/Paris**. Aucune tuile dans le
+bureau et aucune modification du package Steam.
+
+## Inscriptions
+
+Une édition S5 et six événements natifs utilisent des tables indépendantes de
+S4. Une entrée unique par `(édition, DS)` et `(édition, équipe)` empêche les
+catégories simultanées. Les compositions des trois courses s’enregistrent en
+une opération : chacune contient 0 ou 7–8 coureurs, au moins une course complète.
+Le changement de catégorie exige le programme précédent et remplace les
+anciennes sélections ; une demande provenant d’un onglet périmé est rejetée.
+Les verrous bornés protègent aussi la validation des contrats et notes natives.
+
+Les admissions Continental sont conservées après progression naturelle, sans
+écrêter les notes. Le contexte est chargé par un seul RPC avec délai maximal de
+8 secondes. Les contrôles d’accès existent dans la page, les actions et les RPC :
+seuls Zocoto et Gouille accèdent à cette édition privée jusqu’à sa publication.
+Les formulaires permettent de trier les six notes et de valider les compositions
+ensemble. Une indisponibilité de lecture affiche une erreur sans ouvrir le jeu.
+
+La clôture reste valide pendant J1 de S6 : la source S5 peut être terminée.
+L’identité S6 est projetée depuis les contrats prévus, sans modifier l’équipe S5.
+Le Cuissard des Lumières proposé donne +1 PAV, +1 PLA et +1 RES, plus deux
+boosters pour la présence au live. Aucun gain n’est attribué par cette livraison.
 
 ## Parcours vérifiés le 21 novembre 2026
 
@@ -33,15 +56,13 @@ Présence des fichiers vérifiée ; aucun lancement de course 3D effectué.
 
 - Harmoniser dans le nouvel export les règles natives pour accepter 7–8 coureurs
   par équipe sur ces six épreuves ; ne pas tronquer silencieusement une SL.
-- Garder le plafond Continental à 75 dans les six notes primaires natives,
-  hors matériel, à l’admission ; aucune réduction artificielle des notes.
-- Prévoir inscriptions, clôture et dédoublement des groupes selon les capacités.
+- Préparer le dédoublement des groupes selon les capacités natives.
 - Versionner les résultats et récompenses par édition : les anciennes tables S4
   ont des clés globales `event_key` et des dotations live non versionnées.
   Ne pas y écrire les résultats S5 tels quels.
 - Générer la BDD et ses SL ensemble après clôture, puis vérifier leur cohérence
   avant publication Steam. Aucun changement du package n’est livré ici.
 
-L’aperçu est indépendant des actions S4, sans GameLayout ni requête de jeu.
-Seule la vérification de session protège sa consultation. Les onglets et courbes
-sont locaux ; pas de polling, téléchargement de scènes 3D ou nouvelle dépendance.
+L’aperçu est indépendant des actions S4, sans GameLayout. Les onglets, tris et
+courbes sont locaux ; aucun polling, téléchargement de scènes 3D ou nouvelle
+dépendance n’est ajouté.

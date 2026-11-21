@@ -110,7 +110,8 @@ describe("season five gala course proposals", () => {
       sourceSeason: 5,
       nextSeason: 6,
       continentalCap: 75,
-      isRegistrationOpen: false,
+      isRegistrationOpen: true,
+      registrationClosesAt: "2026-12-04T11:00:00.000Z",
     });
   });
 

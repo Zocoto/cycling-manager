@@ -6,6 +6,7 @@ import { canAccessSeasonFiveGalaPreview } from "@/lib/game/season-five-gala-acce
 import { SEASON_FIVE_GALA } from "@/lib/game/season-five-gala";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getCurrentSeasonFiveGalaContext } from "@/services/season-five-gala-registration";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -15,10 +16,10 @@ export const metadata: Metadata = {
 };
 
 export default async function SeasonFiveGalaPreviewPage() {
-  // No game layout, gameplay queries, registration actions or reward grants.
-  const authentication = await createSupabaseServerClient()
-    .then(getAuthenticatedUser)
+  const session = await createSupabaseServerClient()
+    .then(async client => ({ client, authentication: await getAuthenticatedUser(client) }))
     .catch(() => null);
+  const authentication = session?.authentication;
   if (!authentication?.data.user) {
     redirect(`/connexion?returnTo=${encodeURIComponent(SEASON_FIVE_GALA.route)}`);
   }
@@ -26,5 +27,12 @@ export default async function SeasonFiveGalaPreviewPage() {
     notFound();
   }
 
-  return <SeasonFiveGalaPreview />;
+  // A single bounded RPC loads this DS's team, native ratings and registration.
+  // No GameLayout, header queries, rewards mutation or polling is added.
+  const context = await getCurrentSeasonFiveGalaContext(session!.client).catch(() => ({
+    unavailable: true, isOpen: false, closesAt: SEASON_FIVE_GALA.registrationClosesAt,
+    team: null, program: null, selections: {}, riders: [],
+  }));
+  const revision = JSON.stringify([context.team?.id, context.program, context.selections, context.isOpen]);
+  return <SeasonFiveGalaPreview key={revision} registrationContext={context} />;
 }

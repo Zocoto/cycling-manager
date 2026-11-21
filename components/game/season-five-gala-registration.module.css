@@ -1,0 +1,62 @@
+.panel { margin-top: 22px; padding: 26px; border: 1px solid #bd9f6266; border-radius: 14px; background: #142119; scroll-margin-top: 18px; }
+.heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.panel h2 { margin-top: 6px; color: #f0e4c9; font: 500 29px/1.2 Georgia, serif; }
+.eyebrow { font-size: 10px; font-weight: 800; color: #d7be82; text-transform: uppercase; letter-spacing: .12em; }
+.identity { display: grid; gap: 6px; text-align: right; }
+.identity strong { color: #ecdfbd; font-size: 13px; }
+.identity span { color: #a6b59f; font-size: 10px; }
+.instructions { margin-top: 16px !important; color: #bdc5b4; font-size: 12px; line-height: 1.8; }
+.deadline { margin-top: 7px !important; color: #e6cb8d; font-size: 12px; line-height: 1.8; }
+.savedProgram { margin-top: 8px !important; color: #b6c7ae; font-size: 12px; }
+.notice { margin-top: 15px !important; padding: 12px; background: #d1b96c14; border: 1px solid #d0af6c55; border-radius: 7px; color: #e5d5ab; font-size: 12px; line-height: 1.8; }
+.courseTabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; margin: 20px 0; }
+.courseTabs button { padding: 12px; border: 1px solid #6e806153; background: #0d1912; border-radius: 7px; text-align: left; color: #d4dcc9; cursor: pointer; }
+.courseTabs button[aria-pressed="true"] { border-color: #d1b974; background: #2c3824; }
+.courseTabs strong { display: block; font-size: 12px; }
+.courseTabs span { display: block; margin-top: 6px; font-size: 10px; color: #b2bca5; }
+.selectionHeader { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.selectionHeader h3 { flex: 1; color: #ecdfbf; font-size: 16px; }
+.selectionHeader > strong { color: #dfc58e; font-size: 13px; }
+.selectionHeader button, .withdrawal button { border: 1px solid #89947555; border-radius: 5px; background: #a7ac8710; color: #c2c8b5; padding: 9px 12px; font-size: 10px; cursor: pointer; }
+.hint { margin-top: 10px !important; color: #a8b89f; font-size: 11px; line-height: 1.8; }
+.tableScroll { max-height: 420px; overflow: auto; margin-top: 13px; border: 1px solid #89947544; border-radius: 8px; overscroll-behavior: contain; }
+.riders { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px; }
+.riders thead th { position: sticky; top: 0; z-index: 1; background: #233124; border-bottom: 1px solid #71846544; color: #c6d0b4; text-align: center; }
+.riders thead th:first-child { text-align: left; }
+.riders thead button { width: 100%; min-height: 42px; padding: 8px; border: 0; background: transparent; color: inherit; font-size: 10px; font-weight: 800; cursor: pointer; white-space: nowrap; }
+.riders tbody th { text-align: left; font-weight: 500; min-width: 210px; }
+.riders tbody th, .riders td { border-bottom: 1px solid #8a997025; }
+.riders tbody label { display: flex; align-items: center; gap: 12px; min-height: 54px; padding: 8px 14px; cursor: pointer; }
+.riders input, .confirm input { width: 17px; height: 17px; flex-shrink: 0; accent-color: #d9bf80; cursor: pointer; }
+.riders strong { display: block; color: #dce1d0; font-size: 12px; }
+.riders small { display: block; margin-top: 4px; color: #bdad84; font-size: 10px; }
+.riders td { padding: 10px 9px; color: #d0dbc3; text-align: center; font-variant-numeric: tabular-nums; }
+.riders tr[data-selected="true"] { background: #9aa96e20; }
+.riders tr[data-ineligible="true"] { opacity: .55; }
+.confirm { display: flex; align-items: center; gap: 12px; padding: 15px 0 0; color: #e3d1a5; font-size: 12px; line-height: 1.7; }
+.saveBar { position: sticky; bottom: max(12px, env(safe-area-inset-bottom)); z-index: 4; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 17px; padding: 14px 16px; border: 1px solid #bba26777; border-radius: 10px; background: #1f2a1bf5; box-shadow: 0 8px 30px #0007; backdrop-filter: blur(8px); }
+.saveBar p { color: #e4d4ae; font-size: 12px; font-weight: 750; }
+.saveBar span { display: block; margin-top: 4px; color: #b5c1a7; font-size: 10px; font-weight: 400; line-height: 1.7; }
+.saveBar > button { flex-shrink: 0; padding: 12px 16px; border: 1px solid #e7ce8c; border-radius: 6px; background: #ddc38c; color: #172413; font-size: 11px; font-weight: 850; cursor: pointer; }
+.panel button:disabled { cursor: not-allowed; opacity: .5; }
+.panel :is(button, input, .tableScroll):focus-visible { outline: 2px solid #f2d597; outline-offset: 3px; }
+.error, .success { margin-top: 14px !important; padding: 11px; border-radius: 6px; font-size: 12px; line-height: 1.7; }
+.error { color: #f3c5ae; background: #a5342422; }
+.error button { margin-top: 10px; padding: 9px; border: 1px solid #cda38b66; border-radius: 5px; color: inherit; background: #9d5b301c; cursor: pointer; }
+.success { color: #c7e1ac; background: #83a86215; }
+.withdrawal { margin-top: 16px; }
+.withdrawal form { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 12px; color: #d8cba9; }
+.withdrawal form p { width: 100%; }
+@media (max-width: 760px) {
+  .panel { padding: 19px 15px; }
+  .heading { align-items: flex-start; flex-direction: column; gap: 13px; }
+  .identity { text-align: left; }
+  .panel h2 { font-size: 27px; }
+  .courseTabs { grid-template-columns: 1fr; gap: 7px; }
+  .courseTabs button { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; }
+  .courseTabs span { margin: 0; flex-shrink: 0; }
+  .riders { min-width: 610px; }
+  .riders thead button { min-height: 44px; }
+  .saveBar { flex-wrap: wrap; gap: 12px; padding: 12px; }
+  .saveBar > button { width: 100%; min-height: 44px; }
+}

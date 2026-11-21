@@ -40,7 +40,9 @@ export const SEASON_FIVE_GALA = {
   minRiders: 7,
   maxRiders: 8,
   continentalCap: 75,
-  isRegistrationOpen: false,
+  isRegistrationOpen: true,
+  registrationClosesAt: "2026-12-04T11:00:00.000Z",
+  registrationDeadlineLabel: "Vendredi 4 décembre à 12 h (heure de Paris)",
   twitchUrl: "https://www.twitch.tv/gouille_tw",
   hostAvatar: "/images/gala/gouille-twitch.png",
 } as const;
@@ -58,7 +60,9 @@ export const GALA_S5_COURSES: readonly SeasonFiveGalaCourse[] = [
 
 export const GALA_S5_LIVE_REWARD = {
   name: "Cuissard des Lumières",
-  bonus: "+1 PAV",
+  slot: "bib_shorts",
+  ratingBonuses: { cobbles: 1, flat: 1, resistance: 1 },
+  bonus: "+1 PAV · +1 PLA · +1 RES",
   detail: "Un cuissard exclusif à équiper sur un coureur, pour garder un souvenir du direct.",
   boosters: 2,
 } as const;

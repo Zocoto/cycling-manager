@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   preview: vi.fn(),
   redirect: vi.fn(),
   notFound: vi.fn(),
+  context: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({ createSupabaseServerClient: mocks.client }));
@@ -22,6 +23,7 @@ vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: mocks.admin 
 vi.mock("@/services/game-header-data", () => ({ getGameHeaderData: mocks.header }));
 vi.mock("@/components/game/season-five-gala-preview", () => ({ SeasonFiveGalaPreview: mocks.preview }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect, notFound: mocks.notFound }));
+vi.mock("@/services/season-five-gala-registration", () => ({ getCurrentSeasonFiveGalaContext: mocks.context }));
 
 import SeasonFiveGalaPreviewPage, { dynamic, metadata } from "./page";
 
@@ -44,6 +46,8 @@ beforeEach(() => {
   vi.resetAllMocks();
   mocks.client.mockResolvedValue(client);
   mocks.auth.mockResolvedValue({ data: { user: null }, error: null });
+  mocks.context.mockResolvedValue({ isOpen: true, closesAt: SEASON_FIVE_GALA.registrationClosesAt,
+    team: null, program: null, selections: {}, riders: [] });
   mocks.preview.mockImplementation(() => <article data-gala-s5-preview>Private S5 review</article>);
   mocks.redirect.mockImplementation((path: string) => { throw new Error(`REDIRECT:${path}`); });
   mocks.notFound.mockImplementation(() => { throw new Error("NOT_FOUND"); });
@@ -65,6 +69,7 @@ describe("private season-five gala page access", () => {
     expect(mocks.preview).toHaveBeenCalledOnce();
     expect(mocks.client).toHaveBeenCalledOnce();
     expect(mocks.auth).toHaveBeenCalledExactlyOnceWith(client);
+    expect(mocks.context).toHaveBeenCalledExactlyOnceWith(client);
     expect(mocks.redirect).not.toHaveBeenCalled();
     expect(mocks.notFound).not.toHaveBeenCalled();
     expectNoGameReads();
@@ -78,6 +83,7 @@ describe("private season-five gala page access", () => {
     expect(destination.searchParams.get("returnTo")).toBe(SEASON_FIVE_GALA.route);
     expect(mocks.preview).not.toHaveBeenCalled();
     expect(mocks.notFound).not.toHaveBeenCalled();
+    expect(mocks.context).not.toHaveBeenCalled();
     expectNoGameReads();
   });
 
@@ -97,6 +103,7 @@ describe("private season-five gala page access", () => {
     expect(mocks.notFound).toHaveBeenCalledOnce();
     expect(mocks.redirect).not.toHaveBeenCalled();
     expect(mocks.preview).not.toHaveBeenCalled();
+    expect(mocks.context).not.toHaveBeenCalled();
     expectNoGameReads();
   });
 
@@ -136,5 +143,14 @@ describe("private season-five gala page access", () => {
   it("keeps authenticated preview responses dynamic and excluded from indexing", () => {
     expect(dynamic).toBe("force-dynamic");
     expect(metadata.robots).toMatchObject({ index: false, follow: false });
+  });
+
+  it("keeps the gala visible with an unavailable registration panel when its single read fails", async () => {
+    mocks.auth.mockResolvedValue({ data: { user: { id: allowedUsers[0][1] } }, error: null });
+    mocks.context.mockRejectedValue(new Error("Database unavailable"));
+    const html = renderToStaticMarkup(await SeasonFiveGalaPreviewPage());
+    expect(html).toContain("data-gala-s5-preview");
+    expect(mocks.preview.mock.calls.at(-1)?.[0]).toMatchObject({ registrationContext: { unavailable: true, isOpen: false } });
+    expectNoGameReads();
   });
 });

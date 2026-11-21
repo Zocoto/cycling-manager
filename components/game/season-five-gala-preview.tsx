@@ -12,11 +12,14 @@ import {
   type SeasonFiveGalaProgram,
 } from "@/lib/game/season-five-gala";
 import styles from "./season-five-gala.module.css";
+import type { SeasonFiveGalaContext } from "@/lib/game/season-five-gala-registration";
+import { SeasonFiveGalaRegistration } from "./season-five-gala-registration";
+import { SeasonFiveGalaHero } from "./season-five-gala-hero";
 
 const programs: readonly SeasonFiveGalaProgram[] = ["pro-tour", "continental"];
 
-export function SeasonFiveGalaPreview() {
-  const [program, setProgram] = useState<SeasonFiveGalaProgram>("pro-tour");
+export function SeasonFiveGalaPreview({ registrationContext }: { registrationContext?: SeasonFiveGalaContext }) {
+  const [program, setProgram] = useState<SeasonFiveGalaProgram>(registrationContext?.program ?? "pro-tour");
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const id = useId();
   const courses = GALA_S5_COURSES.filter((course) => course.program === program);
@@ -54,13 +57,14 @@ export function SeasonFiveGalaPreview() {
               Le peloton fête la saison sur Pro Cycling Manager 26, en direct avec Gouille.
             </p>
             <div className={styles.heroActions}>
-              <a href="#programme-gala-s5" className={styles.goldButton}>Découvrir les courses <span aria-hidden="true">↓</span></a>
+              <a href={registrationContext?.isOpen && registrationContext.team ? "#inscriptions-gala-s5" : "#programme-gala-s5"} className={styles.goldButton}>
+                {registrationContext?.isOpen && registrationContext.team ? "Inscrire mon équipe" : "Découvrir les courses"} <span aria-hidden="true">↓</span></a>
               <a href="#lots-gala-s5" className={styles.textLink}>Voir les lots</a>
             </div>
           </div>
-          <HeroIllustration />
+          <SeasonFiveGalaHero className={styles.heroArt} />
           <p className={styles.previewNotice}>
-            Aperçu · Programme et lots à valider. Les inscriptions sont fermées.
+            Avant-première privée · Programme et lots en préparation.
           </p>
         </header>
 
@@ -96,7 +100,7 @@ export function SeasonFiveGalaPreview() {
           <div className={styles.sectionHeading}>
             <div><p className={styles.eyebrow}>Choisissez votre programme</p>
               <h2 id={`${id}-program-title`}>Trois courses. Votre collectif.</h2></div>
-            <p>Un programme par équipe · {SEASON_FIVE_GALA.minRiders} à {SEASON_FIVE_GALA.maxRiders} coureurs par épreuve</p>
+            <p>Une seule catégorie par DS · {SEASON_FIVE_GALA.minRiders} à {SEASON_FIVE_GALA.maxRiders} coureurs par épreuve</p>
           </div>
           <div className={styles.tabs} role="tablist" aria-label="Programme du gala">
             {programs.map((value, index) => (
@@ -125,8 +129,9 @@ export function SeasonFiveGalaPreview() {
           <div className={styles.registration}>
             <div><strong>Vos couleurs de saison {SEASON_FIVE_GALA.nextSeason}, en avant-première.</strong>
               <p>Les équipes s’inscriront sous leur future identité, avec leurs maillots de la saison prochaine.</p></div>
-            <button type="button" disabled>Ouverture prochaine</button>
+            <div><strong>Clôture des inscriptions</strong><p>{SEASON_FIVE_GALA.registrationDeadlineLabel}</p></div>
           </div>
+          {registrationContext ? <SeasonFiveGalaRegistration context={registrationContext} program={program} /> : null}
         </section>
 
         <section id="lots-gala-s5" className={`${styles.section} ${styles.rewards}`} aria-labelledby={`${id}-rewards-title`}>
@@ -209,51 +214,6 @@ function CourseElevation({ course }: { course: SeasonFiveGalaCourse }) {
       </svg>
       <figcaption><span>Départ</span><span>Arrivée{course.distanceKm !== null ? ` · ${course.distanceKm.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} km` : ""}</span></figcaption>
     </figure>
-  );
-}
-
-function HeroIllustration() {
-  const id = useId();
-  return (
-    <div className={styles.heroArt} aria-hidden="true">
-      <svg viewBox="0 0 660 440" fill="none">
-        <defs>
-          <radialGradient id={`${id}-glow`}><stop stopColor="#DCC082" stopOpacity=".19" /><stop offset="1" stopColor="#DCC082" stopOpacity="0" /></radialGradient>
-          <linearGradient id={`${id}-road`} x1="490" y1="215" x2="272" y2="440" gradientUnits="userSpaceOnUse"><stop stopColor="#DCC082" stopOpacity=".28" /><stop offset="1" stopColor="#DCC082" stopOpacity=".02" /></linearGradient>
-        </defs>
-        <ellipse cx="365" cy="185" rx="265" ry="220" fill={`url(#${id}-glow)`} />
-        <circle cx="485" cy="105" r="36" stroke="#DFC58A" strokeOpacity=".22" />
-        <circle cx="485" cy="105" r="27" fill="#DFC58A" fillOpacity=".1" />
-        <path d="M20 285L120 189L185 237L280 128L373 233L470 162L650 302" stroke="#91B4A5" strokeOpacity=".24" strokeWidth="1.5" />
-        <path d="M0 327L140 259L219 289L319 209L415 277L510 241L660 302V440H0Z" fill="#16352D" />
-        <path d="M30 358L170 313L246 329L359 270L466 304L572 280L660 322V440H30Z" fill="#10251F" />
-        <path d="M490 226C386 240 511 277 364 302C232 325 315 356 146 440H486C372 354 521 325 471 294C421 267 554 251 490 226Z" fill={`url(#${id}-road)`} />
-        <path d="M490 227C406 240 510 276 376 301C280 318 333 349 217 408" stroke="#DCC082" strokeOpacity=".35" strokeWidth="1.5" strokeDasharray="9 9" />
-        <g fill="#1D493B" stroke="#B8CBBA" strokeOpacity=".08">
-          <path d="M555 200L527 251H542L518 287H590L568 251H583Z" /><path d="M610 247L588 286H599L581 316H639L621 286H633Z" />
-          <path d="M97 266L74 308H88L67 341H130L111 308H124Z" /><path d="M162 229L142 268H152L136 294H188L173 268H183Z" />
-        </g>
-        <path d="M158 294V306M555 287V301M611 316V332M99 341V354" stroke="#6B6853" strokeWidth="4" />
-        <path d="M39 38Q321 167 629 35" stroke="#B7A06B" strokeOpacity=".65" strokeWidth="1.5" />
-        <g fill="#F2DDA4">
-          <circle cx="87" cy="58" r="4" /><circle cx="153" cy="81" r="4" /><circle cx="224" cy="96" r="4" /><circle cx="299" cy="103" r="4" /><circle cx="374" cy="99" r="4" /><circle cx="450" cy="87" r="4" /><circle cx="522" cy="67" r="4" /><circle cx="590" cy="45" r="4" />
-        </g>
-        <g stroke="#D4B973" strokeOpacity=".2" strokeWidth="12"><circle cx="153" cy="81" r="5" /><circle cx="299" cy="103" r="5" /><circle cx="450" cy="87" r="5" /></g>
-        <g transform="translate(238 231) rotate(-5 88 75)">
-          <ellipse cx="83" cy="131" rx="99" ry="9" fill="#000" fillOpacity=".25" />
-          <circle cx="23" cy="92" r="36" stroke="#B9C0AC" strokeWidth="2" /><circle cx="154" cy="92" r="36" stroke="#B9C0AC" strokeWidth="2" />
-          <path d="M23 92L64 43L92 92H23L74 48H136L154 92L92 92L114 50M64 43L55 37M52 37H69M135 49L141 35L153 35" stroke="#DFC58A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-          <circle cx="92" cy="92" r="7" stroke="#C1B99F" strokeWidth="2" />
-          <path d="M94 90L74 61L102 35" stroke="#E9DEC1" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M73 60L58 45L81 21L104 31L99 46Z" fill="#DAB96A" />
-          <path d="M104 32L126 39L138 50" stroke="#E9DEC1" strokeWidth="8" strokeLinecap="round" />
-          <path d="M79 24L64 47L61 78" stroke="#E9DEC1" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M59 78L70 84M92 92L102 96" stroke="#8EA291" strokeWidth="5" strokeLinecap="round" />
-          <circle cx="108" cy="12" r="11" fill="#E9DEC1" /><path d="M97 11Q101-6 116 3L122 12H98" fill="#2B5546" stroke="#D5BE81" strokeWidth="1.5" />
-        </g>
-        <path d="M596 151V161M591 156H601M207 175V183M203 179H211M361 39V47M357 43H365" stroke="#DFC58A" strokeOpacity=".5" strokeWidth="1.5" />
-      </svg>
-    </div>
   );
 }
 
