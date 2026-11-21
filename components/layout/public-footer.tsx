@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 
-import Link from "@/components/ui/app-link";
+import Link from "@/components/public/public-link";
 
 import { appConfig } from "../../lib/app-config";
 import { useLocale } from "@/components/i18n/locale-provider";
@@ -62,6 +62,13 @@ export function PublicFooter({ activeVersion = appConfig.version }: { activeVers
               </Link>
 
               <Link
+                href="/nouveautes"
+                className="w-fit transition hover:text-[#F2C94C]"
+              >
+                {isEnglish ? "News" : "Actualités"}
+              </Link>
+
+              <Link
                 href="/a-propos"
                 className="w-fit transition hover:text-[#F2C94C]"
               >
@@ -73,6 +80,9 @@ export function PublicFooter({ activeVersion = appConfig.version }: { activeVers
                 className="w-fit transition hover:text-[#F2C94C]"
               >
                 {isEnglish ? "Log in" : "Connexion"}
+              </Link>
+              <Link href="/presse" className="w-fit transition hover:text-[#F2C94C]">
+                {isEnglish ? "Press & creators" : "Presse et créateurs"}
               </Link>
               <Link
                 href="/conditions-utilisation"

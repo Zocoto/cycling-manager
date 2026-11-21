@@ -13,8 +13,14 @@ describe("page d’accueil publique", () => {
     expect(source).toContain("Online cycling game");
   });
 
-  it("retire le texte marketing et les deux boutons du héros", () => {
-    expect(source).not.toContain("Construisez votre équipe, recrutez");
+  it("présente le jeu gratuit et donne un accès direct au démarrage", () => {
+    expect(source).toContain("jeu de gestion cycliste gratuit en ligne");
+    expect(source).toContain("free online cycling management game");
+    expect(source).toContain('href="/guide#demarrage"');
+    expect(source).toContain("Créer mon équipe gratuitement");
+    expect(source.indexOf("jeu de gestion cycliste gratuit en ligne")).toBeLessThan(
+      source.indexOf("<ProductNews locale={locale} news={news} />"),
+    );
     expect(source).not.toContain("Nouvelle carrière");
     expect(source).not.toContain("Se connecter");
     expect(source).not.toContain("function FolderIcon");
@@ -25,7 +31,7 @@ describe("page d’accueil publique", () => {
       'import sharingImage from "../opengraph-image.png"',
     );
     expect(source).toContain(
-      "recrutement, entraînement, stratégie, transferts et courses face aux autres managers",
+      "préparez vos tactiques et affrontez les autres managers",
     );
     expect(source).toContain("url: sharingImage.src");
     expect(source).toContain("width: sharingImage.width");
@@ -73,10 +79,9 @@ describe("page d’accueil publique", () => {
     expect(source).toContain('title: "MVP déployé, pré-alpha lancée"');
     expect(source).toContain('title: "Le Discord ouvre ses portes"');
     expect(source).toContain(
-      "const [featuredNews, ...historicalNews] = isEnglish",
+      "const [featuredNews, ...historicalNews] = cards",
     );
-    expect(source).toContain("? productNewsEn");
-    expect(source).toContain(": productNews;");
+    expect(source).toContain("const fallback = isEnglish ? productNewsEn : productNews;");
     expect(source).toContain("xl:grid-cols-4");
     expect(source.indexOf("{featuredNews.title}")).toBeLessThan(
       source.indexOf("historicalNews.slice"),

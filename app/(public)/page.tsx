@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "@/components/ui/app-link";
+import Link from "@/components/public/public-link";
 
 import sharingImage from "../opengraph-image.png";
 
@@ -13,33 +13,24 @@ import type { AppLocale } from "@/lib/i18n/config";
 import { getPublishedGameNews } from "@/services/game-product-news";
 import { localizeGameNews, type PublishedGameNews } from "@/lib/game/game-product-news";
 import { formatGameNewsDate } from "@/components/game/game-news-publication";
+import { buildPublicMetadata } from "@/lib/seo/public-metadata";
 
 export const revalidate = 60;
 
-export const metadata: Metadata = {
-  title: {
-    absolute: "Cyclo Stratège – Jeu de management cycliste en ligne",
-  },
-  description:
-    "Devenez directeur sportif dans Cyclo Stratège : recrutez et entraînez vos coureurs, développez votre équipe et affrontez les autres managers.",
-  alternates: {
-    canonical: "/",
-  },
-  openGraph: {
-    url: "/",
-    title: "Cyclo Stratège – Jeu de management cycliste en ligne",
-    description:
-      "Prenez la direction de votre équipe cycliste : recrutement, entraînement, stratégie, transferts et courses face aux autres managers.",
-    images: [
-      {
-        url: sharingImage.src,
-        width: sharingImage.width,
-        height: sharingImage.height,
-        alt: "Cyclo Stratège : jeu de management d’équipe cycliste en ligne.",
-      },
-    ],
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale();
+  const metadata = buildPublicMetadata({
+    path: "/", locale, absoluteTitle: true,
+    title: locale === "en" ? "Cyclo Stratège – Free online cycling management game" : "Cyclo Stratège – Jeu gratuit de management cycliste en ligne",
+    description: locale === "en"
+      ? "Build your cycling team in Cyclo Stratège: recruit and train riders, set your race tactics and compete against other managers. Free to play on desktop and mobile."
+      : "Créez votre équipe dans Cyclo Stratège : recrutez et entraînez vos coureurs, préparez vos tactiques et affrontez les autres managers. Gratuit sur ordinateur et mobile.",
+  });
+  return { ...metadata, openGraph: { ...metadata.openGraph, images: [{
+    url: sharingImage.src, width: sharingImage.width, height: sharingImage.height,
+    alt: locale === "en" ? "Cyclo Stratège: free online cycling management game." : "Cyclo Stratège : jeu gratuit de management cycliste en ligne.",
+  }] } };
+}
 
 const gamePillars = [
   {
@@ -48,6 +39,7 @@ const gamePillars = [
     description:
       "Recrutez, entraînez et développez vos coureurs. Construisez un collectif capable de briller toute la saison.",
     linkLabel: "Découvrir la gestion",
+    href: "/guide#equipe",
     backgroundPosition: "42% center",
   },
   {
@@ -56,6 +48,7 @@ const gamePillars = [
     description:
       "Analysez les profils, adaptez vos tactiques et prenez les bonnes décisions au moment décisif.",
     linkLabel: "Préparer les courses",
+    href: "/guide#courses",
     backgroundPosition: "66% center",
   },
   {
@@ -64,6 +57,7 @@ const gamePillars = [
     description:
       "Remportez les plus grandes épreuves et inscrivez durablement votre équipe dans l’histoire du cyclisme.",
     linkLabel: "Écrire votre histoire",
+    href: "/guide#progression",
     backgroundPosition: "82% center",
   },
 ] as const;
@@ -75,6 +69,7 @@ const gamePillarsEn = [
     description:
       "Recruit, train and develop your riders. Build a squad capable of shining throughout the season.",
     linkLabel: "Discover team management",
+    href: "/guide#equipe",
     backgroundPosition: "42% center",
   },
   {
@@ -83,6 +78,7 @@ const gamePillarsEn = [
     description:
       "Analyze race profiles, adapt your tactics and make the right decisions at the decisive moment.",
     linkLabel: "Prepare your races",
+    href: "/guide#courses",
     backgroundPosition: "66% center",
   },
   {
@@ -91,6 +87,7 @@ const gamePillarsEn = [
     description:
       "Win the greatest races and write your team's name permanently into cycling history.",
     linkLabel: "Write your story",
+    href: "/guide#progression",
     backgroundPosition: "82% center",
   },
 ] as const;
@@ -395,6 +392,27 @@ function HeroSection({ locale, news }: { locale: AppLocale; news: PublishedGameN
           </span>
         </h1>
 
+        <p className="mt-6 max-w-2xl text-lg font-semibold leading-8 text-[#25443F]">
+          {isEnglish
+            ? "Cyclo Stratège is a free online cycling management game. Build your team, recruit and train your riders, prepare your race tactics and compete against other managers."
+            : "Cyclo Stratège est un jeu de gestion cycliste gratuit en ligne. Créez votre équipe, recrutez et entraînez vos coureurs, préparez vos tactiques et affrontez les autres managers."}
+        </p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link
+            href="/inscription"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#F2C94C] px-5 py-3 text-sm font-extrabold text-[#071A17] shadow-lg shadow-black/10 transition hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17]"
+          >
+            {isEnglish ? "Create my team for free" : "Créer mon équipe gratuitement"}
+            <ArrowIcon />
+          </Link>
+          <Link
+            href="/guide#demarrage"
+            className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[#315B3E]/35 bg-white/80 px-5 py-3 text-sm font-bold text-[#173C2E] transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#315B3E]"
+          >
+            {isEnglish ? "Discover how to play" : "Découvrir le fonctionnement"}
+          </Link>
+        </div>
+
         <ProductNews locale={locale} news={news} />
       </div>
     </section>
@@ -534,20 +552,29 @@ function ProductNews({ locale, news }: { locale: AppLocale; news: PublishedGameN
               </p>
 
               {"href" in news ? (
-                <a
+                <Link
                   href={news.href}
-                  target="_blank"
-                  rel="noreferrer"
+                  target={news.href.startsWith("https:") ? "_blank" : undefined}
+                  rel={news.href.startsWith("https:") ? "noopener noreferrer" : undefined}
                   className="mt-auto inline-flex items-center gap-1.5 rounded-sm pl-1 pt-4 text-xs font-extrabold text-[#278B70] underline decoration-[#42CDA8]/45 underline-offset-4 transition hover:text-[#173C2E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#315B3E]"
                 >
                   {news.linkLabel}
                   <span aria-hidden="true">↗</span>
-                </a>
+                </Link>
               ) : null}
             </article>
           </li>
         ))}
       </ol>
+      <div className="mt-5 flex justify-end">
+        <Link
+          href="/nouveautes"
+          className="inline-flex min-h-11 items-center gap-2 rounded-md px-2 text-sm font-extrabold text-[#176951] underline decoration-[#42B99A]/50 underline-offset-4 transition hover:text-[#082A2A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#315B3E]"
+        >
+          {isEnglish ? "All game news" : "Toutes les actualités du jeu"}
+          <ArrowIcon />
+        </Link>
+      </div>
     </section>
   );
 }
@@ -599,6 +626,7 @@ function CareerSection({ locale }: { locale: AppLocale }) {
               title={pillar.title}
               description={pillar.description}
               linkLabel={pillar.linkLabel}
+              href={pillar.href}
               backgroundPosition={pillar.backgroundPosition}
             />
           ))}
@@ -615,12 +643,14 @@ function FeatureCard({
   title,
   description,
   linkLabel,
+  href,
   backgroundPosition,
 }: {
   icon: "team" | "strategy" | "trophy";
   title: string;
   description: string;
   linkLabel: string;
+  href: string;
   backgroundPosition: string;
 }) {
   return (
@@ -649,7 +679,7 @@ function FeatureCard({
         <p className="mt-4 leading-7 text-[#536B64]">{description}</p>
 
         <Link
-          href="/inscription"
+          href={href}
           className="mt-auto inline-flex w-fit items-center gap-2 pt-8 text-sm font-extrabold uppercase tracking-[0.08em] text-[#278B70] transition group-hover:text-[#173C2E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#315B3E]"
         >
           {linkLabel}

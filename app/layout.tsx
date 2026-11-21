@@ -93,6 +93,9 @@ export default async function RootLayout({
 }>) {
   const locale = await getRequestLocale();
   const inLanguage = locale === "en" ? "en-GB" : "fr-FR";
+  const description = locale === "en"
+    ? "Manage your team in Cyclo Stratège, the free online cycling management game: recruitment, training, equipment, strategy and racing."
+    : appConfig.description;
   const structuredData = {
     "@context": "https://schema.org",
     "@graph": [
@@ -101,7 +104,7 @@ export default async function RootLayout({
         "@id": `${appConfig.siteUrl}/#website`,
         url: appConfig.siteUrl,
         name: appConfig.name,
-        description: appConfig.description,
+        description,
         inLanguage,
         publisher: {
           "@id": `${appConfig.siteUrl}/#organization`,
@@ -120,11 +123,12 @@ export default async function RootLayout({
         "@id": `${appConfig.siteUrl}/#game`,
         name: appConfig.name,
         url: appConfig.siteUrl,
-        description: appConfig.description,
+        description,
         image: `${appConfig.siteUrl}/opengraph-image.png`,
         applicationCategory: "GameApplication",
         operatingSystem: "Web Browser",
-        genre: ["Cyclisme", "Management sportif", "Stratégie"],
+        genre: locale === "en" ? ["Cycling", "Sports management", "Strategy"] : ["Cyclisme", "Management sportif", "Stratégie"],
+        isAccessibleForFree: true,
         inLanguage,
         publisher: {
           "@id": `${appConfig.siteUrl}/#organization`,
@@ -147,7 +151,7 @@ export default async function RootLayout({
             __html: JSON.stringify(structuredData).replace(/</g, "\\u003c"),
           }}
         />
-        <LocaleProvider initialLocale={locale}>
+        <LocaleProvider key={locale} initialLocale={locale}>
           <SitePresenceProvider>
             <ScrollToTop />
             {children}

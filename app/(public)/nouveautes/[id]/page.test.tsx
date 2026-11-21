@@ -2,6 +2,7 @@ import type {AnchorHTMLAttributes} from "react";
 import {renderToStaticMarkup} from "react-dom/server";
 import {beforeEach,describe,expect,it,vi} from "vitest";
 import {gameNewsDocumentSchema} from "@/lib/game/game-product-news";
+import {getAbsoluteUrl} from "@/lib/app-config";
 const mocks=vi.hoisted(()=>({news:vi.fn(),locale:vi.fn(),notFound:vi.fn(()=>{throw Error("not-found");})}));
 vi.mock("next/navigation",()=>({notFound:mocks.notFound}));
 vi.mock("@/services/game-product-news",()=>({getPublishedGameNewsById:mocks.news}));
@@ -28,5 +29,22 @@ describe("public game news detail",()=>{
   });
   it("uses localized published text and a canonical public URL for metadata",async()=>{
     mocks.locale.mockResolvedValue("en");expect(await generateMetadata(params())).toEqual({title:"A public game update",description:"A description of this game update.",alternates:{canonical:`/nouveautes/${id}`}});
+  });
+  it("describes the canonical French publication with its public snapshot dates and absolute image",async()=>{
+    mocks.news.mockResolvedValue({...article,updatedAt:"2026-11-20T09:00:00Z",document:{...article.document,image_path:"/images/peloton-header.webp"}});
+    const html=renderToStaticMarkup(await Page(params()));
+    const json=JSON.parse(html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/u)![1]);
+    expect(json).toMatchObject({"@type":"Article",url:getAbsoluteUrl(`/nouveautes/${id}`),headline:article.document.title,inLanguage:"fr-FR",datePublished:article.publishedAt,dateModified:"2026-11-20T09:00:00Z",image:getAbsoluteUrl("/images/peloton-header.webp"),mainEntityOfPage:{"@id":getAbsoluteUrl(`/nouveautes/${id}`)}});
+    expect(json.author).toMatchObject({"@type":"Organization","@id":getAbsoluteUrl("/#organization")});
+  });
+  it("safely escapes article text inside structured data without inventing an image",async()=>{
+    const title="Une annonce </script><script>alert(1)</script>";
+    mocks.news.mockResolvedValue({...article,document:{...article.document,title}});
+    const html=renderToStaticMarkup(await Page(params()));
+    const source=html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/u)![1];
+    expect(source).not.toContain("<");
+    expect(JSON.parse(source).headline).toBe(title);
+    expect(JSON.parse(source)).not.toHaveProperty("image");
+    expect(html.match(/<script/gu)).toHaveLength(1);
   });
 });

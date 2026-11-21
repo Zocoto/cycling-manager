@@ -1,4 +1,4 @@
-import Link from "@/components/ui/app-link";
+import Link from "@/components/public/public-link";
 import { RiderWeightGuideTables } from "@/components/guide/rider-weight-tables";
 import { NAVIGATION_GROUPS_FR } from "@/lib/game/game-navigation";
 import {
@@ -334,9 +334,9 @@ type GuideRewardRange = {
 export function GameGuideContent({ inGame = false }: { inGame?: boolean }) {
   return (
     <>
-      <GuideHero />
+      <GuideHero inGame={inGame} />
       <GuideNavigation inGame={inGame} />
-      <QuickStartSection />
+      <QuickStartSection inGame={inGame} />
       <DaySection />
       <RidersSection />
       <RacingSection />
@@ -346,12 +346,12 @@ export function GameGuideContent({ inGame = false }: { inGame?: boolean }) {
       <StructuresSection />
       <ProgressionSection />
       <PagesSection />
-      <GuideCallToAction />
+      <GuideCallToAction inGame={inGame} />
     </>
   );
 }
 
-function GuideHero() {
+function GuideHero({ inGame }: { inGame: boolean }) {
   return (
     <section className="relative isolate overflow-hidden bg-[#EAF5F3] text-[#082A2A]">
       <div
@@ -370,7 +370,7 @@ function GuideHero() {
       <div className="relative mx-auto max-w-7xl px-5 py-18 sm:px-8 sm:py-24">
         <div className="max-w-4xl">
           <span className="inline-flex rounded-full bg-[#F2C94C] px-4 py-2 text-xs font-extrabold uppercase tracking-[0.18em] text-[#071A17] shadow-md">
-            Manuel utilisateur · septembre 2026
+            Manuel du jeu
           </span>
           <h1 className="mt-7 text-5xl font-black leading-[0.95] tracking-[-0.05em] sm:text-6xl lg:text-7xl">
             Le guide complet du
@@ -391,7 +391,7 @@ function GuideHero() {
           <div className="mt-9 flex flex-wrap gap-4">
             <Link
               href="#demarrage"
-              className="inline-flex min-h-12 items-center justify-center gap-3 rounded-xl bg-[#F2C94C] px-6 py-3 text-sm font-extrabold uppercase tracking-[0.08em] !text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-[#FFD968]"
+              className="inline-flex min-h-12 items-center justify-center gap-3 rounded-xl bg-[#F2C94C] px-6 py-3 text-sm font-extrabold uppercase tracking-[0.08em] text-[#071A17] shadow-lg transition hover:-translate-y-0.5 hover:bg-[#FFD968]"
             >
               Commencer le tutoriel
               <svg
@@ -407,10 +407,10 @@ function GuideHero() {
               </svg>
             </Link>
             <Link
-              href="/jeu"
+              href={inGame ? "/jeu" : "/inscription"}
               className="inline-flex min-h-12 items-center justify-center rounded-xl border-2 border-[#0B302B] bg-[#0B302B] px-6 py-3 text-sm font-extrabold uppercase tracking-[0.08em] !text-white transition hover:-translate-y-0.5 hover:bg-[#123f37]"
             >
-              Ouvrir mon bureau
+              {inGame ? "Ouvrir mon bureau" : "Créer mon équipe gratuitement"}
             </Link>
           </div>
         </div>
@@ -440,7 +440,7 @@ function GuideNavigation({ inGame }: { inGame: boolean }) {
   );
 }
 
-function QuickStartSection() {
+function QuickStartSection({ inGame }: { inGame: boolean }) {
   return (
     <GuideSection
       id="demarrage"
@@ -463,12 +463,14 @@ function QuickStartSection() {
             <p className="mt-3 flex-1 text-sm font-medium leading-6 text-[#60756E]">
               {step.text}
             </p>
-            <Link
-              href={step.href}
-              className="mt-6 inline-flex w-fit items-center gap-2 text-sm font-black text-[#176951] hover:text-[#0B302B]"
-            >
-              {step.linkLabel} <span aria-hidden="true">→</span>
-            </Link>
+            {inGame ? (
+              <Link
+                href={step.href}
+                className="mt-6 inline-flex w-fit items-center gap-2 text-sm font-black text-[#176951] hover:text-[#0B302B]"
+              >
+                {step.linkLabel} <span aria-hidden="true">→</span>
+              </Link>
+            ) : null}
           </article>
         ))}
       </div>
@@ -2054,7 +2056,7 @@ function PagesSection() {
   );
 }
 
-function GuideCallToAction() {
+function GuideCallToAction({ inGame }: { inGame: boolean }) {
   return (
     <section className="bg-[#F7FAF7] px-5 pb-20 pt-4 text-[#082A2A] sm:px-8 sm:pb-28">
       <div className="mx-auto max-w-7xl overflow-hidden rounded-[2rem] bg-[#0B302B] px-6 py-10 text-center text-white shadow-[0_24px_70px_rgba(7,26,23,0.2)] sm:px-10 sm:py-14">
@@ -2070,10 +2072,10 @@ function GuideCallToAction() {
         </p>
         <div className="mt-7 flex flex-wrap justify-center gap-3">
           <Link
-            href="/jeu"
+            href={inGame ? "/jeu" : "/inscription"}
             className="inline-flex min-h-12 items-center rounded-xl bg-[#F2C94C] px-6 py-3 text-sm font-black uppercase tracking-[0.08em] text-[#071A17] transition hover:-translate-y-0.5 hover:bg-[#FFD968]"
           >
-            Retourner au bureau
+            {inGame ? "Retourner au bureau" : "Créer mon équipe gratuitement"}
           </Link>
           <Link
             href="#demarrage"

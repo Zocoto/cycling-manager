@@ -1,20 +1,19 @@
 import type { Metadata } from "next";
-import Link from "@/components/ui/app-link";
+import Link from "@/components/public/public-link";
+import { EnglishAbout } from "@/components/public/english-about";
+import { getRequestLocale } from "@/lib/i18n/server";
+import { buildPublicMetadata } from "@/lib/seo/public-metadata";
 
-export const metadata: Metadata = {
-  title: "À propos",
-  description:
-    "Découvrez le projet Cyclo Stratège : sa vision, ses valeurs et l’équipe qui le développe.",
-  alternates: {
-    canonical: "/a-propos",
-  },
-  openGraph: {
-    url: "/a-propos",
-    title: "À propos de Cyclo Stratège",
-    description:
-      "Découvrez la vision du jeu de management cycliste et les valeurs qui guident son développement.",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale();
+  return buildPublicMetadata({
+    path: "/a-propos", locale,
+    title: locale === "en" ? "About Cyclo Stratège" : "À propos",
+    description: locale === "en"
+      ? "Discover Cyclo Stratège, an independent free cycling management game: its sporting vision, community and approach to team strategy."
+      : "Découvrez le projet Cyclo Stratège : sa vision, ses valeurs et l’équipe qui le développe.",
+  });
+}
 
 const values = [
   {
@@ -34,7 +33,8 @@ const values = [
   },
 ] as const;
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  if ((await getRequestLocale()) === "en") return <EnglishAbout />;
   return (
     <>
       <AboutHero />

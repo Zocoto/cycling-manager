@@ -44,9 +44,14 @@ describe("LanguageSwitcher integration", () => {
       resolve(process.cwd(), "components/i18n/language-switcher.tsx"),
       "utf8",
     );
+    const persistence = readFileSync(
+      resolve(process.cwd(), "lib/i18n/client.ts"),
+      "utf8",
+    );
 
-    expect(source).toContain("Path=/");
-    expect(source).toContain("Max-Age=31536000");
+    expect(source).toContain("persistLocalePreference(nextLocale)");
+    expect(persistence).toContain("Path=/");
+    expect(persistence).toContain("Max-Age=31536000");
     expect(source).toContain("router.refresh()");
   });
 });

@@ -17,7 +17,7 @@ import {
   MARKETING_FIELD_NAMES,
   type MarketingAttribution,
 } from "../../lib/marketing/attribution";
-import Link from "@/components/ui/app-link";
+import Link from "@/components/public/public-link";
 import { EmailVerificationResendForm } from "./email-verification-resend-form";
 
 const registrationFields: RegistrationField[] = [

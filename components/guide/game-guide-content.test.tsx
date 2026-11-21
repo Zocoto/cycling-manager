@@ -2,11 +2,12 @@ import type { AnchorHTMLAttributes } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("@/components/ui/app-link", () => ({
+vi.mock("@/components/public/public-link", () => ({
   default: (props: AnchorHTMLAttributes<HTMLAnchorElement>) => <a {...props} />,
 }));
+vi.mock("@/lib/i18n/server", () => ({ getRequestLocale: async () => "fr" }));
 
-import GuidePage, { metadata } from "@/app/(public)/guide/page";
+import GuidePage, { generateMetadata } from "@/app/(public)/guide/page";
 import { SPONSOR_MAIN_OBJECTIVE_BUDGET_CAP_START_GAME_YEAR } from "@/lib/game/sponsor-main-objective";
 import { GameGuideContent } from "./game-guide-content";
 
@@ -16,20 +17,23 @@ const anchors = [
 ];
 
 describe("shared game manual", () => {
-  it("renders exactly the same manual on the public route", () => {
-    expect(renderToStaticMarkup(<GuidePage />)).toBe(
-      renderToStaticMarkup(<GameGuideContent />),
-    );
+  it("retains the complete manual alongside the new practical guides", async () => {
+    const html = renderToStaticMarkup(await GuidePage());
+    expect(html).toContain(renderToStaticMarkup(<GameGuideContent />));
+    expect(html).toContain('href="/guide/premieres-courses"');
+    expect(html).toContain('href="/guide/entrainement-forme"');
+    expect(html).toContain('href="/guide/recrutement-budget"');
   });
 
-  it("retains the public canonical, title and social metadata", () => {
+  it("retains the public canonical, title and social metadata", async () => {
+    const metadata = await generateMetadata();
     expect(metadata.title).toBe("Guide complet du Directeur Sportif");
-    expect(metadata.alternates).toEqual({ canonical: "/guide" });
+    expect(metadata.alternates).toMatchObject({ canonical: "https://cyclostratege.fr/guide" });
     expect(metadata.description).toContain("Le manuel complet de Cyclo Stratège");
-    expect(metadata.openGraph).toEqual({
-      url: "/guide",
-      title: "Guide du jeu de management cycliste Cyclo Stratège",
-      description: "Calendrier, courses, entraînement, staff, transferts, finances et progression : préparez votre carrière de directeur sportif.",
+    expect(metadata.openGraph).toMatchObject({
+      url: "https://cyclostratege.fr/guide",
+      title: "Guide complet du Directeur Sportif",
+      locale: "fr_FR",
     });
   });
 
@@ -68,6 +72,24 @@ describe("shared game manual", () => {
     expect(html).not.toContain('href="/connexion"');
     expect(html).not.toContain('href="/guide');
     expect(html).not.toContain("signOut");
+  });
+
+  it("invites public visitors to create a team while preserving connected actions", () => {
+    const publicHtml = renderToStaticMarkup(<GameGuideContent />);
+    const connectedHtml = renderToStaticMarkup(<GameGuideContent inGame />);
+    const publicStart = publicHtml.match(/<section id="demarrage"[\s\S]*?<\/section>/)?.[0];
+    const connectedStart = connectedHtml.match(/<section id="demarrage"[\s\S]*?<\/section>/)?.[0];
+
+    expect(publicHtml.match(/href="\/inscription"/g)).toHaveLength(2);
+    expect(publicHtml).toContain("Créer mon équipe gratuitement");
+    expect(publicHtml).not.toContain("Ouvrir mon bureau");
+    expect(publicHtml).not.toContain("Retourner au bureau");
+    expect(publicStart).not.toContain('href="/jeu/');
+    expect(connectedStart).toContain('href="/jeu/effectif"');
+    expect(connectedHtml).toContain("Ouvrir mon bureau");
+    expect(connectedHtml).toContain("Retourner au bureau");
+    expect(connectedHtml).not.toContain('href="/inscription"');
+    expect(publicHtml).not.toContain("septembre 2026");
   });
 
   it("keeps mobile navigation scrollable and tables locally contained", () => {

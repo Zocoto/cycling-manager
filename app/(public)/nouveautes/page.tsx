@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import Link from "@/components/ui/app-link";
+import Link from "@/components/public/public-link";
 
 import { releases } from "../../../lib/releases";
 import { getPublishedGameNews } from "@/services/game-product-news";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { GameNewsCards } from "@/components/game/game-news-publication";
+import type { AppLocale } from "@/lib/i18n/config";
 
 export const metadata: Metadata = {
   title: "Nouveautés",
@@ -27,7 +28,7 @@ export default async function ReleasesPage() {
     <>
       <ReleasesHero />
       {articles.length ? <section className="bg-[#EAF5F3] px-5 py-10 text-[#082A2A] sm:px-8"><div className="mx-auto max-w-6xl"><h2 className="mb-6 text-3xl font-black">Actualités du jeu</h2><GameNewsCards articles={articles} locale={locale} /></div></section> : null}
-      <ReleasesTimeline />
+      <ReleasesTimeline locale={locale} />
     </>
   );
 }
@@ -99,7 +100,8 @@ function ReleasesHero() {
   );
 }
 
-function ReleasesTimeline() {
+function ReleasesTimeline({ locale }: { locale: AppLocale }) {
+  const isEnglish = locale === "en";
   return (
     <section className="relative overflow-hidden bg-[#F7FAF7] px-5 py-16 text-[#082A2A] sm:px-8 sm:py-24">
       <div className="mx-auto max-w-6xl">
@@ -132,23 +134,26 @@ function ReleasesTimeline() {
 
         <div className="mt-14 rounded-2xl border border-[#315B3E]/15 bg-[#E5F3EC] px-6 py-8 text-center sm:px-10">
           <p className="text-sm font-extrabold uppercase tracking-[0.2em] text-[#278B70]">
-            Participez à la suite
+            {isEnglish ? "Join the adventure" : "Participez à la suite"}
           </p>
 
           <h2 className="mt-3 text-2xl font-black sm:text-3xl">
-            La Saison 2 se construit avec ses directeurs sportifs.
+            {isEnglish
+              ? "Build your cycling team and join the peloton."
+              : "Créez votre équipe cycliste et rejoignez le peloton."}
           </h2>
 
           <p className="mx-auto mt-4 max-w-2xl leading-7 text-[#536B64]">
-            Rejoignez le bêta test, lancez votre carrière et partagez vos
-            retours pour nous aider à améliorer les prochaines versions.
+            {isEnglish
+              ? "Start your career for free and share your feedback to help us improve the game."
+              : "Lancez votre carrière gratuitement et partagez vos retours pour nous aider à améliorer le jeu."}
           </p>
 
           <Link
             href="/inscription"
             className="mt-7 inline-flex min-h-12 items-center justify-center gap-3 rounded-lg bg-[#F2C94C] px-6 py-3 text-sm font-extrabold uppercase tracking-[0.08em] text-[#071A17] shadow-lg shadow-black/10 transition hover:-translate-y-0.5 hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#315B3E]"
           >
-            Rejoindre la Saison 2
+            {isEnglish ? "Create my team for free" : "Créer mon équipe gratuitement"}
             <ArrowIcon />
           </Link>
         </div>

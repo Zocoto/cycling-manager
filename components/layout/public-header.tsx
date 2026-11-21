@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "@/components/ui/app-link";
+import Link from "@/components/public/public-link";
 
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { useLocale } from "@/components/i18n/locale-provider";
@@ -13,6 +13,7 @@ export function PublicHeader() {
   const navigationItems = [
     [isEnglish ? "Home" : "Accueil", "/"],
     ["Guide", "/guide"],
+    [isEnglish ? "News" : "Actualités", "/nouveautes"],
     [isEnglish ? "About" : "À propos", "/a-propos"],
   ] as const;
 
@@ -117,21 +118,21 @@ export function PublicHeader() {
         </div>
       </div>
 
-      <div className="border-t border-[#78947D]/15 px-5 py-2 lg:hidden">
+      <div className="border-t border-[#78947D]/15 px-2 py-2 sm:px-5 lg:hidden">
         <nav
           aria-label={isEnglish ? "Mobile navigation" : "Navigation mobile"}
-          className="mx-auto flex max-w-375 items-center justify-center gap-1"
+          className="mx-auto flex max-w-375 items-center justify-center gap-0.5 sm:gap-1"
         >
           {navigationItems.map(([label, href]) => (
             <Link
               key={href}
               href={href}
-              className="whitespace-nowrap rounded-md px-3 py-2 text-xs font-semibold text-[#D6DFD2] transition hover:bg-[#315B3E]/35 hover:text-[#F2C94C] max-[360px]:px-2"
+              className="whitespace-nowrap rounded-md px-2 py-2 text-xs font-semibold text-[#D6DFD2] transition hover:bg-[#315B3E]/35 hover:text-[#F2C94C] max-[360px]:px-1.5 sm:px-3"
             >
               {label}
             </Link>
           ))}
-          <div data-header-presence-slot="true" className="ml-2 shrink-0 border-l border-[#78947D]/25 pl-3">
+          <div data-header-presence-slot="true" className="ml-1 shrink-0 border-l border-[#78947D]/25 pl-2 sm:ml-2 sm:pl-3">
             <SitePresenceIndicator compact />
           </div>
         </nav>
