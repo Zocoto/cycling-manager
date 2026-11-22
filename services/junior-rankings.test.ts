@@ -22,11 +22,11 @@ function team(index: number, virtual = false): Row {
     development_team_id: virtual ? null : `development-${index}`,
     academy_rider_id: null, display_name: virtual ? `AI ${index}` : `Player ${index}`,
     secondary_name: null, country_code: null,
-    points: 1000 - index, wins: 2, podiums: 3, race_count: 5,
+    points: 1000 - index, wins: 2, podiums: 3, race_count: 5, ranked_rider_count: 1,
   };
 }
 
-function fixture(rows: Row[], options: { season?: Row | null; fail?: "count" | "rows" | "season" | "riders" } = {}) {
+function fixture(rows: Row[], options: { season?: Row | null; fail?: "count" | "rows" | "season" } = {}) {
   const season = options.season === undefined ? { id: "s4", name: "Saison 4", game_year: 4, status: "active" } : options.season;
   const requests: Request[] = [];
   const from = vi.fn((table: string) => {
@@ -35,8 +35,7 @@ function fixture(rows: Row[], options: { season?: Row | null; fail?: "count" | "
     const orders: Array<{ key: string; ascending: boolean }> = [];
     requests.push(request);
     const result = () => {
-      const isRiderCount = request.columns === "entity_key, academy_rider_id, development_team_id";
-      const fail = table === "seasons" ? options.fail === "season" : options.fail === (request.head ? "count" : isRiderCount ? "riders" : "rows");
+      const fail = table === "seasons" ? options.fail === "season" : options.fail === (request.head ? "count" : "rows");
       const sorted = [...filtered].sort((a, b) => {
         for (const { key, ascending } of orders) {
           const av = a[key], bv = b[key];
@@ -70,14 +69,8 @@ function fixture(rows: Row[], options: { season?: Row | null; fail?: "count" | "
         filtered = filtered.filter(row => !row.managed_bot_id);
         return query;
       },
-      in: (key: string, values: unknown[]) => {
-        request.filters.push([key, "in", values]);
-        filtered = filtered.filter(row => values.includes(row[key]));
-        return query;
-      },
       order: (key: string, config: { ascending: boolean }) => { orders.push({ key, ascending: config.ascending }); return query; },
       range: (start: number, end: number) => { request.range = [start, end]; return query; },
-      abortSignal: () => query,
       maybeSingle: async () => ({ ...result(), data: filtered[0] ?? null }),
       returns: async () => result(),
       then: (resolve: (value: ReturnType<typeof result>) => unknown) => Promise.resolve(result()).then(resolve),
@@ -111,8 +104,7 @@ describe("classement junior des équipes de joueurs", () => {
       expect(request.filters).toContainEqual(["development_team.team.bot", "is", null]);
       expect(request.filters.some(([key]) => key === "enabled")).toBe(false);
     }
-    expect(requests).toHaveLength(4);
-    expect(requests.at(-1)?.filters).toContainEqual(["development_team_id", "in", ["development-2"]]);
+    expect(requests).toHaveLength(3);
     expect(requests.every(request => ["seasons", "development_ranking_entries"].includes(request.table))).toBe(true);
   });
 
@@ -126,7 +118,7 @@ describe("classement junior des équipes de joueurs", () => {
     expect(ranking).toMatchObject({ totalEntries: 51, pageCount: 2, page: 2 });
     expect(ranking?.entries).toHaveLength(1);
     expect(ranking?.entries[0]).toMatchObject({ rank: 51, developmentTeamId: "development-150" });
-    expect(requests).toHaveLength(4);
+    expect(requests).toHaveLength(3);
   });
 
   it("retire les équipes virtuelles avant le décompte et recalcule les places sans toucher aux points", async () => {
@@ -140,7 +132,7 @@ describe("classement junior des équipes de joueurs", () => {
     for (const request of requests.filter(r => r.filters.some(([key, , value]) => key === "entity_type" && value === "team"))) {
       expect(request.filters).toContainEqual(["development_team_id", "not.is", null]);
     }
-    expect(requests).toHaveLength(4); // One grouped identity lookup, not one query per team.
+    expect(requests).toHaveLength(3);
   });
 
   it("remplit les pages avec les seules équipes éligibles même si beaucoup d’IA les précèdent", async () => {
@@ -194,55 +186,71 @@ describe("classement junior des équipes de joueurs", () => {
     expect((await getJuniorRankings("equipes"))?.entries.map(entry => entry.displayName)).toEqual(["Winner", "Alpha", "Zebra"]);
   });
 
-  it.each(["count", "rows", "season", "riders"] as const)("ne publie pas de faux classement si la lecture %s échoue", async fail => {
+  it.each(["count", "rows", "season"] as const)("ne publie pas de faux classement si la lecture %s échoue", async fail => {
     fixture([team(0)], { fail });
     await expect(getJuniorRankings("equipes")).rejects.toThrow("Lecture indisponible");
   });
 
   it("affiche dix juniors distincts et non leurs 78 participations cumulées", async () => {
     const requests = fixture([
-      { ...team(0), race_count: 78 },
-      ...Array.from({ length: 10 }, (_, index) => ({
-        ...team(0), id: `rider-entry-${index}`, entity_type: "individual",
-        entity_key: `academy:${index}`, academy_rider_id: `academy-${index}`,
-        race_count: index < 8 ? 8 : 7, points: index === 9 ? 0 : 10,
-      })),
-      { ...team(0), entity_type: "individual", entity_key: "old-season", season_id: "s3" },
-      { ...team(1), entity_type: "individual", entity_key: "other-team" },
-      { ...team(0, true), entity_type: "individual", entity_key: "virtual-rider" },
+      { ...team(0), race_count: 78, ranked_rider_count: 10 },
     ]);
     expect((await getJuniorRankings("equipes"))?.entries[0]).toMatchObject({ rankedRiderCount: 10, raceCount: 78 });
-    expect(requests.at(-1)?.filters).toContainEqual(["development_team_id", "in", ["development-0"]]);
-    expect(requests.every(request => ["seasons", "development_ranking_entries"].includes(request.table))).toBe(true);
+    expect(requests).toHaveLength(3);
   });
 
-  it("ne compte qu’une fois un même junior, même avec plusieurs identités de résultat", async () => {
+  it("conserve les juniors comptés pour chaque équipe historique après un transfert", async () => {
     fixture([
-      team(0),
-      ...["academy:a", "youth:a"].map(entity_key => ({ ...team(0), entity_type: "individual", entity_key, academy_rider_id: "a" })),
-      { ...team(0), entity_type: "individual", entity_key: "archived:b", academy_rider_id: null },
+      { ...team(0), ranked_rider_count: 2, race_count: 15, points: 120 },
+      { ...team(1), ranked_rider_count: 1, race_count: 3, points: 50 },
+      // A canonical individual has one display team; it cannot supply the
+      // count of riders who earned points for their former team.
+      { ...team(1), entity_type: "individual", entity_key: "youth:a", academy_rider_id: "a", points: 170 },
     ]);
-    expect((await getJuniorRankings("equipes"))?.entries[0].rankedRiderCount).toBe(2);
+    expect((await getJuniorRankings("equipes"))?.entries.map(entry => ({
+      team: entry.developmentTeamId, count: entry.rankedRiderCount, points: entry.points,
+    }))).toEqual([
+      { team: "development-0", count: 2, points: 120 },
+      { team: "development-1", count: 1, points: 50 },
+    ]);
   });
 
-  it("ne tronque pas les identités au-delà de mille lignes et ne charge que les équipes de la page", async () => {
-    const requests = fixture([
-      ...Array.from({ length: 51 }, (_, index) => team(index)),
-      ...Array.from({ length: 51 * 21 }, (_, index) => ({
-        ...team(Math.floor(index / 21)), entity_type: "individual",
-        entity_key: `academy:${String(index).padStart(5, "0")}`, academy_rider_id: `academy-${index}`,
-      })),
+  it("conserve les grands effectifs pré-agrégés sans recharger les identités individuelles", async () => {
+    const requests = fixture([{ ...team(0), ranked_rider_count: 1021 }]);
+    expect((await getJuniorRankings("equipes"))?.entries[0].rankedRiderCount).toBe(1021);
+    expect(requests).toHaveLength(3);
+    expect(requests.filter(request => request.table === "development_ranking_entries").every(request =>
+      request.filters.some(([key, , value]) => key === "entity_type" && value === "team"),
+    )).toBe(true);
+  });
+
+  it("préserve la ligne canonique, son profil et les homonymes distincts", async () => {
+    fixture([
+      { ...team(0), entity_type: "individual", entity_key: "youth:adarsh-a", academy_rider_id: "adarsh-a", display_name: "Adarsh Shah", points: 275, wins: 3, podiums: 5, race_count: 9 },
+      { ...team(1), entity_type: "individual", entity_key: "youth:adarsh-b", academy_rider_id: "adarsh-b", display_name: "Adarsh Shah", points: 80, wins: 1, podiums: 2, race_count: 4 },
     ]);
-    const ranking = await getJuniorRankings("equipes");
-    expect(ranking?.entries).toHaveLength(50);
-    expect(ranking?.entries.every(entry => entry.rankedRiderCount === 21)).toBe(true);
-    const riderQueries = requests.filter(request => request.columns === "entity_key, academy_rider_id, development_team_id");
-    expect(riderQueries.map(request => request.range)).toEqual([[0, 999], [1000, 1999]]);
-    for (const query of riderQueries) {
-      const ids = query.filters.find(([, operator]) => operator === "in")?.[2] as string[];
-      expect(ids).toHaveLength(50);
-      expect(ids).not.toContain("development-50");
-    }
+    const ranking = await getJuniorRankings("individuel");
+    expect(ranking).toMatchObject({ totalEntries: 2, page: 1, pageCount: 1 });
+    expect(ranking?.entries).toMatchObject([
+      { rank: 1, entityKey: "youth:adarsh-a", academyRiderId: "adarsh-a", displayName: "Adarsh Shah", points: 275, wins: 3, podiums: 5, raceCount: 9, rankedRiderCount: null },
+      { rank: 2, entityKey: "youth:adarsh-b", academyRiderId: "adarsh-b", displayName: "Adarsh Shah", points: 80, wins: 1, podiums: 2, raceCount: 4, rankedRiderCount: null },
+    ]);
+  });
+
+  it("départage les homonymes à égalité de manière stable entre deux pages", async () => {
+    fixture(Array.from({ length: 51 }, (_, index) => ({
+      ...team(index), entity_type: "individual", display_name: "Même Nom", points: 100, wins: 1,
+      entity_key: `youth:${String(50 - index).padStart(2, "0")}`, academy_rider_id: `rider-${50 - index}`,
+    })));
+    const first = await getJuniorRankings("individuel", 1);
+    const second = await getJuniorRankings("individuel", 2);
+    expect(first).toMatchObject({ totalEntries: 51, pageCount: 2, page: 1 });
+    expect(second).toMatchObject({ totalEntries: 51, pageCount: 2, page: 2 });
+    expect(first?.entries).toHaveLength(50);
+    expect(first?.entries[0]).toMatchObject({ rank: 1, entityKey: "youth:00" });
+    expect(first?.entries.at(-1)).toMatchObject({ rank: 50, entityKey: "youth:49" });
+    expect(second?.entries).toMatchObject([{ rank: 51, entityKey: "youth:50" }]);
+    expect(new Set([...first!.entries, ...second!.entries].map(entry => entry.entityKey)).size).toBe(51);
   });
 
   it("ne charge pas les classements sans saison active", async () => {
