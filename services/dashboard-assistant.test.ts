@@ -98,6 +98,34 @@ describe("first-season dashboard alerts", () => {
   });
 });
 
+describe("dashboard primary training cap alerts", () => {
+  it("shows the rider, focused stat and potential cap in both dashboard summaries", async () => {
+    const target = { riderId: authUserId, riderName: "Ahror Botiryeva", stat: "hills", cap: 70 };
+    const mock = client({ trainingCapAlerts: [
+      target,
+      { ...target, riderId: "invalid" },
+      { ...target, stat: "stage_racer" },
+      { ...target, cap: null },
+    ] });
+    const { initial, complete } = getCurrentDashboardAssistantSummaries(mock.supabase, authUserId);
+    for (const snapshot of [await initial, await complete]) {
+      expect(snapshot?.trainingCapAlerts).toEqual([target]);
+      const { alerts } = buildDashboardAssistantLines({ snapshot: snapshot!, rewardCount: 0, cashBalance: null });
+      expect(alerts).toContainEqual({
+        id: `training-cap:${authUserId}`,
+        tone: "alert",
+        title: "Ahror Botiryeva",
+        detail: "Plafond d’entraînement atteint en Vallon (70)",
+        metric: "VAL",
+        href: `/jeu/entrainement#training-domain-${authUserId}`,
+        keepVisible: true,
+      });
+    }
+    expect(mock.rpc.mock.calls.filter(([name]) => name === "get_current_dashboard_assistant_summary")).toHaveLength(1);
+    expect(mock.rpc).toHaveBeenCalledTimes(7);
+  });
+});
+
 describe("dashboard physiotherapist payload", () => {
   it("includes staff naturalization in both summaries through the existing dashboard request", async () => {
     const staffNaturalizationOpportunity = {

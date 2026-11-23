@@ -7,11 +7,13 @@ import type {
   DashboardFormCampReportSummary,
   DashboardNaturalizationAlert,
   DashboardJournalItem,
+  DashboardTrainingCapAlert,
   NewcomerJourney,
   NewcomerJourneyStep,
   NewcomerJourneyStepKey,
 } from "@/lib/game/dashboard-assistant";
 import { getPendingInfrastructureOrientations } from "@/lib/game/dashboard-assistant";
+import { RIDER_RATING_AXES } from "@/lib/game/rider-profile";
 import { INFRASTRUCTURE_SPECIALIZATION_UNLOCK_LEVEL } from "@/lib/game/infrastructure-specializations";
 import { parseDashboardConstructionContext } from "@/lib/game/dashboard-construction-alert";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -284,6 +286,7 @@ export async function getCurrentDashboardAssistantSummary(
       ? 0
       : normalizeCount(rndOpportunityResult.data),
     zeroTrainingCount: row.zero_training_count,
+    trainingCapAlerts: assistantPayload.trainingCapAlerts,
     seniorSessionCount: row.senior_session_count,
     seniorCompletedCount: row.senior_completed_count,
     seniorSkippedCount: row.senior_skipped_count,
@@ -456,6 +459,7 @@ function normalizeAssistantPayload(value: unknown): {
   federationVoteReminder: DashboardFederationVoteReminder | null;
   nationalChampionshipRouteReminder: DashboardNationalChampionshipRouteReminder | null;
   naturalizationAlerts: DashboardNaturalizationAlert[];
+  trainingCapAlerts: DashboardTrainingCapAlert[];
   staffNaturalizationOpportunity: DashboardAssistantSnapshot["staffNaturalizationOpportunity"];
   emptyRosterRecoveryAvailable: boolean;
   riderRecruitmentMatchCount: number;
@@ -486,6 +490,7 @@ function normalizeAssistantPayload(value: unknown): {
       federationVoteReminder: null,
       nationalChampionshipRouteReminder: null,
       naturalizationAlerts: [],
+      trainingCapAlerts: [],
       staffNaturalizationOpportunity: null,
       emptyRosterRecoveryAvailable: false,
       riderRecruitmentMatchCount: 0,
@@ -518,6 +523,7 @@ function normalizeAssistantPayload(value: unknown): {
       federationVoteReminder: null,
       nationalChampionshipRouteReminder: null,
       naturalizationAlerts: [],
+      trainingCapAlerts: [],
       staffNaturalizationOpportunity: null,
       emptyRosterRecoveryAvailable: false,
       riderRecruitmentMatchCount: 0,
@@ -575,6 +581,7 @@ function normalizeAssistantPayload(value: unknown): {
     federationVoteReminder: normalizeFederationVoteReminder(payload.federationVoteReminder),
     nationalChampionshipRouteReminder: normalizeNationalChampionshipRouteReminder(payload.nationalChampionshipRouteReminder),
     naturalizationAlerts: normalizeNaturalizationAlerts(payload.naturalizationAlerts),
+    trainingCapAlerts: normalizeTrainingCapAlerts(payload.trainingCapAlerts),
     staffNaturalizationOpportunity: normalizeStaffNaturalizationOpportunity(payload.staffNaturalizationOpportunity),
     emptyRosterRecoveryAvailable: payload.emptyRosterRecoveryAvailable === true,
     riderRecruitmentMatchCount: normalizeCount(
@@ -706,6 +713,22 @@ function normalizeUuid(value: unknown): string | null {
   return id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
     ? id
     : null;
+}
+
+function normalizeTrainingCapAlerts(value: unknown): DashboardTrainingCapAlert[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((entry): DashboardTrainingCapAlert[] => {
+    if (!entry || typeof entry !== "object") return [];
+    const row = entry as Record<string, unknown>;
+    const riderId = normalizeUuid(row.riderId);
+    const riderName = normalizeOptionalString(row.riderName);
+    const stat = RIDER_RATING_AXES.find((axis) => axis.key === row.stat);
+    if (!riderId || !riderName || !stat ||
+      typeof row.cap !== "number" || !Number.isInteger(row.cap) || row.cap < 70 || row.cap > 100) {
+      return [];
+    }
+    return [{ riderId, riderName, stat: stat.key, cap: row.cap }];
+  });
 }
 
 function normalizeNaturalizationAlerts(value: unknown): DashboardNaturalizationAlert[] {

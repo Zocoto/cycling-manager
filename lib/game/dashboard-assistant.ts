@@ -7,6 +7,7 @@ import {
 import { getRaceRegistrationHref } from "@/lib/game/race-navigation";
 import { STAFF_RECRUITMENT_ALERTS_HREF } from "@/lib/game/staff-market-navigation";
 import { FAN_CLUB_PRODUCTS } from "@/lib/game/fan-club-pilot";
+import { RIDER_RATING_AXES, type RiderRatingKey } from "@/lib/game/rider-profile";
 import type { OverweightRiderSummary } from "./rider-weight-status";
 import { getWeightProgramCooldownDays } from "./weight-program";
 import {
@@ -90,6 +91,7 @@ export type DashboardAssistantSnapshot = {
   availablePhysiotherapistSlotCount: number;
   ridersWithoutPhysiotherapistCount: number;
   zeroTrainingCount: number;
+  trainingCapAlerts?: DashboardTrainingCapAlert[];
   seniorSessionCount: number;
   seniorCompletedCount: number;
   seniorSkippedCount: number;
@@ -176,6 +178,13 @@ export type DashboardAssistantLine = {
   naturalizationTarget?: Pick<DashboardNaturalizationAlert, "subjectType" | "subjectId" | "targetCountryId">;
 };
 
+export type DashboardTrainingCapAlert = {
+  riderId: string;
+  riderName: string;
+  stat: RiderRatingKey;
+  cap: number;
+};
+
 export type DashboardNaturalizationAlert = {
   subjectType: "professional" | "youth";
   subjectId: string;
@@ -241,6 +250,7 @@ const ALERT_PRIORITY = [
   "available-rnd-engineers",
   "low-form",
   "zero-training",
+  "training-cap",
   "fan-club-out-of-stock",
   "next-season-roster-overflow",
   "contract-renewals",
@@ -773,6 +783,20 @@ export function buildDashboardAssistantLines({
     });
   }
 
+  for (const [index, target] of (snapshot.trainingCapAlerts ?? []).entries()) {
+    const stat = RIDER_RATING_AXES.find((axis) => axis.key === target.stat);
+    if (!stat) continue;
+    alerts.push({
+      id: `training-cap:${target.riderId}`,
+      tone: "alert",
+      metric: stat.shortLabel,
+      title: target.riderName,
+      detail: `Plafond d’entraînement atteint en ${stat.label} (${target.cap})`,
+      href: `/jeu/entrainement#training-domain-${target.riderId}`,
+      keepVisible: index === 0,
+    });
+  }
+
   const outOfStockProducts = snapshot.fanClubOutOfStockProductCodes;
   if (snapshot.fanClubShopLevel > 0 && (
     outOfStockProducts ? outOfStockProducts.length > 0 : snapshot.fanClubStockCount === 0
@@ -1180,6 +1204,7 @@ function formatAssistantCurrency(amount: number): string {
 
 function getAlertPriority(id: string): number {
   if (id.startsWith("naturalization:")) return ALERT_PRIORITY.indexOf("naturalization");
+  if (id.startsWith("training-cap:")) return ALERT_PRIORITY.indexOf("training-cap");
   if (id.startsWith("race-roster-alert:")) {
     return ALERT_PRIORITY.indexOf("race-roster-alerts");
   }
