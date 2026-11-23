@@ -618,32 +618,58 @@
         ctx.restore();
       }
 
-      function drawSanta() {
-        // Seated at the front, inside the sleigh's rotating coordinate frame.
-        // Keep the gold gift hatch below him visible and physically unchanged.
-        ellipse(17, -16, 13, 17, "#ac3747", -.12);
-        ellipse(14, -20, 10, 12, "#d35358", -.12);
-        line([[9, -8], [28, -8]], "#f9e8cc", 4);
-        line([[8, -14], [27, -14]], "#453345", 3.2);
-        ctx.fillStyle = "#eac277";
-        ctx.fillRect(18, -16, 4, 4);
-        line([[24, -26], [29, -21], [37, -21]], "#bc3e50", 6);
-        ellipse(37, -21, 4, 3, "#f8dfbd");
+      function drawRudolphe() {
+        // Rudolphe rides inside the sleigh's rotating coordinate frame.
+        // His taller antlers and lantern are decorative: the cargo hatch,
+        // parcel outlet and all convoy collision points remain unchanged.
+        ellipse(17, -16, 13, 17, "#a43745", -.12);
+        ellipse(14, -20, 10, 12, "#cc4e53", -.12);
+        line([[9, -8], [28, -8]], "#f0d18d", 3);
+        line([[11, -24], [21, -24]], "#f7e6c7", 4);
+        line([[24, -26], [29, -21], [37, -21]], "#b64048", 6);
+        ellipse(37, -21, 4, 3, "#754a38");
         line([[38, -21], [49, -9]], "#dfc18a", 1.2);
-        ellipse(16, -39, 10, 11, "#f0c0a1");
-        ellipse(10, -36, 5, 7, "#fff0da", -.35);
-        ellipse(23, -35, 5, 7, "#fff0da", .35);
-        shape([[7, -34], [26, -34], [24, -24], [17, -20], [10, -25]], "#fff3df");
-        ellipse(14, -34, 5, 2.7, "#fff8e9", -.2);
-        ellipse(21, -34, 5, 2.7, "#fff8e9", .2);
-        ellipse(19, -37, 3.2, 2.8, "#e8a087");
-        ellipse(13, -41, 1.1, 1.3, "#382f43");
-        ellipse(22, -41, 1.1, 1.3, "#382f43");
-        line([[10, -44], [14, -45]], "#fff3df", 1.8);
-        line([[20, -45], [24, -44]], "#fff3df", 1.8);
-        shape([[5, -48], [12, -61], [23, -58], [30, -48], [24, -50], [20, -52], [25, -46]], "#ce4953");
-        line([[6, -48], [26, -47]], "#fff1d9", 5);
-        ellipse(31, -47, 4.5, 4.5, "#fff1d9");
+
+        // Two branching antlers and oversized ears keep the reindeer
+        // silhouette readable when the canvas is reduced on a phone.
+        line([[9, -51], [3, -61], [5, -76]], "#e5bd82", 3.4);
+        line([[3, -61], [-5, -66], [-8, -74]], "#e5bd82", 2.5);
+        line([[5, -69], [12, -73], [14, -79]], "#e5bd82", 2.3);
+        line([[19, -52], [23, -64], [21, -77]], "#d6a972", 3.4);
+        line([[23, -64], [31, -69], [33, -76]], "#d6a972", 2.5);
+        line([[22, -70], [16, -73]], "#d6a972", 2.3);
+        ellipse(1, -49, 8, 4.2, "#a66d47", .5);
+        ellipse(1, -49, 5.4, 2.2, "#e5b47c", .5);
+        ellipse(27, -49, 7.6, 3.8, "#a66d47", -.55);
+        ellipse(27, -49, 5, 2, "#e5b47c", -.55);
+        ellipse(15, -42, 12, 13, "#a97049", -.12);
+        ellipse(19, -37, 11, 8, "#d6a36f", -.15);
+        ellipse(26, -36, 10, 6.5, "#efd1a0", -.08);
+
+        // A jaunty cycle helmet, raised eyebrow and smile give him the
+        // game's familiar illustrated rider expression rather than a beard.
+        shape([[3, -51], [7, -58], [20, -59], [27, -53], [24, -49], [7, -49]], "#a83242");
+        line([[10, -56], [16, -57]], "#efce82", 2);
+        line([[19, -56], [23, -53]], "#efce82", 2);
+        line([[5, -50], [25, -50]], "#f3dfb9", 2);
+        ellipse(20, -44, 3, 3.5, "#fff3d8");
+        ellipse(21, -44, 1.6, 2.1, "#302a37");
+        ellipse(21.5, -45, .55, .7, "#fff8e9");
+        line([[17, -49], [22, -50]], "#69422f", 1.8);
+        line([[20, -32], [25, -30], [29, -32]], "#7a4634", 1.5);
+        ellipse(14, -33, 3, 1.8, "#c37a59", -.15);
+
+        // A little red cycling lantern really is his nose, with a gold
+        // cage and handle; the broad soft halo also reads at mobile size.
+        ellipse(36, -39, 13, 11, "#ed65552b");
+        ellipse(36, -39, 8.5, 7.5, "#fb8b6c30");
+        line([[33, -45], [33, -49], [39, -49], [39, -45]], "#e6be78", 1.5);
+        shape([[31, -45], [41, -45], [42, -34], [30, -34]], "#873540");
+        shape([[33, -43], [39, -43], [40, -36], [32, -36]], "#f86460");
+        line([[36, -43], [36, -36]], "#ffc194", 1);
+        line([[31, -45], [41, -45]], "#edca88", 2);
+        line([[30, -34], [42, -34]], "#edca88", 2);
+        ellipse(34, -41, 1.2, 1.8, "#ffe2a6", .2);
       }
 
       function drawConvoy() {
@@ -690,7 +716,7 @@
           ellipse(gift.x + 4, gift.y - 1, 4, 2, gift.ribbon, .3);
           ellipse(gift.x + 10, gift.y - 1, 4, 2, gift.ribbon, -.3);
         }
-        drawSanta();
+        drawRudolphe();
         ctx.fillStyle = "#472a37";
         ctx.fillRect(-2, 3, 14, 7);
         line([[-3, 3], [13, 3]], "#f0cd86", 2);

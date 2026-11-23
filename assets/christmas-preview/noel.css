@@ -128,7 +128,8 @@ button { line-height: 1.3; }
 .text-button { min-height: 33px; padding: .35rem .25rem; border: 0; background: none; color: #6d3940; text-decoration: underline; text-underline-offset: .16em; }
 
 .hero {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
   align-items: center;
   min-height: clamp(380px, 42vw, 505px);
   overflow: hidden;
@@ -138,10 +139,14 @@ button { line-height: 1.3; }
     url("village-hiver.jpg") center 67% / cover no-repeat #183c35;
   box-shadow: 0 16px 35px #20281722;
 }
-.hero-inner { padding: clamp(24px, 5.5vw, 74px); width: 100%; }
+.hero-inner { padding: clamp(24px, 5.5vw, 74px) 0 clamp(24px, 5.5vw, 74px) clamp(24px, 5.5vw, 74px); min-width: 0; }
 .hero-date { display: inline-flex; gap: .45rem; align-items: center; color: var(--gold); font-size: .72rem; font-weight: 800; letter-spacing: .17em; text-transform: uppercase; }
 .hero h1 { margin: .6rem 0 1rem; font-size: clamp(3.25rem, 7.1vw, 6.6rem); line-height: .94; letter-spacing: -.052em; text-wrap: balance; }
 .hero p { max-width: 365px; color: #f4ecd8; line-height: 1.6; font-size: clamp(.93rem, 1.35vw, 1.08rem); }
+.hero p strong { display: block; margin-bottom: .4rem; color: #ffe0a0; font-weight: 700; }
+.hero-mascot { min-width: 0; margin: 0; padding: 22px clamp(16px, 3vw, 38px) 22px 8px; }
+.hero-mascot img { width: 100%; height: auto; max-height: 350px; object-fit: contain; }
+.hero-mascot figcaption { margin: .6rem auto 0; max-width: 260px; color: #fff0ce; font: italic clamp(.85rem, 1.5vw, 1.05rem)/1.5 var(--serif); text-align: center; }
 .hero-actions, .dialog-actions, .item-actions { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
 .hero-actions { margin-top: 1.55rem; }
 .button, :where(.item-actions, .dialog-actions, .inventory-card, .milestone) button {
@@ -410,9 +415,11 @@ dialog::backdrop { background: #142620b3; }
   .brand { gap: .45rem; }
   .wallet { padding: .38rem .44rem; }
   .wallet-label { display: none; }
-  .hero { min-height: 370px; background-position: center, 57% 72%; }
+  .hero { display: block; min-height: 370px; background-position: center, 57% 72%; }
   .hero-inner { padding: 1.4rem; }
   .hero h1 { font-size: clamp(2.85rem, 10vw, 4rem); }
+  .hero-mascot { padding: 0 1.4rem 1.4rem; }
+  .hero-mascot img { width: min(100%, 340px); max-height: 240px; margin: 0 auto; }
   .event-nav { margin: .65rem 0 .9rem; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; }
   .event-nav a { padding: .66rem .25rem; justify-content: center; font-size: .77rem; gap: .27rem; }
   .section-heading { margin: 1.15rem 0; }

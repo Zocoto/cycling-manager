@@ -64,8 +64,13 @@
     const counts = new Map();
     for (const item of milestone.items) counts.set(item, (counts.get(item) ?? 0) + 1);
     for (const [id, count] of counts) {
-      const name = id === "potential-notebook" ? "+1 étoile de potentiel · Carnet de progression" : itemById.get(id)?.name ?? id;
-      pieces.push((count > 1 ? count + " × " : "") + name);
+      const item = itemById.get(id);
+      const name = id === "potential-notebook" ? "+1 étoile de potentiel · Carnet de progression" : item?.name ?? id;
+      const stats = { mountain: "MON", hills: "VAL", flat: "PLA", timeTrial: "CLM", cobbles: "PAV", sprint: "SPR", acceleration: "ACC", descending: "DES", endurance: "END", resistance: "RES", recovery: "REC", prologue: "PRO", breakaway: "BAR" };
+      const bonuses = item?.category === "equipment" ? Object.entries(item.bonuses ?? {})
+        .filter(([stat, value]) => stats[stat] && Number.isFinite(value) && value !== 0)
+        .map(([stat, value]) => `${value > 0 ? "+" : ""}${num(value)} ${stats[stat]}`) : [];
+      pieces.push((count > 1 ? count + " × " : "") + name + (bonuses.length ? " · " + bonuses.join(" · ") : ""));
     }
     return pieces.join(" + ");
   }
@@ -88,12 +93,18 @@
       return `<g class="sapin-marker${unlocked ? " is-unlocked" : ""}"><circle cx="${p.x}" cy="${p.y}" r="13"/><text x="${p.x}" y="${p.y + 4}">${i + 1}</text><title>Palier ${i + 1} · ${num(milestone.goal)} lumières</title></g>`;
     }).join("");
     const starOn = progress === 1;
+    const bonnetMilestone = milestones.find(milestone => milestone.items.includes("bonnet-course-noel"));
+    const bonnetOn = bonnetMilestone && total >= bonnetMilestone.goal;
     return `<svg class="collective-sapin" viewBox="0 0 560 744" role="img" aria-labelledby="sapin-title sapin-description">
       <title id="sapin-title">Le sapin de tous les Directeurs Sportifs</title>
-      <desc id="sapin-description">${num(total)} lumières communes. ${milestones.filter(m => total >= m.goal).length} paliers atteints sur ${milestones.length}. La guirlande s’allume du pied jusqu’à l’étoile.</desc>
+      <desc id="sapin-description">${num(total)} lumières communes. ${milestones.filter(m => total >= m.goal).length} paliers atteints sur ${milestones.length}. La guirlande s’allume du pied jusqu’à l’étoile. Rudolphe traverse le ciel à vélo, sa lanterne rouge au bout du nez.</desc>
       <defs><linearGradient id="sapin-night" x2="0" y2="1"><stop stop-color="#102c29"/><stop offset="1" stop-color="#20493e"/></linearGradient><linearGradient id="sapin-leaf" x2="1" y2="1"><stop stop-color="#468465"/><stop offset=".48" stop-color="#2f664c"/><stop offset="1" stop-color="#173e31"/></linearGradient></defs>
       <rect width="560" height="744" rx="18" fill="url(#sapin-night)"/>
       ${Array.from({ length: 35 }, (_, i) => `<circle cx="${(i * 107 + 17) % 560}" cy="${(i * 71 + 27) % 640}" r="${i % 3 ? 1 : 1.8}" fill="#f4e9cb" opacity=".35"/>`).join("")}
+      <g class="sapin-rudolphe" aria-hidden="true" pointer-events="none">
+        <path d="M26 210Q104 155 190 173T408 139" fill="none" stroke="#e6c788" stroke-width="1.5" stroke-dasharray="2 10" stroke-linecap="round" opacity=".4"/>
+        <image href="rudolphe-lanterne-rouge.webp" x="355" y="42" width="195" height="176" preserveAspectRatio="xMidYMid meet"/>
+      </g>
       <path d="M0 620L85 516L146 583L223 490L346 606L450 510L560 600V744H0Z" fill="#365c4d" opacity=".6"/>
       <path d="M0 693Q100 658 217 681T560 677V744H0Z" fill="#e8e8ce"/>
       <ellipse cx="280" cy="690" rx="175" ry="19" fill="#bbcbbc"/>
@@ -102,6 +113,15 @@
       <g fill="none" stroke="#a2b88b" stroke-opacity=".23" stroke-width="2"><path d="M212 215Q280 248 348 215M170 342Q280 385 391 342M119 469Q280 529 442 469M69 633Q280 693 491 633"/><path d="M280 93V642"/></g>
       <path d="${path}" fill="none" stroke="#102f28" stroke-width="6"/>
       <path d="${path}" fill="none" stroke="#f1c66d" stroke-width="2" pathLength="100" stroke-dasharray="${progress * 100} 100"/>
+      ${bonnetMilestone ? `<g class="sapin-bonnet${bonnetOn ? " is-unlocked" : ""}" transform="translate(286 120)" opacity="${bonnetOn ? 1 : .7}">
+        <title>Bonnet de course de Noël · +2 MON · +2 RES · ${num(bonnetMilestone.goal)} lumières</title>
+        <path d="M20-12V4" fill="none" stroke="#e7ca80" stroke-width="1.5"/>
+        <path d="M5 29C3 16 9 6 21 5C30 4 35 9 38 15L42 7L47 12L44 23L40 29Z" fill="#b94552" stroke="#e5bd76" stroke-width="1.5" stroke-linejoin="round"/>
+        <path d="M13 14L11 23M23 11L21 23M32 15L31 24" fill="none" stroke="#3b4035" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M6 28Q23 33 40 28L40 36Q23 41 6 36Z" fill="#f3e5c8" stroke="#c5ad80" stroke-width="1.2"/>
+        <path d="M13 37L19 46L26 38" fill="none" stroke="#b9955d" stroke-width="2" stroke-linejoin="round"/>
+        <circle cx="46" cy="11" r="5" fill="#fff0d5" stroke="#c5ad80" stroke-width="1"/>
+      </g>` : ""}
       <g>${bulbs}${markers}</g>
       <g class="sapin-star${starOn ? " is-lit" : ""}"><path d="M280 45L290 65L313 69L296 85L301 108L280 96L259 108L264 85L247 69L270 65Z"/><text x="280" y="84">9</text><title>L’étoile · ${num(milestones[milestones.length - 1].goal)} lumières · +1 étoile de potentiel pour chaque DS</title></g>
       <g transform="translate(130 660)"><rect width="45" height="37" rx="3" fill="#8b3948"/><path d="M22 0V37M0 12H45" stroke="#efcf8b" stroke-width="5"/></g>

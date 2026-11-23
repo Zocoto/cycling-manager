@@ -26,6 +26,7 @@ const fileTypes = new Map([
   ["noel.css", "text/css; charset=utf-8"],
   ["logo.png", "image/png"],
   ["village-hiver.jpg", "image/jpeg"],
+  ["rudolphe-lanterne-rouge.webp", "image/webp"],
 ]);
 
 const privateHeaders = {

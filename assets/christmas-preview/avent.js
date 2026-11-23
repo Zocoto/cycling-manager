@@ -36,6 +36,10 @@
     <text x="64" y="150" fill="#fff1d2" font-family="Georgia,serif" font-size="70" font-style="italic">de l’Avent</text>
     <path d="M0 337 154 195l84 94 130-119 126 148 136-107 125 101 167-138 135 154 130-101 113 107v160H0z" fill="#4f7567"/>
     <path d="m368 170-64 58 45-8 19 19 19-28 34 18zM922 174l-64 54 49-4 16 15 19-15 43 8zM154 195l-54 52 36-5 15 15 17-17 34 9zM631 211l-51 41 32-2 17 14 17-19 30 6zM1187 227l-38 31 30-3 9 9 13-11 27 12z" fill="#dde5d4"/>
+    <g class="advent-rudolphe" pointer-events="none">
+      <path d="M536 211Q632 180 736 184T994 137" fill="none" stroke="#ecd59a" stroke-width="2" stroke-dasharray="2 12" stroke-linecap="round" opacity=".5"/>
+      <image href="rudolphe-lanterne-rouge.webp" x="620" y="10" width="400" height="230" preserveAspectRatio="xMidYMid meet"/>
+    </g>
     <path d="M0 378q182-51 350 11t361-12 344 15 345-7v515H0z" fill="url(#av-snow)"/>
     <path d="M0 428q223 45 409-18t421 29 570-10" fill="none" stroke="#c0d0bf" stroke-width="14"/>
     <path d="M0 551C229 481 337 501 458 534S724 629 864 567s239-53 536-12M0 884c182-54 296-33 397-15s211 13 321-18 345 24 682-29" fill="none" stroke="#b5c5b8" stroke-width="48"/>
@@ -70,7 +74,7 @@
       <path d="M1193 660h145v172h-145z" fill="#a54c45"/><path d="m1175 663 91-78 91 78z" fill="#3c5947"/><path d="m1175 663 91-78 91 78-23-5-68-51-66 51z" fill="#f6edd8" stroke="none"/>
     </g>
     <g fill="#fbedd2" stroke="#6f5339" stroke-width="2"><rect x="121" y="789" width="165" height="26" rx="4"/><rect x="499" y="770" width="163" height="25" rx="4"/><rect x="873" y="782" width="155" height="24" rx="4"/></g>
-    <g fill="#61472d" text-anchor="middle" font-family="Georgia,serif" font-size="16"><text x="204" y="807">Maison du Père Braquet</text><text x="580" y="788">Café du Peloton</text><text x="950" y="800">La Manufacture</text></g>
+    <g fill="#61472d" text-anchor="middle" font-family="Georgia,serif" font-size="16"><text x="204" y="807">La halte de Rudolphe</text><text x="580" y="788">Café du Peloton</text><text x="950" y="800">La Manufacture</text></g>
     <use href="#av-wreath" transform="translate(1267 631) scale(.75)"/>
     <path d="M450 635q52 25 104 0t105 0 105 0M81 674q49 24 98 0t98 0 98 0" fill="none" stroke="#3f6549" stroke-width="7"/>
     <g fill="#e4b967"><circle cx="484" cy="644" r="5"/><circle cx="535" cy="640" r="5"/><circle cx="586" cy="628" r="5"/><circle cx="638" cy="638" r="5"/><circle cx="694" cy="646" r="5"/><circle cx="743" cy="641" r="5"/><circle cx="114" cy="681" r="5"/><circle cx="160" cy="678" r="5"/><circle cx="209" cy="667" r="5"/><circle cx="262" cy="675" r="5"/><circle cx="314" cy="682" r="5"/></g>

@@ -42,7 +42,7 @@
       quantities: { "booster-noel": 1, "boussole-polaire": 1, "carnet-eclaireur": 1, "grelot-repechage": 1, "vignette-renne": 1 },
       bought: {}, equipped: {}, runs: {}, settledRunIds: [], retryDays: [], deliveries: 0,
       communityLights: 4200, participants: 42, milestones: [], log: [],
-      stickers: { 6: 4, 7: 1 }, boosters: 0, scoutingUntil: null, reconnaissances: [], potential: {}, personalities: {}, abilities: {}, lastFlight: null,
+      stickers: { 6: 4, 7: 1 }, boosters: 0, scoutingUntil: null, reconnaissances: [], potential: {}, personalities: {}, abilities: {}, riderEquipment: {}, lastFlight: null,
     };
   }
   function load() {
@@ -61,10 +61,17 @@
       // Already opened preview windows now contain their new Advent-exclusive
       // portrait. Preserve the rest of the tester's local inventory.
       restored.quantities = { ...restored.quantities };
+      restored.riderEquipment = restored.riderEquipment && typeof restored.riderEquipment === "object" && !Array.isArray(restored.riderEquipment)
+        ? restored.riderEquipment : {};
       for (const day of restored.opened) {
         const gift = advent[day - 1];
         const item = gift?.kind === "item" ? itemById.get(gift.itemId) : null;
         if (item?.source === "avent") restored.quantities[item.id] = Math.max(1, restored.quantities[item.id] ?? 0);
+      }
+      // Keep an already-claimed preview tier complete after adding its helmet.
+      const helmetTier = milestones.find(entry => entry.items.includes("bonnet-course-noel"));
+      if (Array.isArray(restored.milestones) && restored.milestones.includes(helmetTier.goal)) {
+        restored.quantities["bonnet-course-noel"] = Math.max(1, restored.quantities["bonnet-course-noel"] ?? 0);
       }
       return restored;
     } catch { return fresh(); }
@@ -199,8 +206,11 @@
   }
   function renderInventory() {
     find("#portrait-slots").innerHTML = Object.entries(slots).map(([slot, label]) => `<div><span>${label}</span><strong>${esc(itemById.get(state.equipped[slot])?.name ?? "—")}</strong></div>`).join("");
-    const inventory = items.filter(owns).map(item => `<article class="inventory-card"><canvas width="128" height="128" data-art="${item.art}"></canvas><div><h3>${esc(item.name)}</h3>${item.source === "avent" ? '<span class="item-exclusive">Exclusivité de l’Avent</span>' : ""}<p>Quantité · ${quantity(item.id)}</p></div>
-      <button class="button button-outline" data-action="inventory-item" data-id="${item.id}">${item.slot ? (state.equipped[item.slot] === item.id ? "Retirer" : "Équiper") : item.id === "booster-noel" || item.id === "vignette-renne" ? "Ouvrir" : "Utiliser"}</button></article>`).join("");
+    const inventory = items.filter(owns).map(item => {
+      const rider = item.category === "equipment" ? previewRiders.find(rider => state.riderEquipment[rider.id]?.[item.equipmentSlot] === item.id) : null;
+      return `<article class="inventory-card"><canvas width="128" height="128" data-art="${item.art}"></canvas><div><h3>${esc(item.name)}</h3>${item.source === "avent" ? '<span class="item-exclusive">Exclusivité de l’Avent</span>' : ""}<p>Quantité · ${quantity(item.id)}</p>${item.category === "equipment" ? `<p>Casque · +2 MON · +2 RES${rider ? `<br>Équipé sur ${esc(rider.name)}` : ""}</p>` : ""}</div>
+      <button class="button button-outline" data-action="inventory-item" data-id="${item.id}">${item.category === "equipment" ? "Équiper sur un coureur" : item.slot ? (state.equipped[item.slot] === item.id ? "Retirer" : "Équiper") : item.id === "booster-noel" || item.id === "vignette-renne" ? "Ouvrir" : "Utiliser"}</button></article>`;
+    }).join("");
     const collection = Object.entries(state.stickers).filter(([, count]) => count > 0);
     const buff = state.scoutingUntil && Date.parse(state.scoutingUntil) > previewNow()
       ? `<div class="log"><h2>Boussole active · +20 % scouting</h2><p>Jusqu’au ${esc(new Date(state.scoutingUntil).toLocaleDateString("fr-FR", { day: "numeric", month: "long", timeZone: "Europe/Paris" }))} · chaque utilisation ajoute 7 jours.</p></div>` : "";
@@ -213,6 +223,11 @@
     find("#activity-log").innerHTML = state.log.length ? `<div class="log"><h2>Dernières activités</h2>${state.log.slice(0, 8).map(entry => `<div class="log-entry"><span>${esc(entry.message)}</span><span>${esc(dayLabel(entry.day))}</span></div>`).join("")}</div>` : "";
   }
   function showUseDialog(item) {
+    if (item.category === "equipment") {
+      const equippedRider = previewRiders.find(rider => state.riderEquipment[rider.id]?.[item.equipmentSlot] === item.id);
+      openDialog(`<p class="dialog-kicker">Équipement de coureur · Casque</p><h2 id="dialog-heading">${esc(item.name)}</h2><canvas class="reward-art" width="340" height="190" data-art="${item.art}"></canvas><p>${esc(item.effect)}</p>${equippedRider ? `<p>Équipé sur ${esc(equippedRider.name)}. Choisir un autre coureur lui transfère ce casque.</p>` : ""}<label class="target-field">Coureur<select id="item-target">${previewRiders.map(rider => `<option value="${rider.id}" ${rider.id === equippedRider?.id ? "selected" : ""}>${esc(rider.name)} · +2 MON · +2 RES</option>`).join("")}</select></label><div class="dialog-actions"><button class="button button-dark" data-action="use-item" data-id="${item.id}">Équiper le casque</button></div>`);
+      return;
+    }
     if (item.id === "carnet-eclaireur") {
       openDialog(`<p class="dialog-kicker">Préparation de reconnaissance · aperçu</p><h2 id="dialog-heading">Deux étapes, une sortie</h2><p>${esc(item.effect)}</p>
         <div class="reco-stages"><strong>Tour des Sapins · 3 étapes</strong><label class="target-field">Première étape<select id="reco-first">${recoStages.map((stage, i) => `<option value="${i}">${stage}</option>`).join("")}</select></label>
@@ -233,6 +248,16 @@
   }
   function applyItem(item) {
     if (!item || quantity(item.id) < 1) return;
+    if (item.category === "equipment") {
+      const rider = previewRiders.find(candidate => candidate.id === find("#item-target")?.value);
+      if (!rider) return;
+      for (const equipment of Object.values(state.riderEquipment)) {
+        if (equipment[item.equipmentSlot] === item.id) delete equipment[item.equipmentSlot];
+      }
+      state.riderEquipment[rider.id] = { ...state.riderEquipment[rider.id], [item.equipmentSlot]: item.id };
+      const message = `${rider.name} · ${item.name} équipé dans l’aperçu · +2 MON · +2 RES.`;
+      record(message); dialog.close(); commit(message); return;
+    }
     let message;
     if (item.id === "boussole-polaire") {
       const startsAt = Math.max(previewNow(), Date.parse(state.scoutingUntil ?? "") || 0);

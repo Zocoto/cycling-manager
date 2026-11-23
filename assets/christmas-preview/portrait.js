@@ -448,6 +448,19 @@
     star(context, 22, 32, 3.5, brass);
     star(context, 101, 81, 2.5, brass);
     switch (itemId) {
+      case "bonnet-course-noel":
+        // Vented cycling shell, wool brim and pompom: equipment, not a portrait hat.
+        fillPath(context, "M25 71Q22 40 44 29Q66 18 88 36Q101 48 96 71L84 76H34Z", "#a63b49");
+        fillPath(context, "M44 29Q63 16 78 26L92 41L82 48L74 34Z", "#c4535c");
+        fillPath(context, "M76 27Q91 21 99 36Q104 46 97 51L90 45Q93 36 83 34Z", "#a63b49");
+        ellipse(context, 97, 52, 8, 8, ivory);
+        line(context, "M43 39L36 57M57 34L52 55M72 36L69 55M84 44L83 57", "#4e2634", 4);
+        rounded(context, 22, 64, 77, 14, 6, ivory);
+        line(context, "M32 68L35 74M43 68L46 74M54 68L57 74M65 68L68 74M76 68L79 74M87 68L90 74", "#dbd3b9", 1.4);
+        line(context, "M36 78L46 91H69L85 78", "#cab172", 3);
+        rounded(context, 52, 87, 12, 7, 2, "#715947");
+        star(context, 61, 62, 4, brass);
+        break;
       case "boussole-polaire":
         ellipse(context, 60, 61, 31, 31, "#ab7f4f");
         ellipse(context, 60, 59, 28, 28, brass);

@@ -300,4 +300,38 @@ for (const item of catalog.filter(item => !item.source && item.category !== "por
     check(tree.contributors.every(row => Number.isInteger(row.lights) && row.lights >= 0), "Every contributor has non-negative whole light counts");
   }
 }
+{
+  const helmetId = "bonnet-course-noel";
+  const locked = preview({ communityLights: 23499, deliveries: 0, quantities: {} }, "#sapin");
+  const before = locked.state(); locked.click("claim-tree", "23500");
+  same(locked.state(), before, "The helmet tier cannot be claimed before 23,500 collective lights");
+  const p = preview({ communityLights: 23500, deliveries: 0, quantities: {} }, "#inventaire");
+  p.click("claim-tree", "23500");
+  same(p.state().quantities[helmetId], 1, "The tier grants one permanent helmet");
+  same(p.state().quantities["booster-noel"], 2, "The new helmet preserves both existing booster prizes");
+  same(p.state().quantities["vignette-renne"], 2, "The new helmet preserves both existing rare stickers");
+  const claimed = p.state(); p.click("claim-tree", "23500");
+  same(p.state(), claimed, "Claiming the tier twice never duplicates the helmet or other gifts");
+  p.click("inventory-item", helmetId);
+  check(p.element("#dialog-body").innerHTML.includes("Casque") && p.element("#dialog-body").innerHTML.includes("+2 MON · +2 RES"), "The inventory identifies helmet equipment and its exact bonuses");
+  p.element("#item-target").value = "rider-a"; p.click("use-item", helmetId);
+  same(p.state().riderEquipment["rider-a"], { helmet: helmetId }, "The helmet equips the selected rider's helmet slot");
+  same(p.state().quantities[helmetId], 1, "Equipping keeps the permanent equipment in inventory");
+  same(p.state().equipped, {}, "A rider helmet never becomes a DS portrait hat");
+  p.click("inventory-item", helmetId); p.element("#item-target").value = "rider-a"; p.click("use-item", helmetId);
+  same(p.state().riderEquipment["rider-a"], { helmet: helmetId }, "Re-equipping the same helmet does not stack rating increments");
+  p.click("inventory-item", helmetId); p.element("#item-target").value = "rider-b"; p.click("use-item", helmetId);
+  same(p.state().riderEquipment["rider-a"], {}, "Transferring removes the helmet from the first rider");
+  same(p.state().riderEquipment["rider-b"], { helmet: helmetId }, "The single helmet moves to the second rider");
+  same(p.state().quantities[helmetId], 1, "Transferring neither duplicates nor consumes the helmet");
+  const restored = preview(p.state(), "#inventaire");
+  same(restored.state().riderEquipment, p.state().riderEquipment, "The equipped rider helmet survives reloading the preview");
+  const unavailable = preview({ quantities: {}, riderEquipment: {} });
+  unavailable.element("#item-target").value = "rider-a"; unavailable.click("use-item", helmetId);
+  same(unavailable.state().riderEquipment, {}, "A forged equip action cannot grant an unowned helmet");
+  const migrated = preview({ milestones: [23500], quantities: {}, balance: 100 });
+  same(migrated.state().quantities[helmetId], 1, "An already claimed local preview tier receives its newly added helmet once");
+  same(migrated.state().balance, 100, "Updating an old preview tier grants no extra currency");
+  same(preview(migrated.state()).state().quantities[helmetId], 1, "Reloading the preview migration does not duplicate its helmet");
+}
 console.log(`Passed ${checks} Christmas preview purchase, run balance and replay flow checks.`);

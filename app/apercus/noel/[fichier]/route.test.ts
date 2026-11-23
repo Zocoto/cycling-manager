@@ -38,12 +38,13 @@ describe("private Christmas preview", () => {
       expect((await request(file)).headers.get("content-type")).toContain("text/javascript");
     expect((await request("sapin.css")).headers.get("content-type")).toContain("text/css");
     expect((await request("village-hiver.jpg")).headers.get("content-type")).toBe("image/jpeg");
+    expect((await request("rudolphe-lanterne-rouge.webp")).headers.get("content-type")).toBe("image/webp");
   });
 
   it.each([null, "another-authenticated-account"])("explains HTML access and protects assets for %s", async (userId) => {
     mocks.auth.mockResolvedValue({ data: { user: userId ? { id: userId, email: "other@example.test" } : null }, error: null });
     expect(showChristmasPreviewInMenu(userId)).toBe(false);
-    for (const file of ["index.html", "tournee.html", "tournee.js", "flight-physics.js", "avent.js", "rules.js", "sapin.js", "album-s4.js", "sapin.css", "noel.js", "catalogue.js", "noel.css", "village-hiver.jpg"]) {
+    for (const file of ["index.html", "tournee.html", "tournee.js", "flight-physics.js", "avent.js", "rules.js", "sapin.js", "album-s4.js", "sapin.css", "noel.js", "catalogue.js", "noel.css", "village-hiver.jpg", "rudolphe-lanterne-rouge.webp"]) {
       const response = await request(file);
       expect(response.headers.get("cache-control")).toBe("private, no-store");
       if (file.endsWith(".html")) {

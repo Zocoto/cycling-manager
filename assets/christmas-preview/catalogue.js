@@ -309,6 +309,18 @@
       art: "vignette-renne",
     },
     {
+      id: "bonnet-course-noel",
+      name: "Bonnet de course de Noël",
+      category: "equipment",
+      source: "sapin",
+      equipmentSlot: "helmet",
+      description: "Un casque de course rouge habillé d’un revers de laine et d’un pompon de Noël. Le cadeau collectif juste sous l’étoile du sapin.",
+      effect: "Équipement de coureur · Casque · +2 en montagne et +2 en résistance. Conservé après l’événement. Il remplace le casque du coureur équipé, sans se cumuler avec lui.",
+      bonuses: { mountain: 2, resistance: 2 },
+      useKind: "equipment",
+      art: "bonnet-course-noel",
+    },
+    {
       id: "potential-notebook",
       name: "Carnet de progression",
       category: "gestion",

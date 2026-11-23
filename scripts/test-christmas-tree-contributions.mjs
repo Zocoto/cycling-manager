@@ -7,7 +7,7 @@ context.window = context;
 for (const file of ["catalogue.js", "rules.js", "sapin.js"]) {
   vm.runInContext(readFileSync(new URL(`../assets/christmas-preview/${file}`, import.meta.url), "utf8"), context);
 }
-const { rankContributors, contributionPrize, contributionRewards, render } = context.noelTree;
+const { rankContributors, contributionPrize, contributionRewards, render, rewardLabel } = context.noelTree;
 const plain = value => JSON.parse(JSON.stringify(value));
 let checks = 0;
 function check(value, message) { assert.ok(value, message); checks++; }
@@ -45,6 +45,12 @@ check(panel.innerHTML.includes("Barème de travail") && panel.innerHTML.includes
 render({ art, panel, total: 200, personal: 10, participants: 11, claimed: [], milestones: context.noelRules.milestones, itemById,
   contributors: Array.from({ length: 11 }, (_, index) => ({ id: String(index), name: `DS ${index}`, lights: index < 9 ? 30 - index : 10, isCurrent: index === 10 })) });
 check((panel.innerHTML.match(/class="contributor-rank"/g) ?? []).length === 11 && !panel.innerHTML.includes("Ta contribution hors du top 10"), "All tied tenth-place contributors remain in top ten");
+const bonnetMilestone = context.noelRules.milestones.find(milestone => milestone.items.includes("bonnet-course-noel"));
+check(rewardLabel(bonnetMilestone, itemById).includes("Bonnet de course de Noël · +2 MON · +2 RES"), "Collective equipment reward clearly shows its two stat bonuses");
+render({ art, panel, total: bonnetMilestone.goal, personal: 0, participants: 1, claimed: [], milestones: context.noelRules.milestones, itemById });
+check(art.innerHTML.includes('class="sapin-bonnet is-unlocked"') && !art.innerHTML.includes('class="sapin-star is-lit"'), "Helmet-beanie ornament unlocks beneath the still-locked final star");
+check(art.innerHTML.includes("Bonnet de course de Noël · +2 MON · +2 RES") && panel.innerHTML.includes("Bonnet de course de Noël · +2 MON · +2 RES"), "Tree ornament and claimable milestone identify the equipment and its bonuses");
 render({ art, panel, total: 0, personal: 0, participants: 0, claimed: [], milestones: context.noelRules.milestones, itemById });
 check(panel.innerHTML.includes("attend ses premiers éclaireurs"), "Empty ranking invites first contribution");
+check(art.innerHTML.includes('class="sapin-bonnet"') && !art.innerHTML.includes('class="sapin-bonnet is-unlocked"'), "Helmet-beanie remains visible but locked before the collective threshold");
 console.log(`Passed ${checks} Christmas contribution ranking, prizes and tree checks.`);

@@ -56,6 +56,10 @@ check(milestones.length === 9 && milestones.at(-1).goal === 28000, "Nine visible
 check(milestones.every((m, i) => m.items.every(id => byId.has(id)) && (!i || m.goal > milestones[i - 1].goal)), "Every tier has valid rewards and increasing goals");
 check(milestones.find(m => m.goal === 10000).items.includes("talent-revealed") && milestones.find(m => m.goal === 14000).items.includes("personality-reroll"), "Intermediate collective tiers grant a talent and a personality change");
 check(milestones.at(-1).items[0] === "potential-notebook" && byId.get("potential-notebook").source === "sapin", "Summit reuses the existing potential consumable");
+const helmet = byId.get("bonnet-course-noel");
+check(helmet.name === "Bonnet de course de Noël" && helmet.category === "equipment" && helmet.equipmentSlot === "helmet" && !("slot" in helmet), "The racing Christmas hat is rider helmet equipment, separate from portrait hats");
+check(JSON.stringify(helmet.bonuses) === JSON.stringify({ mountain: 2, resistance: 2 }), "The helmet grants exactly +2 mountain and +2 resistance, no other rating");
+check(helmet.source === "sapin" && !("price" in helmet) && milestones.at(-2).items.includes(helmet.id) && milestones.at(-2).goal === 23500, "The exclusive helmet is the last collective reward below the unchanged star goal");
 check(context.noelTree.garlandProgress(0, milestones) === 0 && context.noelTree.garlandProgress(28000, milestones) === 1, "Garland goes from dark to fully lit");
 check(context.noelTree.garlandProgress(6500, milestones) === 4 / 9, "Garland checkpoints match reward milestones");
 console.log(`Passed ${checks} Christmas preview reward, rarity and catalog checks.`);
