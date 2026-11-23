@@ -108,12 +108,14 @@ export default async function PublicSportingDirectorPage({
                 <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#A8DEC6]">
                   Directeur Sportif
                 </p>
-                <h1 className="mt-2 truncate text-3xl font-black sm:text-4xl">
-                  {profile.display_name}
-                </h1>
-                {gameStaffDirectorIds.includes(profile.entity_id) ? (
-                  <GameStaffBadge inverse className="mt-3" />
-                ) : null}
+                <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+                  <h1 className="min-w-0 max-w-full truncate text-3xl font-black sm:text-4xl">
+                    {profile.display_name}
+                  </h1>
+                  {gameStaffDirectorIds.includes(profile.entity_id) ? (
+                    <GameStaffBadge inverse />
+                  ) : null}
+                </div>
                 <DirectorSeasonAwardShelf awards={directorSeasonAwards} />
               </div>
 

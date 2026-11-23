@@ -2348,27 +2348,27 @@ function ChatMessage({
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
           <Link
             href={`/jeu/equipes/${message.teamId}`}
-            className={`truncate text-[11px] font-black transition ${
+            className={`flex min-w-0 max-w-full flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] font-black transition ${
               isCurrentDirector
                 ? "text-white hover:text-[#F2C94C]"
                 : "text-[#176951] hover:text-[#0B302B]"
             }`}
           >
-            {isCurrentDirector ? "Vous" : message.authorDisplayName}
-            {gameStaff ? <GameStaffBadge inverse={isCurrentDirector} className="ml-1.5" /> : null}
+            <span className="min-w-0 max-w-full truncate">{isCurrentDirector ? "Vous" : message.authorDisplayName}</span>
+            {gameStaff ? <GameStaffBadge inverse={isCurrentDirector} /> : null}
             {rookieBadgeExpiresAt ? (
-              <RookieBadge inverse={isCurrentDirector} className="ml-1.5" />
+              <RookieBadge inverse={isCurrentDirector} />
             ) : null}
             {!isCurrentDirector && authorCountry ? (
               <span
                 role="img"
                 title={authorCountry.name}
                 aria-label={`Pays : ${authorCountry.name}`}
-                className={`fi fi-${authorCountry.code.toLowerCase()} ml-1.5 rounded-sm`}
+                className={`fi fi-${authorCountry.code.toLowerCase()} shrink-0 rounded-sm`}
               />
             ) : null}
             <span
-              className={`ml-1.5 font-bold ${
+              className={`min-w-0 max-w-full truncate font-bold ${
                 isCurrentDirector ? "text-white/60" : "text-[#789087]"
               }`}
             >
@@ -2774,14 +2774,14 @@ function OnlineDirectorsContent({
                     />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-xs font-black text-[#EAF5F0] group-hover:text-[#F2C94C]">
-                      {isCurrent ? "Vous" : director.displayName}
+                    <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="min-w-0 max-w-full truncate text-xs font-black text-[#EAF5F0] group-hover:text-[#F2C94C]">{isCurrent ? "Vous" : director.displayName}</span>
+                      {director.gameStaff ? <GameStaffBadge inverse /> : null}
                     </span>
                     <span className="mt-0.5 block truncate text-[10px] font-semibold text-[#8FA99D]">
                       {director.teamName}
                     </span>
                     <span className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1.5">
-                      {director.gameStaff ? <GameStaffBadge inverse /> : null}
                       {director.rookieBadgeExpiresAt ? (
                         <RookieBadge inverse />
                       ) : null}

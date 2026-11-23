@@ -119,10 +119,10 @@ export function GameUserMenu({
               <span className="block text-[9px] font-black uppercase tracking-[0.18em] text-[#9BE0CA]">
                 {isEnglish ? "Sports director area" : "Espace Directeur Sportif"}
               </span>
-              <span className="mt-1 block truncate text-base font-black">
-                {accountLabel}
+              <span className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="min-w-0 max-w-full truncate text-base font-black">{accountLabel}</span>
+                {gameStaffRole ? <GameStaffBadge inverse /> : null}
               </span>
-              {gameStaffRole ? <GameStaffBadge inverse className="mt-1" /> : null}
             </span>
             <button
               type="button"

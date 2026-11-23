@@ -20,6 +20,7 @@ vi.mock("./game-header-indicators-provider", () => ({
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
+  usePathname: () => "/jeu",
 }));
 
 import { GameUserMenu } from "@/components/game/game-user-menu";
