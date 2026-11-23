@@ -46,6 +46,7 @@ import { SPANISH_SPONSORS } from "./spain";
 import { SPIRITS_SPONSORS } from "./spirits";
 import { SPORTING_NATION_PRESTIGE_BATCH_01_SPONSORS } from "./sporting-nation-prestige-batch-01";
 import { SPORTSWEAR_BATCH_01_SPONSORS } from "./sportswear-batch-01";
+import { TELECOM_BATCH_24_SPONSORS } from "./telecom-batch-24";
 import { AIRLINE_SPONSORS, TOURISM_SPONSORS } from "./tourism-airlines";
 import { UNDERCOVERED_COUNTRY_BATCH_02_SPONSORS } from "./undercovered-country-batch-02";
 import { UNDERCOVERED_COUNTRY_BATCH_03_SPONSORS } from "./undercovered-country-batch-03";
@@ -73,6 +74,7 @@ import { AMERICAN_EXPANSION_BATCH_02_SPONSORS } from "./united-states-batch-02";
 import { WELLNESS_HYGIENE_SPONSORS } from "./wellness-hygiene";
 
 const RAW_SPONSORS = [
+  ...TELECOM_BATCH_24_SPONSORS,
   ...AGRI_FOOD_BATCH_23_SPONSORS,
   ...ACTIVE_FEDERATION_BATCH_01_SPONSORS,
   ...ACTIVE_TEAM_COUNTRY_BATCH_01_SPONSORS,
