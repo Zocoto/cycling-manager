@@ -90,6 +90,30 @@ export type SprintVisualRosterTeam = {
   riderIds: string[];
 };
 
+/** Assign lanes independently of finish rank, without moving trains on replay. */
+export function orderSprintVisualLanes({
+  roster,
+  seed,
+}: {
+  roster: readonly SprintVisualRosterTeam[];
+  seed: string | number;
+}): SprintVisualRosterTeam[] {
+  const lanes = [...roster].sort((first, second) =>
+    first.teamId < second.teamId ? -1 : first.teamId > second.teamId ? 1 : 0,
+  );
+  let state = getVisualHash(`${seed}:sprint-lanes`);
+  for (let index = lanes.length - 1; index > 0; index -= 1) {
+    // A local seeded generator keeps lane placement separate from race RNG.
+    state = (state + 0x6d2b79f5) >>> 0;
+    let value = Math.imul(state ^ (state >>> 15), 1 | state);
+    value ^= value + Math.imul(value ^ (value >>> 7), 61 | value);
+    const random = ((value ^ (value >>> 14)) >>> 0) / 4_294_967_296;
+    const target = Math.floor(random * (index + 1));
+    [lanes[index], lanes[target]] = [lanes[target], lanes[index]];
+  }
+  return lanes;
+}
+
 export type MassSprintVisualPhase =
   | "trains"
   | "selection"

@@ -50,6 +50,7 @@ import {
   getSmallGroupAttackProgress,
   getSmallGroupFinishPosition,
   getVisibleFinalBattleRiderIds,
+  orderSprintVisualLanes,
   shouldWinnerCelebrate,
 } from "@/lib/game/race-finish-visual";
 import {
@@ -2085,19 +2086,22 @@ function SprintLaneView({
   const orderedFavoriteRiderIds = allFinalists
     .filter((result) => favoriteRiderSet.has(result.riderId))
     .map((result) => result.riderId);
-  const sprintRoster = buildSprintVisualRoster({
-    riders: allFinalists.map((result) => {
-      const rider = riderById.get(result.riderId)!;
-      return {
-        id: rider.id,
-        teamId: rider.teamId,
-        role: rider.role,
-      };
+  const sprintRoster = orderSprintVisualLanes({
+    seed: simulation.seed,
+    roster: buildSprintVisualRoster({
+      riders: allFinalists.map((result) => {
+        const rider = riderById.get(result.riderId)!;
+        return {
+          id: rider.id,
+          teamId: rider.teamId,
+          role: rider.role,
+        };
+      }),
+      favoriteRiderIds: orderedFavoriteRiderIds,
+      requiredRiderIds: allFinalists
+        .filter((result) => result.rank !== null && result.rank >= 1 && result.rank <= 3)
+        .map((result) => result.riderId),
     }),
-    favoriteRiderIds: orderedFavoriteRiderIds,
-    requiredRiderIds: allFinalists
-      .filter((result) => result.rank !== null && result.rank >= 1 && result.rank <= 3)
-      .map((result) => result.riderId),
   });
   const visibleRiderSet = new Set(
     sprintRoster.flatMap((team) => team.riderIds)
@@ -2136,7 +2140,8 @@ function SprintLaneView({
     viewportDistance: 1_000,
     sceneryDurationSeconds: DEFAULT_RACE_WORLD_FLOW_DURATION_SECONDS,
   });
-  const favoriteNames = contenderRiderIds
+  const favoriteNames = sprintRoster
+    .flatMap((team) => team.contenderRiderIds ?? [team.contenderRiderId])
     .map((riderId) => riderById.get(riderId)?.name.split(" ").at(-1))
     .filter((name): name is string => Boolean(name));
   const showFinishLine = metersRemaining <= FINISH_LINE_REVEAL_METERS;
