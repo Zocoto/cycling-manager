@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { RiderPersonalityBadge } from "@/components/game/rider-personality";
+import { AcademyRiderCard } from "@/components/game/academy-rider-card";
 import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -7,7 +7,6 @@ import { SponsorProjectSlot } from "@/components/game/sponsor-project-slot";
 
 import {
   markYouthScoutingReportViewedAction,
-  naturalizeYouthRiderAction,
   recallYouthScoutingMissionAction,
 } from "@/app/jeu/centre-de-formation/actions";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
@@ -23,10 +22,8 @@ import {
 } from "@/components/game/game-section-tabs";
 import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
 import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
-import { NaturalizationCard } from "@/components/game/naturalization-card";
-import { PotentialStars } from "@/components/game/potential-stars";
 import { RiderAvatar } from "@/components/game/rider-avatar";
-import { RiderMoraleGauge } from "@/components/game/rider-morale-gauge";
+import { RiderPersonalityBadge } from "@/components/game/rider-personality";
 import { SpecialAbilityMedallion } from "@/components/game/special-ability-medallion";
 import { StaffAdditionalSkills } from "@/components/game/staff-skills";
 import { TransferScoutingReportPanel } from "@/components/game/transfer-scouting-report";
@@ -34,16 +31,9 @@ import { YouthTrainingMiniGame } from "@/components/game/youth-training-mini-gam
 import { YouthScoutingMap } from "@/components/game/youth-scouting-map";
 import { YouthScoutingRecallButton } from "@/components/game/youth-scouting-recall-button";
 import { YouthCandidateRecruitment } from "@/components/game/youth-candidate-recruitment";
-import { YouthPromotionForm } from "@/components/game/youth-promotion-form";
 import {
-  YouthDismissalSelectionField,
   YouthTrainingBulkEditor,
-  YouthTrainingSettingsFields,
 } from "@/components/game/youth-training-bulk-editor";
-import {
-  RIDER_RATING_AXES,
-  type RiderRatingKey,
-} from "@/lib/game/rider-profile";
 import { TRAINING_DOMAIN_LABELS } from "@/lib/game/training";
 import type { TransferScoutingReport } from "@/lib/game/transfer-scouting";
 import {
@@ -1101,337 +1091,6 @@ function TutorialMetric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function AcademyRiderCard({
-  rider,
-  gameYear,
-  currency,
-  canSchedulePromotion,
-  rosterLimit,
-}: {
-  rider: AcademyYouth;
-  gameYear: number;
-  currency: string;
-  canSchedulePromotion: boolean;
-  rosterLimit: number;
-}) {
-  const releasePending = rider.status === "release_pending";
-
-  return (
-    <article
-      data-academy-rider-card
-      id={`junior-${rider.id}`}
-      className="overflow-hidden rounded-[1.5rem] border border-[#315B3E]/12 bg-white shadow-sm"
-    >
-      <div className="grid gap-3 p-4 xl:grid-cols-2 2xl:grid-cols-4">
-        <div className="flex h-full items-center gap-3 rounded-2xl border border-[#315B3E]/10 bg-[#F8FBF9] p-3">
-          <RiderAvatar
-            profileKey={rider.profileKey}
-            seed={rider.avatarSeed}
-            riderId={rider.id}
-            age={rider.age}
-            className="h-16 w-16"
-          />
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span
-                className={`fi fi-${rider.countryCode.toLowerCase()} h-4 w-6 rounded`}
-              />
-              <span className="text-[10px] font-black uppercase tracking-[0.13em] text-[#60756E]">
-                {rider.age} ans
-              </span>
-              {rider.age === 18 ? (
-                <span className="rounded-full bg-[#FFF0C7] px-2 py-1 text-[8px] font-black uppercase tracking-[0.09em] text-[#806114]">
-                  Dernière année
-                </span>
-              ) : null}
-            </div>
-            <h3 className="mt-1 text-lg font-black text-[#071A17]">
-              {rider.firstName} {rider.lastName}
-            </h3>
-            <p className="mt-0.5 text-xs font-extrabold text-[#278B70]">
-              {rider.sportingProfile}
-            </p>
-            <div className="mt-1.5"><RiderPersonalityBadge personality={rider.personalityKey} /></div>
-            {rider.heightCm !== null && rider.weightKg !== null ? (
-              <p className="mt-1 text-[10px] font-bold text-[#60756E]">
-                {rider.heightCm.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} cm · {rider.weightKg.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kg
-              </p>
-            ) : null}
-            <div className="mt-1.5">
-              <PotentialStars potentialSteps={rider.potentialSteps} />
-            </div>
-            {rider.nativeSpecialAbility ? (
-              <div className="mt-2 flex items-center gap-2">
-                <SpecialAbilityMedallion
-                  ability={rider.nativeSpecialAbility}
-                  unlocked
-                />
-                <span className="text-[9px] font-black uppercase leading-4 tracking-[0.09em] text-[#806114]">
-                  Talent natif
-                  <span className="block text-[#183F37] normal-case tracking-normal">
-                    {rider.nativeSpecialAbility.name}
-                  </span>
-                </span>
-              </div>
-            ) : null}
-            <div className="mt-3 border-t border-[#315B3E]/10 pt-3">
-              <RiderMoraleGauge
-                value={rider.morale}
-                events={rider.moraleEvents}
-                compact
-              />
-            </div>
-          </div>
-        </div>
-        <div className="h-full rounded-2xl border border-[#315B3E]/10 bg-[#F8FBF9] p-3 2xl:col-span-2">
-          <RatingsGrid ratings={rider.ratings} compact />
-        </div>
-        {releasePending ? (
-          <div className="rounded-2xl border border-[#D99A2B]/25 bg-[#FFF9EA] p-4 xl:col-span-2 2xl:col-span-4">
-            <p className="text-[10px] font-black uppercase tracking-[0.13em] text-[#986A17]">
-              Départ programmé · fin de saison {gameYear}
-            </p>
-            <p className="mt-2 text-sm font-bold leading-6 text-[#654B20]">
-              Le junior reste dans l’école jusqu’au changement de saison, sans
-              nouvel entraînement ni frais de scolarité. Il rejoindra les
-              agents libres au début de la saison {gameYear + 1}.
-            </p>
-            <p className="mt-2 text-xs font-semibold leading-5 text-[#806630]">
-              Sa place en Development Team et toute promotion professionnelle
-              programmée ont été annulées.
-            </p>
-          </div>
-        ) : (
-          <div className="contents">
-          <NaturalizationCard
-            eligibility={rider.naturalization}
-            subjectName={`${rider.firstName} ${rider.lastName}`}
-            subjectId={rider.id}
-            subjectIdField="academyRiderId"
-            action={naturalizeYouthRiderAction}
-            compact
-          />
-          <YouthTrainingSettingsFields
-            academyRiderId={rider.id}
-            pendingTrainingMode={rider.pendingTrainingMode}
-          />
-          <YouthTrainingMiniGame
-            academyRiderId={rider.id}
-            riderName={`${rider.firstName} ${rider.lastName}`}
-            trainingMode={rider.trainingMode}
-            gameType={rider.manualTraining.gameType}
-            currentSlotLabel={rider.manualTraining.currentSlotLabel}
-            currentSlotCompleted={rider.manualTraining.currentSlotCompleted}
-            completedSlotCount={rider.manualTraining.completedSlotCount}
-          />
-          <YouthTrainingReports
-            latestReport={rider.latestTrainingReport}
-            seasonReport={rider.seasonTrainingReport}
-          />
-          <div
-            data-academy-rider-footer
-            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#315B3E]/10 bg-[#F8FBF9] px-3 py-2.5 xl:col-span-2 2xl:col-span-4"
-          >
-            <p className="text-[10px] font-bold text-[#60756E]">
-              Scolarité :{" "}
-              <strong className="text-[#183F37]">
-                {formatCurrency(rider.tuitionPerSeason, currency)} / saison
-              </strong>
-            </p>
-            <div className="min-w-[220px] sm:max-w-sm sm:flex-1">
-              {rider.status === "recruited" ? (
-                <div className="rounded-xl bg-[#F2C94C]/20 px-3 py-2.5 text-xs font-black text-[#8A6B16]">
-                  Passage pro la saison prochaine · {rider.promotionGameYear}
-                </div>
-              ) : rider.canRecruit ? (
-                canSchedulePromotion ? (
-                  <YouthPromotionForm
-                    academyRiderId={rider.id}
-                    nextGameYear={gameYear + 1}
-                  />
-                ) : (
-                  <p className="rounded-xl bg-[#FFF0EE] px-3 py-2.5 text-[10px] font-bold text-[#8A2F2F]">
-                    Promotion impossible · {rosterLimit} places déjà engagées.
-                  </p>
-                )
-              ) : (
-                <p className="rounded-xl bg-[#F6F7F2] px-3 py-2.5 text-[10px] font-bold text-[#60756E]">
-                  Recrutable à partir de 17 ans.
-                </p>
-              )}
-            </div>
-          </div>
-          <details className="group overflow-hidden rounded-xl border border-[#C94848]/20 bg-[#FFF8F6] xl:col-span-2 2xl:col-span-4">
-            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-[10px] font-black uppercase tracking-[0.1em] text-[#8A2F2F] marker:content-none">
-              <span>Programmer le départ</span>
-              <span className="rounded-full bg-white px-3 py-1.5 text-[#A12E2E] shadow-sm">
-                Fin de saison · sans frais
-              </span>
-            </summary>
-            <div className="border-t border-[#C94848]/15 p-3 sm:p-4">
-              <p className="text-xs font-bold leading-5 text-[#775959]">
-                Le junior restera visible dans l’école jusqu’à la fin de la
-                saison, mais sa formation et ses futurs frais de scolarité
-                s’arrêteront immédiatement. Il ne rejoindra les agents libres
-                qu’au début de la saison {gameYear + 1}.
-              </p>
-              <p className="mt-2 text-[10px] font-semibold leading-4 text-[#8A6660]">
-                Il sera également retiré de la Development Team et de ses
-                sélections futures. Une inscription devenue incomplète sera
-                retirée automatiquement.
-              </p>
-              {rider.status === "recruited" ? (
-                <p className="mt-2 rounded-lg bg-[#FBE4DF] px-3 py-2 text-[10px] font-black text-[#8A2F2F]">
-                  Sa promotion déjà programmée en équipe première sera annulée.
-                </p>
-              ) : null}
-              <div className="mt-3">
-                <YouthDismissalSelectionField
-                  academyRiderId={rider.id}
-                  riderName={`${rider.firstName} ${rider.lastName}`}
-                />
-              </div>
-            </div>
-          </details>
-          </div>
-        )}
-      </div>
-    </article>
-  );
-}
-
-function YouthTrainingReports({
-  latestReport,
-  seasonReport,
-}: {
-  latestReport: AcademyYouth["latestTrainingReport"];
-  seasonReport: AcademyYouth["seasonTrainingReport"];
-}) {
-  return (
-    <section className="h-full overflow-hidden rounded-2xl border border-[#315B3E]/12 bg-white">
-      <div className="p-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[#278B70]">
-              Résultat du dernier entraînement
-            </p>
-            <p className="mt-1 text-[10px] font-semibold leading-4 text-[#60756E]">
-              Une seule séance, automatique ou manuelle, avec le détail des 13
-              statistiques.
-            </p>
-          </div>
-          {latestReport ? (
-            <div className="flex flex-wrap justify-end gap-1.5">
-              <span className="rounded-full bg-[#EAF5F3] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.1em] text-[#176951]">
-                J{latestReport.dayNumber}
-              </span>
-              <span className="rounded-full bg-[#173D35] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.1em] text-white">
-                {formatYouthTrainingReportMode(latestReport)}
-              </span>
-              {latestReport.score !== null ? (
-                <span className="rounded-full bg-[#FFF2B9] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.1em] text-[#806114]">
-                  {latestReport.score}/1000
-                </span>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
-
-        {latestReport ? (
-          <div className="mt-3">
-            <p className="mb-2 text-[8px] font-black uppercase tracking-[0.12em] text-[#60756E]">
-              Gains appliqués lors de cette séance
-            </p>
-            <YouthTrainingGainGrid changes={latestReport.ratingChanges} />
-          </div>
-        ) : (
-          <p className="mt-3 rounded-xl bg-[#F5F7F5] px-3 py-2.5 text-[10px] font-bold leading-4 text-[#60756E]">
-            Aucun entraînement enregistré pour ce junior cette saison.
-          </p>
-        )}
-      </div>
-
-      <details className="group border-t border-[#315B3E]/10 bg-[#F8FBF9]">
-        <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-[9px] font-black uppercase tracking-[0.12em] text-[#176951] marker:content-none">
-          <span>Gains depuis le début de saison</span>
-          <span className="rounded-full border border-[#176951]/20 bg-white px-2.5 py-1 text-[8px] group-open:hidden">
-            Afficher
-          </span>
-          <span className="hidden rounded-full border border-[#176951]/20 bg-white px-2.5 py-1 text-[8px] group-open:inline-flex">
-            Masquer
-          </span>
-        </summary>
-        <div className="border-t border-[#315B3E]/10 px-4 pb-4 pt-3">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <p className="text-[9px] font-bold text-[#60756E]">
-              Cumul de J{seasonReport.fromDayNumber} à J
-              {seasonReport.toDayNumber}
-            </p>
-            <p className="text-[8px] font-black uppercase tracking-[0.1em] text-[#48665F]">
-              {seasonReport.sessionCount} séance
-              {seasonReport.sessionCount > 1 ? "s" : ""}
-              {" · "}
-              {seasonReport.automaticSessionCount} auto
-              {" · "}
-              {seasonReport.manualSessionCount} manuelle
-              {seasonReport.manualSessionCount > 1 ? "s" : ""}
-            </p>
-          </div>
-          <YouthTrainingGainGrid changes={seasonReport.ratingChanges} />
-        </div>
-      </details>
-    </section>
-  );
-}
-
-function YouthTrainingGainGrid({
-  changes,
-}: {
-  changes: Record<string, number>;
-}) {
-  return (
-    <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-7">
-      {RIDER_RATING_AXES.map((axis) => {
-        const gain = changes[axis.key] ?? 0;
-
-        return (
-          <div
-            key={axis.key}
-            title={axis.label}
-            className={`rounded-lg border px-1 py-2 text-center ${
-              gain > 0
-                ? "border-[#278B70]/20 bg-[#E4F3EC]"
-                : "border-[#315B3E]/8 bg-[#F2F5F3]"
-            }`}
-          >
-            <span className="block text-[8px] font-black uppercase text-[#60756E]">
-              {axis.shortLabel}
-            </span>
-            <strong
-              className={`mt-0.5 block text-[10px] ${
-                gain > 0 ? "text-[#176951]" : "text-[#91A098]"
-              }`}
-            >
-              {formatYouthTrainingGain(gain)}
-            </strong>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function formatYouthTrainingReportMode(
-  report: NonNullable<AcademyYouth["latestTrainingReport"]>,
-) {
-  if (report.trainingMode === "automatic") return "Automatique";
-  return report.slot === "manual_am" ? "Manuel · matin" : "Manuel · soir";
-}
-
-function formatYouthTrainingGain(value: number) {
-  if (value <= 0) return "0";
-  return `+${value.toFixed(3).replace(".", ",")}`;
-}
 function MissionReport({
   mission,
   currency,
@@ -1666,50 +1325,6 @@ function CandidateCard({
   );
 }
 
-function RatingsGrid({
-  ratings,
-  compact = false,
-}: {
-  ratings: Record<RiderRatingKey, number>;
-  compact?: boolean;
-}) {
-  return (
-    <div className={`grid gap-1.5 ${compact ? "grid-cols-7" : "grid-cols-5"}`}>
-      {RIDER_RATING_AXES.map((axis) => (
-        <div
-          key={axis.key}
-          title={axis.label}
-          data-rating-importance={axis.importance}
-          className={[
-            "rounded-lg border px-1 py-1.5 text-center",
-            axis.importance === "primary"
-              ? "border-[#278B70]/18 bg-white shadow-sm"
-              : "border-[#315B3E]/8 bg-[#F1F5F3]",
-          ].join(" ")}
-        >
-          <span
-            className={
-              axis.importance === "primary"
-                ? "block text-[8px] font-black uppercase text-[#48665F]"
-                : "block text-[8px] font-bold uppercase text-[#91A098]"
-            }
-          >
-            {axis.shortLabel}
-          </span>
-          <strong
-            className={
-              axis.importance === "primary"
-                ? "mt-0.5 block text-xs text-[#071A17]"
-                : "mt-0.5 block text-xs font-bold text-[#71837D]"
-            }
-          >
-            {ratings[axis.key].toFixed(1)}
-          </strong>
-        </div>
-      ))}
-    </div>
-  );
-}
 function ActiveMissionCard({
   mission,
   currentDay,

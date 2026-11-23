@@ -2,10 +2,12 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const academyPage = readFileSync(
-  join(process.cwd(), "app/jeu/centre-de-formation/page.tsx"),
-  "utf8",
-);
+const academyPage = [
+  "app/jeu/centre-de-formation/page.tsx",
+  "components/game/academy-rider-card.tsx",
+]
+  .map((path) => readFileSync(join(process.cwd(), path), "utf8"))
+  .join("\n");
 const academyActions = readFileSync(
   join(process.cwd(), "app/jeu/centre-de-formation/actions.ts"),
   "utf8",

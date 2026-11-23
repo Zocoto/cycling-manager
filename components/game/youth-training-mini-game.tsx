@@ -7,6 +7,7 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 
 import {
@@ -68,6 +69,7 @@ export function YouthTrainingMiniGame({
   currentSlotCompleted,
   completedSlotCount,
   demoMode = false,
+  portalDialog = false,
 }: {
   academyRiderId: string;
   riderName: string;
@@ -77,6 +79,7 @@ export function YouthTrainingMiniGame({
   currentSlotCompleted: boolean;
   completedSlotCount: number;
   demoMode?: boolean;
+  portalDialog?: boolean;
 }) {
   const router = useRouter();
   const [phase, setPhase] = useState<GamePhase>("idle");
@@ -638,6 +641,80 @@ export function YouthTrainingMiniGame({
     );
   }
 
+  const dialog = showGameStart || phase === "playing" || phase === "submitting" ? (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Entraînement de ${riderName}`}
+      className={`fixed inset-0 grid place-items-center bg-[#071A17]/90 p-3 backdrop-blur-sm sm:p-6 ${
+        demoMode ? "z-[240]" : "z-[100]"
+      }`}
+    >
+      <div className="max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl overflow-y-auto rounded-[2rem] border border-white/15 bg-[#F8FBF9] shadow-[0_30px_90px_rgba(0,0,0,0.45)]">
+        <header className="flex items-center justify-between gap-4 bg-[#0B302B] px-5 py-4 text-white sm:px-7">
+          <div>
+            <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#9BE0CA]">
+              {YOUTH_TRAINING_GAME_LABELS[activeGameType]}
+            </p>
+            <h2 className="mt-1 text-lg font-black">{riderName}</h2>
+          </div>
+          <span className="rounded-full bg-white/10 px-4 py-2 text-2xl font-black tabular-nums">
+            {showGameStart
+              ? phase === "starting"
+                ? "…"
+                : "Prêt"
+              : `${secondsLeft}s`}
+          </span>
+        </header>
+
+        <div className="p-5 sm:p-8">
+          {showGameStart ? (
+            <GameStartScreen
+              durationSeconds={durationSeconds}
+              isStarting={phase === "starting"}
+              onStart={() => void startGame()}
+              onCancel={() => setShowGameStart(false)}
+            />
+          ) : phase === "submitting" ? (
+            <div className="grid min-h-72 place-items-center text-center">
+              <div>
+                <span className="mx-auto block h-12 w-12 animate-spin rounded-full border-4 border-[#176951]/20 border-t-[#176951]" />
+                <p className="mt-5 font-black text-[#0B302B]">
+                  Validation du score…
+                </p>
+              </div>
+            </div>
+          ) : (
+            <GameSurface
+              gameType={activeGameType}
+              cursorPosition={cursorPosition}
+              reflexTarget={reflexTarget}
+              liveCount={liveCount}
+              speedExpected={speedExpected}
+              timeTrialPosition={timeTrialPosition}
+              timeTrialOptimalPercent={timeTrialOptimalPercent}
+              breakawayEnergy={breakawayEnergy}
+              breakawayWindowPhase={breakawayWindowPhase}
+              breakawayCycleProgress={breakawayCycleProgress}
+              breakawayWindowStart={breakawayWindowStart}
+              breakawayFeedback={breakawayFeedback}
+              puncheurCharge={puncheurCharge}
+              puncheurFeedback={puncheurFeedback}
+              onRhythmTap={registerRhythmTap}
+              onReflexHit={registerReflexHit}
+              onSpeedTap={registerSpeedTap}
+              onTimeTrialControlStart={startTimeTrialControl}
+              onTimeTrialControlEnd={stopTimeTrialControl}
+              onBreakawayAttack={registerBreakawayAttack}
+              onPuncheurChargeStart={startPuncheurCharge}
+              onPuncheurChargeEnd={releasePuncheurCharge}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   return (
     <>
       <div className="rounded-2xl border border-[#F2C94C]/40 bg-[#FFF9E7] p-4">
@@ -674,79 +751,7 @@ export function YouthTrainingMiniGame({
         {report ? <TrainingResult report={report} demoMode={demoMode} /> : null}
       </div>
 
-      {showGameStart || phase === "playing" || phase === "submitting" ? (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label={`Entraînement de ${riderName}`}
-          className={`fixed inset-0 grid place-items-center bg-[#071A17]/90 p-3 backdrop-blur-sm sm:p-6 ${
-            demoMode ? "z-[240]" : "z-[100]"
-          }`}
-        >
-          <div className="max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl overflow-y-auto rounded-[2rem] border border-white/15 bg-[#F8FBF9] shadow-[0_30px_90px_rgba(0,0,0,0.45)]">
-            <header className="flex items-center justify-between gap-4 bg-[#0B302B] px-5 py-4 text-white sm:px-7">
-              <div>
-                <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#9BE0CA]">
-                  {YOUTH_TRAINING_GAME_LABELS[activeGameType]}
-                </p>
-                <h2 className="mt-1 text-lg font-black">{riderName}</h2>
-              </div>
-              <span className="rounded-full bg-white/10 px-4 py-2 text-2xl font-black tabular-nums">
-                {showGameStart
-                  ? phase === "starting"
-                    ? "…"
-                    : "Prêt"
-                  : `${secondsLeft}s`}
-              </span>
-            </header>
-
-            <div className="p-5 sm:p-8">
-              {showGameStart ? (
-                <GameStartScreen
-                  durationSeconds={durationSeconds}
-                  isStarting={phase === "starting"}
-                  onStart={() => void startGame()}
-                  onCancel={() => setShowGameStart(false)}
-                />
-              ) : phase === "submitting" ? (
-                <div className="grid min-h-72 place-items-center text-center">
-                  <div>
-                    <span className="mx-auto block h-12 w-12 animate-spin rounded-full border-4 border-[#176951]/20 border-t-[#176951]" />
-                    <p className="mt-5 font-black text-[#0B302B]">
-                      Validation du score…
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <GameSurface
-                  gameType={activeGameType}
-                  cursorPosition={cursorPosition}
-                  reflexTarget={reflexTarget}
-                  liveCount={liveCount}
-                  speedExpected={speedExpected}
-                  timeTrialPosition={timeTrialPosition}
-                  timeTrialOptimalPercent={timeTrialOptimalPercent}
-                  breakawayEnergy={breakawayEnergy}
-                  breakawayWindowPhase={breakawayWindowPhase}
-                  breakawayCycleProgress={breakawayCycleProgress}
-                  breakawayWindowStart={breakawayWindowStart}
-                  breakawayFeedback={breakawayFeedback}
-                  puncheurCharge={puncheurCharge}
-                  puncheurFeedback={puncheurFeedback}
-                  onRhythmTap={registerRhythmTap}
-                  onReflexHit={registerReflexHit}
-                  onSpeedTap={registerSpeedTap}
-                  onTimeTrialControlStart={startTimeTrialControl}
-                  onTimeTrialControlEnd={stopTimeTrialControl}
-                  onBreakawayAttack={registerBreakawayAttack}
-                  onPuncheurChargeStart={startPuncheurCharge}
-                  onPuncheurChargeEnd={releasePuncheurCharge}
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      ) : null}
+      {portalDialog && dialog ? createPortal(dialog, document.body) : dialog}
     </>
   );
 }

@@ -24,10 +24,12 @@ const bulkMigration = readFileSync(
   ),
   "utf8",
 );
-const academyPage = readFileSync(
-  join(process.cwd(), "app/jeu/centre-de-formation/page.tsx"),
-  "utf8",
-);
+const academyPage = [
+  "app/jeu/centre-de-formation/page.tsx",
+  "components/game/academy-rider-card.tsx",
+]
+  .map((path) => readFileSync(join(process.cwd(), path), "utf8"))
+  .join("\n");
 const academyActions = readFileSync(
   join(process.cwd(), "app/jeu/centre-de-formation/actions.ts"),
   "utf8",

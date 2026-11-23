@@ -4714,7 +4714,7 @@
   "Satisfaction sponsor": "Sponsor satisfaction",
   "Sauge": "Sage",
   "Scolarité": "Schooling",
-  "Scolarité :": "Schooling:",
+  "Scolarité :": "Tuition:",
   "Scout": "Scout",
   "Scout assigné": "Assigned Scout",
   "Scout assigné · simulation": "Assigned Scout · simulation",
@@ -19227,5 +19227,17 @@
   "Pluie": "Rain",
   "Neige": "Snow",
   "Orage": "Storm",
-  "Consulter le calendrier": "View calendar"
+  "Consulter le calendrier": "View calendar",
+  "Profil complet": "Full profile",
+  "Notes secondaires et aptitudes": "Secondary ratings and traits",
+  "Séance à jouer": "Training game available",
+  "Scolarité et avenir": "Tuition and future",
+  "Gestion": "Management",
+  "0,5 étoile": "0.5 stars",
+  "1 étoile": "1 star",
+  "1,5 étoiles": "1.5 stars",
+  "2 étoiles": "2 stars",
+  "2,5 étoiles": "2.5 stars",
+  "3,5 étoiles": "3.5 stars",
+  "4 étoiles": "4 stars"
 }
