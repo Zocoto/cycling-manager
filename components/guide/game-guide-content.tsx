@@ -2004,6 +2004,10 @@ function PagesSection() {
         L’assistant signale les pros et juniors étrangers ayant atteint l’ancienneté requise,
         hors champions nationaux. « Ignorer » masque uniquement l’alerte de ce coureur ;
         une naturalisation manuelle reste possible depuis sa fiche.
+        Le passeport sportif naturalise immédiatement un professionnel de l’équipe,
+        y compris un ancien ou un actuel champion national route ou CLM, sans
+        condition d’ancienneté. Il s’utilise depuis l’inventaire pour obtenir la
+        nationalité de l’équipe.
       </StrategyNote>
       <div className="grid gap-6 lg:grid-cols-2">
         {pageDirectory.map((section) => (

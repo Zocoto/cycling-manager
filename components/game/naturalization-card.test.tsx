@@ -33,7 +33,7 @@ describe("NaturalizationCard", () => {
     expect(markup).toContain("disabled");
   });
 
-  it("explique le blocage définitif d’un champion national", () => {
+  it("indique le passeport requis pour un champion tout en gardant l’action classique bloquée", () => {
     const markup = renderToStaticMarkup(
       <NaturalizationCard
         eligibility={{
@@ -53,9 +53,11 @@ describe("NaturalizationCard", () => {
       />,
     );
 
-    expect(markup).toContain("Pays définitif");
+    expect(markup).toContain("Passeport requis");
     expect(markup).toContain("championnat national route ou CLM");
     expect(markup).toContain("Naturalisation bloquée");
+    expect(markup).toContain("Un passeport sportif permet de le naturaliser");
+    expect(markup).not.toContain("<form");
   });
 
   it("rend l’action lorsque l’ancienneté est atteinte", () => {

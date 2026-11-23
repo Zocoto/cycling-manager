@@ -123,7 +123,7 @@ export function canReceiveInjuryCareItem(rider: ItemTargetRider) {
 }
 
 export function canUseNaturalizationPassport(rider: ItemTargetRider) {
-  // Eligibility is computed server-side from country IDs and national titles.
+  // Passport eligibility is computed server-side from country IDs.
   // Missing metadata must not offer an unverified target.
   return rider.canNaturalizeWithPassport === true;
 }

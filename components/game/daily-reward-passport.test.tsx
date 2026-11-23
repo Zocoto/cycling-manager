@@ -30,7 +30,7 @@ describe("sporting passport redemption", () => {
     expect(markup).toContain('name="inventoryId" value="passport"');
     expect(markup).not.toContain("Eligible Rider");
   });
-  it("allows a newly recruited foreign non-champion without imposing tenure", () => {
+  it("proposes every foreign rider eligible through the passport, including national champions", () => {
     const markup = render([{ ...rider, canNaturalizeWithPassport: true }]);
     expect(markup).toContain("Eligible Rider · Nationalité France");
     expect(markup).not.toMatch(/type="submit"[^>]*disabled=""/);

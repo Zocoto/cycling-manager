@@ -164,7 +164,7 @@ function CountryIdentity({
 
 function getStatusLabel(eligibility: NaturalizationEligibility): string {
   if (eligibility.eligible) return "Disponible";
-  if (eligibility.reason === "champion_locked") return "Pays définitif";
+  if (eligibility.reason === "champion_locked") return "Passeport requis";
   if (eligibility.reason === "same_nationality") return "Déjà acquise";
   if (eligibility.reason === "tenure_incomplete") return "En attente";
   return "Indisponible";
@@ -175,7 +175,7 @@ function getStatusMessage(eligibility: NaturalizationEligibility): string {
     return `L’ancienneté requise est atteinte. La nationalité du coureur peut devenir ${eligibility.targetCountry.name}.`;
   }
   if (eligibility.reason === "champion_locked") {
-    return "Ce coureur a déjà remporté un championnat national route ou CLM. Il reste définitivement attaché à son pays d’origine.";
+    return "Ce coureur a déjà remporté un championnat national route ou CLM. Un passeport sportif permet de le naturaliser depuis l’inventaire.";
   }
   if (eligibility.reason === "same_nationality") {
     return `Le coureur possède déjà la nationalité de l’équipe (${eligibility.targetCountry.name}).`;
