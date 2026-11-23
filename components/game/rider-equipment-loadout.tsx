@@ -947,7 +947,8 @@ export function EquipmentBonusSummary({
     ratingBonuses.length > 0 ||
     effects.injuryRiskReductionPct > 0 ||
     effects.breakawayReputationBonus > 0 ||
-    effects.victoryReputationBonus > 0;
+    effects.victoryReputationBonus > 0 ||
+    effects.ignoreWeatherPenalties === true;
 
   return (
     <div className="mt-3 rounded-2xl border border-white/10 bg-black/10 p-4 text-center">
@@ -967,6 +968,11 @@ export function EquipmentBonusSummary({
           {effects.injuryRiskReductionPct > 0 ? (
             <span className="rounded-full border border-[#9BE0BC]/30 bg-[#42B99A]/15 px-2.5 py-1 text-[10px] font-black text-[#9BE0BC]">
               Blessure −{formatBonus(effects.injuryRiskReductionPct)} %
+            </span>
+          ) : null}
+          {effects.ignoreWeatherPenalties === true ? (
+            <span className="rounded-full border border-[#9BE0BC]/30 bg-[#42B99A]/15 px-2.5 py-1 text-[10px] font-black text-[#9BE0BC]">
+              Ignore les malus de notes liés à la météo
             </span>
           ) : null}
           {effects.breakawayReputationBonus > 0 ? (

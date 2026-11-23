@@ -131,12 +131,15 @@ export function applyRaceWeatherRatingAdjustments(
   ratings: RiderSimulationRatings,
   weather: RaceWeather,
   hasNorthernClassicAbility = false,
-  climateProfile?: RiderClimateProfile | null
+  climateProfile?: RiderClimateProfile | null,
+  ignoreWeatherPenalties = false,
 ): RiderSimulationRatings {
-  const climateAdjustment = getRaceClimatePerformanceAdjustment(
+  const rawClimateAdjustment = getRaceClimatePerformanceAdjustment(
     climateProfile,
     weather
   );
+  const climateAdjustment = ignoreWeatherPenalties
+    ? Math.max(0, rawClimateAdjustment) : rawClimateAdjustment;
   if (!weather.isWet && climateAdjustment === 0) return ratings;
 
   const wetRoadAffinity =
@@ -149,70 +152,76 @@ export function applyRaceWeatherRatingAdjustments(
     steady: 1,
     heavy: 1.25,
   }[weather.rainIntensity];
+  const wetHandlingAdjustment = (wetRoadAffinity - 64) * 0.14 * intensityFactor;
   const handlingAdjustment = weather.isWet
     ? clamp(
-        (wetRoadAffinity - 64) * 0.14 * intensityFactor +
+        (ignoreWeatherPenalties ? Math.max(0, wetHandlingAdjustment) : wetHandlingAdjustment) +
           (hasNorthernClassicAbility ? 1.25 : 0),
         -2.75,
         3.75
       )
     : 0;
+  // Preserve equipment-shifted ceilings, including exactly 100, rather than
+  // allowing an unchanged wet-weather axis to be rounded back down to 99.
+  const adjustRating = ignoreWeatherPenalties
+    ? (value: number, current: number) => Math.max(current, clampRating(value, current))
+    : clampRating;
 
   return {
     ...ratings,
-    flat: clampRating(
+    flat: adjustRating(
       ratings.flat + handlingAdjustment * 0.52 + climateAdjustment,
       ratings.flat,
     ),
-    mountain: clampRating(
+    mountain: adjustRating(
       ratings.mountain + climateAdjustment,
       ratings.mountain,
     ),
-    hills: clampRating(
+    hills: adjustRating(
       ratings.hills + handlingAdjustment * 0.36 + climateAdjustment,
       ratings.hills,
     ),
-    cobbles: clampRating(
+    cobbles: adjustRating(
       ratings.cobbles + handlingAdjustment + climateAdjustment,
       ratings.cobbles,
     ),
-    downhill: clampRating(
+    downhill: adjustRating(
       ratings.downhill +
         handlingAdjustment * 0.68 +
         climateAdjustment * 0.75,
       ratings.downhill,
     ),
-    sprint: clampRating(
+    sprint: adjustRating(
       ratings.sprint + climateAdjustment * 0.65,
       ratings.sprint,
     ),
-    acceleration: clampRating(
+    acceleration: adjustRating(
       ratings.acceleration + climateAdjustment * 0.7,
       ratings.acceleration,
     ),
-    timeTrial: clampRating(
+    timeTrial: adjustRating(
       ratings.timeTrial + climateAdjustment * 0.8,
       ratings.timeTrial,
     ),
-    prologue: clampRating(
+    prologue: adjustRating(
       ratings.prologue + climateAdjustment * 0.75,
       ratings.prologue,
     ),
-    endurance: clampRating(
+    endurance: adjustRating(
       ratings.endurance + climateAdjustment,
       ratings.endurance,
     ),
-    resistance: clampRating(
+    resistance: adjustRating(
       ratings.resistance +
         Math.max(0, handlingAdjustment) * 0.25 +
         climateAdjustment,
       ratings.resistance,
     ),
-    recovery: clampRating(
+    recovery: adjustRating(
       ratings.recovery + climateAdjustment * 0.55,
       ratings.recovery,
     ),
-    breakaway: clampRating(
+    breakaway: adjustRating(
       ratings.breakaway + climateAdjustment * 0.75,
       ratings.breakaway,
     ),

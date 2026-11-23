@@ -15,7 +15,7 @@ const plain = value => JSON.parse(JSON.stringify(value));
 function preview(seed = {}, hash = "#tournee") {
   const elements = new Map(), documentListeners = new Map(), windowListeners = new Map();
   const storage = new Map([[storeKey, JSON.stringify(seed)]]);
-  const acknowledgements = [];
+  const acknowledgements = [], sniperMessages = [];
   const treeRenders = [];
   class Element {
     constructor() {
@@ -49,7 +49,7 @@ function preview(seed = {}, hash = "#tournee") {
   const views = ["noel", "tournee", "avent", "boutique", "sapin", "inventaire", "bureau", "gazette"].map(view => {
     const node = new Element(); node.dataset.view = view; return node;
   });
-  const frameWindow = { postMessage: (data, origin) => acknowledgements.push({ data: plain(data), origin }) };
+  const frameWindow = { postMessage: (data, origin) => (data.type === "noel:tournee-lunette" ? sniperMessages : acknowledgements).push({ data: plain(data), origin }) };
   element("#tournee-frame").contentWindow = frameWindow;
   element("#tournee-frame").dataset.src = "tournee.html";
   const document = {
@@ -91,9 +91,9 @@ function preview(seed = {}, hash = "#tournee") {
     source: frameWindow, origin: scope.location.origin, data: payload, ...extras,
   });
   return {
-    state: () => JSON.parse(storage.get(storeKey)), click, message, acknowledgements,
+    state: () => JSON.parse(storage.get(storeKey)), click, message, acknowledgements, sniperMessages,
     items: plain(scope.noelCatalogue.items), advent: plain(scope.noelCatalogue.advent), element,
-    start: runId => message({ type: "noel:tournee-demarree", runId }),
+    start: (runId, sniper = false) => message({ type: "noel:tournee-demarree", runId, sniper }),
     finish: (runId, score = 1100, deliveries = 5) => message({ type: "noel:tournee-terminee", runId, score, deliveries }),
     summary: () => element("#flight-result").innerHTML,
     tree: () => treeRenders.at(-1),
@@ -304,14 +304,15 @@ for (const item of catalog.filter(item => !item.source && item.category !== "por
   const helmetId = "bonnet-course-noel";
   const locked = preview({ communityLights: 23499, deliveries: 0, quantities: {} }, "#sapin");
   const before = locked.state(); locked.click("claim-tree", "23500");
-  same(locked.state(), before, "The helmet tier cannot be claimed before 23,500 collective lights");
-  const p = preview({ communityLights: 23500, deliveries: 0, quantities: {} }, "#inventaire");
-  p.click("claim-tree", "23500");
-  same(p.state().quantities[helmetId], 1, "The tier grants one permanent helmet");
-  same(p.state().quantities["booster-noel"], 2, "The new helmet preserves both existing booster prizes");
-  same(p.state().quantities["vignette-renne"], 2, "The new helmet preserves both existing rare stickers");
-  const claimed = p.state(); p.click("claim-tree", "23500");
-  same(p.state(), claimed, "Claiming the tier twice never duplicates the helmet or other gifts");
+  same(locked.state(), before, "The 23,500-light collective tier remains locked below its threshold");
+  const collective = preview({ communityLights: 23500, deliveries: 0, quantities: {} }, "#inventaire");
+  collective.click("claim-tree", "23500");
+  same(collective.state().quantities[helmetId], undefined, "The collective tier no longer gives every player a contributor helmet");
+  same(collective.state().quantities["booster-noel"], 2, "The collective tier preserves both existing booster prizes");
+  same(collective.state().quantities["vignette-renne"], 2, "The collective tier preserves both existing rare stickers");
+  const claimed = collective.state(); collective.click("claim-tree", "23500");
+  same(collective.state(), claimed, "Claiming the collective tier twice never duplicates its gifts");
+  const p = preview({ quantities: { [helmetId]: 1 } }, "#inventaire");
   p.click("inventory-item", helmetId);
   check(p.element("#dialog-body").innerHTML.includes("Casque") && p.element("#dialog-body").innerHTML.includes("+2 MON · +2 RES"), "The inventory identifies helmet equipment and its exact bonuses");
   p.element("#item-target").value = "rider-a"; p.click("use-item", helmetId);
@@ -330,8 +331,107 @@ for (const item of catalog.filter(item => !item.source && item.category !== "por
   unavailable.element("#item-target").value = "rider-a"; unavailable.click("use-item", helmetId);
   same(unavailable.state().riderEquipment, {}, "A forged equip action cannot grant an unowned helmet");
   const migrated = preview({ milestones: [23500], quantities: {}, balance: 100 });
-  same(migrated.state().quantities[helmetId], 1, "An already claimed local preview tier receives its newly added helmet once");
+  same(migrated.state().quantities[helmetId], undefined, "An old collective tier never retroactively creates a contributor helmet");
   same(migrated.state().balance, 100, "Updating an old preview tier grants no extra currency");
-  same(preview(migrated.state()).state().quantities[helmetId], 1, "Reloading the preview migration does not duplicate its helmet");
+  same(preview(migrated.state()).state().quantities[helmetId], undefined, "Reloading the preview does not grant a contributor helmet");
+}
+{
+  const sniperId = "lunette-sniper-cadeaux";
+  const scope = catalog.find(item => item.id === sniperId);
+  check(scope?.price === 10 && scope.category === "gestion" && scope.useKind === "sniper" && !("limit" in scope), "The gift sniper scope costs ten Grelots and can be bought repeatedly");
+  const p = preview({ quantities: {} });
+  p.message({ type: "noel:tournee-prete", runId: "ready-without-scope" });
+  same(p.sniperMessages.at(-1).data, { type: "noel:tournee-lunette", available: 0, prepared: false }, "A fresh mini-game receives zero automatic throws without an owned scope");
+  p.start("without-scope", true);
+  check(p.sniperMessages.at(-1).data.active === false && p.sniperMessages.at(-1).data.available === 0, "Requesting automatic launch without stock is explicitly refused");
+  same(p.state().quantities[sniperId], undefined, "A refused automatic launch neither invents nor consumes a scope");
+  p.finish("without-scope");
+  same(p.state().runs[12].reward, 18, "A refused scope does not prevent the ordinary run from settling");
+}
+{
+  const sniperId = "lunette-sniper-cadeaux";
+  const p = preview({ quantities: { [sniperId]: 2 } }, "#inventaire");
+  p.click("inventory-item", sniperId); p.click("use-item", sniperId);
+  same(p.state().quantities[sniperId], 2, "Preparing the scope preserves stock until departure");
+  same(p.state().sniperPrepared, true, "Preparing the scope arms exactly the next departure");
+  const prepared = p.state(); p.click("use-item", sniperId);
+  same(p.state(), prepared, "Preparing twice does not stack scope effects or consume a second item");
+  const restored = preview(p.state());
+  restored.element("#preview-day").value = "13"; restored.element("#preview-day").listeners.get("change")();
+  restored.message({ type: "noel:tournee-prete", runId: "ready-after-reload" });
+  same(restored.sniperMessages.at(-1).data.prepared, true, "A prepared, unused scope survives reloading and changing the preview day");
+  restored.start("assisted-a", true);
+  same(restored.state().quantities[sniperId], 1, "One assisted departure consumes exactly one scope");
+  same(restored.state().sniperPrepared, false, "Departing clears the one-run preparation");
+  check(restored.sniperMessages.at(-1).data.active === true && restored.sniperMessages.at(-1).data.runId === "assisted-a", "The iframe receives an authorization bound to this precise run");
+  const started = restored.state(); restored.start("assisted-a", true);
+  same(restored.state(), started, "A repeated departure message for the same run never consumes another scope");
+  restored.click("use-item", sniperId);
+  same(restored.state(), started, "An ongoing run cannot reserve or consume another scope");
+  restored.finish("assisted-a");
+  restored.message({ type: "noel:tournee-prete", runId: "assisted-a" });
+  same(restored.sniperMessages.at(-1).data.prepared, false, "Finishing does not automatically prepare the next scope even with spare stock");
+  restored.start("manual-b"); restored.finish("manual-b");
+  same(restored.state().quantities[sniperId], 1, "The following manual run preserves the spare scope");
+  const after = preview(restored.state()); const beforeOldMessage = after.state();
+  after.start("assisted-a", true);
+  same(after.state(), beforeOldMessage, "Replaying an old assisted run after reload cannot consume the spare scope");
+}
+{
+  const sniperId = "lunette-sniper-cadeaux";
+  const p = preview({ quantities: { [sniperId]: 1 }, sniperPrepared: true });
+  p.start("manual-prepared", false);
+  same(p.state().quantities[sniperId], 1, "Unchecking the option before departure preserves the item");
+  same(p.state().sniperPrepared, false, "A manual departure also clears preparation so a later run is not silently assisted");
+  p.finish("manual-prepared"); p.start("last-scope", true);
+  check(p.sniperMessages.at(-1).data.active === true && p.sniperMessages.at(-1).data.available === 0, "Using the last scope authorizes its run even though remaining stock is zero");
+  p.message({ type: "noel:tournee-prete", runId: "new-iframe-after-abandon" });
+  same(p.state().quantities[sniperId], 0, "Reloading or abandoning an assisted run never refunds the used scope");
+  const abandoned = p.state(); p.finish("last-scope");
+  same(p.state(), abandoned, "An abandoned run cannot return later to settle rewards");
+  p.click("buy", sniperId); p.click("use-item", sniperId);
+  same(p.state().sniperPrepared, true, "After reloading the iframe, a fresh purchased scope can be prepared instead of being stuck behind the abandoned run");
+  const reloaded = preview(p.state()); const before = reloaded.state();
+  reloaded.start("last-scope", true);
+  same(reloaded.state(), before, "An abandoned run identifier cannot be billed again after page reload");
+  const messagesBefore = reloaded.sniperMessages.length;
+  reloaded.message({ type: "noel:tournee-demarree", runId: "forged-auto", sniper: true }, { origin: "https://other.example.test" });
+  reloaded.message({ type: "noel:tournee-demarree", runId: "forged-auto", sniper: true }, { source: {} });
+  same(reloaded.state(), before, "A different source or origin cannot consume a prepared scope");
+  same(reloaded.sniperMessages.length, messagesBefore, "A foreign source or origin never receives scope authorization");
+}
+{
+  const sniperId = "lunette-sniper-cadeaux";
+  const p = preview({ quantities: { [sniperId]: 2 } }, "#inventaire");
+  p.click("use-item", sniperId);
+  p.message({ type: "noel:tournee-lunette-choix", prepared: false });
+  same(p.state().sniperPrepared, false, "Unchecking the scope in the mini-game clears the persisted preparation");
+  same(p.state().quantities[sniperId], 2, "Unchecking a prepared scope preserves every owned item");
+  p.click("buy", "boussole-polaire");
+  same(p.sniperMessages.at(-1).data.prepared, false, "An unrelated shop purchase and commit cannot recheck the scope after a manual choice");
+  const restored = preview(p.state());
+  restored.message({ type: "noel:tournee-prete", runId: "ready-after-uncheck" });
+  same(restored.sniperMessages.at(-1).data.prepared, false, "A reload preserves the player's unchecked scope choice");
+  restored.message({ type: "noel:tournee-lunette-choix", prepared: true });
+  same(restored.state().sniperPrepared, true, "Checking an owned scope arms the same persisted preparation as inventory use");
+  same(restored.state().quantities[sniperId], 2, "Checking a scope never consumes it before departure");
+  restored.start("choice-start", true);
+  const running = restored.state(), beforeMessages = restored.sniperMessages.length;
+  restored.message({ type: "noel:tournee-lunette-choix", prepared: true });
+  restored.message({ type: "noel:tournee-lunette-choix", prepared: false });
+  same(restored.state(), running, "Checkbox messages during an active run cannot change its preparation, grant or inventory");
+  same(restored.sniperMessages.length, beforeMessages, "In-run preparation changes are ignored without an extra authorization");
+  const empty = preview({ quantities: {} }), before = empty.state();
+  empty.message({ type: "noel:tournee-lunette-choix", prepared: true });
+  same(empty.state(), before, "A scope choice with no stock cannot arm free assistance");
+  empty.message({ type: "noel:tournee-lunette-choix", prepared: false });
+  same(empty.state().sniperPrepared, false, "Disabling the option remains harmless with no stock");
+  const other = preview({ quantities: { [sniperId]: 1 } }), otherBefore = other.state();
+  const otherMessages = other.sniperMessages.length;
+  other.message({ type: "noel:tournee-lunette-choix", prepared: true }, { origin: "https://other.example.test" });
+  other.message({ type: "noel:tournee-lunette-choix", prepared: true }, { source: {} });
+  other.message({ type: "noel:tournee-lunette-choix", prepared: "true" });
+  same(other.state(), otherBefore, "Foreign origins, foreign frames and non-boolean scope choices cannot arm assistance");
+  same(other.sniperMessages.length, otherMessages, "Invalid preparation messages never receive an authorization response");
 }
 console.log(`Passed ${checks} Christmas preview purchase, run balance and replay flow checks.`);

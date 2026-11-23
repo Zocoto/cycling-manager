@@ -448,6 +448,25 @@
     star(context, 22, 32, 3.5, brass);
     star(context, 101, 81, 2.5, brass);
     switch (itemId) {
+      case "lunette-sniper-cadeaux":
+        // A festive optical sight, matching the other drawn Christmas objects.
+        line(context, "M49 72L39 94M65 73L79 94M55 75V96", brass, 3);
+        context.save();
+        context.translate(60, 53);
+        context.rotate(-.28);
+        rounded(context, -36, -11, 66, 23, 6, "#ab7f4f");
+        rounded(context, -29, -9, 48, 19, 4, pine);
+        rounded(context, -39, -12, 10, 26, 3, brass);
+        rounded(context, 14, -17, 19, 35, 4, brass);
+        ellipse(context, 29, .5, 10, 16, "#283c42");
+        ellipse(context, 30, .5, 6.5, 12, "#a7d8df");
+        line(context, "M30-7V8M26 .5H34", "#f7f2da", 1.1);
+        rounded(context, -8, -11, 8, 23, 1, cranberry);
+        fillPath(context, "M-4-11Q-20-26-17-12Q-12-4-4-11M-4-11Q10-27 11-14Q8-6-4-11Z", cranberry);
+        ellipse(context, -4, -12, 3, 3, "#d87876");
+        line(context, "M-4-12L-12-3M-4-12L3-2", cranberry, 3);
+        context.restore();
+        break;
       case "bonnet-course-noel":
         // Vented cycling shell, wool brim and pompom: equipment, not a portrait hat.
         fillPath(context, "M25 71Q22 40 44 29Q66 18 88 36Q101 48 96 71L84 76H34Z", "#a63b49");

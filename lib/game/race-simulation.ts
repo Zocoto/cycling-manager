@@ -1436,6 +1436,7 @@ function normalizeStageSimulationInput(
           weather,
           hasSpecialAbility(rider, "flahute"),
           climateProfile,
+          rider.equipmentEffects?.ignoreWeatherPenalties === true,
         );
         const reconnaissanceAdjustedRatings = applyReconnaissanceRatingBonus(
           weatherAdjustedRatings,

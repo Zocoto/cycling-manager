@@ -8,7 +8,7 @@
     { goal: 10000, name: "La couronne du Peloton", grelots: 0, items: ["cadre-grand-sapin", "talent-revealed"] },
     { goal: 14000, name: "Les éclaireurs polaires", grelots: 0, items: ["boussole-polaire", "carnet-eclaireur", "personality-reroll"] },
     { goal: 19000, name: "L’aurore des champions", grelots: 0, items: ["tenue-aurore"] },
-    { goal: 23500, name: "Le bonnet de course de Noël", grelots: 0, items: ["bonnet-course-noel", "booster-noel", "booster-noel", "vignette-renne", "vignette-renne"] },
+    { goal: 23500, name: "La hotte précieuse", grelots: 0, items: ["booster-noel", "booster-noel", "vignette-renne", "vignette-renne"] },
     { goal: 28000, name: "L’étoile du Peloton", grelots: 0, items: ["potential-notebook"] },
   ];
 

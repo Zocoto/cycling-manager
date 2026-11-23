@@ -10,6 +10,7 @@
   const esc = value => String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
   const storeKey = "cyclostratege-pilote-noel-v2";
   const itemById = new Map(items.map(item => [item.id, item]));
+  const sniperItemId = "lunette-sniper-cadeaux";
   const views = all("[data-view]");
   const dialog = find("#pilot-dialog"), dialogBody = find("#dialog-body"), frame = find("#tournee-frame");
   const categories = { tout: "Tout", portrait: "Portrait", gestion: "Consommables", collection: "Collection" };
@@ -41,6 +42,7 @@
       day: 12, balance: 540, opened: [],
       quantities: { "booster-noel": 1, "boussole-polaire": 1, "carnet-eclaireur": 1, "grelot-repechage": 1, "vignette-renne": 1 },
       bought: {}, equipped: {}, runs: {}, settledRunIds: [], retryDays: [], deliveries: 0,
+      sniperPrepared: false, sniperConsumedRunIds: [],
       communityLights: 4200, participants: 42, milestones: [], log: [],
       stickers: { 6: 4, 7: 1 }, boosters: 0, scoutingUntil: null, reconnaissances: [], potential: {}, personalities: {}, abilities: {}, riderEquipment: {}, lastFlight: null,
     };
@@ -61,17 +63,15 @@
       // Already opened preview windows now contain their new Advent-exclusive
       // portrait. Preserve the rest of the tester's local inventory.
       restored.quantities = { ...restored.quantities };
+      restored.sniperPrepared = restored.sniperPrepared === true && Number.isSafeInteger(restored.quantities[sniperItemId]) && restored.quantities[sniperItemId] > 0;
+      restored.sniperConsumedRunIds = [...new Set((Array.isArray(restored.sniperConsumedRunIds) ? restored.sniperConsumedRunIds : [])
+        .filter(id => typeof id === "string" && id.length > 0 && id.length <= 120))];
       restored.riderEquipment = restored.riderEquipment && typeof restored.riderEquipment === "object" && !Array.isArray(restored.riderEquipment)
         ? restored.riderEquipment : {};
       for (const day of restored.opened) {
         const gift = advent[day - 1];
         const item = gift?.kind === "item" ? itemById.get(gift.itemId) : null;
         if (item?.source === "avent") restored.quantities[item.id] = Math.max(1, restored.quantities[item.id] ?? 0);
-      }
-      // Keep an already-claimed preview tier complete after adding its helmet.
-      const helmetTier = milestones.find(entry => entry.items.includes("bonnet-course-noel"));
-      if (Array.isArray(restored.milestones) && restored.milestones.includes(helmetTier.goal)) {
-        restored.quantities["bonnet-course-noel"] = Math.max(1, restored.quantities["bonnet-course-noel"] ?? 0);
       }
       return restored;
     } catch { return fresh(); }
@@ -126,7 +126,16 @@
     clearTimeout(toastTimer); toast.textContent = message; toast.hidden = false;
     toastTimer = setTimeout(() => { toast.hidden = true; }, 5000);
   }
-  function commit(message) { save(); render(); if (message) notify(message); }
+  function sniperStock() {
+    const available = quantity(sniperItemId);
+    return Number.isSafeInteger(available) && available > 0 ? available : 0;
+  }
+  function sendSniperState(overrides = {}) {
+    if (!frame.contentWindow) return;
+    const running = activeFlight && !activeFlight.settled ? { runId: activeFlight.runId, active: activeFlight.sniper === true } : {};
+    frame.contentWindow.postMessage({ type: "noel:tournee-lunette", available: sniperStock(), prepared: state.sniperPrepared === true && sniperStock() > 0, ...running, ...overrides }, window.location.origin);
+  }
+  function commit(message) { save(); render(); sendSniperState(); if (message) notify(message); }
   function navigate() {
     const requested = window.location.hash.slice(1);
     if (requested === "contenu") return;
@@ -208,7 +217,7 @@
     find("#portrait-slots").innerHTML = Object.entries(slots).map(([slot, label]) => `<div><span>${label}</span><strong>${esc(itemById.get(state.equipped[slot])?.name ?? "—")}</strong></div>`).join("");
     const inventory = items.filter(owns).map(item => {
       const rider = item.category === "equipment" ? previewRiders.find(rider => state.riderEquipment[rider.id]?.[item.equipmentSlot] === item.id) : null;
-      return `<article class="inventory-card"><canvas width="128" height="128" data-art="${item.art}"></canvas><div><h3>${esc(item.name)}</h3>${item.source === "avent" ? '<span class="item-exclusive">Exclusivité de l’Avent</span>' : ""}<p>Quantité · ${quantity(item.id)}</p>${item.category === "equipment" ? `<p>Casque · +2 MON · +2 RES${rider ? `<br>Équipé sur ${esc(rider.name)}` : ""}</p>` : ""}</div>
+      return `<article class="inventory-card"><canvas width="128" height="128" data-art="${item.art}"></canvas><div><h3>${esc(item.name)}</h3>${item.source === "avent" ? '<span class="item-exclusive">Exclusivité de l’Avent</span>' : ""}<p>Quantité · ${quantity(item.id)}</p>${item.id === sniperItemId && state.sniperPrepared ? '<p>Lunette prête pour la prochaine tournée.</p>' : ""}${item.category === "equipment" ? `<p>Casque · +2 MON · +2 RES${rider ? `<br>Équipé sur ${esc(rider.name)}` : ""}</p>` : ""}</div>
       <button class="button button-outline" data-action="inventory-item" data-id="${item.id}">${item.category === "equipment" ? "Équiper sur un coureur" : item.slot ? (state.equipped[item.slot] === item.id ? "Retirer" : "Équiper") : item.id === "booster-noel" || item.id === "vignette-renne" ? "Ouvrir" : "Utiliser"}</button></article>`;
     }).join("");
     const collection = Object.entries(state.stickers).filter(([, count]) => count > 0);
@@ -223,6 +232,10 @@
     find("#activity-log").innerHTML = state.log.length ? `<div class="log"><h2>Dernières activités</h2>${state.log.slice(0, 8).map(entry => `<div class="log-entry"><span>${esc(entry.message)}</span><span>${esc(dayLabel(entry.day))}</span></div>`).join("")}</div>` : "";
   }
   function showUseDialog(item) {
+    if (item.id === sniperItemId) {
+      openDialog(`<h2 id="dialog-heading">${esc(item.name)}</h2><canvas class="reward-art" width="340" height="190" data-art="${item.art}"></canvas><p>${esc(item.effect)}</p><p>${state.sniperPrepared ? "Une lunette est déjà prête pour la prochaine tournée." : "Prépare une lunette pour ta prochaine tournée. Tu peux décocher l’option avant le départ pour conserver l’objet."}</p><div class="dialog-actions"><button class="button button-dark" data-action="use-item" data-id="${item.id}">Préparer ma prochaine tournée</button></div>`);
+      return;
+    }
     if (item.category === "equipment") {
       const equippedRider = previewRiders.find(rider => state.riderEquipment[rider.id]?.[item.equipmentSlot] === item.id);
       openDialog(`<p class="dialog-kicker">Équipement de coureur · Casque</p><h2 id="dialog-heading">${esc(item.name)}</h2><canvas class="reward-art" width="340" height="190" data-art="${item.art}"></canvas><p>${esc(item.effect)}</p>${equippedRider ? `<p>Équipé sur ${esc(equippedRider.name)}. Choisir un autre coureur lui transfère ce casque.</p>` : ""}<label class="target-field">Coureur<select id="item-target">${previewRiders.map(rider => `<option value="${rider.id}" ${rider.id === equippedRider?.id ? "selected" : ""}>${esc(rider.name)} · +2 MON · +2 RES</option>`).join("")}</select></label><div class="dialog-actions"><button class="button button-dark" data-action="use-item" data-id="${item.id}">Équiper le casque</button></div>`);
@@ -248,6 +261,14 @@
   }
   function applyItem(item) {
     if (!item || quantity(item.id) < 1) return;
+    if (item.id === sniperItemId) {
+      if (activeFlight && !activeFlight.settled) return notify("Termine la tournée en cours avant de préparer une lunette. L’objet est conservé.");
+      if (state.sniperPrepared) return notify("Une lunette est déjà prête pour la prochaine tournée. Aucun exemplaire supplémentaire n’est utilisé.");
+      state.sniperPrepared = true;
+      dialog.close(); commit("Lunette prête : un seul exemplaire sera utilisé au décollage si le lancer automatique est activé.");
+      window.location.hash = "#tournee";
+      return;
+    }
     if (item.category === "equipment") {
       const rider = previewRiders.find(candidate => candidate.id === find("#item-target")?.value);
       if (!rider) return;
@@ -356,11 +377,44 @@
     const payload = event.data;
     if (!payload || typeof payload !== "object") return;
     if (payload.type === "noel:tournee-hauteur" && Number.isFinite(payload.height)) frame.style.height = Math.max(310, Math.min(1000, payload.height + 3)) + "px";
+    else if (payload.type === "noel:tournee-lunette-choix") {
+      if (typeof payload.prepared !== "boolean" || (activeFlight && !activeFlight.settled)) return;
+      if (payload.prepared && sniperStock() < 1) { sendSniperState(); return; }
+      state.sniperPrepared = payload.prepared;
+      save(); sendSniperState();
+    }
+    else if (payload.type === "noel:tournee-prete") {
+      if (typeof payload.runId !== "string" || !payload.runId.length || payload.runId.length > 120) return;
+      // A reloaded iframe has a fresh run. The interrupted run cannot award
+      // rewards or return a scope already consumed at its departure.
+      if (activeFlight && !activeFlight.settled && activeFlight.runId !== payload.runId) {
+        activeFlight.settled = true;
+        if (!state.settledRunIds.includes(activeFlight.runId)) state.settledRunIds.push(activeFlight.runId);
+        save(); renderFlight();
+      }
+      sendSniperState();
+    }
     else if (payload.type === "noel:tournee-demarree") {
-      if (typeof payload.runId !== "string" || !payload.runId.length || payload.runId.length > 120
-        || state.settledRunIds.includes(payload.runId) || activeFlight?.runId === payload.runId) return;
+      if (typeof payload.runId !== "string" || !payload.runId.length || payload.runId.length > 120) return;
+      if (activeFlight?.runId === payload.runId) {
+        sendSniperState({ runId: payload.runId, active: !activeFlight.settled && activeFlight.sniper === true, prepared: false });
+        return;
+      }
+      if (state.settledRunIds.includes(payload.runId) || state.sniperConsumedRunIds.includes(payload.runId)) {
+        sendSniperState({ runId: payload.runId, active: false, prepared: false });
+        return;
+      }
       currentRunDay = state.day;
-      activeFlight = { day: state.day, runId: payload.runId, settled: false, retry: state.retryDays.includes(state.day) };
+      const sniper = payload.sniper === true && sniperStock() > 0;
+      activeFlight = { day: state.day, runId: payload.runId, settled: false, retry: state.retryDays.includes(state.day), sniper };
+      state.sniperPrepared = false;
+      if (sniper) {
+        state.quantities[sniperItemId] = sniperStock() - 1;
+        state.sniperConsumedRunIds.push(payload.runId);
+        record("Tournée · Lunette de sniper de cadeaux utilisée pour cette tournée");
+      }
+      sendSniperState({ runId: payload.runId, active: sniper, prepared: false });
+      save();
       renderFlight();
     }
     else if (payload.type === "noel:tournee-terminee") {
@@ -429,5 +483,6 @@
   document.addEventListener("click", onAction);
   window.addEventListener("hashchange", navigate);
   window.addEventListener("message", receiveFlight);
+  frame.addEventListener("load", () => sendSniperState());
   navigate();
 })();

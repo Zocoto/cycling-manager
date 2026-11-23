@@ -7,8 +7,8 @@ Le brouillon privé de Noël conserve ses accès Zocoto, Ujik et Fra Troisset, s
 - Mascotte : renne cycliste brun, maillot bordeaux, cuissard vert, nez en véritable petite lanterne rouge et expression malicieuse.
 - Illustration transparente réutilisée dans le héros, le ciel du village de l’Avent et le ciel du sapin. Les fenêtres, les marqueurs et l’étoile restent dégagés.
 - Dans le mini-jeu, Rudolphe remplace le Père Noël à l’avant du traîneau. Le dessin Canvas conserve les repères de la mascotte et ne modifie ni la physique, ni les collisions, ni les commandes, ni les récompenses.
-- Palier collectif 23 500 lumières : ajout du Bonnet de course de Noël, équipement casque donnant exactement +2 MON et +2 RES, avec les cadeaux précédents conservés.
-- Sommet 28 000 lumières : Carnet de progression existant, inchangé. Le bonnet apparaît sous l’étoile et ses bonus sont explicitement affichés dans la liste.
+- Bonnet de course de Noël : équipement casque donnant exactement +2 MON et +2 RES, réservé aux contributeurs classés 4e–6e. Il ne fait pas partie des récompenses communes du sapin.
+- Palier collectif 23 500 lumières : La hotte précieuse, deux boosters et deux vignettes surprises. Sommet 28 000 lumières : Carnet de progression existant, inchangé.
 - Dans l’inventaire du brouillon, le casque peut être équipé sur un coureur puis transféré, sans consommation ni cumul. Ce fonctionnement ne constitue pas une attribution à un compte de production.
 
 ## Illustration

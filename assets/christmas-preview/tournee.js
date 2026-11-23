@@ -70,6 +70,8 @@
       const sleighLabel = root.querySelector("[data-sleigh]");
       const targetLabel = root.querySelector("[data-target]");
       const autoDrop = root.querySelector("[data-auto-drop]");
+      const sniperControl = root.querySelector("[data-sniper-control]");
+      const sniperStatus = root.querySelector("[data-sniper-status]");
       const progress = root.querySelector("[data-progress]");
       const progressBar = progress.firstElementChild;
       const summary = root.querySelector("[data-flight-summary]");
@@ -81,9 +83,7 @@
       const summaryNote = root.querySelector("[data-summary-note]");
       const darkMode = matchMedia("(prefers-color-scheme: dark)");
       const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
-      let automaticPreference = null;
       function setTouchControls(isTouch) {
-        autoDrop.checked = automaticPreference ?? isTouch;
         shell.classList.toggle("is-touch", isTouch);
       }
       setTouchControls(matchMedia("(pointer: coarse)").matches);
@@ -104,6 +104,7 @@
         speed: 13 + (i % 7) * 3,
       }));
       let runSerial = 0;
+      let sniperAvailable = 0;
       let game = newFlight();
       let pointer = null;
       let previousFrame = 0;
@@ -115,6 +116,7 @@
           mode: "ready", time: 0, distance: 0,
           runId: "tournee-" + Date.now().toString(36) + "-" + (++runSerial).toString(36),
           summaryReceived: false,
+          sniperRequested: false, sniperGranted: false,
           player,
           sleigh: physics.createSleigh(player),
           chimneys: route.map(([x, y, size]) => ({ x, y, size, outcome: "open" })),
@@ -123,6 +125,25 @@
           dropLockedUntil: 0, contactedObstacles: new Set(),
           nextReleaseAt: 0,
         };
+      }
+
+      function syncSniperControls() {
+        const active = game.mode === "playing" && game.sniperGranted;
+        sniperControl.hidden = !active && sniperAvailable === 0;
+        autoDrop.disabled = game.mode === "playing" ? !active : sniperAvailable === 0;
+        if (autoDrop.disabled) autoDrop.checked = false;
+        sniperStatus.textContent = active
+          ? "Lunette de sniper de cadeaux active pour cette tournée uniquement."
+          : game.mode === "playing" ? "Lancer manuel pour cette tournée. Prépare ta lunette avant le prochain départ."
+            : sniperAvailable > 0
+              ? `${sniperAvailable} lunette${sniperAvailable > 1 ? "s" : ""} disponible${sniperAvailable > 1 ? "s" : ""} · coche l’option avant de décoller. Une lunette sera utilisée au départ.`
+              : "Lancer manuel · la Lunette de sniper de cadeaux débloque le lancer automatique pour une tournée. Disponible à la boutique de Noël pour 10 Grelots.";
+      }
+
+      function readyForSniper() {
+        autoDrop.checked = false;
+        syncSniperControls();
+        notifyPilot("noel:tournee-prete", { runId: game.runId });
       }
 
       function clamp(value, min, max) {
@@ -301,7 +322,7 @@
         updatePlayer();
         physics.updateSleigh(game.sleigh, game.player, step);
         updateObstacleHits();
-        if (autoDrop.checked && canRelease()) {
+        if (game.sniperGranted && autoDrop.checked && canRelease()) {
           const parcel = launchState();
           const landing = findLanding(parcel);
           // Use the same ballistic landing and opening as a manual throw.
@@ -320,6 +341,7 @@
         }
         if (game.distance < routeEnd) return;
         game.mode = "finished";
+        game.sniperGranted = false;
         keys.clear();
         pointer = null;
         primary.textContent = "Rejouer";
@@ -330,6 +352,7 @@
         summaryValues.hidden = true;
         summaryNote.textContent = "Bilan en cours…";
         notifyPilot("noel:tournee-terminee", { runId: game.runId, score: game.score, deliveries: game.deliveries });
+        readyForSniper();
       }
 
       function line(points, color, size) {
@@ -797,7 +820,7 @@
         }
         ctx.restore();
         const label = game.parcel ? "Cadeau en vol" : locked ? "Lancer suspendu"
-          : aligned ? autoDrop.checked ? "Cible alignée · envoi automatique" : "Cible alignée · lance !"
+          : aligned ? game.sniperGranted && autoDrop.checked ? "Cible alignée · envoi automatique" : "Cible alignée · lance !"
             : x < chimneyX ? "Le viseur est à gauche de la cheminée" : "Le viseur est à droite de la cheminée";
         if (targetLabel && targetLabel.textContent !== label) targetLabel.textContent = label;
         if (targetLabel) targetLabel.classList.toggle("is-aligned", aligned && !locked && !game.parcel);
@@ -848,13 +871,18 @@
 
       function act() {
         if (game.mode !== "playing") {
+          const requestedSniper = autoDrop.checked && sniperAvailable > 0;
           game = newFlight();
           game.mode = "playing";
+          game.sniperRequested = requestedSniper;
           summary.hidden = true;
-          notifyPilot("noel:tournee-demarree", { runId: game.runId });
+          // Automatic throwing starts only after the parent confirms consuming
+          // one owned consumable for this exact run. Manual play never waits.
+          syncSniperControls();
+          notifyPilot("noel:tournee-demarree", { runId: game.runId, sniper: requestedSniper });
           previousFrame = performance.now();
           accumulator = 0;
-          status.textContent = autoDrop.checked
+          status.textContent = game.sniperGranted && autoDrop.checked
             ? "Dirige le traîneau : les cadeaux partent quand le viseur est aligné"
             : "Stabilise le traîneau, puis livre les 14 cheminées";
           primary.textContent = "Lâcher un cadeau";
@@ -902,10 +930,15 @@
 
       primary.addEventListener("click", act);
       autoDrop.addEventListener("change", () => {
-        automaticPreference = autoDrop.checked;
-        status.textContent = autoDrop.checked
+        if (game.mode === "playing" ? !game.sniperGranted : sniperAvailable === 0) {
+          autoDrop.checked = false;
+          return;
+        }
+        status.textContent = autoDrop.checked && game.sniperGranted
           ? "Lancer automatique activé : concentre-toi sur le pilotage"
-          : "Lancer manuel : bouton ou Espace quand le viseur est vert";
+          : autoDrop.checked ? "Une lunette sera utilisée pour la prochaine tournée"
+            : "Lancer manuel : bouton ou Espace quand le viseur est vert";
+        if (game.mode !== "playing") notifyPilot("noel:tournee-lunette-choix", { prepared: autoDrop.checked });
       });
       canvas.addEventListener("pointerdown", event => {
         if (game.mode !== "playing" || event.button !== 0) return;
@@ -932,6 +965,7 @@
       }
       root.addEventListener("keydown", event => {
         if (event.code === "Space") {
+          if (event.target === autoDrop) return;
           event.preventDefault();
           if (!event.repeat) act();
           return;
@@ -949,8 +983,24 @@
       });
       window.addEventListener("keyup", event => keys.delete(event.code));
       window.addEventListener("message", event => {
-        if (event.source !== window.parent || event.origin !== parentOrigin) return;
+        if (window.parent === window || event.source !== window.parent || event.origin !== parentOrigin) return;
         const result = event.data;
+        if (result?.type === "noel:tournee-lunette") {
+          if (!Number.isSafeInteger(result.available) || result.available < 0) return;
+          if (result.active !== undefined) {
+            if (result.runId !== game.runId || game.mode !== "playing" || typeof result.active !== "boolean") return;
+            sniperAvailable = result.available;
+            const alreadyGranted = game.sniperGranted;
+            game.sniperGranted = game.sniperRequested && result.active;
+            if (!alreadyGranted || !game.sniperGranted) autoDrop.checked = game.sniperGranted;
+          } else {
+            sniperAvailable = result.available;
+            if (game.mode !== "playing") autoDrop.checked = result.prepared === true && sniperAvailable > 0;
+          }
+          syncSniperControls();
+          reportHeight();
+          return;
+        }
         if (!result || result.type !== "noel:tournee-bilan" || game.mode !== "finished" || game.summaryReceived) return;
         if (result.runId !== undefined && result.runId !== game.runId) return;
         if (!Number.isSafeInteger(result.grelots) || result.grelots < 0
@@ -975,5 +1025,6 @@
         darkMode.addListener(redrawTheme);
       }
       ctx.setTransform(canvas.width / width, 0, 0, canvas.height / height, 0, 0);
+      readyForSniper();
       draw();
     })();

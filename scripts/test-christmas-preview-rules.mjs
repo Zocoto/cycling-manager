@@ -59,7 +59,8 @@ check(milestones.at(-1).items[0] === "potential-notebook" && byId.get("potential
 const helmet = byId.get("bonnet-course-noel");
 check(helmet.name === "Bonnet de course de Noël" && helmet.category === "equipment" && helmet.equipmentSlot === "helmet" && !("slot" in helmet), "The racing Christmas hat is rider helmet equipment, separate from portrait hats");
 check(JSON.stringify(helmet.bonuses) === JSON.stringify({ mountain: 2, resistance: 2 }), "The helmet grants exactly +2 mountain and +2 resistance, no other rating");
-check(helmet.source === "sapin" && !("price" in helmet) && milestones.at(-2).items.includes(helmet.id) && milestones.at(-2).goal === 23500, "The exclusive helmet is the last collective reward below the unchanged star goal");
+check(helmet.source === "contribution" && !("price" in helmet) && milestones.every(milestone => !milestone.items.includes(helmet.id)), "The exclusive helmet is reserved to contribution ranking, never collective tree rewards or shop");
+check(milestones.at(-2).goal === 23500 && milestones.at(-2).items.length === 4, "The penultimate tree milestone preserves its two boosters and two precious stickers");
 check(context.noelTree.garlandProgress(0, milestones) === 0 && context.noelTree.garlandProgress(28000, milestones) === 1, "Garland goes from dark to fully lit");
 check(context.noelTree.garlandProgress(6500, milestones) === 4 / 9, "Garland checkpoints match reward milestones");
 console.log(`Passed ${checks} Christmas preview reward, rarity and catalog checks.`);

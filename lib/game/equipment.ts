@@ -78,6 +78,8 @@ export type EquipmentEffects = {
   /** Amplifies an ability already owned; equipment never grants the ability. */
   specialAbilityMultipliers?: Partial<Record<"bottle_carrier" | "locomotive", number>>;
   leaderProtectionContributionMultiplier?: number;
+  /** Cancels individual negative weather rating modifiers, without changing race conditions. */
+  ignoreWeatherPenalties?: boolean;
   /** Frozen provenance only; never an additional sporting bonus. */
   ownResearchRatingBonuses?: Partial<Record<RiderRatingKey, number>>;
 };
@@ -165,6 +167,7 @@ export function combineEquipmentEffects(
   };
 
   for (const effect of effects) {
+    if (effect.ignoreWeatherPenalties === true) combined.ignoreWeatherPenalties = true;
     for (const [key, value] of Object.entries(effect.ownResearchRatingBonuses ?? {})) {
       combined.ownResearchRatingBonuses ??= {};
       const axis = key as RiderRatingKey;
@@ -265,6 +268,7 @@ export function normalizeEquipmentEffects(value: unknown): EquipmentEffects {
     breakawayReputationBonus: toFiniteNumber(payload.breakawayReputationBonus),
     victoryReputationBonus: toFiniteNumber(payload.victoryReputationBonus),
   };
+  if (payload.ignoreWeatherPenalties === true) effects.ignoreWeatherPenalties = true;
   const research = payload._careerResearch;
   if (research && typeof research === "object" && !Array.isArray(research)) {
     const { ratingKey, delta } = research as Record<string, unknown>;
@@ -349,6 +353,7 @@ export function scaleEquipmentEffect(effect: EquipmentEffects, percentage: numbe
     injuryRiskReductionPct: effect.injuryRiskReductionPct * multiplier,
     breakawayReputationBonus: effect.breakawayReputationBonus * multiplier,
     victoryReputationBonus: effect.victoryReputationBonus * multiplier,
+    ...(effect.ignoreWeatherPenalties === true ? { ignoreWeatherPenalties: true } : {}),
     ...(effect.ownResearchRatingBonuses ? { ownResearchRatingBonuses: scaleRatings(effect.ownResearchRatingBonuses) } : {}),
   };
 }

@@ -4,10 +4,10 @@
   const num = value => new Intl.NumberFormat("fr-FR").format(value);
   const colours = ["#ffe5a4", "#ff8f91", "#9de0bb", "#9ebef5", "#d6a7ef"];
   const contributionRewards = Object.freeze([
-    { from: 1, to: 1, place: "1er", name: "Traîneau du renne en danseuse", type: "Cadre", effect: "+3 END / RES / REC · +2 MON", bonuses: { endurance: 3, resistance: 3, recovery: 3, mountain: 2 } },
-    { from: 2, to: 3, place: "2e–3e", name: "Roues du chasse-neige volant", type: "Roues", effect: "+2 PAV / END / RES", bonuses: { cobbles: 2, endurance: 2, resistance: 2 } },
-    { from: 4, to: 6, place: "4e–6e", name: "Dérailleur du lutin grognon", type: "Groupe", effect: "+2 ACC · +1 VAL / REC", bonuses: { acceleration: 2, hills: 1, recovery: 1 } },
-    { from: 7, to: 10, place: "7e–10e", name: "Grelot du poisson-pilote", type: "Accessoire", effect: "+1 END / REC", bonuses: { endurance: 1, recovery: 1 } },
+    { from: 1, to: 1, place: "1er", id: "cuissard-quatre-saisons", name: "Cuissard Quatre Saisons", type: "Cuissard", slot: "bib_shorts", effect: "Ignore les malus de notes liés à la météo", bonuses: {}, effects: { ignoreWeatherPenalties: true } },
+    { from: 2, to: 3, place: "2e–3e", id: "cadre-traineau-renne", name: "Traîneau du renne en danseuse", type: "Cadre", slot: "frame", effect: "+3 END / RES / REC · +2 MON", bonuses: { endurance: 3, resistance: 3, recovery: 3, mountain: 2 } },
+    { from: 4, to: 6, place: "4e–6e", id: "bonnet-course-noel", name: "Bonnet de course de Noël", type: "Casque", slot: "helmet", effect: "+2 MON · +2 RES", bonuses: { mountain: 2, resistance: 2 } },
+    { from: 7, to: 10, place: "7e–10e", id: "gants-dernier-relais", name: "Gants du dernier relais", type: "Gants", slot: "gloves", effect: "+1 END · +1 REC", bonuses: { endurance: 1, recovery: 1 } },
   ]);
   function rankContributors(contributors) {
     const seen = new Set();
@@ -35,14 +35,15 @@
     return `<section class="contribution-board" aria-labelledby="contributors-heading">
       <p class="contribution-eyebrow">Les éclaireurs du Peloton</p>
       <h2 id="contributors-heading">Top 10 des contributeurs</h2>
-      <p class="contribution-explainer">Le total de lumières apportées au sapin depuis le début de l’événement, toutes tes tournées récompensées comprises. Le score du mini-jeu n’entre pas dans ce classement. Les ex æquo du top 10 sont tous affichés.</p>
+      <p class="contribution-explainer">Le cumul de toutes les lumières apportées depuis le 1er décembre et jusqu’à la clôture de l’événement, toutes tes tournées récompensées et tous tes Seconds tours compris. Les entraînements sans gains et le score du mini-jeu ne comptent pas. Les ex æquo du top 10 sont tous affichés.</p>
       <p class="contribution-preview">Exemple de classement · pilote local</p>
       ${leaders.length ? `<table class="contributor-table"><thead><tr><th scope="col">Rang</th><th scope="col">Directeur sportif</th><th scope="col">Lumières</th></tr></thead><tbody>${leaders.map(row).join("")}</tbody>
         ${current && !leaders.some(entry => entry.id === current.id) ? `<table class="contributor-table contributor-personal" aria-label="Ta contribution hors du top 10"><tbody>${row(current)}</tbody></table>` : ""}` : '<p class="contribution-empty">Le sapin attend ses premiers éclaireurs. Livre ton premier cadeau pour rejoindre le classement.</p>'}
       ${!current ? '<a class="contribution-join" href="#tournee">Apporter mes premières lumières →</a>' : ""}
       <details class="contribution-prizes" open><summary>Les cadeaux du top 10</summary>
-        <p>Barème de travail pour la clôture du 31 décembre : un équipement exclusif de Noël par DS, conservé après l’événement. À égalité de lumières, même rang et même cadeau.</p>
+        <p>Classement final du 31 décembre : un équipement exclusif de Noël par DS, conservé après l’événement. À égalité de lumières, même rang et même cadeau.</p>
         <ol>${contributionRewards.map(reward => `<li><span class="contribution-place">${reward.place}</span><div><strong>${esc(reward.name)}</strong><span>${reward.type} · ${reward.effect}</span></div></li>`).join("")}</ol>
+        <p>Le Cuissard Quatre Saisons protège les notes de son porteur contre les malus météo ; les effets favorables restent actifs. Le bonnet-casque est réservé aux 4e–6e contributeurs : il ne fait plus partie des cadeaux communs du sapin.</p>
         <p class="contribution-preview">Les équipements de ce barème sont présentés pour les tests ; cet aperçu ne les attribue pas à ton équipe.</p>
       </details>
     </section>`;
@@ -93,8 +94,6 @@
       return `<g class="sapin-marker${unlocked ? " is-unlocked" : ""}"><circle cx="${p.x}" cy="${p.y}" r="13"/><text x="${p.x}" y="${p.y + 4}">${i + 1}</text><title>Palier ${i + 1} · ${num(milestone.goal)} lumières</title></g>`;
     }).join("");
     const starOn = progress === 1;
-    const bonnetMilestone = milestones.find(milestone => milestone.items.includes("bonnet-course-noel"));
-    const bonnetOn = bonnetMilestone && total >= bonnetMilestone.goal;
     return `<svg class="collective-sapin" viewBox="0 0 560 744" role="img" aria-labelledby="sapin-title sapin-description">
       <title id="sapin-title">Le sapin de tous les Directeurs Sportifs</title>
       <desc id="sapin-description">${num(total)} lumières communes. ${milestones.filter(m => total >= m.goal).length} paliers atteints sur ${milestones.length}. La guirlande s’allume du pied jusqu’à l’étoile. Rudolphe traverse le ciel à vélo, sa lanterne rouge au bout du nez.</desc>
@@ -113,15 +112,6 @@
       <g fill="none" stroke="#a2b88b" stroke-opacity=".23" stroke-width="2"><path d="M212 215Q280 248 348 215M170 342Q280 385 391 342M119 469Q280 529 442 469M69 633Q280 693 491 633"/><path d="M280 93V642"/></g>
       <path d="${path}" fill="none" stroke="#102f28" stroke-width="6"/>
       <path d="${path}" fill="none" stroke="#f1c66d" stroke-width="2" pathLength="100" stroke-dasharray="${progress * 100} 100"/>
-      ${bonnetMilestone ? `<g class="sapin-bonnet${bonnetOn ? " is-unlocked" : ""}" transform="translate(286 120)" opacity="${bonnetOn ? 1 : .7}">
-        <title>Bonnet de course de Noël · +2 MON · +2 RES · ${num(bonnetMilestone.goal)} lumières</title>
-        <path d="M20-12V4" fill="none" stroke="#e7ca80" stroke-width="1.5"/>
-        <path d="M5 29C3 16 9 6 21 5C30 4 35 9 38 15L42 7L47 12L44 23L40 29Z" fill="#b94552" stroke="#e5bd76" stroke-width="1.5" stroke-linejoin="round"/>
-        <path d="M13 14L11 23M23 11L21 23M32 15L31 24" fill="none" stroke="#3b4035" stroke-width="2.5" stroke-linecap="round"/>
-        <path d="M6 28Q23 33 40 28L40 36Q23 41 6 36Z" fill="#f3e5c8" stroke="#c5ad80" stroke-width="1.2"/>
-        <path d="M13 37L19 46L26 38" fill="none" stroke="#b9955d" stroke-width="2" stroke-linejoin="round"/>
-        <circle cx="46" cy="11" r="5" fill="#fff0d5" stroke="#c5ad80" stroke-width="1"/>
-      </g>` : ""}
       <g>${bulbs}${markers}</g>
       <g class="sapin-star${starOn ? " is-lit" : ""}"><path d="M280 45L290 65L313 69L296 85L301 108L280 96L259 108L264 85L247 69L270 65Z"/><text x="280" y="84">9</text><title>L’étoile · ${num(milestones[milestones.length - 1].goal)} lumières · +1 étoile de potentiel pour chaque DS</title></g>
       <g transform="translate(130 660)"><rect width="45" height="37" rx="3" fill="#8b3948"/><path d="M22 0V37M0 12H45" stroke="#efcf8b" stroke-width="5"/></g>

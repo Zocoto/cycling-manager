@@ -22,7 +22,7 @@ function plain(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
-function createHarness({ width = 800, height = 400, coarse = false } = {}) {
+function createHarness({ width = 800, height = 400, coarse = false, standalone = false } = {}) {
   let now = 0;
   let scheduledFrame = null;
   const samples = [];
@@ -112,7 +112,7 @@ function createHarness({ width = 800, height = 400, coarse = false } = {}) {
   document.querySelector = () => shell;
   Object.defineProperty(document, "activeElement", { get: () => documentState.activeElement });
   browserWindow.location = { origin: "https://preview.example.invalid" };
-  browserWindow.parent = { postMessage: message => messages.push(plain(message)) };
+  browserWindow.parent = standalone ? browserWindow : { postMessage: message => messages.push(plain(message)) };
   const media = new Element();
   media.matches = false;
   const coarseMedia = new Element();
@@ -192,8 +192,20 @@ function createHarness({ width = 800, height = 400, coarse = false } = {}) {
   function loseCapture(id = 1) { canvas.releasePointerCapture(id); }
   const autoDrop = root.querySelector("[data-auto-drop]");
   function setAutomatic(checked) { autoDrop.checked = checked; fire(autoDrop, "change"); }
+  function parentMessage(data, extras = {}) {
+    return fire(browserWindow, "message", {
+      source: browserWindow.parent, origin: browserWindow.location.origin, data, ...extras,
+    });
+  }
+  function stock(available, prepared = false) {
+    parentMessage({ type: "noel:tournee-lunette", available, prepared });
+  }
+  function grant(active = true, extras = {}) {
+    const run = messages.findLast(message => message.type === "noel:tournee-demarree");
+    parentMessage({ type: "noel:tournee-lunette", available: 0, active, runId: run?.runId, ...extras });
+  }
   return {
-    advance, pointer, key, space, start, latest, loseCapture, fire, setAutomatic, autoDrop,
+    advance, pointer, key, space, start, latest, loseCapture, fire, setAutomatic, autoDrop, parentMessage, stock, grant,
     primary, canvas, root, browserWindow, bounds, captured,
     samples, launches, messages, physics,
     element: selector => root.querySelector(selector),
@@ -362,11 +374,13 @@ for (const kind of ["mouse", "touch"]) {
 
 function traceObstacleRun({ waypoints = [], kind = "touch", width = 800, height = 400, automatic = false } = {}) {
   const harness = createHarness({ width, height });
+  if (automatic) harness.stock(1);
   harness.setAutomatic(automatic);
   const collisions = [];
   let previousLock = false;
   let nextWaypoint = 0;
   harness.start();
+  if (automatic) harness.grant();
   harness.pointer("pointerdown", { kind, x: harness.bounds.left + width / 2, y: harness.bounds.top + height / 2 });
   for (let frame = 0; frame < 1800; frame += 1) {
     if (nextWaypoint < waypoints.length && harness.elapsed() / 1000 >= waypoints[nextWaypoint][0]) {
@@ -432,23 +446,99 @@ for (const [label, waypoints] of [["centre", []], ["top", [[0, 72]]], ["bottom",
   }
 }
 
-// Touch assistance removes the second simultaneous gesture. It remains a user
-// preference, so choosing manual once survives every later touch or keyboard use.
+// Manual releases are the same default on phones, desktop and hybrid devices.
+// Pointer type can change the instructions, never unlock a paid consumable.
 {
   const desktop = createHarness();
   check(desktop.autoDrop.checked === false, "Desktop starts with manual releases");
   const phone = createHarness({ width: 400, height: 200, coarse: true });
-  check(phone.autoDrop.checked === true, "Phone starts with assisted releases before takeoff");
+  check(phone.autoDrop.checked === false, "Phone also starts with manual releases before takeoff");
+  check(desktop.autoDrop.disabled && phone.autoDrop.disabled, "No owned scope means no selectable automatic option");
+  check(desktop.element("[data-sniper-control]").hidden && phone.element("[data-sniper-control]").hidden, "Automatic option is hidden without a scope");
   desktop.start();
   desktop.pointer("pointerdown");
-  check(desktop.autoDrop.checked === true, "Actual touch enables assistance on a hybrid device");
+  check(desktop.autoDrop.checked === false, "Actual touch never enables free assistance on a hybrid device");
   desktop.pointer("pointerup");
-  desktop.setAutomatic(false);
+  desktop.setAutomatic(true);
+  check(desktop.autoDrop.checked === false, "A programmatic toggle cannot unlock assistance without an item");
   desktop.pointer("pointerdown");
-  check(desktop.autoDrop.checked === false, "Touch respects the explicit manual choice");
+  check(desktop.autoDrop.checked === false, "Subsequent touch retains manual release");
   desktop.pointer("pointerup");
   desktop.key("keydown", "ArrowLeft");
-  check(desktop.autoDrop.checked === false, "Keyboard takeover respects the explicit manual choice");
+  check(desktop.autoDrop.checked === false, "Keyboard takeover also retains manual release");
+}
+
+// Possession reveals a choice, not a free or permanent preference. The parent
+// must authorize exactly the requested run after consuming one owned scope.
+{
+  const harness = createHarness();
+  check(harness.messages.some(message => message.type === "noel:tournee-prete"), "The ready frame asks its parent for owned scope stock");
+  harness.stock(2);
+  check(!harness.element("[data-sniper-control]").hidden && !harness.autoDrop.disabled, "Owned scopes reveal the optional control before departure");
+  check(harness.autoDrop.checked === false, "Owning scopes alone leaves manual mode selected");
+  check(!harness.key("keydown", "Space", { target: harness.autoDrop }).defaultPrevented, "Space on the scope checkbox retains its native selection behaviour");
+  check(!harness.messages.some(message => message.type === "noel:tournee-demarree"), "Selecting the scope checkbox never starts a run");
+  harness.stock(2, true);
+  check(harness.autoDrop.checked === true, "Preparing an owned scope selects it for the next departure");
+  harness.setAutomatic(false);
+  check(harness.messages.findLast(message => message.type === "noel:tournee-lunette-choix")?.prepared === false, "Unchecking before departure tells the parent to clear its saved preparation");
+  harness.stock(2, false);
+  check(harness.autoDrop.checked === false, "The parent's refreshed saved choice preserves manual mode");
+  harness.setAutomatic(true);
+  check(harness.messages.findLast(message => message.type === "noel:tournee-lunette-choix")?.prepared === true, "Checking before departure prepares one owned scope through the parent");
+  harness.start();
+  const run = harness.messages.findLast(message => message.type === "noel:tournee-demarree");
+  check(run.sniper === true, "The departure captures the prepared choice before resetting its run state");
+  harness.stock(1, false);
+  check(harness.autoDrop.checked === false, "A pending request still waits for consumption authorization");
+  harness.grant(true, { available: 1 });
+  check(harness.autoDrop.checked === true && !harness.autoDrop.disabled, "Matching parent authorization activates this run even after stock changed");
+  harness.stock(0, false);
+  check(harness.autoDrop.checked === true && !harness.element("[data-sniper-control]").hidden, "A consumed last scope stays active for its own run");
+  harness.setAutomatic(false);
+  check(harness.autoDrop.checked === false, "A paid run may temporarily disable automatic release");
+  harness.grant();
+  check(harness.autoDrop.checked === false, "Duplicate authorization preserves a paid run's explicit manual choice");
+  harness.setAutomatic(true);
+  check(harness.autoDrop.checked === true, "The same paid run may re-enable its existing authorization");
+  harness.advance(30000);
+  check(harness.autoDrop.checked === false && harness.autoDrop.disabled, "Finishing clears the run authorization and selection");
+  check(harness.element("[data-sniper-control]").hidden, "The depleted automatic control disappears after the run");
+  harness.start();
+  check(harness.messages.findLast(message => message.type === "noel:tournee-demarree").sniper === false, "The following departure cannot reuse the consumed scope");
+  harness.parentMessage({ type: "noel:tournee-lunette", available: 0, active: true, runId: run.runId });
+  check(harness.autoDrop.checked === false, "A late authorization from the previous run cannot enable the new run");
+}
+
+// A forged checkbox, an unrequested grant, stale grants and untrusted windows
+// never bypass the frame's explicit one-run permission.
+{
+  const harness = createHarness();
+  harness.autoDrop.checked = true;
+  harness.start();
+  check(harness.messages.findLast(message => message.type === "noel:tournee-demarree").sniper === false, "A forged checkbox with no stock never requests a scope");
+  harness.grant();
+  check(harness.autoDrop.checked === false, "Unrequested parent authorization cannot activate a manual run");
+  harness.advance(30000);
+  check(harness.launches.length === 0, "A manual run never produces automatic throws");
+}
+for (const tamper of ["source", "origin", "run", "denied", "missing"]) {
+  const harness = createHarness();
+  harness.stock(1, true);
+  harness.start();
+  const run = harness.messages.findLast(message => message.type === "noel:tournee-demarree");
+  const payload = { type: "noel:tournee-lunette", available: 0, active: true, runId: run.runId };
+  if (tamper === "run") payload.runId = "stale-run";
+  if (tamper === "denied") payload.active = false;
+  if (tamper !== "missing") harness.parentMessage(payload,
+    tamper === "source" ? { source: {} } : tamper === "origin" ? { origin: "https://untrusted.example.test" } : {});
+  harness.advance(30000);
+  check(harness.launches.length === 0, `${tamper}: no automatic throw without a valid current-run grant`);
+}
+{
+  const standalone = createHarness({ coarse: true, standalone: true });
+  standalone.stock(1, true);
+  check(standalone.autoDrop.checked === false && standalone.autoDrop.disabled, "Opening the standalone game never grants a free scope");
 }
 
 // The real loop chooses only a genuine aligned throw and honours obstacle locks.
