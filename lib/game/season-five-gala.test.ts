@@ -114,10 +114,14 @@ describe("season five gala course proposals", () => {
     });
   });
 
-  it("sets the official deadline to 3 December at 18:00 in Paris", () => {
+  it("keeps the registration deadline separate from the confirmed live in Paris", () => {
     expect(new Intl.DateTimeFormat("fr-FR", {
       timeZone: "Europe/Paris", dateStyle: "short", timeStyle: "short",
     }).format(new Date(SEASON_FIVE_GALA.registrationClosesAt))).toBe("03/12/2026 18:00");
     expect(SEASON_FIVE_GALA.registrationDeadlineLabel).toBe("Jeudi 3 décembre à 18 h (heure de Paris)");
+    expect(new Intl.DateTimeFormat("fr-FR", {
+      timeZone: "Europe/Paris", dateStyle: "short", timeStyle: "short",
+    }).format(new Date(SEASON_FIVE_GALA.liveStartsAt))).toBe("04/12/2026 18:30");
+    expect(SEASON_FIVE_GALA.dateLabel).toBe("Vendredi 4 décembre à 18 h 30 (heure de Paris)");
   });
 });

@@ -11,6 +11,8 @@ describe("official season-five gala on the DS office", () => {
     expect(html).toContain('href="/jeu/gala-saison-5"');
     expect(html).toContain("Le Gala des Lumières");
     expect(html).toContain("Les inscriptions sont ouvertes");
+    expect(html).toContain("Vendredi 4 décembre à 18 h 30 (heure de Paris)");
+    expect(html).toContain(SEASON_FIVE_GALA.liveStartsAt);
     expect(html).toContain("Jeudi 3 décembre à 18 h (heure de Paris)");
     expect(html).toContain("Inscrire mon équipe");
   });

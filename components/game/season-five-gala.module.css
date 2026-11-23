@@ -6,6 +6,10 @@
   font-family: inherit;
 }
 
+/* The shared /jeu template makes direct main backgrounds transparent. Keep
+   this page's dark canvas opaque so cream text and translucent panels stay readable. */
+.page[data-gala-s5-page] { background: #090f0d; }
+
 .shell {
   width: min(1340px, 100%);
   margin: 0 auto;
@@ -216,7 +220,7 @@
 }
 
 @media print {
-  .page { background: #fff; color: #1b241c; }
+  .page[data-gala-s5-page] { background: #fff; color: #1b241c; }
   .shell { width: 100%; padding: 0; }
   .hero { break-inside: avoid; }
   .heroArt { display: none; }

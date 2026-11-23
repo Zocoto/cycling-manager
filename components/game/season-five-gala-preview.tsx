@@ -41,7 +41,7 @@ export function SeasonFiveGalaPreview({ registrationContext }: { registrationCon
   }
 
   return (
-    <main className={styles.page}>
+    <main className={styles.page} data-gala-s5-page>
       <div className={styles.shell}>
         <nav className={styles.topbar} aria-label="Navigation du gala">
           <span><Image src="/logo-cyclo-stratege.png" width={30} height={30} alt="" unoptimized />Cyclo Stratège</span>
@@ -51,7 +51,7 @@ export function SeasonFiveGalaPreview({ registrationContext }: { registrationCon
           <div className={styles.heroCopy}>
             <p className={styles.eyebrow}>Le rendez-vous de fin de saison 5</p>
             <h1>Le Gala<br />des <em>Lumières.</em></h1>
-            <p className={styles.heroDate}>{SEASON_FIVE_GALA.dateLabel}</p>
+            <p className={styles.heroDate}><time dateTime={SEASON_FIVE_GALA.liveStartsAt}>{SEASON_FIVE_GALA.dateLabel}</time></p>
             <p className={styles.heroLead}>
               Six grandes routes, vos futures couleurs et le plaisir de courir ensemble.
               Le peloton fête la saison sur Pro Cycling Manager 26, en direct avec Gouille.
@@ -75,6 +75,7 @@ export function SeasonFiveGalaPreview({ registrationContext }: { registrationCon
             <div>
               <p className={styles.eyebrow}>Le gala en direct sur Twitch</p>
               <h2 id={`${id}-live-title`}>On se retrouve chez Gouille.</h2>
+              <p><strong><time dateTime={SEASON_FIVE_GALA.liveStartsAt}>{SEASON_FIVE_GALA.dateLabel}</time></strong></p>
               <p>Les courses sur PCM26, les réactions du peloton et des cadeaux pour les spectateurs.</p>
             </div>
             <a href={SEASON_FIVE_GALA.twitchUrl} target="_blank" rel="noopener noreferrer"

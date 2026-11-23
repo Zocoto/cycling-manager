@@ -7,8 +7,9 @@ n’est plus limité aux comptes de préparation.
 
 La clôture des inscriptions, modifications et retraits est fixée au
 **jeudi 3 décembre 2026 à 18 h Europe/Paris**, soit `2026-12-03T17:00:00Z`.
-La date et l’heure du live restent à confirmer : cette échéance est la clôture
-des inscriptions, pas l’horaire de diffusion.
+Le live est confirmé au **vendredi 4 décembre 2026 à 18 h 30 Europe/Paris**,
+soit `2026-12-04T17:30:00Z`, sur la chaîne Twitch de Gouille. La clôture des
+inscriptions et l’horaire de diffusion sont affichés séparément.
 
 ## Inscriptions
 
