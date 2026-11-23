@@ -43,12 +43,17 @@ import {
   type TrainingPlansSaveState,
 } from "@/lib/game/training-plan-save-state";
 import { TRAINER_NATIONALITY_BONUS_PERCENTAGE } from "@/lib/game/training";
-import { sortRosterItems } from "@/lib/game/roster-sort";
+import { sortRosterItems, type RosterSortDirection } from "@/lib/game/roster-sort";
 import {
-  getSquadStatusRank,
-  type SquadStatus,
-} from "@/lib/game/squad-status";
+  TRAINING_ROSTER_SORT_OPTIONS,
+  getDefaultTrainingRosterSortDirection,
+  getTrainingRosterSortValue,
+  type TrainingRosterSortKey,
+  type TrainingRosterSortRider,
+} from "@/lib/game/training-roster-sort";
 import type { TeamTrainer } from "@/services/team-training";
+
+export type { TrainingRosterSortRider } from "@/lib/game/training-roster-sort";
 
 type TrainingPlanPatch = Partial<Omit<TrainingPlanDraft, "riderId">>;
 
@@ -62,8 +67,6 @@ type TrainingPlansEditorContextValue = {
 const TrainingPlansEditorContext =
   createContext<TrainingPlansEditorContextValue | null>(null);
 
-type TrainingRosterSortKey = "default" | "squad_status" | "rider";
-
 const TRAINING_SECTOR_LABELS: Record<TrainingDomain, string> = {
   climber: "Montagne · Grimpeur",
   puncheur: "Vallons · Puncheur",
@@ -72,14 +75,6 @@ const TRAINING_SECTOR_LABELS: Record<TrainingDomain, string> = {
   rouleur: "Plaine et chrono · Rouleur",
   breakaway: "Baroudeur",
   sprinter: "Sprint · Sprinteur",
-};
-
-export type TrainingRosterSortRider = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  squadStatus: SquadStatus | null;
-  intensity?: number;
 };
 
 export function TrainingRosterList({
@@ -92,9 +87,14 @@ export function TrainingRosterList({
   initialUnscheduledOnly?: boolean;
 }) {
   const [sortKey, setSortKey] = useState<TrainingRosterSortKey>("default");
+  const [sortDirection, setSortDirection] = useState<RosterSortDirection>("asc");
   const [unscheduledOnly, setUnscheduledOnly] = useState(initialUnscheduledOnly);
   const [sector, setSector] = useState<TrainingDomain | "">("");
   const editor = useContext(TrainingPlansEditorContext);
+  const sortValues = useMemo(
+    () => new Map(riders.map((rider) => [rider.id, getTrainingRosterSortValue(rider, sortKey)])),
+    [riders, sortKey],
+  );
   const childRows = Children.toArray(children);
   const rows = riders.map((rider, index) => ({
     rider,
@@ -113,35 +113,49 @@ export function TrainingRosterList({
       ? filteredRows
       : sortRosterItems({
           items: filteredRows,
-          direction: sortKey === "squad_status" ? "desc" : "asc",
-          getValue: ({ rider }) =>
-            sortKey === "squad_status"
-              ? getSquadStatusRank(rider.squadStatus)
-              : `${rider.lastName} ${rider.firstName}`,
+          direction: sortDirection,
+          getValue: ({ rider }) => sortValues.get(rider.id) ?? null,
           getTieBreaker: ({ rider }) =>
-            `${rider.lastName} ${rider.firstName}`,
+            `${rider.lastName} ${rider.firstName} ${rider.id}`,
         });
+  const sortDirectionLabel = sortDirection === "asc" ? "Ordre croissant" : "Ordre décroissant";
+  const sortHint = sortKey === "default" ? "Ordre habituel de la page Effectif." : sortDirectionLabel;
 
   return (
     <div className="mt-5">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#315B3E]/12 bg-white px-4 py-3 shadow-[0_8px_24px_rgba(19,60,46,0.05)]">
-        <label className="flex min-w-0 items-center gap-3">
-          <span className="shrink-0 text-[10px] font-black uppercase tracking-[0.14em] text-[#60756E]">
-            Trier par
-          </span>
-          <select
-            value={sortKey}
-            onChange={(event) =>
-              setSortKey(event.target.value as TrainingRosterSortKey)
-            }
-            className="min-h-10 min-w-0 rounded-xl border border-[#315B3E]/15 bg-[#F7FAF8] px-3 text-xs font-black text-[#183F37] outline-none transition focus:border-[#278B70] focus:ring-2 focus:ring-[#278B70]/15 sm:min-w-52"
+      <div className="mb-4 flex flex-wrap items-end gap-3 rounded-2xl border border-[#315B3E]/12 bg-white px-4 py-3 shadow-[0_8px_24px_rgba(19,60,46,0.05)]">
+        <div className="flex w-full min-w-0 items-end gap-2 sm:w-auto">
+          <label className="grid min-w-0 flex-1 gap-1">
+            <span className="shrink-0 text-[10px] font-black uppercase tracking-[0.14em] text-[#60756E]">
+              Trier par
+            </span>
+            <select
+              aria-label="Trier par"
+              value={sortKey}
+              onChange={(event) => {
+                const nextKey = event.target.value as TrainingRosterSortKey;
+                setSortKey(nextKey);
+                setSortDirection(getDefaultTrainingRosterSortDirection(nextKey));
+              }}
+              className="min-h-10 w-full min-w-0 max-w-full rounded-xl border border-[#315B3E]/15 bg-[#F7FAF8] px-3 text-xs font-black text-[#183F37] outline-none transition focus:border-[#278B70] focus:ring-2 focus:ring-[#278B70]/15 sm:min-w-52"
+            >
+              {TRAINING_ROSTER_SORT_OPTIONS.map((option) => (
+                <option key={option.key} value={option.key}>{option.label}</option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            disabled={sortKey === "default"}
+            onClick={() => setSortDirection((current) => current === "asc" ? "desc" : "asc")}
+            aria-label={sortDirection === "asc" ? "Trier par ordre décroissant" : "Trier par ordre croissant"}
+            title={sortDirectionLabel}
+            className="grid min-h-10 min-w-10 shrink-0 place-items-center rounded-xl border border-[#315B3E]/15 bg-[#F7FAF8] text-base font-black text-[#315B3E] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70]/30 disabled:opacity-40"
           >
-            <option value="default">Ordre de l’effectif</option>
-            <option value="squad_status">Statut dans l’équipe</option>
-            <option value="rider">Nom du coureur</option>
-          </select>
-        </label>
-        <label className="flex min-w-0 items-center gap-3">
+            <span aria-hidden="true">{sortDirection === "asc" ? "↑" : "↓"}</span>
+          </button>
+        </div>
+        <label className="grid w-full min-w-0 gap-1 sm:w-auto">
           <span className="shrink-0 text-[10px] font-black uppercase tracking-[0.14em] text-[#60756E]">
             Secteur d’entraînement
           </span>
@@ -152,7 +166,7 @@ export function TrainingRosterList({
               setSector(isTrainingDomain(domain) ? domain : "");
               if (domain) setUnscheduledOnly(false);
             }}
-            className="min-h-10 min-w-0 rounded-xl border border-[#315B3E]/15 bg-[#F7FAF8] px-3 text-xs font-black text-[#183F37] outline-none transition focus:border-[#278B70] focus:ring-2 focus:ring-[#278B70]/15"
+            className="min-h-10 w-full min-w-0 max-w-full rounded-xl border border-[#315B3E]/15 bg-[#F7FAF8] px-3 text-xs font-black text-[#183F37] outline-none transition focus:border-[#278B70] focus:ring-2 focus:ring-[#278B70]/15"
           >
             <option value="">Tous les secteurs</option>
             {TRAINING_DOMAINS.map((domain) => (
@@ -172,12 +186,8 @@ export function TrainingRosterList({
           />
           Sans entraînement programmé
         </label>
-        <p className="text-[10px] font-bold text-[#60756E]">
-          {sortKey === "squad_status"
-            ? "Leaders en premier, équipiers ensuite, statuts non définis à la fin."
-            : sortKey === "rider"
-              ? "Classement alphabétique par nom."
-              : "Ordre habituel de la page Effectif."}
+        <p className="w-full text-[10px] font-bold text-[#60756E]">
+          {sortHint}
         </p>
       </div>
 

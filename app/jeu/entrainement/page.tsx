@@ -355,6 +355,12 @@ export default async function TrainingPage({
                     lastName: rider.lastName,
                     squadStatus: rider.squadStatus,
                     intensity: rider.plan.intensity,
+                    countryName: rider.countryName,
+                    age: rider.age,
+                    potentialSteps: rider.potentialSteps,
+                    form: rider.form,
+                    morale: rider.morale,
+                    ratings: toTrainingRatings(rider.ratings),
                   }))}
                 >
                   {overview.riders.map((rider, riderIndex) => (
