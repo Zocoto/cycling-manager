@@ -64,7 +64,7 @@ export function SeasonFiveGalaPreview({ registrationContext }: { registrationCon
           </div>
           <SeasonFiveGalaHero className={styles.heroArt} />
           <p className={styles.previewNotice}>
-            Avant-première privée · Programme et lots en préparation.
+            Clôture des inscriptions · {SEASON_FIVE_GALA.registrationDeadlineLabel}
           </p>
         </header>
 
@@ -119,7 +119,7 @@ export function SeasonFiveGalaPreview({ registrationContext }: { registrationCon
             {program === "continental"
               ? `Continental · ${SEASON_FIVE_GALA.continentalCap} maximum dans chacune des six notes primaires natives (MON, VAL, PLA, CLM, PAV, SPR).`
               : "Pro Tour · Toutes les notes sont admises. Vos spécialistes ont rendez-vous sur trois terrains exigeants."}
-            {" "}Vous pourrez changer de composition entre les épreuves.
+            {" "}Une composition différente est possible pour chaque épreuve.
           </p>
           <div id={`${id}-courses`} role="tabpanel" aria-labelledby={`${id}-${program}-tab`} tabIndex={0}>
             <div className={styles.courseGrid}>
@@ -128,7 +128,7 @@ export function SeasonFiveGalaPreview({ registrationContext }: { registrationCon
           </div>
           <div className={styles.registration}>
             <div><strong>Vos couleurs de saison {SEASON_FIVE_GALA.nextSeason}, en avant-première.</strong>
-              <p>Les équipes s’inscriront sous leur future identité, avec leurs maillots de la saison prochaine.</p></div>
+              <p>Inscrivez votre équipe sous sa future identité, avec son maillot de la saison prochaine.</p></div>
             <div><strong>Clôture des inscriptions</strong><p>{SEASON_FIVE_GALA.registrationDeadlineLabel}</p></div>
           </div>
           {registrationContext ? <SeasonFiveGalaRegistration context={registrationContext} program={program} /> : null}
@@ -142,7 +142,7 @@ export function SeasonFiveGalaPreview({ registrationContext }: { registrationCon
           </div>
           <div className={styles.rewardTableWrap}>
             <table className={styles.rewardTable}>
-              <caption className={styles.screenReader}>Récompenses proposées pour les dix premiers de chaque épreuve</caption>
+              <caption className={styles.screenReader}>Récompenses pour les dix premiers de chaque épreuve</caption>
               <thead><tr><th scope="col">Place</th><th scope="col">Récompenses</th></tr></thead>
               <tbody>{GALA_S5_REWARD_PROPOSAL.map((reward) => (
                 <tr key={reward.places}><th scope="row">{reward.places}</th><td>{reward.detail}</td></tr>

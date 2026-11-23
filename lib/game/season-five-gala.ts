@@ -32,7 +32,7 @@ function nativeCourse(id: keyof typeof nativeProfiles.courses) {
 }
 
 export const SEASON_FIVE_GALA = {
-  route: "/apercus/gala-saison-5",
+  route: "/jeu/gala-saison-5",
   name: "Le Gala des Lumières",
   sourceSeason: 5,
   nextSeason: 6,
@@ -41,8 +41,8 @@ export const SEASON_FIVE_GALA = {
   maxRiders: 8,
   continentalCap: 75,
   isRegistrationOpen: true,
-  registrationClosesAt: "2026-12-04T11:00:00.000Z",
-  registrationDeadlineLabel: "Vendredi 4 décembre à 12 h (heure de Paris)",
+  registrationClosesAt: "2026-12-03T17:00:00.000Z",
+  registrationDeadlineLabel: "Jeudi 3 décembre à 18 h (heure de Paris)",
   twitchUrl: "https://www.twitch.tv/gouille_tw",
   hostAvatar: "/images/gala/gouille-twitch.png",
 } as const;

@@ -6,8 +6,28 @@ import { strFromU8, unzipSync } from "fflate";
 
 import type { PcmExportResult } from "@/lib/game/pcm-export/types";
 import { createPcmExportPackage } from "@/services/pcm-export-package";
+import { buildSeasonFiveGalaStartlists } from "@/lib/game/season-five-gala-startlists";
+import { makeGalaS5Fixture } from "@/lib/game/__test-fixtures__/season-five-gala";
 
 describe("pack d'installation PCM26", () => {
+  it("packages the S5 database, registered XML and edition-aware installer together", async () => {
+    const database = await createSource(); database.metadata.season = 5;
+    const { source, snapshot } = makeGalaS5Fixture();
+    snapshot.sha256 = database.metadata.snapshotSha256;
+    const galaStartlists = buildSeasonFiveGalaStartlists(source, snapshot, database.metadata.outputSha256);
+    const result = await createPcmExportPackage(database, { edition: "gala-s5", galaStartlists });
+    const files = unzipSync(result.archive);
+    expect(files["Startlists/Pro-Tour/top_giro.xml"]).toBeDefined();
+    expect(strFromU8(files["Installer-startlist-gala-S5.ps1"])).toContain("$Course");
+    const manifest = JSON.parse(strFromU8(files["Startlists/manifest.json"]));
+    expect(manifest.databaseSha256).toBe(database.metadata.outputSha256);
+    expect(manifest.events[0].sha256).toBe(createHash("sha256").update(files["Startlists/Pro-Tour/top_giro.xml"]).digest("hex"));
+    expect(JSON.parse(strFromU8(files["manifest.json"]))).toMatchObject({ edition: "gala-s5", gala: { sourceSeason: 5, identitySeason: 6 } });
+    expect(result.filename).toContain("Gala-S5");
+    galaStartlists.manifest.databaseSha256 = "c".repeat(64);
+    await expect(createPcmExportPackage(database, { edition: "gala-s5", galaStartlists })).rejects.toThrow("generated together");
+    await expect(createPcmExportPackage(database, { edition: "gala-s5" })).rejects.toThrow("generated together");
+  });
   it("contient un dossier Cyclostratege directement copiable dans Mod", async () => {
     const source = await createSource();
     const result = await createPcmExportPackage(source);

@@ -26,8 +26,10 @@ export async function POST(request: Request) {
   }
 
   try {
+    const gala = new URL(request.url).searchParams.get("gala");
+    if (gala !== null && !["fin-de-saison", "saison-5"].includes(gala)) return Response.json({ error: "Édition du gala inconnue." }, { status: 400 });
     const { archive, filename, archiveSha256, database } =
-      await generatePcmExport(new URL(request.url).searchParams.get("gala") === "fin-de-saison");
+      await (gala === "saison-5" ? generatePcmExport(false, false, true) : generatePcmExport(gala === "fin-de-saison"));
     const body = new Uint8Array(archive.byteLength);
     body.set(archive);
 

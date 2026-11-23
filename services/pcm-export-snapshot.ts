@@ -24,6 +24,7 @@ import {loadSeasonFourGalaRegisteredClubs} from "@/services/season-four-gala-sta
 import type { NationalChampionshipTitleRow } from "@/lib/game/pcm-export/types";
 import { PCM_CHAMPIONSHIP_MASKS } from "@/lib/game/pcm-export/types";
 import { applySeasonFinaleGalaIdentities, loadSeasonFinaleGalaIdentities, loadSeasonFinaleGalaSourceSeason } from "@/services/season-finale-gala-identity";
+import { getSeasonFiveGalaRegisteredClubs, selectSeasonFiveGalaContracts, type SeasonFiveGalaExportSource } from "@/lib/game/season-five-gala-startlists";
 
 const PAGE_SIZE = 1_000;
 
@@ -38,13 +39,14 @@ type HistoricalTitleRow = NationalChampionshipTitleRow & {
 
 type NaturalizationRow = { rider_id: string; from_country_id: string };
 
-export async function createPcmExportSnapshot(seasonFinale = false, seasonFourGala = false): Promise<PcmExportSnapshot> {
+export async function createPcmExportSnapshot(seasonFinale = false, seasonFourGala = false, seasonFiveSource?: SeasonFiveGalaExportSource): Promise<PcmExportSnapshot> {
+  if (seasonFiveSource && (seasonFinale || seasonFourGala)) throw new Error("Only one gala export edition may be selected.");
   const admin = createSupabaseAdminClient();
   const galaSourceSeason = seasonFinale ? await loadSeasonFinaleGalaSourceSeason(admin) : null;
   const activeSeasonResult = await admin
     .from("seasons")
     .select("*")
-    .eq(seasonFourGala ? "game_year" : galaSourceSeason ? "id" : "status", seasonFourGala ? SEASON_FOUR_GALA.sourceSeason : galaSourceSeason?.id ?? "active")
+    .eq(seasonFiveSource ? "id" : seasonFourGala ? "game_year" : galaSourceSeason ? "id" : "status", seasonFiveSource?.edition.source_season_id ?? (seasonFourGala ? SEASON_FOUR_GALA.sourceSeason : galaSourceSeason?.id ?? "active"))
     .single<SeasonRow>();
 
   if (activeSeasonResult.error || !activeSeasonResult.data) {
@@ -61,7 +63,7 @@ export async function createPcmExportSnapshot(seasonFinale = false, seasonFourGa
           .from("team_seasons")
           .select("*")
           .eq("season_id", activeSeason.id)
-          .in("status", seasonFinale || seasonFourGala ? ["active", "completed"] : ["active"])
+          .in("status", seasonFinale || seasonFourGala || seasonFiveSource ? ["active", "completed"] : ["active"])
           .order("id", { ascending: true })
           .range(from, to)
           .returns<TeamSeasonRow[]>(),
@@ -94,7 +96,7 @@ export async function createPcmExportSnapshot(seasonFinale = false, seasonFourGa
         admin
           .from("rider_contracts")
           .select("*")
-          .in("status", seasonFinale || seasonFourGala ? ["active", "completed"] : ["active"])
+          .in("status", seasonFinale || seasonFourGala || seasonFiveSource ? ["active", "completed"] : ["active"])
           .order("id", { ascending: true })
           .range(from, to)
           .returns<ContractRow[]>(),
@@ -130,9 +132,11 @@ export async function createPcmExportSnapshot(seasonFinale = false, seasonFourGa
   const sourceTeams = allTeams.filter((row) => activeTeamIds.has(row.id));
   const teams = applyExistingPcmAssetCodes(sourceTeams);
   const seasonYears = new Map(seasons.map((season) => [season.id, season.game_year]));
-  const registeredClubs=seasonFourGala?await loadSeasonFourGalaRegisteredClubs(admin,activeSeason.id):undefined;
-  let contractSource=seasonFourGala?selectSeasonFourGalaContracts(allContracts,seasons,registeredClubs):allContracts;
-  if(seasonFourGala&&registeredClubs){
+  const registeredClubs=seasonFiveSource?getSeasonFiveGalaRegisteredClubs(seasonFiveSource):seasonFourGala?await loadSeasonFourGalaRegisteredClubs(admin,activeSeason.id):undefined;
+  const selectGalaContracts = (rows: ContractRow[]) => seasonFiveSource
+    ? selectSeasonFiveGalaContracts(rows, seasons, registeredClubs!) : selectSeasonFourGalaContracts(rows, seasons, registeredClubs);
+  let contractSource=seasonFourGala||seasonFiveSource?selectGalaContracts(allContracts):allContracts;
+  if((seasonFourGala||seasonFiveSource)&&registeredClubs){
     const selectedRiders=new Set(contractSource.map(row=>row.rider_id));
     const missingRegisteredRiders=[...registeredClubs.keys()].filter(id=>!selectedRiders.has(id));
     if(missingRegisteredRiders.length){
@@ -148,7 +152,7 @@ export async function createPcmExportSnapshot(seasonFinale = false, seasonFourGa
         },
       });
       if(released.error)throw new Error(`Export PCM impossible : ${released.error.message}`);
-      contractSource=selectSeasonFourGalaContracts([...allContracts,...released.data],seasons,registeredClubs);
+      contractSource=selectGalaContracts([...allContracts,...released.data]);
     }
   }
   const contracts = contractSource.filter((row) => activeTeamIds.has(row.team_id) && (!seasonFinale || (
@@ -166,7 +170,7 @@ export async function createPcmExportSnapshot(seasonFinale = false, seasonFourGa
       if (contractsByRider.get(riderId)?.team_id !== clubId || !ridersById.has(riderId)) {
         const rider = ridersById.get(riderId);
         const name = rider ? `${rider.first_name} ${rider.last_name}` : riderId;
-        throw new GalaStartlistError(`Gala PCM : ${name} est inscrit mais son club ne peut pas être exporté pour la saison 4.`);
+        throw new GalaStartlistError(`Gala PCM : ${name} est inscrit mais son club ne peut pas être exporté pour la saison ${seasonFiveSource ? 5 : 4}.`);
       }
     }
   }
@@ -205,7 +209,7 @@ export async function createPcmExportSnapshot(seasonFinale = false, seasonFourGa
   const ratingScale = deriveGlobalRatingScale(ratings);
   const snapshotCore = {
     schemaVersion: 1 as const,
-    ...(seasonFourGala?{galaEdition:'season-four' as const}:{}),
+    ...(seasonFiveSource?{galaEdition:'season-five' as const}:seasonFourGala?{galaEdition:'season-four' as const}:{}),
     source: "Cyclostratege production" as const,
     activeSeason,
     seasons,
@@ -229,7 +233,8 @@ export async function createPcmExportSnapshot(seasonFinale = false, seasonFourGa
     ratings,
     nationalChampionshipTitles,
   };
-  const projectedSnapshot = seasonFinale ? applySeasonFinaleGalaIdentities({ ...snapshotCore, exportedAt: "", sha256: "" },
+  const projectedSnapshot = seasonFiveSource ? applySeasonFinaleGalaIdentities({ ...snapshotCore, exportedAt: "", sha256: "" },
+    new Map(seasonFiveSource.identities.map(identity => [identity.team_id, identity]))) : seasonFinale ? applySeasonFinaleGalaIdentities({ ...snapshotCore, exportedAt: "", sha256: "" },
     await loadSeasonFinaleGalaIdentities(admin, [...activeTeamIds])) : snapshotCore;
   const canonical = JSON.stringify(projectedSnapshot);
 

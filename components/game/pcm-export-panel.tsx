@@ -15,7 +15,7 @@ type ExportSummary = {
   generatedAt: string;
 };
 
-export function PcmExportPanel({ seasonFinale = false }: { seasonFinale?: boolean }) {
+export function PcmExportPanel({ seasonFinale = false, seasonFiveGala = false }: { seasonFinale?: boolean; seasonFiveGala?: boolean }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<ExportSummary | null>(null);
@@ -27,7 +27,7 @@ export function PcmExportPanel({ seasonFinale = false }: { seasonFinale?: boolea
     setError(null);
 
     try {
-      const response = await fetch(seasonFinale ? "/api/admin/pcm-export?gala=fin-de-saison" : "/api/admin/pcm-export", {
+      const response = await fetch(seasonFiveGala ? "/api/admin/pcm-export?gala=saison-5" : seasonFinale ? "/api/admin/pcm-export?gala=fin-de-saison" : "/api/admin/pcm-export", {
         method: "POST",
         credentials: "same-origin",
         headers: {
@@ -88,7 +88,7 @@ export function PcmExportPanel({ seasonFinale = false }: { seasonFinale?: boolea
             <p className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-[#9BE0CA]">
               Export sécurisé
             </p>
-            <h2 className="mt-1 text-2xl font-black">{seasonFinale ? "Base PCM26 spéciale Gala" : "Base Cyclostratège pour PCM26"}</h2>
+            <h2 className="mt-1 text-2xl font-black">{seasonFiveGala ? "Gala Saison 5 · base et startlists" : seasonFinale ? "Base PCM26 spéciale Gala" : "Base Cyclostratège pour PCM26"}</h2>
           </div>
           <span className="rounded-full border border-[#9BE0CA]/35 bg-[#9BE0CA]/10 px-3 py-1.5 text-xs font-black uppercase tracking-[0.12em] text-[#C8F0E4]">
             Accès Roger Letesteur
@@ -100,8 +100,8 @@ export function PcmExportPanel({ seasonFinale = false }: { seasonFinale?: boolea
         <div>
           <h3 className="text-lg font-black text-[#123D34]">Contenu du fichier</h3>
           <ul className="mt-4 grid gap-3 text-sm font-semibold leading-6 text-[#49665E] sm:grid-cols-2">
-            <ScopeItem>{seasonFinale ? "Identités confirmées de la saison suivante en avant-première" : "Équipes actives de la saison en cours"}</ScopeItem>
-            <ScopeItem>{seasonFinale ? "Effectifs et notes de la saison du gala, conservés après le changement de saison" : "Coureurs sous contrat et contrats actifs"}</ScopeItem>
+            <ScopeItem>{seasonFiveGala || seasonFinale ? "Identités confirmées de la saison suivante en avant-première" : "Équipes actives de la saison en cours"}</ScopeItem>
+            <ScopeItem>{seasonFiveGala || seasonFinale ? "Effectifs et notes de la saison du gala, conservés après le changement de saison" : "Coureurs sous contrat et contrats actifs"}</ScopeItem>
             <ScopeItem>13 notes natives sur une échelle fixe de 45 à 85</ScopeItem>
             <ScopeItem>Taille, poids, âge et division</ScopeItem>
             <ScopeItem>Nationalités exactes, pays manquants ajoutés et titres nationaux</ScopeItem>
@@ -111,6 +111,7 @@ export function PcmExportPanel({ seasonFinale = false }: { seasonFinale?: boolea
           </ul>
 
           <div className="mt-6 rounded-2xl border border-[#E1C66B]/45 bg-[#FFF8DF] px-4 py-3 text-sm font-semibold leading-6 text-[#6C5713]">
+            {seasonFiveGala ? <p className="mb-2">Après la clôture des inscriptions, le ZIP S5 réunit la base, les compositions validées et leur installateur. Les groupes respectent les capacités des six courses.</p> : null}
             Les bonus de forme, d’équipement et de préparation ne sont pas inclus.
             Pour les maillots, mini-maillots et drapeaux, installez les graphismes du Workshop avec l’outil fourni dans le ZIP.
           </div>

@@ -4,7 +4,7 @@ import { useActionState, useId, useState } from "react";
 import {
   saveSeasonFiveGalaRegistrationAction,
   withdrawSeasonFiveGalaRegistrationAction,
-} from "@/app/apercus/gala-saison-5/actions";
+} from "@/app/jeu/gala-saison-5/actions";
 import {
   buildSeasonFiveGalaSelections,
   initialGalaS5RegistrationState,

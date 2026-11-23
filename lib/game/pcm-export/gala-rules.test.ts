@@ -1,9 +1,18 @@
 import { resolve } from "node:path";
 import initSqlJs from "sql.js";
 import { describe, expect, it } from "vitest";
-import { configurePcmSeasonFinaleGalaRules,configurePcmSeasonFourGalaRules } from "./gala-rules";
+import { configurePcmSeasonFinaleGalaRules,configurePcmSeasonFourGalaRules,configurePcmSeasonFiveGalaRules } from "./gala-rules";
 
 describe("règle PCM spécifique au gala", () => {
+  it("aligns all six S5 native capacities with 7–8 riders without changing another course", async () => {
+    const SQL = await initSqlJs({ locateFile: file => resolve("node_modules", "sql.js", "dist", file) });
+    const db = new SQL.Database();
+    try {
+      db.run("CREATE TABLE STA_race(IDrace integer); INSERT INTO STA_race VALUES(135),(87),(26),(25),(15),(11); CREATE TABLE STA_race_rules(IDrace_rule integer primary key,fkIDrace integer,gene_i_max_team integer,gene_i_min_riders integer,gene_i_max_riders integer,regulation_TTT integer); INSERT INTO STA_race_rules VALUES(1,135,23,8,8,0),(2,999,18,6,6,0)");
+      configurePcmSeasonFiveGalaRules(db); configurePcmSeasonFiveGalaRules(db);
+      expect(db.exec("SELECT fkIDrace,gene_i_max_team,gene_i_min_riders,gene_i_max_riders FROM STA_race_rules ORDER BY fkIDrace")[0].values).toEqual([[11,25,7,8],[15,25,7,8],[25,23,7,8],[26,24,7,8],[87,25,7,8],[135,23,7,8],[999,18,6,6]]);
+    } finally { db.close(); }
+  });
   it('prepares all four S4 source races for 7–8 riders and native capacity, without changing classes or the previous gala',async()=>{
     const SQL=await initSqlJs({locateFile:file=>resolve('node_modules','sql.js','dist',file)});const db=new SQL.Database();
     try{

@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { GALA_COURSES, GALA_PROGRAM_PROFILES, SEASON_FOUR_GALA } from "./season-four-gala";
 import { GALA_S5_COURSES, SEASON_FIVE_GALA } from "./season-five-gala";
-import { canAccessSeasonFiveGalaPreview } from "./season-five-gala-access";
 import verifiedProfiles from "./season-five-gala-profiles.json";
 
 const identities = [
@@ -106,25 +105,19 @@ describe("season five gala course proposals", () => {
       expect(archivedStages.has(course.stageFile!.replace(/\.cds$/, "")), course.id).toBe(false);
     }
     expect(SEASON_FIVE_GALA).toMatchObject({
-      route: "/apercus/gala-saison-5",
+      route: "/jeu/gala-saison-5",
       sourceSeason: 5,
       nextSeason: 6,
       continentalCap: 75,
       isRegistrationOpen: true,
-      registrationClosesAt: "2026-12-04T11:00:00.000Z",
+      registrationClosesAt: "2026-12-03T17:00:00.000Z",
     });
   });
 
-  it("restricts the private preview to the two exact verified accounts", () => {
-    expect(canAccessSeasonFiveGalaPreview("58140add-54c6-40af-9528-f823d0051d0f")).toBe(true);
-    expect(canAccessSeasonFiveGalaPreview("ee244935-5722-4626-a28f-dc3cf63aa6f4")).toBe(true);
-    for (const identity of [
-      null, undefined, "", "Zocoto", "Gouille", "gouilleTW", "admin", "game_staff",
-      "f4a4c24e-b534-4a5f-adbc-8f259189b86c",
-      "58140ADD-54C6-40AF-9528-F823D0051D0F",
-      " ee244935-5722-4626-a28f-dc3cf63aa6f4",
-    ]) {
-      expect(canAccessSeasonFiveGalaPreview(identity), String(identity)).toBe(false);
-    }
+  it("sets the official deadline to 3 December at 18:00 in Paris", () => {
+    expect(new Intl.DateTimeFormat("fr-FR", {
+      timeZone: "Europe/Paris", dateStyle: "short", timeStyle: "short",
+    }).format(new Date(SEASON_FIVE_GALA.registrationClosesAt))).toBe("03/12/2026 18:00");
+    expect(SEASON_FIVE_GALA.registrationDeadlineLabel).toBe("Jeudi 3 décembre à 18 h (heure de Paris)");
   });
 });

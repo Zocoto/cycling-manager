@@ -17,7 +17,9 @@ export const metadata: Metadata = {
 };
 
 export default async function PcmExportPage({ searchParams }: { searchParams: Promise<{ gala?: string }> }) {
-  const seasonFinale = (await searchParams).gala === "fin-de-saison";
+  const gala = (await searchParams).gala;
+  const seasonFinale = gala === "fin-de-saison";
+  const seasonFiveGala = gala === "saison-5";
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -48,15 +50,16 @@ export default async function PcmExportPage({ searchParams }: { searchParams: Pr
               Export PCM26
             </h1>
             <p className="mt-4 text-base font-medium leading-7 text-[#557068]">
-              {seasonFinale ? "Base spéciale Gala : les identités confirmées de la prochaine saison, avec les effectifs et notes de la saison du gala. Aucun changement dans le jeu."
+              {seasonFiveGala ? "Gala Saison 5 : après la clôture, génère ensemble la base PCM et les startlists des inscriptions validées, avec les notes S5 et les identités S6 confirmées."
+                : seasonFinale ? "Base spéciale Gala : les identités confirmées de la prochaine saison, avec les effectifs et notes de la saison du gala. Aucun changement dans le jeu."
                 : "Génère une base PCM26 à partir des données actuellement actives dans Cyclostratège, puis la valide avant de la télécharger."}
             </p>
           </header>
           <BackToOfficeLink />
         </div>
 
-        <PcmExportPanel seasonFinale={seasonFinale} />
-        <PcmGalaStartlistExportPanel eventKey={seasonFinale ? "gala-des-puncheurs" : undefined} />
+        <PcmExportPanel seasonFinale={seasonFinale} seasonFiveGala={seasonFiveGala} />
+        {!seasonFiveGala ? <PcmGalaStartlistExportPanel eventKey={seasonFinale ? "gala-des-puncheurs" : undefined} /> : null}
       </section>
     </main>
   );

@@ -56,6 +56,7 @@ vi.mock("@/lib/supabase/admin", () => ({
 }));
 
 import { createPcmExportSnapshot } from "@/services/pcm-export-snapshot";
+import { makeGalaS5Fixture } from "@/lib/game/__test-fixtures__/season-five-gala";
 
 beforeEach(() => {
   state.titleError = false; state.titleCalls = [];state.contractCalls=[];state.fromCalls=[];
@@ -81,6 +82,29 @@ beforeEach(() => {
       { rider_id: "other", country_id: "np", championship_type: "road", relinquished_at: null },
     ],
   };
+});
+
+describe("S5 source database during S6", () => {
+  it("keeps expired S5 riders and native ratings while projecting registered S6 identities only in memory", async () => {
+    const { source } = makeGalaS5Fixture();
+    source.entries = [{ ...source.entries[0], id: "reg", team_id: "t1" }];
+    source.selections = [{ ...source.selections[0], entry_id: "reg", rider_id: "r1" }];
+    source.identities = [{ ...source.identities[0], team_id: "t1", team_name: "Future S6 Name", registration_country_id: "np" }];
+    state.tables.seasons = [{ id: "s5", game_year: 5, status: "completed" }, { id: "s6", game_year: 6, status: "active" }];
+    state.tables.team_seasons[0].season_id = "s5"; state.tables.team_seasons[0].status = "completed";
+    state.tables.team_seasons.push({ ...state.tables.team_seasons[0], id: "next-team", season_id: "s6", status: "active" });
+    state.tables.rider_contracts[0] = { ...state.tables.rider_contracts[0], start_season_id: "s5", end_season_id: "s5", status: "completed" };
+    state.tables.rider_season_ratings[0].season_id = "s5";
+    const before = structuredClone(state.tables);
+    const result = await createPcmExportSnapshot(false, false, source);
+    expect(result.galaEdition).toBe("season-five");
+    expect(result.activeSeason.game_year).toBe(5);
+    expect(result.riders.map(row => row.id)).toEqual(["r1"]);
+    expect(result.ratings[0]).toMatchObject({ season_id: "s5", mountain: 70 });
+    expect(result.teamSeasons[0].display_name).toBe("Future S6 Name");
+    expect(result.contracts[0]).toMatchObject({ status: "completed", end_season_id: "s5" });
+    expect(state.tables).toEqual(before);
+  });
 });
 
 describe("snapshot des titres PCM", () => {

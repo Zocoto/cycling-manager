@@ -1,6 +1,7 @@
 import type { Database } from "sql.js";
 import {GALA_COURSES,SEASON_FOUR_GALA} from "@/lib/game/season-four-gala";
 import { SEASON_FINALE_GALA_RACE, SEASON_FINALE_GALA_PCM_MAX_TEAMS, SEASON_FINALE_GALA_MIN_RIDERS, SEASON_FINALE_GALA_MAX_RIDERS } from "@/lib/game/season-finale-gala";
+import { GALA_S5_COURSES, SEASON_FIVE_GALA } from "@/lib/game/season-five-gala";
 
 /** Modifie le CDB exporté seulement, sans toucher au gabarit officiel ni aux autres courses. */
 export function configurePcmSeasonFinaleGalaRules(db: Database) {
@@ -24,4 +25,14 @@ export function configurePcmSeasonFourGalaRules(db: Database, { preserveSchelde 
   if(db.exec('SELECT IDrace_rule FROM STA_race_rules WHERE fkIDrace='+course.raceId)[0]?.values.length)db.run('UPDATE STA_race_rules SET gene_i_max_team=?,gene_i_min_riders=?,gene_i_max_riders=? WHERE fkIDrace=?',values);
   else db.run('INSERT INTO STA_race_rules(IDrace_rule,gene_i_max_team,gene_i_min_riders,gene_i_max_riders,fkIDrace,regulation_TTT) SELECT coalesce(max(IDrace_rule),0)+1,?,?,?,?,0 FROM STA_race_rules',values);
  }
+}
+
+/** S5 only: align each verified native race with the accepted 7–8 rider rosters. */
+export function configurePcmSeasonFiveGalaRules(db: Database) {
+  for (const course of GALA_S5_COURSES) {
+    if (!course.pcmRaceId || !course.nativeCapacity || !db.exec(`SELECT IDrace FROM STA_race WHERE IDrace=${course.pcmRaceId}`)[0]?.values.length) throw new Error("A verified S5 gala course is absent from the PCM template.");
+    const values = [course.nativeCapacity, SEASON_FIVE_GALA.minRiders, SEASON_FIVE_GALA.maxRiders, course.pcmRaceId];
+    if (db.exec(`SELECT IDrace_rule FROM STA_race_rules WHERE fkIDrace=${course.pcmRaceId}`)[0]?.values.length) db.run("UPDATE STA_race_rules SET gene_i_max_team=?,gene_i_min_riders=?,gene_i_max_riders=? WHERE fkIDrace=?", values);
+    else db.run("INSERT INTO STA_race_rules(IDrace_rule,gene_i_max_team,gene_i_min_riders,gene_i_max_riders,fkIDrace,regulation_TTT) SELECT coalesce(max(IDrace_rule),0)+1,?,?,?,?,0 FROM STA_race_rules", values);
+  }
 }

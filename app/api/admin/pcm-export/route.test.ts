@@ -15,6 +15,14 @@ beforeEach(()=>{
 });
 
 describe("delegated PCM database export",()=>{
+  it("selects the independent S5 database-plus-startlists package explicitly",async()=>{
+    expect((await POST(request("?gala=saison-5"))).status).toBe(200);
+    expect(mocks.generate).toHaveBeenCalledExactlyOnceWith(false,false,true);
+  });
+  it("rejects an unknown gala edition instead of exporting the active season",async()=>{
+    expect((await POST(request("?gala=saison-99"))).status).toBe(400);
+    expect(mocks.generate).not.toHaveBeenCalled();
+  });
   it("permits the verified Gouille account without assigning a staff role",async()=>{
     mocks.auth.mockResolvedValue({data:{user:{id:"ee244935-5722-4626-a28f-dc3cf63aa6f4"}},error:null});mocks.role.mockResolvedValue(null);
     expect((await POST(request())).status).toBe(200);expect(mocks.role).not.toHaveBeenCalled();

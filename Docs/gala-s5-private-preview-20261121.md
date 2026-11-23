@@ -1,5 +1,9 @@
 # Gala S5 — aperçu privé
 
+Historique de l’aperçu du 21 novembre. Pour l’ouverture officielle du 23 novembre,
+la route publique authentifiée et la nouvelle clôture du 3 décembre à 18 h,
+voir [le lancement officiel](gala-s5-official-launch-20261123.md).
+
 Page : `/apercus/gala-saison-5`, réservée aux comptes vérifiés de Zocoto et Gouille.
 Programme et lots proposés pour arbitrage. Inscriptions câblées en accès privé,
 avec clôture au **4 décembre 2026 à 12 h Europe/Paris**. Aucune tuile dans le

@@ -12,7 +12,7 @@ import { createUniqueTeamCodes } from "@/lib/game/pcm-export/identifiers";
 import { applyExistingPcmAssetCodes } from "@/lib/game/pcm-export/gala-asset-codes";
 import { describePcmGraphics, WORKSHOP_TEAM_ASSET_CODES } from "@/lib/game/pcm-export/graphics-coverage";
 import { withoutEmptyPcmTeams } from "@/lib/game/pcm-export/rosters";
-import { configurePcmSeasonFinaleGalaRules,configurePcmSeasonFourGalaRules } from "@/lib/game/pcm-export/gala-rules";
+import { configurePcmSeasonFinaleGalaRules,configurePcmSeasonFourGalaRules,configurePcmSeasonFiveGalaRules } from "@/lib/game/pcm-export/gala-rules";
 import { convertRiderRatings } from "@/lib/game/pcm-export/ratings";
 import { PCM_SPECTATOR_ROSTER_IDS, PCM_SPECTATOR_TEAM_ID } from "@/lib/game/pcm-gala-startlists";
 import type {
@@ -652,6 +652,8 @@ function buildDatabaseFromSnapshot(
     configurePcmSeasonFinaleGalaRules(db);
     if (snapshot.galaEdition === "season-four") {
       configurePcmSeasonFourGalaRules(db, { preserveSchelde: preserveGalaSchelde });
+    } else if (snapshot.galaEdition === "season-five") {
+      configurePcmSeasonFiveGalaRules(db);
     }
 
     validateGeneratedRows(

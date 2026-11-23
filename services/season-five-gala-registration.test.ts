@@ -6,7 +6,7 @@ type Client = Parameters<typeof getCurrentSeasonFiveGalaContext>[0];
 const riderId = "00000000-0000-4000-8000-000000000001";
 const rawContext = {
   isOpen: true,
-  closesAt: "2026-12-04T11:00:00Z",
+  closesAt: "2026-12-03T17:00:00Z",
   team: { id: "00000000-0000-4000-8000-000000000002", name: "Fixture S5" },
   program: null,
   selections: {},

@@ -4,19 +4,21 @@ import { createHash, randomUUID } from "node:crypto";
 
 import { strToU8, zipSync } from "fflate";
 import { createPcmGraphicsInstaller, PCM_GRAPHICS_FILES } from "@/lib/game/pcm-export/graphics-installer";
+import { createSeasonFiveGalaStartlistInstaller } from "@/lib/game/season-five-gala-installer";
+import type { buildSeasonFiveGalaStartlists } from "@/lib/game/season-five-gala-startlists";
 
 import type {
   PcmExportPackageResult,
   PcmExportResult,
 } from "@/lib/game/pcm-export/types";
 
-export type PcmExportEdition = "standard" | "gala" | "gala-s4";
+export type PcmExportEdition = "standard" | "gala" | "gala-s4" | "gala-s5";
 
 export async function createPcmExportPackage({
   cdb,
   localCdb: localDatabase,
   metadata,
-}: PcmExportResult, { edition = "standard" }: { edition?: PcmExportEdition } = {}): Promise<PcmExportPackageResult> {
+}: PcmExportResult, { edition = "standard", galaStartlists }: { edition?: PcmExportEdition; galaStartlists?: ReturnType<typeof buildSeasonFiveGalaStartlists> } = {}): Promise<PcmExportPackageResult> {
   const localDatabaseSha256 = createHash("sha256")
     .update(localDatabase)
     .digest("hex");
@@ -29,12 +31,16 @@ export async function createPcmExportPackage({
   if (databaseSha256 !== metadata.outputSha256 || cdb.byteLength !== metadata.bytes) {
     throw new Error("La base PCM ne correspond pas au rapport de génération : export interrompu.");
   }
+  if (edition === "gala-s5" && (!galaStartlists || galaStartlists.manifest.databaseSha256 !== databaseSha256 || galaStartlists.manifest.snapshotSha256 !== metadata.snapshotSha256 || metadata.season !== 5)) {
+    throw new Error("The S5 database and registered startlists must be generated together.");
+  }
+  if (galaStartlists && edition !== "gala-s5") throw new Error("S5 startlists require the explicit S5 package edition.");
 
   const date = new Date(metadata.generatedAt);
   if (!Number.isFinite(date.getTime())) throw new Error("Date de génération PCM invalide.");
   const stamp = date.toISOString().replace(/[-:]/g, "").slice(0, 15).replace("T", "-");
   const exportId = randomUUID().replaceAll("-", "").slice(0, 12);
-  const editionSuffix = edition === "gala-s4" ? "-Gala-S4" : edition === "gala" ? "-Gala" : "";
+  const editionSuffix = edition === "gala-s5" ? "-Gala-S5" : edition === "gala-s4" ? "-Gala-S4" : edition === "gala" ? "-Gala" : "";
   const folder = `Cyclostratege-PCM26-S${metadata.season}${editionSuffix}-${stamp}Z-${exportId}`;
   const title = `Cyclostratège S${metadata.season}${editionSuffix.replaceAll("-", " ")} · ${date.toISOString().slice(0, 19).replace("T", " ")} UTC · ${exportId}`;
   const identity = { id: folder.toLowerCase(), title, folder };
@@ -63,6 +69,7 @@ export async function createPcmExportPackage({
     internationalChampions: metadata.internationalChampions,
     scope: metadata.scope,
     compatibleGraphics: { workshopItem: "3811779261", files: PCM_GRAPHICS_FILES, report: "compatibilite-graphismes.json" },
+    ...(galaStartlists ? { gala: { edition: "season-five", sourceSeason: 5, identitySeason: 6, startlists: "Startlists/manifest.json", simulationCount: galaStartlists.manifest.events.length } } : {}),
   };
   const graphics = {
     ...metadata.graphics,
@@ -91,6 +98,18 @@ export async function createPcmExportPackage({
     nationalChampions: metadata.nationalChampions,
     internationalChampions: metadata.internationalChampions,
   };
+  const galaFiles: Record<string, Uint8Array> = {};
+  if (galaStartlists) {
+    const events = galaStartlists.manifest.events.map(event => {
+      const content = galaStartlists.files[String(event.file)];
+      if (!content) throw new Error("Missing S5 startlist file.");
+      return { ...event, sha256: createHash("sha256").update(content).digest("hex") };
+    });
+    for (const [filename, content] of Object.entries(galaStartlists.files)) galaFiles[`Startlists/${filename}`] = strToU8(content);
+    galaFiles["Startlists/manifest.json"] = strToU8(JSON.stringify({ ...galaStartlists.manifest, events }, null, 2) + "\n");
+    galaFiles["Installer-startlist-gala-S5.ps1"] = strToU8("\uFEFF" + createSeasonFiveGalaStartlistInstaller());
+    galaFiles["Startlists/LISEZ-MOI.txt"] = strToU8(createSeasonFiveGalaInstallationGuide());
+  }
   const archive = zipSync(
     {
       "OfficialRelease.cdb": cdb,
@@ -105,6 +124,7 @@ export async function createPcmExportPackage({
       "compatibilite-graphismes.json": strToU8(`${JSON.stringify(graphics, null, 2)}\n`),
       "LISEZ-MOI.txt": strToU8(createInstallationGuide(folder, title)),
       "Installer-graphismes.ps1": strToU8(`\uFEFF${createPcmGraphicsInstaller()}`),
+      ...galaFiles,
     },
     { level: 6 },
   );
@@ -116,6 +136,21 @@ export async function createPcmExportPackage({
     archiveSha256,
     database: metadata,
   };
+}
+
+function createSeasonFiveGalaInstallationGuide() {
+  return [
+    "Gala S5 — compositions enregistrees, notes natives S5, identites S6 confirmees.",
+    "Cette base et ces XML ont ete generes ensemble. Ne pas les melanger avec un autre export ni avec le package S4.",
+    "Fermer PCM. Dans ce dossier, lancer Installer-startlist-gala-S5.ps1 -Course <eventKey> -Groupe 1.",
+    "Choisir le programme, la course et le groupe dans manifest.json. Une seule startlist par course peut etre active dans PCM.",
+    "Les groupes sont equilibres et comprennent toutes les equipes inscrites. Refaire la simulation pour chaque groupe.",
+    "7 a 8 coureurs par equipe. Une place native est reservee a l'equipe de simulation.",
+    "Le script verifie l'empreinte de la base et du XML, et sauvegarde la precedente startlist de cette course avant remplacement.",
+    "Pour verifier sans installer, ajouter -VerifyOnly. Ne pas renommer les XML et ne pas copier des doublons portant un suffixe (1).",
+    "Les montagnes utilisent le mode etape et la variante exacte stageFile du manifeste.",
+    "Les graphismes Steam S6 doivent etre prepares et verifies avec ce package avant la publication Workshop.",
+  ].join("\r\n");
 }
 
 function createModXml(metadata: PcmExportResult["metadata"], identity: { id: string; title: string }) {

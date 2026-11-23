@@ -17,7 +17,7 @@ const selections = { "pt-zoncolan": ids.slice(0, 7), "pt-liege": [], "pt-hamburg
 const input = { program: "pro-tour", selections };
 const context = {
   isOpen: true,
-  closesAt: "2026-12-04T11:00:00+00:00",
+  closesAt: "2026-12-03T17:00:00+00:00",
   team: { id: ids[8], name: "Fixture S5", futureName: "Fixture S6", identityReady: true },
   program: "pro-tour",
   selections,

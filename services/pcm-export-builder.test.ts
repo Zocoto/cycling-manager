@@ -14,8 +14,26 @@ import type {
 import { buildPcmDatabase } from "@/services/pcm-export-builder";
 import { createPcmExportPackage } from "@/services/pcm-export-package";
 import { unzipSync } from "fflate";
+import { GALA_S5_COURSES } from "@/lib/game/season-five-gala";
+import nativeS5Profiles from "@/lib/game/season-five-gala-profiles.json";
 
 describe("generateur de base PCM26", () => {
+  it("builds a real S5 CDB with all six native filenames and 7–8 rules", async () => {
+    const snapshot = createSnapshot(); snapshot.galaEdition = "season-five";
+    snapshot.activeSeason = { id: "season-5", game_year: 5, status: "completed" };
+    snapshot.teamSeasons[0].season_id = "season-5"; snapshot.ratings[0].season_id = "season-5";
+    const result = await buildPcmDatabase(snapshot);
+    const SQL = await initSqlJs({ locateFile: file => resolve("node_modules/sql.js/dist", file) });
+    const db = cdbToSql(result.cdb, SQL, { preciseTypes: true });
+    try {
+      for (const course of GALA_S5_COURSES) {
+        expect(db.exec(`SELECT gene_sz_filename FROM STA_race WHERE IDrace=${course.pcmRaceId}`)[0].values[0][0]).toBe(course.startlistFilename!.replace(/\.xml$/, ""));
+        expect(readCount(db, `SELECT COUNT(*) FROM STA_race_rules WHERE fkIDrace=${course.pcmRaceId} AND gene_i_min_riders=7 AND gene_i_max_riders=8 AND gene_i_max_team=${course.nativeCapacity}`)).toBe(1);
+        const stageId = nativeS5Profiles.courses[course.id as keyof typeof nativeS5Profiles.courses].pcmStageId;
+        expect(readCount(db, `SELECT COUNT(*) FROM STA_stage WHERE IDstage=${stageId}`)).toBe(1);
+      }
+    } finally { db.close(); }
+  }, 20_000);
   it("retire les clubs sans effectif sans changer les affectations du gala ni exclure un petit effectif", () => {
     const snapshot = createSnapshot();
     snapshot.galaEdition = "season-four";

@@ -25,27 +25,27 @@ beforeEach(() => {
 });
 afterEach(() => vi.restoreAllMocks());
 
-describe("season five gala authorized preparation actions", () => {
+describe("season five gala official registration actions", () => {
   it.each([saveSeasonFiveGalaRegistrationAction, withdrawSeasonFiveGalaRegistrationAction])("requires a valid session for each mutation", async (action) => {
     mocks.auth.mockResolvedValue({ data: { user: null }, error: null });
     expect((await action(initialGalaS5RegistrationState, form())).status).toBe("error");
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
 
-  it.each([saveSeasonFiveGalaRegistrationAction, withdrawSeasonFiveGalaRegistrationAction])("restricts preview mutations to the two authorized accounts", async (action) => {
+  it.each([saveSeasonFiveGalaRegistrationAction, withdrawSeasonFiveGalaRegistrationAction])("allows authenticated DS mutations through the ownership-checking RPC", async (action) => {
     mocks.auth.mockResolvedValue({ data: { user: { id: ids[0] } }, error: null });
-    expect((await action(initialGalaS5RegistrationState, form())).status).toBe("error");
-    expect(mocks.rpc).not.toHaveBeenCalled();
+    expect((await action(initialGalaS5RegistrationState, form())).status).toBe("success");
+    expect(mocks.rpc).toHaveBeenCalledOnce();
   });
 
-  it("saves selected courses atomically in one RPC and only refreshes the preview page", async () => {
+  it("saves selected courses atomically in one RPC and only refreshes the gala page", async () => {
     const timeout = vi.spyOn(AbortSignal, "timeout");
     expect((await saveSeasonFiveGalaRegistrationAction(initialGalaS5RegistrationState, form())).status).toBe("success");
     expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("save_current_season_five_gala_registration", {
       p_program: "pro-tour", p_selections: selections, p_previous_program: null,
     });
     expect(timeout).toHaveBeenCalledExactlyOnceWith(8000);
-    expect(mocks.path).toHaveBeenCalledExactlyOnceWith("/apercus/gala-saison-5");
+    expect(mocks.path).toHaveBeenCalledExactlyOnceWith("/jeu/gala-saison-5");
   });
 
   it("forwards the previous program to protect explicit category changes from stale forms", async () => {
@@ -83,7 +83,7 @@ describe("season five gala authorized preparation actions", () => {
   it("withdraws through the ownership-checked RPC", async () => {
     expect((await withdrawSeasonFiveGalaRegistrationAction(initialGalaS5RegistrationState, new FormData())).status).toBe("success");
     expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("withdraw_current_season_five_gala_registration");
-    expect(mocks.path).toHaveBeenCalledExactlyOnceWith("/apercus/gala-saison-5");
+    expect(mocks.path).toHaveBeenCalledExactlyOnceWith("/jeu/gala-saison-5");
   });
 
   it.each([
@@ -91,6 +91,7 @@ describe("season five gala authorized preparation actions", () => {
     [{ message: "Votre catégorie a changé. Rechargez la page avant de continuer." }, "Votre programme a changé."],
     [{ code: "40001", message: "serialization failure" }, "Une inscription est déjà en cours."],
     [{ message: "Coureur hors effectif de saison 5 ou inéligible" }, "Vérifiez votre effectif de saison 5"],
+    [{ message: "Un coureur est déjà inscrit par une autre équipe pour ce gala. Contactez l’organisation." }, "Un coureur est déjà inscrit par une autre équipe pour ce gala. Contactez l’organisation."],
     [{ message: "relation private.fixture does not exist" }, "Confirmation indisponible."],
   ])("reports controlled error messages and keeps a failed save unconfirmed", async (error, expected) => {
     mocks.abort.mockResolvedValue({ data: null, error });

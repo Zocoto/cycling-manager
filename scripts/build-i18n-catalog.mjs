@@ -20,8 +20,9 @@ const TECHNICAL_JSX_ATTRIBUTES = new Set(["className", "href", "src", "id", "key
 // These exact functions generate downloadable files, never application UI.
 // Keep their siblings (including errors displayed in the export page) scanned.
 const NON_UI_ARTIFACT_FUNCTIONS = new Map([
-  ["services/pcm-export-package.ts", new Set(["createInstallationGuide"])],
+  ["services/pcm-export-package.ts", new Set(["createInstallationGuide", "createSeasonFiveGalaInstallationGuide"])],
   ["lib/game/pcm-export/graphics-installer.ts", new Set(["createPcmGraphicsInstaller"])],
+  ["lib/game/season-five-gala-installer.ts", new Set(["createSeasonFiveGalaStartlistInstaller"])],
 ]);
 // These mixed-zone builders provide paired French and English copy directly.
 const BILINGUAL_INTERVIEW_TEMPLATES = new Map([

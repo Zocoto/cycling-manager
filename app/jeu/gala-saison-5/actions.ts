@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 
-import { canAccessSeasonFiveGalaPreview } from "@/lib/game/season-five-gala-access";
 import { SEASON_FIVE_GALA } from "@/lib/game/season-five-gala";
 import {
   seasonFiveGalaRegistrationSchema,
@@ -25,6 +24,9 @@ function registrationError(error: NonNullable<MutationResult["error"]>): string 
   if (/hors effectif|inéligible/i.test(message)) {
     return "Vérifiez votre effectif de saison 5 et le plafond Continental de 75 dans chaque note primaire native.";
   }
+  if (/coureur.*déjà inscrit.*autre équipe/i.test(message)) {
+    return "Un coureur est déjà inscrit par une autre équipe pour ce gala. Contactez l’organisation.";
+  }
   if (/Aucune équipe de saison 5/i.test(message)) return "Aucune équipe de saison 5 à inscrire.";
   if (/autre équipe|autre DS|Plusieurs équipes/i.test(message)) {
     return "Cette inscription nécessite une vérification par l’organisation du gala.";
@@ -40,9 +42,6 @@ async function executeGalaMutation(
     const client = await createSupabaseServerClient();
     const { data: { user }, error } = await getAuthenticatedUser(client);
     if (error || !user) return { status: "error", message: "Reconnectez-vous pour gérer votre inscription." };
-    if (!canAccessSeasonFiveGalaPreview(user.id)) {
-      return { status: "error", message: "Cet aperçu du gala est réservé à l’organisation." };
-    }
     const result = await operation(client);
     if (result.error) return { status: "error", message: registrationError(result.error) };
     revalidatePath(SEASON_FIVE_GALA.route);
