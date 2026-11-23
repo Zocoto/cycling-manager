@@ -23,9 +23,10 @@ const ratings = [
 type Rating = typeof ratings[number][0];
 const programName = (program: SeasonFiveGalaProgram) => program === "pro-tour" ? "Pro Tour" : "Continental";
 
-export function SeasonFiveGalaRegistration({ context, program }: {
+export function SeasonFiveGalaRegistration({ context, program, onRegistrationChange }: {
   context: SeasonFiveGalaContext;
   program: SeasonFiveGalaProgram;
+  onRegistrationChange?: (program: SeasonFiveGalaProgram | null) => void;
 }) {
   const id = useId();
   const courses = GALA_S5_COURSES.filter(course => course.program === program);
@@ -33,15 +34,14 @@ export function SeasonFiveGalaRegistration({ context, program }: {
   const course = courses.find(value => value.id === activeCourse) ?? courses[0];
   const [selections, setSelections] = useState(context.selections);
   const [saved, setSaved] = useState({ program: context.program, selections: context.selections });
-  const [confirmSwitch, setConfirmSwitch] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
   const [confirmWithdrawal, setConfirmWithdrawal] = useState(false);
   const [lastMutation, setLastMutation] = useState<"save" | "withdraw" | null>(null);
   const [sort, setSort] = useState<{ key: Rating | "name"; descending: boolean } | null>(null);
   const selected = selections[course.id] ?? [];
   const submitted = buildSeasonFiveGalaSelections(program, selections);
   const changingProgram = saved.program !== null && saved.program !== program;
-  const dirty = JSON.stringify(submitted) !== JSON.stringify(buildSeasonFiveGalaSelections(program, saved.selections))
-    || (changingProgram && Object.values(submitted).some(ids => ids.length > 0));
+  const dirty = JSON.stringify(submitted) !== JSON.stringify(buildSeasonFiveGalaSelections(program, saved.selections));
   const anyChanges = GALA_S5_COURSES.some(value => JSON.stringify(selections[value.id] ?? []) !== JSON.stringify(saved.selections[value.id] ?? []));
   useUnsavedManagementChanges(anyChanges);
 
@@ -53,7 +53,8 @@ export function SeasonFiveGalaRegistration({ context, program }: {
       const nextSelections = JSON.parse(String(form.get("selections"))) as Record<string, string[]>;
       setSaved({ program: nextProgram, selections: nextSelections });
       setSelections(nextSelections);
-      setConfirmSwitch(false);
+      setEditorOpen(false);
+      onRegistrationChange?.(nextProgram);
     }
     return result;
   }, initialGalaS5RegistrationState);
@@ -64,6 +65,8 @@ export function SeasonFiveGalaRegistration({ context, program }: {
       setSaved({ program: null, selections: {} });
       setSelections({});
       setConfirmWithdrawal(false);
+      setEditorOpen(false);
+      onRegistrationChange?.(null);
     }
     return result;
   }, initialGalaS5RegistrationState);
@@ -76,7 +79,9 @@ export function SeasonFiveGalaRegistration({ context, program }: {
     <h2>Votre équipe au départ</h2><p>Une équipe de saison 5 est nécessaire pour participer au gala.</p>
   </section>;
 
-  const allowed = new Set(context.riders.filter(rider => program === "pro-tour" || isSeasonFiveGalaContinentalRiderEligible(rider)).map(rider => rider.rider_id));
+  const allowed = new Set(context.riders.filter(rider => program === "pro-tour" || isSeasonFiveGalaContinentalRiderEligible({
+    ...rider, continentalAdmitted: saved.program === "continental" && rider.continentalAdmitted === true,
+  })).map(rider => rider.rider_id));
   const present = new Set(context.riders.map(rider => rider.rider_id));
   const hasDepartedRiders = Object.values(submitted).some(ids => ids.some(riderId => !present.has(riderId)));
   const invalid = Object.values(submitted).some(ids => ids.some(riderId => !allowed.has(riderId)));
@@ -105,17 +110,20 @@ export function SeasonFiveGalaRegistration({ context, program }: {
   }
   const disabled = !context.isOpen || pending;
 
-  return <section id="inscriptions-gala-s5" className={styles.panel} aria-labelledby={`${id}-title`}>
+  return <section id="inscriptions-gala-s5" className={`${styles.panel} ${saved.program ? styles.registeredPanel : ""}`} aria-labelledby={`${id}-title`}>
     <header className={styles.heading}>
-      <div><p className={styles.eyebrow}>Votre inscription · {programName(program)}</p><h2 id={`${id}-title`}>Composez votre équipe.</h2></div>
+      <div><p className={styles.eyebrow}>Votre inscription · {programName(saved.program ?? program)}</p><h2 id={`${id}-title`}>{saved.program ? "Votre équipe est inscrite." : "Votre équipe au départ."}</h2></div>
       <div className={styles.identity}><strong>{context.team.futureName || context.team.name}</strong>
         <span>{context.team.identityReady ? "Identité de saison 6" : "Identité de saison 6 à confirmer"}</span></div>
     </header>
-    <p className={styles.instructions}>Une seule catégorie par DS. Choisissez 7 à 8 coureurs par course ; vous pouvez enregistrer une course, puis compléter les autres plus tard.</p>
     <p className={styles.deadline}>Clôture : {SEASON_FIVE_GALA.registrationDeadlineLabel}</p>
-    {saved.program ? <p className={styles.savedProgram}>Inscription actuelle : <strong>{programName(saved.program)}</strong>.</p> : null}
+    {saved.program ? <p className={styles.savedProgram}>Programme confirmé : <strong>{programName(saved.program)}</strong> · {Object.values(saved.selections).filter(ids => (ids?.length ?? 0) >= 7).length} / 3 courses.</p> : null}
     {!context.isOpen ? <p role="status" className={styles.notice}>Les inscriptions sont closes. Vos compositions restent consultables.</p> : null}
-    {changingProgram ? <p className={styles.notice}>Enregistrer en {programName(program)} remplacera toutes vos inscriptions en {programName(saved.program!)}.</p> : null}
+    <details className={styles.editor} data-gala-own-editor open={editorOpen}
+      onToggle={event => setEditorOpen(event.currentTarget.open)}>
+      <summary><span>{saved.program ? "Modifier mes compositions" : "Composer mon équipe"}</span><span aria-hidden="true">⌄</span></summary>
+      {editorOpen ? changingProgram ? <p className={styles.notice}>Retirez d’abord votre inscription actuelle pour changer de programme.</p> : <div className={styles.editorBody}>
+    <p className={styles.instructions}>Une seule catégorie par DS. Choisissez 7 à 8 coureurs par course ; vous pouvez enregistrer une course, puis compléter les autres plus tard.</p>
     <div className={styles.courseTabs} role="group" aria-label="Course à composer">
       {courses.map(value => <button key={value.id} type="button" aria-pressed={course.id === value.id}
         disabled={pending} onClick={() => { setActiveCourse(value.id); setSort(null); }}>
@@ -144,15 +152,16 @@ export function SeasonFiveGalaRegistration({ context, program }: {
           setLastMutation(null);
           setSelections(previous => Object.fromEntries(Object.entries(previous).map(([courseId, ids]) => [courseId, (ids ?? []).filter(riderId => present.has(riderId))])));
         }}>Retirer les coureurs sortis de l’effectif</button> : null}</div> : null}
-      {changingProgram ? <label className={styles.confirm}><input type="checkbox" checked={confirmSwitch} disabled={disabled}
-        onChange={event => setConfirmSwitch(event.target.checked)} />Je remplace mes inscriptions en {programName(saved.program!)} par le programme {programName(program)}.</label> : null}
       <div className={styles.saveBar}>
         <p>{complete} / 3 courses prêtes<span>{incomplete ? "Complétez à 7 coureurs les courses commencées, ou videz-les." : dirty ? "Modifications à enregistrer" : saved.program === program ? "Compositions enregistrées" : "Choisissez vos coureurs."}</span></p>
-        <button type="submit" disabled={disabled || !valid || !dirty || (changingProgram && !confirmSwitch)}>{saving ? "Enregistrement…" : "Valider mes inscriptions"}</button>
+        <button type="submit" disabled={disabled || !valid || !dirty}>{saving ? "Enregistrement…" : "Valider mes inscriptions"}</button>
       </div>
-      {lastMutation === "save" && !pending && state.message ? <p role={state.status === "error" ? "alert" : "status"} className={state.status === "error" ? styles.error : styles.success}>{state.message}</p> : null}
     </form>
+    </div> : null}
+    </details>
+    {lastMutation === "save" && !pending && state.message ? <p role={state.status === "error" ? "alert" : "status"} className={state.status === "error" ? styles.error : styles.success}>{state.message}</p> : null}
     {saved.program && context.isOpen ? <div className={styles.withdrawal}>
+      <p>Pour changer de programme, retirez d’abord votre inscription actuelle.</p>
       {!confirmWithdrawal ? <button type="button" disabled={pending} onClick={() => setConfirmWithdrawal(true)}>Retirer toutes mes inscriptions</button> : <form action={withdraw}>
         <p>Retirer vos inscriptions aux trois courses du gala ?</p>
         <button type="submit" disabled={pending}>{withdrawing ? "Retrait…" : "Retirer mes inscriptions"}</button>

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useId, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import {
@@ -13,31 +14,46 @@ import {
 } from "@/lib/game/season-five-gala";
 import styles from "./season-five-gala.module.css";
 import type { SeasonFiveGalaContext } from "@/lib/game/season-five-gala-registration";
+import type { SeasonFiveGalaPublicStartlists as PublicStartlists } from "@/lib/game/season-five-gala-public-startlists";
 import { SeasonFiveGalaRegistration } from "./season-five-gala-registration";
+import { SeasonFiveGalaPublicStartlists } from "./season-five-gala-public-startlists";
 import { SeasonFiveGalaHero } from "./season-five-gala-hero";
 
 const programs: readonly SeasonFiveGalaProgram[] = ["pro-tour", "continental"];
 
-export function SeasonFiveGalaPreview({ registrationContext }: { registrationContext?: SeasonFiveGalaContext }) {
+export function SeasonFiveGalaPreview({ registrationContext, startlists = null }: {
+  registrationContext?: SeasonFiveGalaContext;
+  startlists?: PublicStartlists | null;
+}) {
+  const router = useRouter();
   const [program, setProgram] = useState<SeasonFiveGalaProgram>(registrationContext?.program ?? "pro-tour");
+  const [registeredProgram, setRegisteredProgram] = useState<SeasonFiveGalaProgram | null>(registrationContext?.program ?? null);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const id = useId();
   const courses = GALA_S5_COURSES.filter((course) => course.program === program);
 
   function handleTabKey(event: KeyboardEvent<HTMLButtonElement>, index: number) {
-    let nextIndex = index;
+    const enabled = programs.flatMap((value, position) => !registeredProgram || value === registeredProgram ? [position] : []);
+    let position = enabled.indexOf(index);
     if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
-      nextIndex = (index + 1) % programs.length;
+      position = (position + (event.key === "ArrowRight" ? 1 : -1) + enabled.length) % enabled.length;
     } else if (event.key === "Home") {
-      nextIndex = 0;
+      position = 0;
     } else if (event.key === "End") {
-      nextIndex = programs.length - 1;
+      position = enabled.length - 1;
     } else {
       return;
     }
     event.preventDefault();
+    const nextIndex = enabled[position];
     setProgram(programs[nextIndex]);
     tabRefs.current[nextIndex]?.focus();
+  }
+
+  function registrationChanged(next: SeasonFiveGalaProgram | null) {
+    setRegisteredProgram(next);
+    if (next) setProgram(next);
+    router.refresh();
   }
 
   return (
@@ -57,8 +73,8 @@ export function SeasonFiveGalaPreview({ registrationContext }: { registrationCon
               Le peloton fête la saison sur Pro Cycling Manager 26, en direct avec Gouille.
             </p>
             <div className={styles.heroActions}>
-              <a href={registrationContext?.isOpen && registrationContext.team ? "#inscriptions-gala-s5" : "#programme-gala-s5"} className={styles.goldButton}>
-                {registrationContext?.isOpen && registrationContext.team ? "Inscrire mon équipe" : "Découvrir les courses"} <span aria-hidden="true">↓</span></a>
+              <a href={registeredProgram ? "#startlists-gala-s5" : registrationContext?.isOpen && registrationContext.team ? "#inscriptions-gala-s5" : "#programme-gala-s5"} className={styles.goldButton}>
+                {registeredProgram ? "Voir les startlists" : registrationContext?.isOpen && registrationContext.team ? "Inscrire mon équipe" : "Découvrir les courses"} <span aria-hidden="true">↓</span></a>
               <a href="#lots-gala-s5" className={styles.textLink}>Voir les lots</a>
             </div>
           </div>
@@ -107,6 +123,9 @@ export function SeasonFiveGalaPreview({ registrationContext }: { registrationCon
             {programs.map((value, index) => (
               <button key={value} type="button" role="tab" id={`${id}-${value}-tab`}
                 ref={(element) => { tabRefs.current[index] = element; }}
+                disabled={registeredProgram !== null && registeredProgram !== value}
+                aria-disabled={registeredProgram !== null && registeredProgram !== value}
+                title={registeredProgram !== null && registeredProgram !== value ? "Retirez d’abord votre inscription actuelle pour changer de programme." : undefined}
                 aria-selected={program === value} aria-controls={`${id}-courses`}
                 tabIndex={program === value ? 0 : -1}
                 onClick={() => setProgram(value)} onKeyDown={(event) => handleTabKey(event, index)}>
@@ -123,16 +142,21 @@ export function SeasonFiveGalaPreview({ registrationContext }: { registrationCon
             {" "}Une composition différente est possible pour chaque épreuve.
           </p>
           <div id={`${id}-courses`} role="tabpanel" aria-labelledby={`${id}-${program}-tab`} tabIndex={0}>
+            {registrationContext ? <SeasonFiveGalaRegistration context={registrationContext} program={program}
+              onRegistrationChange={registrationChanged} /> : null}
+          </div>
+          <SeasonFiveGalaPublicStartlists startlists={startlists} registeredProgram={registeredProgram} onRefresh={() => router.refresh()} />
+          <details className={styles.courseDisclosure}>
+            <summary>Voir les parcours et leurs profils<span aria-hidden="true">⌄</span></summary>
             <div className={styles.courseGrid}>
               {courses.map((course) => <CourseCard key={course.id} course={course} />)}
             </div>
-          </div>
           <div className={styles.registration}>
             <div><strong>Vos couleurs de saison {SEASON_FIVE_GALA.nextSeason}, en avant-première.</strong>
               <p>Inscrivez votre équipe sous sa future identité, avec son maillot de la saison prochaine.</p></div>
             <div><strong>Clôture des inscriptions</strong><p>{SEASON_FIVE_GALA.registrationDeadlineLabel}</p></div>
           </div>
-          {registrationContext ? <SeasonFiveGalaRegistration context={registrationContext} program={program} /> : null}
+          </details>
         </section>
 
         <section id="lots-gala-s5" className={`${styles.section} ${styles.rewards}`} aria-labelledby={`${id}-rewards-title`}>

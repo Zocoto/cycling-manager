@@ -14,6 +14,9 @@ inscriptions et l’horaire de diffusion sont affichés séparément.
 ## Inscriptions
 
 - Une seule catégorie par DS et par équipe : Pro Tour ou Continental.
+- Après validation, l’autre catégorie est grisée. Il faut retirer explicitement
+  l’inscription actuelle pour la débloquer ; modifier ses compositions dans la
+  catégorie déjà choisie reste possible jusqu’à la clôture.
 - Pour chaque épreuve choisie, 7 à 8 coureurs distincts ; au moins une épreuve
   complète pour valider une inscription.
 - Coureurs et notes natives de la saison 5, sans bonus d’équipement.
@@ -25,6 +28,17 @@ inscriptions et l’horaire de diffusion sont affichés séparément.
 - Le serveur vérifie de nouveau la clôture après les attentes sur les verrous.
 - La source S5 reste utilisable après le passage en S6 ; les couleurs S6 sont
   projetées depuis les identités et contrats prévus, sans modifier la saison 5.
+
+La page résume les startlists enregistrées de toutes les équipes : un volet par
+épreuve, les maillots S6 et les noms des coureurs sélectionnés. Les compositions
+en cours de préparation ne sont pas publiées avant validation. Les deux
+programmes restent consultables dans ce récapitulatif, même quand l’inscription
+du DS verrouille l’autre catégorie.
+
+Le sélecteur de coureurs du DS est rangé dans un volet dépliable. Il se referme
+après validation ; le résumé, le bouton de modification et la désinscription
+restent accessibles. Les lectures publiques et personnelles sont indépendantes,
+sans polling et sans requête supplémentaire par équipe.
 
 ## Programme natif conservé
 

@@ -88,6 +88,7 @@ describe("season five gala official registration actions", () => {
 
   it.each([
     [{ message: "Les inscriptions du gala sont closes." }, "Les inscriptions du gala sont closes."],
+    [{ message: "Retirez d’abord votre inscription actuelle pour changer de programme." }, "Retirez d’abord votre inscription actuelle pour changer de programme."],
     [{ message: "Votre catégorie a changé. Rechargez la page avant de continuer." }, "Votre programme a changé."],
     [{ code: "40001", message: "serialization failure" }, "Une inscription est déjà en cours."],
     [{ message: "Coureur hors effectif de saison 5 ou inéligible" }, "Vérifiez votre effectif de saison 5"],

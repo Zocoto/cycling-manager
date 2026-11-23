@@ -1,0 +1,42 @@
+.board { margin-top: 27px; scroll-margin-top: 20px; }
+.heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.eyebrow { color: #d4bb7e; font-size: 10px; font-weight: 800; line-height: 1.6; letter-spacing: .12em; text-transform: uppercase; }
+.heading h2 { margin: 5px 0 0; color: #efe6d0; font: 500 29px/1.2 Georgia, serif; }
+.heading > p { color: #c8cdb8; font-size: 11px; white-space: nowrap; }
+.intro { margin: 9px 0 17px !important; color: #b1bdac; font-size: 12px; line-height: 1.7; }
+.programs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+.program { min-width: 0; }
+.programHeading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 9px; }
+.programHeading h3 { color: #e3c88c; font-size: 15px; font-weight: 750; }
+.programHeading > span { color: #c9cdb8; font-size: 10px; }
+.course { min-width: 0; margin-top: 8px; overflow: hidden; border: 1px solid #8e9a7044; border-radius: 10px; background: #142119; }
+.course > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 15px; color: #e6ddc3; cursor: pointer; list-style: none; }
+.course > summary::-webkit-details-marker { display: none; }
+.course > summary:focus-visible, .unavailable button:focus-visible, .team a:focus-visible { outline: 2px solid #f2d597; outline-offset: -3px; }
+.course > summary strong { display: block; color: #eee4c9; font-size: 13px; line-height: 1.5; }
+.course > summary small { display: block; margin-top: 3px; color: #b8c3af; font-size: 10px; }
+.count { display: flex; flex-shrink: 0; align-items: center; gap: 12px; color: #d7c38f; font-size: 10px; }
+.count > span { font-size: 18px; }
+.course[open] .count > span { transform: rotate(180deg); }
+.teams { max-height: 620px; overflow-y: auto; overscroll-behavior: contain; margin: 0; padding: 0 15px; list-style: none; scrollbar-color: #7c8e6b #101b14; scrollbar-width: thin; }
+.team { padding: 12px 0 14px; border-top: 1px solid #8e9a7033; }
+.teamHeading { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.teamHeading > div { min-width: 0; }
+.jersey { display: flex; width: 48px; height: 54px; flex-shrink: 0; align-items: center; justify-content: center; overflow: hidden; border-radius: 6px; background: #f0f0df12; }
+.jerseyArtwork { display: block; width: 48px; height: 54px; object-fit: contain; }
+.teamName { display: block; color: #eee3c6; font-size: 12px; line-height: 1.6; font-weight: 750; overflow-wrap: anywhere; }
+.teamHeading small { display: block; margin-top: 3px; color: #aab99e; font-size: 10px; line-height: 1.6; }
+.roster { display: flex; flex-wrap: wrap; gap: 3px 0; margin: 10px 0 0; padding: 0; list-style: none; }
+.roster li { max-width: 100%; font-size: 11px; line-height: 1.8; color: #c5cdb7; overflow-wrap: anywhere; }
+.roster li:not(:last-child)::after { content: "·"; margin: 0 7px; color: #8a9877; }
+.team a:hover { color: #f2d597; }
+.empty { padding: 0 15px 15px; color: #b2bda5; font-size: 11px; line-height: 1.7; }
+.unavailable { padding: 16px; border: 1px solid #ac815344; border-radius: 8px; color: #dbbf94; font-size: 12px; line-height: 1.7; background: #1d2116; }
+.unavailable button { margin-top: 12px; padding: 8px 11px; border: 1px solid #c6aa7466; border-radius: 5px; color: #e0c99a; background: #c6aa7414; cursor: pointer; }
+@media (max-width: 760px) {
+  .programs { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .heading { align-items: flex-start; flex-direction: column; gap: 6px; }
+  .heading h2 { font-size: 27px; }
+  .course > summary { padding: 12px; }
+  .teams { max-height: 570px; padding: 0 12px; }
+}

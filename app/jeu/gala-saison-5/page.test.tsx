@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   redirect: vi.fn(),
   notFound: vi.fn(),
   context: vi.fn(),
+  startlists: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({ createSupabaseServerClient: mocks.client }));
@@ -24,6 +25,7 @@ vi.mock("@/services/game-header-data", () => ({ getGameHeaderData: mocks.header 
 vi.mock("@/components/game/season-five-gala-preview", () => ({ SeasonFiveGalaPreview: mocks.preview }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect, notFound: mocks.notFound }));
 vi.mock("@/services/season-five-gala-registration", () => ({ getCurrentSeasonFiveGalaContext: mocks.context }));
+vi.mock("@/services/season-five-gala-public-startlists", () => ({ getSeasonFiveGalaPublicStartlists: mocks.startlists }));
 
 import SeasonFiveGalaPreviewPage, { dynamic, metadata } from "./page";
 
@@ -49,6 +51,7 @@ beforeEach(() => {
   mocks.auth.mockResolvedValue({ data: { user: null }, error: null });
   mocks.context.mockResolvedValue({ isOpen: true, closesAt: SEASON_FIVE_GALA.registrationClosesAt,
     team: null, program: null, selections: {}, riders: [] });
+  mocks.startlists.mockResolvedValue(null);
   mocks.preview.mockImplementation(() => <article data-gala-s5-preview>Gala S5 registrations</article>);
   mocks.redirect.mockImplementation((path: string) => { throw new Error(`REDIRECT:${path}`); });
   mocks.notFound.mockImplementation(() => { throw new Error("NOT_FOUND"); });
@@ -71,6 +74,7 @@ describe("official season-five gala page access", () => {
     expect(mocks.client).toHaveBeenCalledOnce();
     expect(mocks.auth).toHaveBeenCalledExactlyOnceWith(client);
     expect(mocks.context).toHaveBeenCalledExactlyOnceWith(client);
+    expect(mocks.startlists).toHaveBeenCalledExactlyOnceWith(client);
     expect(mocks.redirect).not.toHaveBeenCalled();
     expect(mocks.notFound).not.toHaveBeenCalled();
     expectNoGameReads();
@@ -85,6 +89,7 @@ describe("official season-five gala page access", () => {
     expect(mocks.preview).not.toHaveBeenCalled();
     expect(mocks.notFound).not.toHaveBeenCalled();
     expect(mocks.context).not.toHaveBeenCalled();
+    expect(mocks.startlists).not.toHaveBeenCalled();
     expectNoGameReads();
   });
 
@@ -139,12 +144,30 @@ describe("official season-five gala page access", () => {
     expect(metadata.robots).toMatchObject({ index: false, follow: false });
   });
 
-  it("keeps the gala visible with an unavailable registration panel when its single read fails", async () => {
+  it("keeps the gala visible with an unavailable registration panel when its personal read fails", async () => {
     mocks.auth.mockResolvedValue({ data: { user: { id: allowedUsers[0][1] } }, error: null });
     mocks.context.mockRejectedValue(new Error("Database unavailable"));
     const html = renderToStaticMarkup(await SeasonFiveGalaPreviewPage());
     expect(html).toContain("data-gala-s5-preview");
     expect(mocks.preview.mock.calls.at(-1)?.[0]).toMatchObject({ registrationContext: { unavailable: true, isOpen: false } });
     expectNoGameReads();
+  });
+
+  it("keeps personal editing available when the independent public startlist read fails", async () => {
+    mocks.auth.mockResolvedValue({ data: { user: { id: allowedUsers[0][1] } }, error: null });
+    mocks.startlists.mockRejectedValue(new Error("Public lineups unavailable"));
+    renderToStaticMarkup(await SeasonFiveGalaPreviewPage());
+    expect(mocks.preview.mock.calls.at(-1)?.[0]).toMatchObject({
+      registrationContext: { isOpen: true }, startlists: null,
+    });
+  });
+
+  it("passes the shared saved startlists through without filtering them to the current DS", async () => {
+    mocks.auth.mockResolvedValue({ data: { user: { id: allowedUsers[0][1] } }, error: null });
+    const publicLineups = { editionId: "s5", sourceSeason: 5, targetGameYear: 6, courses: [] };
+    mocks.startlists.mockResolvedValue(publicLineups);
+    renderToStaticMarkup(await SeasonFiveGalaPreviewPage());
+    expect(mocks.preview.mock.calls.at(-1)?.[0].startlists).toBe(publicLineups);
+    expect(mocks.startlists).toHaveBeenCalledExactlyOnceWith(client);
   });
 });

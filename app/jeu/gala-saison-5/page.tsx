@@ -6,6 +6,7 @@ import { SEASON_FIVE_GALA } from "@/lib/game/season-five-gala";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentSeasonFiveGalaContext } from "@/services/season-five-gala-registration";
+import { getSeasonFiveGalaPublicStartlists } from "@/services/season-five-gala-public-startlists";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -23,12 +24,15 @@ export default async function SeasonFiveGalaPage() {
     redirect(`/connexion?returnTo=${encodeURIComponent(SEASON_FIVE_GALA.route)}`);
   }
 
-  // A single bounded RPC loads this DS's team, native ratings and registration.
-  // The page adds no header queries, rewards mutation or polling.
-  const context = await getCurrentSeasonFiveGalaContext(session!.client).catch(() => ({
-    unavailable: true, isOpen: false, closesAt: SEASON_FIVE_GALA.registrationClosesAt,
-    team: null, program: null, selections: {}, riders: [],
-  }));
+  // Personal editing data and public saved lineups load independently in parallel.
+  // Neither read mutates registrations or adds polling or per-team requests.
+  const [context, startlists] = await Promise.all([
+    getCurrentSeasonFiveGalaContext(session!.client).catch(() => ({
+      unavailable: true, isOpen: false, closesAt: SEASON_FIVE_GALA.registrationClosesAt,
+      team: null, program: null, selections: {}, riders: [],
+    })),
+    getSeasonFiveGalaPublicStartlists(session!.client).catch(() => null),
+  ]);
   const revision = JSON.stringify([context.team?.id, context.program, context.selections, context.isOpen]);
-  return <SeasonFiveGalaPreview key={revision} registrationContext={context} />;
+  return <SeasonFiveGalaPreview key={revision} registrationContext={context} startlists={startlists} />;
 }

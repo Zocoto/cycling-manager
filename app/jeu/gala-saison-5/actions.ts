@@ -17,6 +17,9 @@ const confirmationMessage = "Confirmation indisponible. Rechargez la page pour v
 function registrationError(error: NonNullable<MutationResult["error"]>): string {
   const message = error.message ?? "";
   if (/inscriptions.*closes/i.test(message)) return "Les inscriptions du gala sont closes.";
+  if (/Retirez d’abord votre inscription actuelle pour changer de programme/i.test(message)) {
+    return "Retirez d’abord votre inscription actuelle pour changer de programme.";
+  }
   if (/catégorie a changé|programme a changé/i.test(message)) return "Votre programme a changé. Rechargez la page avant de continuer.";
   if (error.code === "40001" || /inscription est déjà en cours/i.test(message)) {
     return "Une inscription est déjà en cours. Rechargez la page avant de réessayer.";
