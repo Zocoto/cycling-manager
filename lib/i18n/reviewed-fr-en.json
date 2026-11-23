@@ -4781,5 +4781,13 @@
   "Voir les startlists": "View the startlists",
   "Votre équipe au départ.": "Your team on the start line.",
   "Votre équipe est inscrite.": "Your team is registered.",
-  "Votre programme": "Your programme"
+  "Votre programme": "Your programme",
+  "Entraînement du jour": "Today's training",
+  "Filtrer les juniors par mode d’entraînement": "Filter juniors by training mode",
+  "Tous les juniors": "All juniors",
+  "Juniors affichés": "Juniors shown",
+  "Aucun junior dans ce mode d’entraînement.": "No juniors in this training mode.",
+  "Voir tous les juniors": "Show all juniors",
+  "Décisions masquées": "Hidden decisions",
+  "Ces décisions restent incluses dans la validation groupée.": "These decisions are still included in the bulk confirmation."
 }

@@ -33,6 +33,7 @@ import { YouthScoutingRecallButton } from "@/components/game/youth-scouting-reca
 import { YouthCandidateRecruitment } from "@/components/game/youth-candidate-recruitment";
 import {
   YouthTrainingBulkEditor,
+  YouthTrainingRosterFilter,
 } from "@/components/game/youth-training-bulk-editor";
 import { TRAINING_DOMAIN_LABELS } from "@/lib/game/training";
 import type { TransferScoutingReport } from "@/lib/game/transfer-scouting";
@@ -781,7 +782,10 @@ function AcademyTab({
                 trainingMode: rider.trainingModePreference,
               }))}
             >
-              <div className="space-y-3">
+              <YouthTrainingRosterFilter riders={visibleRiders.map((rider) => ({
+                id: rider.id,
+                trainingMode: rider.status === "release_pending" ? null : rider.trainingMode,
+              }))}>
                 {visibleRiders.map((rider) => (
                   <AcademyRiderCard
                     key={rider.id}
@@ -792,7 +796,7 @@ function AcademyTab({
                     rosterLimit={overview.rosterLimit}
                   />
                 ))}
-              </div>
+              </YouthTrainingRosterFilter>
             </YouthTrainingBulkEditor>
           ) : (
             <EmptyState

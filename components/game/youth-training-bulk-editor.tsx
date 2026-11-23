@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Children,
   createContext,
   useContext,
   useMemo,
@@ -41,6 +42,68 @@ type YouthTrainingBulkContextValue = {
 
 const YouthTrainingBulkContext =
   createContext<YouthTrainingBulkContextValue | null>(null);
+
+export function YouthTrainingRosterFilter({
+  riders,
+  children,
+}: {
+  riders: readonly { id: string; trainingMode: YouthTrainingMode | null }[];
+  children: ReactNode;
+}) {
+  const [mode, setMode] = useState<YouthTrainingMode | "all">("all");
+  const context = useContext(YouthTrainingBulkContext);
+  const childRows = Children.toArray(children);
+  const visibleRiderIds = new Set(
+    riders.filter((rider) => mode === "all" || rider.trainingMode === mode)
+      .map((rider) => rider.id),
+  );
+  const visibleCount = visibleRiderIds.size;
+  const hiddenDecisionCount = context
+    ? getChangedYouthTrainingSettings(context.initialByRiderId, context.valuesByRiderId)
+        .filter((setting) => !visibleRiderIds.has(setting.academyRiderId)).length
+      + [...context.selectedDismissalIds].filter((id) => !visibleRiderIds.has(id)).length
+    : 0;
+
+  return (
+    <div>
+      <div data-youth-training-filter className="mb-3 flex flex-wrap items-end justify-between gap-3 rounded-2xl border border-[#315B3E]/12 bg-white p-3 shadow-sm sm:px-4">
+        <label className="grid w-full min-w-0 gap-1 sm:w-auto">
+          <span className="text-[10px] font-black uppercase tracking-[0.12em] text-[#60756E]">Entraînement du jour</span>
+          <select
+            aria-label="Filtrer les juniors par mode d’entraînement"
+            value={mode}
+            onChange={(event) => setMode(isYouthTrainingMode(event.target.value) ? event.target.value : "all")}
+            className="min-h-10 w-full min-w-0 rounded-xl border border-[#315B3E]/15 bg-[#F7FAF8] px-3 text-xs font-black text-[#183F37] outline-none focus:border-[#278B70] focus:ring-2 focus:ring-[#278B70]/15 sm:min-w-56"
+          >
+            <option value="all">Tous les juniors</option>
+            <option value="manual">Manuel</option>
+            <option value="automatic">Automatique</option>
+          </select>
+        </label>
+        <p aria-live="polite" className="flex items-center gap-2 text-[11px] font-bold text-[#60756E]">
+          <span>Juniors affichés</span>
+          <strong className="rounded-lg bg-[#EAF5F3] px-2.5 py-1.5 font-black tabular-nums text-[#176951]">{visibleCount} / {riders.length}</strong>
+        </p>
+        {hiddenDecisionCount > 0 ? (
+          <p role="status" title="Ces décisions restent incluses dans la validation groupée." className="flex items-center gap-2 rounded-lg bg-[#FFF3D5] px-2.5 py-1.5 text-[11px] font-bold text-[#806114]">
+            <span>Décisions masquées</span><strong>{hiddenDecisionCount}</strong>
+          </p>
+        ) : null}
+      </div>
+      {!visibleCount ? (
+        <div className="rounded-2xl border border-[#315B3E]/12 bg-white p-4 text-sm font-bold text-[#60756E]">
+          <p>Aucun junior dans ce mode d’entraînement.</p>
+          <button type="button" onClick={() => setMode("all")} className="mt-2 min-h-10 rounded-xl bg-[#EAF5F3] px-3 text-xs font-black text-[#176951] hover:bg-[#DCEFEA] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70]">Voir tous les juniors</button>
+        </div>
+      ) : null}
+      <div className="flex flex-col gap-3">
+        {riders.map((rider, index) => (
+          <div key={rider.id} hidden={!visibleRiderIds.has(rider.id)}>{childRows[index]}</div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function YouthTrainingBulkEditor({
   initialSettings,

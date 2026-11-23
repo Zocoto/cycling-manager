@@ -43,7 +43,7 @@ const bundle = await build({
       import {LocaleProvider} from '@/components/i18n/locale-provider';
       import {AcademyRiderCard} from '@/components/game/academy-rider-card';
       import {AcademyRiderCard as OriginalCard} from 'qa-original-card';
-      import {YouthTrainingBulkEditor} from '@/components/game/youth-training-bulk-editor';
+      import {YouthTrainingBulkEditor,YouthTrainingRosterFilter} from '@/components/game/youth-training-bulk-editor';
       import {SPECIAL_ABILITY_CATALOG} from '@/lib/game/special-abilities';
       const root = createRoot(document.getElementById('root'));
       const ratings = {mountain:72.4,hills:81.5,flat:76.2,timeTrial:68.7,cobbles:66.1,sprint:71.9,
@@ -69,14 +69,19 @@ const bundle = await build({
         const Card = before ? OriginalCard : AcademyRiderCard;
         const visible = variant==='young' ? [{...base,id:'qa-junior-1',age:16,canRecruit:false,manualTraining:{...base.manualTraining,currentSlotCompleted:true,completedSlotCount:1}}]
           : variant==='capacity' ? [base] : riders;
+        const cards=visible.map(rider=><Card key={rider.id} rider={rider} gameYear={2026} currency='EUR'
+          canSchedulePromotion={variant!=='capacity'} rosterLimit={30}/>);
         return <LocaleProvider initialLocale={locale} key={locale+'-'+before+'-'+variant+'-'+revision}>
           <main className='min-h-screen bg-[#EAF5F3] text-[#082A2A]'>
             <section className='mx-auto max-w-[1500px] px-5 py-8 sm:px-8 sm:py-12'>
               <div className='space-y-3' data-qa='academy-roster'>
                 <YouthTrainingBulkEditor preserveFinalYearFilter initialSettings={visible.filter(rider=>rider.status!=='release_pending').map(rider=>({
                   academyRiderId:rider.id,trainingPriority:rider.trainingPriority,trainingMode:rider.trainingModePreference}))}>
-                  <div className='space-y-3'>{visible.map(rider=><Card key={rider.id} rider={rider} gameYear={2026} currency='EUR'
-                    canSchedulePromotion={variant!=='capacity'} rosterLimit={30}/>)}</div>
+                  {before ? <div className='space-y-3'>{cards}</div> :
+                    <YouthTrainingRosterFilter riders={visible.map(rider=>({id:rider.id,
+                      trainingMode:rider.status==='release_pending'?null:rider.trainingMode}))}>
+                      {cards}
+                    </YouthTrainingRosterFilter>}
                 </YouthTrainingBulkEditor>
               </div>
             </section>
@@ -117,8 +122,10 @@ const browser = await chromium.launch({ executablePath, headless: true });
 const measurements = [];
 const widths = flags.find(flag=>flag.startsWith('--widths='))?.slice(9).split(',').map(Number) ?? [320, 360, 390, 768, 1280, 1440];
 let checks = 0;
+let modeFilterChecks = 0;
 let revision = 0;
 const check = (condition, message) => { assert(condition, message); checks++; };
+const checkFilter = (condition, message) => { check(condition, message); modeFilterChecks++; };
 try {
   for (const width of widths) {
     const context = await browser.newContext({ viewport: { width, height: width < 768 ? 844 : 1000 }, isMobile: width < 768, hasTouch: width < 768 });
@@ -138,7 +145,7 @@ try {
     };
     const layout = async (variant) => {
       const bounds = await page.evaluate(() => {
-        const cards = [...document.querySelectorAll('[data-academy-rider-card]')].map(element => {
+        const cards = [...document.querySelectorAll('[data-academy-rider-card]')].filter(element=>element.checkVisibility()).map(element => {
           const rect=element.getBoundingClientRect(),style=getComputedStyle(element);
           return {id:element.id,x:rect.x,y:rect.y,width:rect.width,height:rect.height,bottom:rect.bottom,
             borderTopWidth:style.borderTopWidth,borderLeftWidth:style.borderLeftWidth,borderTopColor:style.borderTopColor,borderRadius:style.borderRadius,
@@ -180,6 +187,28 @@ try {
       const after=await layout(`after-${locale}-collapsed`);
       if (screenshotDirectory) await page.screenshot({path:join(screenshotDirectory,`academy-after-${width}-${locale}-collapsed.png`),fullPage:true});
       const first=card(),second=card(2),released=card(3);
+      const modeFilter=page.locator('select').first();
+      const filterBar=page.locator('[data-youth-training-filter]');
+      const displayedCount=()=>filterBar.locator('strong').first().textContent();
+      const visibleCardIds=()=>page.locator('[data-academy-rider-card]:visible').evaluateAll(elements=>elements.map(element=>element.id));
+      const originalFirstCard=await first.elementHandle();
+      checkFilter(await modeFilter.inputValue()==='all', `${width}/${locale}: current-mode filter defaults to all juniors`);
+      checkFilter(await displayedCount()==='3 / 3', `${width}/${locale}: default counter includes every junior`);
+      checkFilter(JSON.stringify(await modeFilter.locator('option').evaluateAll(options=>options.map(option=>option.value)))===JSON.stringify(['all','manual','automatic']), `${width}/${locale}: exactly the three requested mode filters`);
+      if(locale==='en') checkFilter(!/Tous les juniors|Manuel|Automatique/.test(await modeFilter.textContent()), `${width}: mode filter options translated into English`);
+      await modeFilter.selectOption('manual');
+      checkFilter(JSON.stringify(await visibleCardIds())===JSON.stringify(['junior-qa-junior-1']), `${width}/${locale}: manual filter excludes a future manual preference and pending departures`);
+      checkFilter(await page.locator('[data-academy-rider-card]').count()===3, `${width}/${locale}: hidden cards remain mounted`);
+      checkFilter(await displayedCount()==='1 / 3', `${width}/${locale}: manual filter counter matches visible riders`);
+      await layout(`after-${locale}-manual-filter`);
+      if(screenshotDirectory&&(width===320||width===390||width===1440)) await page.screenshot({path:join(screenshotDirectory,`academy-filter-${width}-${locale}-manual.png`),fullPage:true});
+      await modeFilter.selectOption('automatic');
+      checkFilter(JSON.stringify(await visibleCardIds())===JSON.stringify(['junior-qa-junior-2']), `${width}/${locale}: automatic filter uses today's mode despite manual preference for tomorrow`);
+      checkFilter(await displayedCount()==='1 / 3', `${width}/${locale}: automatic filter counter matches visible riders`);
+      checkFilter(await first.evaluate((element,original)=>element===original,originalFirstCard), `${width}/${locale}: changing filters preserves each actual card node`);
+      await layout(`after-${locale}-automatic-filter`);
+      await modeFilter.selectOption('all');
+      checkFilter((await visibleCardIds()).length===3, `${width}/${locale}: all restores active juniors and pending departures`);
       const sections=first.locator('[data-academy-section]');
       check(await sections.count()===3, `${width}/${locale}: profile, training, management sections exist`);
       check(await sections.evaluateAll(elements=>elements.every(element=>element.tagName==='DETAILS'&&!element.open)), `${width}/${locale}: three native sections initially collapsed`);
@@ -230,9 +259,13 @@ try {
       await training.evaluate(element=>{element.open=false;});
       check(await dialog.isVisible(), `${width}/${locale}: closing training cannot hide a prepared mini-game dialog`);
       check(await dialog.evaluate(element=>element.closest('details')===null), `${width}/${locale}: mini-game dialog stays outside closed disclosure`);
+      await modeFilter.selectOption('automatic');
+      checkFilter(await first.isHidden(), `${width}/${locale}: manual rider is hidden by the automatic filter`);
+      checkFilter(await dialog.isVisible(), `${width}/${locale}: filtering its rider cannot hide the prepared mini-game body portal`);
       if(screenshotDirectory&&(width===390||width===1440)) await page.screenshot({path:join(screenshotDirectory,`academy-after-${width}-${locale}-minigame.png`),fullPage:true});
       await dialog.getByRole('button',{name:/^Retour$|^Back$|^Return$/i}).click();
       await dialog.waitFor({state:'hidden'});
+      await modeFilter.selectOption('all');
       check(await page.evaluate(()=>window.qaActionCalls.length===0), `${width}/${locale}: preparing and canceling never starts a server-side training session`);
       await toggle(training);
       const mode=training.locator('select').nth(0),priority=training.locator('select').nth(1);
@@ -259,6 +292,18 @@ try {
       await mode.selectOption('automatic');
       const twiceChanged=JSON.parse(await page.locator('form input[name="settings"]').inputValue());
       check(twiceChanged.length===1&&twiceChanged[0].trainingMode==='automatic', `${width}/${locale}: changed mode stages correctly`);
+      const stagedSettings=JSON.stringify(twiceChanged);
+      await modeFilter.selectOption('manual');
+      checkFilter(await first.isVisible()&&await second.isHidden(), `${width}/${locale}: a local preference change does not reclassify today's manual training`);
+      await modeFilter.selectOption('automatic');
+      checkFilter(await first.isHidden()&&await second.isVisible(), `${width}/${locale}: automatic filter hides the edited manual junior`);
+      checkFilter(await priority.inputValue()===nextPriority&&await mode.inputValue()==='automatic', `${width}/${locale}: hidden training inputs retain their changed values`);
+      checkFilter(await page.locator('form input[name="settings"]').inputValue()===stagedSettings, `${width}/${locale}: filtering preserves the exact bulk save payload`);
+      checkFilter(await filterBar.getByRole('status').isVisible()&&await filterBar.getByRole('status').locator('strong').textContent()==='1', `${width}/${locale}: one hidden training decision is explicitly flagged`);
+      await modeFilter.selectOption('all');
+      checkFilter(await priority.evaluate((element,original)=>element===original,selectedReference), `${width}/${locale}: a filtered training field is not remounted`);
+      checkFilter(await training.getAttribute('open')!==null, `${width}/${locale}: a card's disclosure state survives filtering`);
+      checkFilter(await filterBar.getByRole('status').count()===0, `${width}/${locale}: hidden-decision warning disappears when all cards are visible`);
       await layout(`after-${locale}-training-changed`);
       if (screenshotDirectory&&(width===390||width===1440)) await page.screenshot({path:join(screenshotDirectory,`academy-after-${width}-${locale}-training.png`),fullPage:true});
       await mode.selectOption('manual');
@@ -279,6 +324,20 @@ try {
       await dismissal.check();
       const dismissalValue=JSON.parse(await page.locator('input[name="academyRiderIds"]').inputValue());
       check(dismissalValue.length===1&&dismissalValue[0]==='qa-junior-1', `${width}/${locale}: departure selection stages correct rider`);
+      const secondManagement=second.locator('[data-academy-section="management"]');
+      await toggle(secondManagement);
+      const secondDismissal=secondManagement.locator('input[type="checkbox"]');
+      if(!(await secondDismissal.isVisible())) await toggle(secondManagement.locator('details'));
+      await secondDismissal.check();
+      const bothDismissals=await page.locator('input[name="academyRiderIds"]').inputValue();
+      checkFilter(JSON.parse(bothDismissals).length===2, `${width}/${locale}: two departures can be selected across both modes`);
+      await modeFilter.selectOption('automatic');
+      checkFilter(await page.locator('input[name="academyRiderIds"]').inputValue()===bothDismissals, `${width}/${locale}: filtering never silently removes a hidden departure selection`);
+      checkFilter(await dismissal.isChecked()&&await secondDismissal.isChecked(), `${width}/${locale}: both visible and hidden dismissal controls preserve state`);
+      checkFilter(await filterBar.getByRole('status').isVisible()&&await filterBar.getByRole('status').locator('strong').textContent()==='1', `${width}/${locale}: one hidden departure is explicitly flagged`);
+      await modeFilter.selectOption('all');
+      await secondDismissal.uncheck();
+      await toggle(secondManagement);
       check(await page.locator('input[name="age"]').inputValue()==='18', `${width}/${locale}: bulk filter state preserved`);
       await toggle(management);
       await toggle(management);
@@ -288,6 +347,20 @@ try {
       await dismissal.uncheck();
       await toggle(management);
       check(await page.evaluate(()=>window.qaSubmitEvents.length===0&&window.qaActionCalls.length===0), `${width}/${locale}: disclosure interactions never submit forms or invoke server actions`);
+      await mount({locale,variant:'young'});
+      const emptyModeFilter=page.locator('select').first();
+      const youngCardReference=await card().elementHandle();
+      await card().locator('[data-academy-section="training"] > summary').click();
+      await emptyModeFilter.selectOption('automatic');
+      checkFilter(await page.locator('[data-academy-rider-card]:visible').count()===0, `${width}/${locale}: unmatched current-mode filter shows no rider`);
+      checkFilter(await card().count()===1&&await card().isHidden(), `${width}/${locale}: an empty filtered result keeps the real card mounted`);
+      checkFilter(await page.locator('[data-youth-training-filter] strong').first().textContent()==='0 / 1', `${width}/${locale}: empty filter counter is accurate`);
+      const showAll=page.getByRole('button',{name:/^Voir tous les juniors$|^Show all juniors$/i});
+      checkFilter(await showAll.isVisible(), `${width}/${locale}: empty filter has a clear translated reset action`);
+      await showAll.click();
+      checkFilter(await emptyModeFilter.inputValue()==='all'&&await card().isVisible(), `${width}/${locale}: empty filter reset restores all juniors`);
+      checkFilter(await card().evaluate((element,original)=>element===original,youngCardReference), `${width}/${locale}: resetting an empty filter does not remount the card`);
+      checkFilter(await card().locator('[data-academy-section="training"]').getAttribute('open')!==null, `${width}/${locale}: opening state survives an empty filtered result`);
     }
     await mount({locale:'fr',variant:'young'});
     check(/Recrutable à partir de 17 ans/.test(await card().textContent()), `${width}: under-age recruitment restriction retained`);
@@ -312,4 +385,4 @@ try {
   await browser.close();
   if (screenshotDirectory) writeFileSync(join(screenshotDirectory,baselineOnly?'baseline-measurements.json':'measurements.json'),JSON.stringify(measurements,null,2));
 }
-console.log(`PASS ${checks} isolated ${baselineOnly?'baseline':'compact academy'} checks across ${widths.join('/')}px${baselineOnly?'':', FR/EN, training state, management, promotion and departure variants'}.`);
+console.log(`PASS ${checks} isolated ${baselineOnly?'baseline':'compact academy'} checks (${modeFilterChecks} mode-filter checks) across ${widths.join('/')}px${baselineOnly?'':', FR/EN, training state, management, promotion and departure variants'}.`);
