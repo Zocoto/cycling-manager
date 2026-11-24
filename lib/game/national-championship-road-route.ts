@@ -20,6 +20,7 @@ export type NationalChampionshipRouteChoice = {
   targetGameYear: number;
   currentPreset: NationalChampionshipRoadPreset;
   nextPreset: NationalChampionshipRoadPreset | null;
+  defaultNextPreset?: NationalChampionshipRoadPreset;
   opensOn: string;
   closesOn: string;
   window: "upcoming" | "open" | "closed";

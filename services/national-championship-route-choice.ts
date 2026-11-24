@@ -20,6 +20,7 @@ const routeChoiceSchema = z.object({
   targetGameYear: z.number().int().min(2),
   currentPreset: presetKey,
   nextPreset: presetKey.nullable(),
+  defaultNextPreset: presetKey.optional(),
   opensOn: z.iso.date(),
   closesOn: z.iso.date(),
   window: z.enum(["upcoming", "open", "closed"]),

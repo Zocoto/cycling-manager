@@ -20,7 +20,7 @@ export function NationalChampionshipRoutePanel({ choice }: { choice: NationalCha
 }
 
 function NationalChampionshipRouteChoiceForm({ choice }: { choice: NationalChampionshipRouteChoice }) {
-  const nextPreset = choice.nextPreset ?? "hilly";
+  const nextPreset = choice.nextPreset ?? choice.defaultNextPreset ?? "hilly";
   const [preset, setPreset] = useState(nextPreset);
   const [actionState, action, pending] = useActionState(saveNationalChampionshipRoadChoiceAction, {
     status: "idle" as const, message: "",
@@ -70,7 +70,7 @@ function NationalChampionshipRouteChoiceForm({ choice }: { choice: NationalChamp
         ) : choice.window === "closed" ? "Choix clôturé" : (
           <>Clôture le {dateFormatter.format(new Date(`${choice.closesOn}T00:00:00Z`))}</>
         )}
-        {" · "}{choice.nextPreset ? "Profil enregistré" : "Vallonné par défaut"}
+        {choice.nextPreset ? <>{" · "}Profil enregistré</> : null}
       </p>
       {actionState.message ? (
         <p role={actionState.status === "error" ? "alert" : "status"} className={`mt-2 text-sm font-bold ${actionState.status === "error" ? "text-[#A62B3D]" : "text-[#176951]"}`}>
