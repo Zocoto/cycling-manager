@@ -29,6 +29,7 @@ import { COUNTRY_EXPANSION_BATCH_11_SPONSORS } from "./country-expansion-batch-1
 import { COUNTRY_EXPANSION_BATCH_12_SPONSORS } from "./country-expansion-batch-12";
 import { COUNTRY_EXPANSION_BATCH_13_SPONSORS } from "./country-expansion-batch-13";
 import { CYCLING_PROJECT_SPONSORS } from "./cycling-projects";
+import { DISCOUNT_RECOMMERCE_BATCH_25_SPONSORS } from "./discount-recommerce-batch-25";
 import { ENERGY_SPONSORS } from "./energy";
 import { ENERGY_DRINK_BATCH_01_SPONSORS } from "./energy-drinks-batch-01";
 import { FAST_FOOD_SPONSORS } from "./fast-food";
@@ -74,6 +75,7 @@ import { AMERICAN_EXPANSION_BATCH_02_SPONSORS } from "./united-states-batch-02";
 import { WELLNESS_HYGIENE_SPONSORS } from "./wellness-hygiene";
 
 const RAW_SPONSORS = [
+  ...DISCOUNT_RECOMMERCE_BATCH_25_SPONSORS,
   ...TELECOM_BATCH_24_SPONSORS,
   ...AGRI_FOOD_BATCH_23_SPONSORS,
   ...ACTIVE_FEDERATION_BATCH_01_SPONSORS,
