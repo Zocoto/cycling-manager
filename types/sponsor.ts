@@ -16,6 +16,7 @@ export interface SponsorColors {
   primary: string;
   secondary: string;
   accent: string;
+  headerAccent?: string;
   background: string;
   text: string;
 }

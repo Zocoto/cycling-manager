@@ -1,6 +1,7 @@
 import type { AnchorHTMLAttributes } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { GREEK_SPONSORS } from "@/data/sponsors/greece";
 import type { GameStaffRole } from "@/lib/game/game-product-news";
 
 const indicators = vi.hoisted(() => ({ role: null as GameStaffRole, collectorAlbumAvailable: false }));
@@ -29,6 +30,24 @@ vi.mock("@/components/ui/app-link", () => ({
 import { GameHeader } from "./game-header";
 
 beforeEach(() => { indicators.role = null; indicators.collectorAlbumAvailable = false; });
+
+describe("header sponsor colors", () => {
+  it("applies the Kriti Gea olive accent to the controls, stripe and game logo", () => {
+    const sponsor = GREEK_SPONSORS.find(({ id }) => id === "kriti-gea");
+    const html = renderToStaticMarkup(<GameHeader displayName="Joueur" sponsor={sponsor} />);
+
+    expect(html).toContain("--game-header-accent:#96AA68");
+    expect(html.match(/linear-gradient\(90deg, #557A32, #96AA68, #C65D3B\)/g)).toHaveLength(2);
+    expect(html).not.toContain("#1F5AA6");
+  });
+
+  it("keeps the regular accent for another Greek sponsor", () => {
+    const sponsor = GREEK_SPONSORS.find(({ id }) => id === "kyklos-ferries");
+    const html = renderToStaticMarkup(<GameHeader displayName="Joueur" sponsor={sponsor} />);
+
+    expect(html).toContain("--game-header-accent:#E76F51");
+  });
+});
 
 describe("header game staff shortcuts", () => {
   it("moves the standalone album shortcut out of the main header", () => {

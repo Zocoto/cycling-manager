@@ -65,7 +65,9 @@ export function GameHeader({
   const headerIndicators = useGameHeaderIndicators();
   const gameStaffRole = headerIndicators?.gameStaffRole ?? null;
   const isEnglish = locale === "en";
-  const colors = sponsor?.colors ?? DEFAULT_HEADER_COLORS;
+  const colors = sponsor
+    ? { ...sponsor.colors, accent: sponsor.colors.headerAccent ?? sponsor.colors.accent }
+    : DEFAULT_HEADER_COLORS;
   const federationCountryCode = sponsor?.countryCode.trim().toUpperCase() || null;
 
   const maxWidthClassName =

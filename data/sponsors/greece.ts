@@ -59,7 +59,14 @@ export const GREEK_SPONSORS = [
       { id: "kriti-gea-modern", name: "Labyrinthe", style: "modern", imagePath: "/images/sponsors/kriti-gea/jersey-modern.webp" },
       { id: "kriti-gea-bold", name: "Cnossos", style: "bold", imagePath: "/images/sponsors/kriti-gea/jersey-bold.webp" },
     ],
-    colors: { primary: "#557A32", secondary: "#C65D3B", accent: "#1F5AA6", background: "#F6E7C9", text: "#3D2E1F" },
+    colors: {
+      primary: "#557A32",
+      secondary: "#C65D3B",
+      accent: "#1F5AA6",
+      headerAccent: "#96AA68",
+      background: "#F6E7C9",
+      text: "#3D2E1F",
+    },
   },
   {
     id: "hephaistos-forge",
