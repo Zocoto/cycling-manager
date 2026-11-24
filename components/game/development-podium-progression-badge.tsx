@@ -19,7 +19,9 @@ export function DevelopmentPodiumProgressionBadge({
 
   return (
     <span className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[9px] font-black text-[#8A6714]">
-      <span className="uppercase tracking-[0.1em]">Progression podium</span>
+      <span className="uppercase tracking-[0.1em]">
+        {progression.stageNumber === null ? "Progression podium" : "Victoire d’étape"}
+      </span>
       {gains.map((gain) => (
         <span
           key={gain.key}

@@ -194,11 +194,15 @@ type AcademyCompetitionLinkRow = {
 type PodiumProgressionRow = {
   race_edition_id: string;
   academy_rider_id: string;
+  stage_number: number | null;
   final_rank: number;
   profile_type: DevelopmentRaceProfile;
   primary_rating_key: string;
   projected_rating_changes: Record<string, number | string>;
 };
+
+const PODIUM_PROGRESSION_SELECT =
+  "race_edition_id, academy_rider_id, stage_number, final_rank, profile_type, primary_rating_key, projected_rating_changes";
 
 export type DevelopmentRaceProfile =
   | "flat"
@@ -309,6 +313,7 @@ export type DevelopmentRaceResult = {
 export type DevelopmentPodiumProgression = {
   rank: number;
   profileType: DevelopmentRaceProfile;
+  stageNumber: number | null;
   primaryRatingKey: RiderRatingKey;
   ratingChanges: Partial<Record<RiderRatingKey, number>>;
 };
@@ -533,7 +538,7 @@ export async function getDevelopmentTeamOverview(
     const completedEditionIds = visibleEditions
       .filter((edition) => edition.status === "completed")
       .map((edition) => edition.id);
-    const [raceResults, progressionResult] = await Promise.all([
+    const [raceResults, progressionResult, stageProgressionResult] = await Promise.all([
       collectChunkedPaginatedRows<ResultRow, { message: string }, string>({
         values: visibleEditionIds,
         fetchPage: async (editionIdChunk, from, to) => {
@@ -553,23 +558,32 @@ export async function getDevelopmentTeamOverview(
       completedEditionIds.length
         ? admin
             .from("development_race_podium_progression")
-            .select(
-              "race_edition_id, academy_rider_id, final_rank, profile_type, primary_rating_key, projected_rating_changes",
-            )
+            .select(PODIUM_PROGRESSION_SELECT)
             .in("race_edition_id", completedEditionIds)
+            .is("stage_number", null)
             .returns<PodiumProgressionRow[]>()
         : Promise.resolve({
             data: [] as PodiumProgressionRow[],
             error: null,
           }),
+      admin
+        .from("development_race_podium_progression")
+        .select(`${PODIUM_PROGRESSION_SELECT}, youth_academy_riders!inner(team_id)`)
+        .in("race_edition_id", visibleEditionIds)
+        .not("stage_number", "is", null)
+        .eq("youth_academy_riders.team_id", context.teamId)
+        .returns<PodiumProgressionRow[]>(),
     ]);
     assertQuery(raceResults.error, "les classements juniors");
     assertQuery(
-      progressionResult.error,
+      progressionResult.error ?? stageProgressionResult.error,
       "les progressions acquises sur les podiums juniors",
     );
     resultRows = raceResults.data;
-    progressionRows = progressionResult.data ?? [];
+    progressionRows = [
+      ...(progressionResult.data ?? []),
+      ...(stageProgressionResult.data ?? []),
+    ];
   }
 
   const raceNumberByRiderId = new Map(
@@ -692,25 +706,19 @@ export async function getDevelopmentTeamOverview(
         ),
     };
   });
-  const progressionByResultKey = new Map(
-    progressionRows.flatMap((row) => {
-      const progression = toDevelopmentPodiumProgression(row);
-      return progression
-        ? [[developmentProgressionKey(row.race_edition_id, row.academy_rider_id), progression] as const]
-        : [];
-    }),
+  const stageNumberById = new Map(
+    (stagesResult.data ?? []).map((stage) => [stage.id, stage.stage_number]),
   );
+  const progressionByResultKey =
+    indexDevelopmentPodiumProgressions(progressionRows);
   const results = resultRows.map((row) =>
     toDevelopmentResult(
       row,
-      row.result_scope === "general" && row.academy_rider_id
-        ? (progressionByResultKey.get(
-            developmentProgressionKey(
-              row.race_edition_id,
-              row.academy_rider_id,
-            ),
-          ) ?? null)
-        : null,
+      getResultPodiumProgression(
+        row,
+        progressionByResultKey,
+        row.stage_id ? stageNumberById.get(row.stage_id) : undefined,
+      ),
     ),
   );
   const ownFinalResults = results.filter(
@@ -861,6 +869,14 @@ export async function getDevelopmentRiderProfile(
   const stageIds = unique(
     resultRows.flatMap((result) => (result.stage_id ? [result.stage_id] : [])),
   );
+  const progressionQuery = admin
+    .from("development_race_podium_progression")
+    .select(PODIUM_PROGRESSION_SELECT)
+    .eq("academy_rider_id", academyRiderId)
+    .in("race_edition_id", editionIds);
+  const visibleProgressionQuery = riderResult.data.team_id === context.teamId
+    ? progressionQuery
+    : progressionQuery.is("stage_number", null);
   const [editionsResult, stagesResult, progressionResult] = await Promise.all([
     editionIds.length
       ? admin
@@ -872,19 +888,15 @@ export async function getDevelopmentRiderProfile(
     stageIds.length
       ? admin
           .from("development_race_stages")
-          .select("id, name")
+          .select("id, name, stage_number")
           .in("id", stageIds)
-          .returns<Array<{ id: string; name: string }>>()
-      : Promise.resolve({ data: [] as Array<{ id: string; name: string }>, error: null }),
+          .returns<Array<Pick<StageRow, "id" | "name" | "stage_number">>>()
+      : Promise.resolve({
+          data: [] as Array<Pick<StageRow, "id" | "name" | "stage_number">>,
+          error: null,
+        }),
     editionIds.length
-      ? admin
-          .from("development_race_podium_progression")
-          .select(
-            "race_edition_id, academy_rider_id, final_rank, profile_type, primary_rating_key, projected_rating_changes",
-          )
-          .eq("academy_rider_id", academyRiderId)
-          .in("race_edition_id", editionIds)
-          .returns<PodiumProgressionRow[]>()
+      ? visibleProgressionQuery.returns<PodiumProgressionRow[]>()
       : Promise.resolve({
           data: [] as PodiumProgressionRow[],
           error: null,
@@ -920,22 +932,24 @@ export async function getDevelopmentRiderProfile(
   const stageById = new Map(
     (stagesResult.data ?? []).map((stage) => [stage.id, stage]),
   );
-  const progressionByEditionId = new Map(
-    (progressionResult.data ?? []).flatMap((row) => {
-      const progression = toDevelopmentPodiumProgression(row);
-      return progression ? [[row.race_edition_id, progression] as const] : [];
-    }),
+  const progressionByResultKey = indexDevelopmentPodiumProgressions(
+    progressionResult.data ?? [],
   );
-  const resultDtos = resultRows.map((result) => ({
-    ...toDevelopmentResult(
-      result,
-      result.result_scope === "general"
-        ? (progressionByEditionId.get(result.race_edition_id) ?? null)
-        : null,
-    ),
-    raceName: editionById.get(result.race_edition_id)?.name ?? "Épreuve junior",
-    stageName: result.stage_id ? stageById.get(result.stage_id)?.name ?? null : null,
-  }));
+  const resultDtos = resultRows.map((result) => {
+    const stage = result.stage_id ? stageById.get(result.stage_id) : undefined;
+    return {
+      ...toDevelopmentResult(
+        result,
+        getResultPodiumProgression(
+          result,
+          progressionByResultKey,
+          stage?.stage_number,
+        ),
+      ),
+      raceName: editionById.get(result.race_edition_id)?.name ?? "Épreuve junior",
+      stageName: stage?.name ?? null,
+    };
+  });
 
   return {
     ...rider,
@@ -1245,16 +1259,57 @@ function toDevelopmentPodiumProgression(
   return {
     rank: Number(row.final_rank),
     profileType: row.profile_type,
+    stageNumber: row.stage_number,
     primaryRatingKey,
     ratingChanges,
   };
 }
 
+function indexDevelopmentPodiumProgressions(rows: PodiumProgressionRow[]) {
+  return new Map(
+    rows.flatMap((row) => {
+      const progression = toDevelopmentPodiumProgression(row);
+      return progression
+        ? [[
+            developmentProgressionKey(
+              row.race_edition_id,
+              row.academy_rider_id,
+              row.stage_number,
+            ),
+            progression,
+          ] as const]
+        : [];
+    }),
+  );
+}
+
+function getResultPodiumProgression(
+  result: ResultRow,
+  progressionByResultKey: ReadonlyMap<string, DevelopmentPodiumProgression>,
+  stageNumber: number | undefined,
+) {
+  if (
+    !result.academy_rider_id ||
+    (result.result_scope === "stage" &&
+      (result.rank !== 1 || stageNumber === undefined))
+  ) {
+    return null;
+  }
+  return progressionByResultKey.get(
+    developmentProgressionKey(
+      result.race_edition_id,
+      result.academy_rider_id,
+      result.result_scope === "stage" ? stageNumber : null,
+    ),
+  ) ?? null;
+}
+
 function developmentProgressionKey(
   raceEditionId: string,
   academyRiderId: string,
+  stageNumber: number | null | undefined,
 ) {
-  return `${raceEditionId}:${academyRiderId}`;
+  return `${raceEditionId}:${academyRiderId}:${stageNumber ?? "general"}`;
 }
 
 async function loadContext(

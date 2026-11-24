@@ -1,10 +1,33 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
+import { DevelopmentPodiumProgressionBadge } from "./development-podium-progression-badge";
 import {
   DevelopmentRaceStatus,
   DevelopmentResultRiderLink,
 } from "./development-team-panel";
+
+describe("DevelopmentPodiumProgressionBadge", () => {
+  it.each([
+    [2, "Victoire d’étape"],
+    [null, "Progression podium"],
+  ] as const)("associe la progression à son résultat (étape %s)", (stageNumber, label) => {
+    const markup = renderToStaticMarkup(
+      <DevelopmentPodiumProgressionBadge
+        progression={{
+          stageNumber,
+          rank: 1,
+          profileType: "mountain",
+          primaryRatingKey: "mountain",
+          ratingChanges: { mountain: 0.248 },
+        }}
+      />,
+    );
+
+    expect(markup).toContain(label);
+    expect(markup).toContain("+0,248");
+  });
+});
 
 describe("DevelopmentResultRiderLink", () => {
   it("ouvre la fiche d’un junior adverse lorsqu’il est rattaché à une DevTeam", () => {
