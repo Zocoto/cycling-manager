@@ -5,6 +5,7 @@ import { useLocale } from "@/components/i18n/locale-provider";
 import Link from "@/components/ui/app-link";
 import { getCollectorCardRarity, type CollectorAlbumSnapshot } from "@/lib/game/collector-album";
 import { createCycloStickersTradeRequestIds } from "@/lib/game/cyclo-stickers-persistent-view";
+import { getCycloStickersReceivedCards } from "@/lib/game/cyclo-stickers-trade-receipt";
 import type { CycloStickersCollectorMatch, CycloStickersPersistentState, CycloStickersTrade } from "@/lib/game/cyclo-stickers-persistence";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { RiderAvatar } from "./rider-avatar";
@@ -70,6 +71,9 @@ const COPY = {
     silver: "Argent",
     bronze: "Bronze",
     holographic: "Édition spéciale",
+    alreadyOwned: "Déjà dans ta collection",
+    newForYou: "Nouvelle pour toi",
+    duplicateHelp: "Les doubles ne remplissent pas de nouvelle case dans ton album. Tu peux accepter cet échange si tu le souhaites.",
   },
   en: {
     heading: "Sticker trades",
@@ -129,6 +133,9 @@ const COPY = {
     silver: "Silver",
     bronze: "Bronze",
     holographic: "Special edition",
+    alreadyOwned: "Already in your collection",
+    newForYou: "New to your collection",
+    duplicateHelp: "Spare copies do not fill a new space in your album. You can still accept this trade if you wish.",
   },
 } as const;
 
@@ -347,19 +354,38 @@ export function CycloStickersTrades({ snapshot, state, busy, mutate, initialTarg
     return count > 1 ? `${count} × ${cardName(number)}` : cardName(number);
   }).join(" + ");
 
-  const receipt = (offer: CycloStickersTrade, outgoing: boolean) => <article className={styles.receipt} key={offer.id}>
+  const receipt = (offer: CycloStickersTrade, outgoing: boolean) => {
+    const received = getCycloStickersReceivedCards(outgoing ? requestedCards(offer) : offer.give, state.owned);
+    const duplicates = received.reduce((sum, card) => sum + card.duplicateQuantity, 0);
+    const warningId = `${id}-${offer.id}-duplicates`;
+    return <article className={styles.receipt} key={offer.id}>
     <h4>{outgoing ? offer.toName : offer.fromName}</h4>
     <dl>
       <div><dt>{t.givenTo}</dt><dd>{describe(outgoing ? offer.give : requestedCards(offer))}</dd></div>
-      <div><dt>{t.askingFor}</dt><dd>{describe(outgoing ? requestedCards(offer) : offer.give)}</dd></div>
+      <div><dt>{t.askingFor}</dt><dd><ul className={styles.receivedCards}>
+        {received.map(card => <li key={card.cardNumber}>
+          <span>#{String(card.cardNumber).padStart(2, "0")} · {card.quantity > 1 ? `${card.quantity} × ` : ""}{cardName(card.cardNumber)}</span>
+          <small className={styles.collectionStatus} data-owned={!card.newForCollection}>
+            {card.newForCollection ? t.newForYou : t.alreadyOwned}
+            {card.newForCollection && card.duplicateQuantity > 0 ? locale === "en" ? ` · ${card.duplicateQuantity} spare${card.duplicateQuantity > 1 ? "s" : ""}` : ` · ${card.duplicateQuantity} double${card.duplicateQuantity > 1 ? "s" : ""}` : null}
+          </small>
+        </li>)}
+      </ul></dd></div>
     </dl>
+    {duplicates > 0 ? <aside className={styles.duplicateWarning} id={warningId} role="note">
+      <span aria-hidden="true">!</span>
+      <div><strong>{locale === "en"
+        ? `You will receive ${duplicates} spare ${duplicates > 1 ? "copies" : "copy"}.`
+        : `Tu recevras ${duplicates} exemplaire${duplicates > 1 ? "s" : ""} en double.`}</strong><p>{t.duplicateHelp}</p></div>
+    </aside> : null}
     <div className={styles.receiptActions}>
       {outgoing
         ? <button type="button" className={styles.secondary} disabled={busy} onClick={() => respond(offer, "cancel")}>{t.cancel}</button>
-        : <><button type="button" className={styles.primary} disabled={busy} onClick={() => respond(offer, "accept")}>{t.accept}</button><button type="button" className={styles.secondary} disabled={busy} onClick={() => respond(offer, "decline")}>{t.decline}</button></>}
+        : <><button type="button" className={styles.primary} aria-describedby={duplicates > 0 ? warningId : undefined} disabled={busy} onClick={() => respond(offer, "accept")}>{t.accept}</button><button type="button" className={styles.secondary} disabled={busy} onClick={() => respond(offer, "decline")}>{t.decline}</button></>}
     </div>
     {responseError?.id === offer.id ? <p className={styles.actionError} role="alert">{responseError.message}</p> : null}
   </article>;
+  };
 
   return <section className={styles.desk} aria-label={t.heading} data-album-trade-composer="" tabIndex={-1}>
     <header className={styles.header}>

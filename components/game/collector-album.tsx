@@ -7,6 +7,8 @@ import { CollectorAlbumCover } from "./collector-album-cover";
 import { CollectorAlbumBoosters } from "./collector-album-boosters";
 import { CollectorAlbumAchievements } from "./collector-album-achievements";
 import { CollectorAlbumLeaderboard } from "./collector-album-leaderboard";
+import { CollectorAlbumPasteMenu } from "./collector-album-paste-menu";
+import { getAlbumCardsReadyToPaste } from "@/lib/game/collector-album-paste";
 import { CollectorAlbumTradeDesk } from "./collector-album-trades";
 import { AlbumProfileArtwork } from "./collector-album-profile-artwork";
 import { getAlbumIntroductionLeaves, getAlbumProfileCards, getAlbumProfileLeaves } from "@/lib/game/collector-album-layout";
@@ -88,6 +90,7 @@ export function CollectorAlbum({ snapshot, storageOwnerId, initialTab = "album",
   const [storageUnavailable, setStorageUnavailable] = useState(false);
   const [resetConfirm, setResetConfirm] = useState(false);
   const state = store.state;
+  const cardsReadyToPaste = useMemo(() => getAlbumCardsReadyToPaste(state, snapshot.cards), [state, snapshot.cards]);
   const key = albumPilotStorageKey(storageOwnerId, snapshot.edition);
   const readingKey = albumReadingStorageKey(storageOwnerId, snapshot.edition);
   const read = (action: AlbumReadingAction) => setReading(previous => updateAlbumReading(previous, action, snapshot.cards));
@@ -140,7 +143,7 @@ export function CollectorAlbum({ snapshot, storageOwnerId, initialTab = "album",
   const leaves = getAlbumProfileLeaves(profileCards);
   const chapterIndex = ALBUM_PROFILES.indexOf(selectedProfile);
   const pastedInChapter = profileCards.filter(card => state.pasted.includes(card.number)).length;
-  const available = [...new Set(state.owned)].filter(id => getLooseAlbumCardCount(state,id) > 0 || state.pending?.give.includes(id));
+  const available = cardsReadyToPaste.map(card => card.number);
   const walletPageCount = Math.max(1,Math.ceil(available.length/2));
   const visibleWalletPage = Math.min(walletPage,walletPageCount-1);
   const closedPackCount = runtime?.boosterCount ?? getAlbumPilotPacks(snapshot.collectionSeason).length - state.openedPacks.length;
@@ -277,6 +280,10 @@ export function CollectorAlbum({ snapshot, storageOwnerId, initialTab = "album",
     <div className={styles.toolbar}>
       <div className={styles.tabButtons} aria-label="Rubriques de la collection">
         <button type="button" aria-pressed={tab === "album"} onClick={() => setTab("album")}>L’album</button>
+        <CollectorAlbumPasteMenu cards={cardsReadyToPaste} ready={store.ready} onView={showCardInBook} onPaste={card => {
+          showCardInBook(card);
+          send({ type: "paste", card: card.number }, `${card.name} est collé dans ton album.`);
+        }} />
         <button type="button" aria-pressed={tab === "boosters"} onClick={() => setTab("boosters")}>Boosters <span>{closedPackCount}</span></button>
         <button type="button" aria-pressed={tab === "trades"} onClick={() => {
           setRequestedCard(null);
@@ -394,11 +401,11 @@ export function CollectorAlbum({ snapshot, storageOwnerId, initialTab = "album",
         </div>
         </div>
         <aside className={`${styles.wallet} ${retro.collectorTable} ${spread.walletShelf}`}><div className={styles.walletHeading}><p className={styles.eyebrow}>SUR LA TABLE</p><h2>Les cartes à coller <span>{available.length}</span></h2><p>Choisis leur page, puis colle tes cartes.</p><p>{duplicateCount} doublon(s) échangeable(s) · {wanted.length} carte(s) recherchée(s)</p><button type="button" className={styles.textButton} onClick={()=>{setRequestedCard(null);setOfferedCard(null);setTab("trades");}}>Ouvrir mon carnet d’échanges ↗</button></div>
-          {available.length ? available.slice(visibleWalletPage*2,visibleWalletPage*2+2).map(id => <div className={`${styles.walletCard} ${format.slot}`} key={id}><CollectorCardFace card={cardFor(id)} season={snapshot.sourceSeason} provisional={provisional} /><p className={retro.copyCount}>{getAlbumOwnedCardCount(state,id)} exemplaire(s) · {getLooseAlbumCardCount(state,id)} disponible(s)</p><button type="button" className={styles.primaryButton} disabled={!store.ready || state.pasted.includes(id) || getLooseAlbumCardCount(state,id)<1} onClick={() => {
+          {available.length ? available.slice(visibleWalletPage*2,visibleWalletPage*2+2).map(id => <div className={`${styles.walletCard} ${format.slot}`} key={id} data-album-paste-card={id}><CollectorCardFace card={cardFor(id)} season={snapshot.sourceSeason} provisional={provisional} /><p className={retro.copyCount}>{getAlbumOwnedCardCount(state,id)} exemplaire(s) · {getLooseAlbumCardCount(state,id)} disponible(s)</p><button type="button" className={styles.primaryButton} disabled={!store.ready || state.pasted.includes(id) || getLooseAlbumCardCount(state,id)<1} onClick={() => {
             const card = cardFor(id);
             showCardInBook(card);
             send({ type: "paste", card: id }, `${card.name} est collé dans ton album.`);
-          }}>{state.pasted.includes(id) ? "Déjà collée · doublon pour échange" : getLooseAlbumCardCount(state,id)<1 ? "Carte réservée à l’échange" : "Coller dans l’album ↗"}</button></div>) : <p className={styles.emptyWallet}>Toutes tes cartes sont dans l’album. Feuillette les chapitres ou ouvre un sachet pour continuer.</p>}
+          }}>{state.pasted.includes(id) ? "Déjà collée · doublon pour échange" : getLooseAlbumCardCount(state,id)<1 ? "Carte réservée à l’échange" : "Coller dans l’album ↗"}</button></div>) : <p className={styles.emptyWallet}>Aucune nouvelle carte prête à coller. Ouvre des boosters ou fais un échange pour compléter ta collection.</p>}
           {walletPageCount>1 ? <div className={styles.bookFooter}><button type="button" aria-label="Cartes à coller précédentes" disabled={visibleWalletPage===0} onClick={()=>setWalletPage(visibleWalletPage-1)}>←</button><span>{visibleWalletPage+1} / {walletPageCount}</span><button type="button" aria-label="Cartes à coller suivantes" disabled={visibleWalletPage===walletPageCount-1} onClick={()=>setWalletPage(visibleWalletPage+1)}>→</button></div> : null}
           <div className={styles.gazetteNote}><span aria-hidden="true">✉</span><h3>Les rendez-vous du collectionneur</h3><p>Les boosters de connexion et de parrainage restent attachés à leur édition. Chaque sachet contient deux vignettes.</p></div>
         </aside>

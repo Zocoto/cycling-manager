@@ -8,3 +8,4 @@
 @media(max-width:480px){.coverCopy{padding-right:0}.cover .eyebrow{max-width:180px}.coverSeal{top:22px;right:20px;width:43px;height:51px;padding:8px 3px;border-radius:4px;transform:rotate(6deg)}.coverSeal strong{font-size:27px}.coverSeal>span,.coverSeal i{display:none}.coverFooter{font-size:6px;letter-spacing:.06em}.coverFooter>span{max-width:none}}
 @media(prefers-reduced-motion:no-preference){.primaryButton,.secondaryButton,.profiles button{transition:background .15s,border-color .15s}.walletCard>.card{transition:transform .2s}.walletCard>.card:hover{transform:rotate(0deg) translateY(-3px)}}
 @media(max-width:480px){.tabButtons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));flex:1;max-width:none}.toolbar{gap:12px}.progress{min-width:50px;flex:none}}
+.toolbar{position:relative}
