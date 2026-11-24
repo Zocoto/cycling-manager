@@ -29,12 +29,14 @@ export function buildPartnerBulkEquipmentAssignments({
   slots,
   initialValues,
   valuesByKey,
+  blockedKeys,
 }: {
   riders: readonly Pick<TeamEquipmentRider, "id">[];
   itemsBySlot: Partial<Record<EquipmentSlot, TeamEquipmentCatalogItem>>;
   slots: readonly EquipmentSlot[];
   initialValues: Readonly<Record<string, string>>;
   valuesByKey: Readonly<Record<string, string>>;
+  blockedKeys?: ReadonlySet<string>;
 }): TeamEquipmentAssignment[] {
   const assignments: TeamEquipmentAssignment[] = [];
   const selectedSlots = new Set(slots);
@@ -45,7 +47,7 @@ export function buildPartnerBulkEquipmentAssignments({
       // restent intacts, même si le DS prépare une dépose à côté.
       const key = `${riderId}:${slot}`;
       if (!item || item.slot !== slot || item.channel !== "equipment_partner" ||
-        !item.isUnlimited || initialValues[key] || valuesByKey[key]) continue;
+        !item.isUnlimited || blockedKeys?.has(key) || initialValues[key] || valuesByKey[key]) continue;
       assignments.push({ riderId, slot, equipmentItemId: item.id });
     }
   }

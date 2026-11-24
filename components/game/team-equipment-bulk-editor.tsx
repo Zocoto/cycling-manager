@@ -70,6 +70,11 @@ export function TeamEquipmentBulkEditor({
     [assignments, pendingAssignments, riders],
   );
   const [valuesByKey, setValuesByKey] = useState(() => initialValues);
+  const currentValues = useMemo(() => Object.fromEntries(assignments.map(assignment => [
+    riderSlotKey(assignment.riderId, assignment.slot), assignment.equipmentItemId,
+  ])), [assignments]);
+  const pendingKeys = useMemo(() => new Set(pendingAssignments.map(assignment =>
+    riderSlotKey(assignment.riderId, assignment.slot))), [pendingAssignments]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [partnerBulkSlots, setPartnerBulkSlots] = useState<EquipmentSlot[]>([...EQUIPMENT_SLOTS]);
@@ -99,34 +104,9 @@ export function TeamEquipmentBulkEditor({
       ) as Record<EquipmentSlot, TeamEquipmentCatalogItem[]>,
     [canSwapWheelSlots, catalog],
   );
-  const usageByItemId = useMemo(() => {
-    const usage: Record<string, number> = {};
-    for (const equipmentItemId of Object.values(valuesByKey)) {
-      if (!equipmentItemId) continue;
-      usage[equipmentItemId] = (usage[equipmentItemId] ?? 0) + 1;
-    }
-
-    const currentItemByKey = new Map(
-      assignments.map((assignment) => [
-        riderSlotKey(assignment.riderId, assignment.slot),
-        assignment.equipmentItemId,
-      ]),
-    );
-    for (const pending of pendingAssignments) {
-      const key = riderSlotKey(pending.riderId, pending.slot);
-      const currentItemId = currentItemByKey.get(key);
-      const desiredItemId = valuesByKey[key];
-      if (
-        currentItemId &&
-        desiredItemId &&
-        currentItemId !== desiredItemId
-      ) {
-        usage[currentItemId] = (usage[currentItemId] ?? 0) + 1;
-      }
-    }
-
-    return usage;
-  }, [assignments, pendingAssignments, valuesByKey]);
+  const usageByItemId = useMemo(() => getEquipmentProjectedUsage(
+    assignments, pendingAssignments, valuesByKey,
+  ), [assignments, pendingAssignments, valuesByKey]);
   const changedAssignments = useMemo(
     () =>
       riders.flatMap((rider) =>
@@ -188,16 +168,8 @@ export function TeamEquipmentBulkEditor({
     slots: partnerBulkSlots,
     initialValues,
     valuesByKey,
+    blockedKeys: pendingKeys,
   });
-  const pendingKeys = useMemo(
-    () =>
-      new Set(
-        pendingAssignments.map((assignment) =>
-          riderSlotKey(assignment.riderId, assignment.slot),
-        ),
-      ),
-    [pendingAssignments],
-  );
 
   function updateValue(
     riderId: string,
@@ -218,6 +190,7 @@ export function TeamEquipmentBulkEditor({
         slots: partnerBulkSlots,
         initialValues,
         valuesByKey: current,
+        blockedKeys: pendingKeys,
       });
       if (assignments.length === 0) return current;
       return {
@@ -251,9 +224,13 @@ export function TeamEquipmentBulkEditor({
             <p className="mt-1 text-xs font-semibold text-[#60756E]">
               Réglez plusieurs coureurs, puis validez toutes les modifications en une seule fois.
             </p>
+            <p className="mt-2 max-w-2xl text-xs font-semibold leading-5 text-[#60756E]">
+              Pendant une épreuve, vos choix sont enregistrés pour après sa fin,
+              y compris la dernière étape d’un tour. Le matériel actuellement porté reste réservé.
+            </p>
           </div>
           <div className="grid grid-cols-3 gap-2 text-center sm:min-w-[390px]">
-            <ManagerMetric label="Équipés" value={`${totalEquipped}/${totalSlots}`} />
+            <ManagerMetric label="Emplacements" value={`${totalEquipped}/${totalSlots}`} />
             <ManagerMetric
               label="Coureurs"
               value={String(riders.length)}
@@ -398,7 +375,7 @@ export function TeamEquipmentBulkEditor({
                     {rider.firstName} {rider.lastName} <span aria-hidden="true">↗</span>
                   </Link>
                   <p className="mt-1 text-[10px] font-black uppercase tracking-wide text-[#60756E]">
-                    {equippedCount}/{SLOT_ORDER.length} emplacements équipés
+                    {equippedCount}/{SLOT_ORDER.length} emplacements choisis
                   </p>
                 </div>
                 <span
@@ -426,7 +403,7 @@ export function TeamEquipmentBulkEditor({
                       <span className="flex items-center justify-between gap-2 text-[9px] font-black uppercase tracking-[0.12em] text-[#60756E]">
                         {slotLabel(slot)}
                         {pendingKeys.has(key) ? (
-                          <span className="text-[#9A6B17]">Programmé</span>
+                          <span className="text-[#9A6B17]">{selectedItemId === (currentValues[key] ?? "") ? "Annulation à valider" : selectedItemId ? "Après l’épreuve" : "Retrait prévu"}</span>
                         ) : null}
                       </span>
                       <select
@@ -437,7 +414,7 @@ export function TeamEquipmentBulkEditor({
                         }
                         className="min-h-11 min-w-0 rounded-xl border border-[#315B3E]/15 bg-[#F8FBF9] px-3 text-xs font-bold text-[#183F37] outline-none focus:border-[#278B70] focus:ring-2 focus:ring-[#278B70]/15"
                       >
-                        <option value="" disabled={pendingKeys.has(key)}>
+                        <option value="">
                           Emplacement vide
                         </option>
                         {slotItems.map((item) => {
@@ -449,10 +426,11 @@ export function TeamEquipmentBulkEditor({
                               key={item.id}
                               value={item.id}
                               disabled={
-                                !item.isUnlimited && remaining <= 0 && !isSelected
+                                !item.isUnlimited && remaining <= 0 && !isSelected && item.id !== currentValues[key]
                               }
                             >
                               {item.name}
+                              {item.id === currentValues[key] ? " · montage actuel" : ""}
                               {item.slot !== slot ? " · montage inversé" : ""}
                               {" · "}{getEquipmentAvailabilityLabel(item, usage)}
                             </option>
@@ -460,7 +438,7 @@ export function TeamEquipmentBulkEditor({
                         })}
                       </select>
                       <span className="min-h-4 truncate text-[9px] font-bold text-[#809189]">
-                        {selectedItem?.effectSummary ?? "Aucun bonus"}
+                        {pendingKeys.has(key) ? `Actuel : ${itemById.get(currentValues[key])?.name ?? "Vide"}` : selectedItem?.effectSummary ?? "Aucun bonus"}
                       </span>
                     </label>
                   );
@@ -479,6 +457,7 @@ export function TeamEquipmentBulkEditor({
         valuesByKey={valuesByKey}
         usageByItemId={usageByItemId}
         pendingKeys={pendingKeys}
+        currentValues={currentValues}
         jersey={jersey}
         onChange={updateValue}
       />
@@ -610,9 +589,30 @@ export function buildInitialEquipmentValues({
   }
   for (const assignment of pendingAssignments) {
     values[riderSlotKey(assignment.riderId, assignment.slot)] =
-      assignment.equipmentItemId;
+      assignment.equipmentItemId ?? "";
   }
   return values;
+}
+
+/** The old piece remains occupied until the queued change is released. */
+export function getEquipmentProjectedUsage(
+  assignments: readonly TeamEquipmentAssignment[],
+  pendingAssignments: readonly TeamEquipmentPendingAssignment[],
+  valuesByKey: Readonly<Record<string, string>>,
+) {
+  const usage: Record<string, number> = {};
+  for (const itemId of Object.values(valuesByKey)) {
+    if (itemId) usage[itemId] = (usage[itemId] ?? 0) + 1;
+  }
+  const current = new Map(assignments.map(assignment => [
+    riderSlotKey(assignment.riderId, assignment.slot), assignment.equipmentItemId,
+  ]));
+  for (const pending of pendingAssignments) {
+    const key = riderSlotKey(pending.riderId, pending.slot);
+    const itemId = current.get(key);
+    if (itemId && itemId !== valuesByKey[key]) usage[itemId] = (usage[itemId] ?? 0) + 1;
+  }
+  return usage;
 }
 
 function EquipmentBulkSubmitButton({ disabled }: { disabled: boolean }) {

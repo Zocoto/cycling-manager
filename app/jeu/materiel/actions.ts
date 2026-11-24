@@ -218,13 +218,13 @@ export async function equipRiderAction(formData: FormData) {
       ? withPageFeedback(
           inventoryReturnPath,
           "succes",
-          "Le matériel a bien été attribué au coureur.",
+          "Le choix de matériel est enregistré. Si une épreuve est déjà figée, il prendra effet après sa fin.",
         )
       : origin === "team-equipment"
         ? withPageFeedback(
             teamEquipmentReturnPath,
             "succes",
-            "Le matériel a bien été attribué au coureur.",
+            "Le choix de matériel est enregistré. Si une épreuve est déjà figée, il prendra effet après sa fin.",
           )
         : `/jeu/coureurs/${riderId}?equipement=confirme`,
   );
@@ -269,7 +269,7 @@ export async function unequipRiderAction(formData: FormData) {
       ? withPageFeedback(
           returnPath,
           "succes",
-          "Le matériel a bien été replacé dans la réserve.",
+          "Le retrait est enregistré. Si une épreuve est déjà figée, le matériel restera utilisé jusqu’à sa fin.",
         )
       : `/jeu/coureurs/${riderId}?equipement=retire`,
   );

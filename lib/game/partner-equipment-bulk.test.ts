@@ -84,6 +84,13 @@ describe("équipementier : affectation groupée aux emplacements vides", () => {
     })).toEqual([{ riderId: "b", slot: "frame", equipmentItemId: "partner-frame" }]);
   });
 
+  it("préserve aussi un retrait déjà programmé en course", () => {
+    expect(build({
+      slots: ["frame"], initialValues: { "a:frame": "" }, valuesByKey: { "a:frame": "" },
+      blockedKeys: new Set(["a:frame"]),
+    })).toEqual([{ riderId: "b", slot: "frame", equipmentItemId: "partner-frame" }]);
+  });
+
   it("respecte le filtre de coureurs et ne modifie pas les autres", () => {
     expect(build({ riders: [riders[1]], slots: ["frame"] })).toEqual([
       { riderId: "b", slot: "frame", equipmentItemId: "partner-frame" },

@@ -4,7 +4,7 @@ import type { RaceCalendarEdition } from "@/lib/game/race-calendar";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getRaceEquipmentPlanningData } from "./race-equipment-planning";
-import { getRiderEquipmentManagement } from "./team-equipment";
+import { getCurrentTeamEquipmentOverview, getRiderEquipmentManagement } from "./team-equipment";
 
 vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createSupabaseServerClient: vi.fn() }));
@@ -59,7 +59,7 @@ function product(id: string, slot: string) {
   };
 }
 
-function mockEquipmentPartner(extraId: string | null) {
+function mockEquipmentPartner(extraId: string | null, equipmentRows: Record<string, unknown> = {}) {
   const rows: Record<string, unknown> = {
     sporting_directors: { id: "director" },
     team_manager_assignments: { team_id: "team" },
@@ -85,6 +85,7 @@ function mockEquipmentPartner(extraId: string | null) {
       : [],
     rider_contracts: [{ rider_id: "rider" }],
     riders: [{ id: "rider", first_name: "Alice", last_name: "Martin" }],
+    ...equipmentRows,
   };
   const client = {
     from(table: string) {
@@ -108,6 +109,20 @@ function mockEquipmentPartner(extraId: string | null) {
 }
 
 describe("fourth equipment partner item", () => {
+  it("preserves a queued removal separately from the piece still worn in the race", async () => {
+    const client = mockEquipmentPartner(null, {
+      rider_equipment_assignments: [{ rider_id: "rider", slot_type: "frame", equipment_item_id: "frame" }],
+      rider_equipment_pending_assignments: [{ rider_id: "rider", slot_type: "frame", equipment_item_id: null, effective_at: "2026-11-30T17:00:00Z" }],
+    });
+    const management = await getRiderEquipmentManagement("user", "rider");
+    expect(management?.current.frame?.id).toBe("frame");
+    expect(management?.pending.frame).toEqual({ item: null, effectiveAt: "2026-11-30T17:00:00Z" });
+    const overview = await getCurrentTeamEquipmentOverview("user", client);
+    expect(overview?.pendingAssignments).toEqual([{
+      riderId: "rider", slot: "frame", equipmentItemId: null, effectiveAt: "2026-11-30T17:00:00Z",
+    }]);
+  });
+
   it.each([null, "apex"])("exposes the paid item, and only that rare item, with purchase %s", async (extraId) => {
     const authenticatedClient = mockEquipmentPartner(extraId);
     const management = await getRiderEquipmentManagement("user", "rider");

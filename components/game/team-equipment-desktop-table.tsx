@@ -20,6 +20,7 @@ export function TeamEquipmentDesktopTable({
   valuesByKey,
   usageByItemId,
   pendingKeys,
+  currentValues = {},
   jersey,
   onChange,
 }: {
@@ -30,6 +31,7 @@ export function TeamEquipmentDesktopTable({
   valuesByKey: Record<string, string>;
   usageByItemId: Record<string, number>;
   pendingKeys: Set<string>;
+  currentValues?: Record<string, string>;
   jersey: RiderJerseyAppearance;
   onChange: (
     riderId: string,
@@ -129,7 +131,7 @@ export function TeamEquipmentDesktopTable({
                             }
                             className="min-h-10 w-full min-w-0 rounded-lg border border-[#315B3E]/15 bg-white px-2 text-[10px] font-bold text-[#183F37] outline-none transition focus:border-[#278B70] focus:ring-2 focus:ring-[#278B70]/15"
                           >
-                            <option value="" disabled={isPending}>
+                            <option value="">
                               Vide
                             </option>
                             {itemsBySlot[slot].map((item) => {
@@ -144,10 +146,11 @@ export function TeamEquipmentDesktopTable({
                                   disabled={
                                     !item.isUnlimited &&
                                     remaining <= 0 &&
-                                    !isSelected
+                                    !isSelected && item.id !== currentValues[key]
                                   }
                                 >
                                   {item.name}
+                                  {item.id === currentValues[key] ? " · montage actuel" : ""}
                                   {item.slot !== slot ? " · montage inversé" : ""}
                                   {" · "}{availabilityLabel(item, usage)}
                                 </option>
@@ -158,14 +161,14 @@ export function TeamEquipmentDesktopTable({
                         <div className="mt-1 flex min-w-0 items-center gap-1">
                           {isPending ? (
                             <span className="shrink-0 rounded bg-[#FFF4D6] px-1 py-0.5 text-[8px] font-black uppercase text-[#8A6516]">
-                              Programmé
+                              {selectedItemId === (currentValues[key] ?? "") ? "Annulation à valider" : selectedItemId ? "Après l’épreuve" : "Retrait prévu"}
                             </span>
                           ) : null}
                           <span
                             title={selectedItem?.effectSummary ?? "Aucun bonus"}
                             className="min-w-0 truncate text-[8px] font-bold text-[#809189]"
                           >
-                            {selectedItem?.effectSummary ?? "Aucun bonus"}
+                            {isPending ? `Actuel : ${itemById.get(currentValues[key])?.name ?? "Vide"}` : selectedItem?.effectSummary ?? "Aucun bonus"}
                           </span>
                         </div>
                       </td>

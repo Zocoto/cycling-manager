@@ -29,6 +29,7 @@ import {
 import type { PublicRiderProfile } from "@/services/public-rider-profile";
 import type {
   RiderEquipmentManagement,
+  RiderEquipmentPendingChange,
   TeamEquipmentCatalogItem,
 } from "@/services/team-equipment";
 
@@ -326,6 +327,8 @@ export function RiderEquipmentLoadout({
         pour la retirer.
         Les bonus bleus sont ajoutés aux caractéristiques de base pendant les
         courses compatibles.
+        Pendant une épreuve déjà figée, vos modifications sont enregistrées
+        pour après sa fin, y compris toutes les étapes d’un tour.
       </p>
     </section>
   );
@@ -344,13 +347,13 @@ function EquipmentSlotInspector({
 }: SlotDefinition & {
   riderId: string;
   item?: EquipmentItem;
-  pending?: { item: TeamEquipmentCatalogItem; effectiveAt: string };
+  pending?: RiderEquipmentPendingChange;
   options: TeamEquipmentCatalogItem[];
   canManage: boolean;
   isApplying: boolean;
 }) {
   const selectableOptions = options.filter(
-    (option) => option.id !== item?.id && option.id !== pending?.item.id,
+    (option) => option.id !== item?.id && option.id !== pending?.item?.id,
   );
 
   return (
@@ -380,12 +383,22 @@ function EquipmentSlotInspector({
 
       {pending ? (
         <p className="mt-2 rounded-lg border border-[#F2C94C]/25 bg-[#F2C94C]/10 px-3 py-2 text-[10px] font-bold leading-4 text-[#FFE596]">
-          Programmé : {pending.item.name} · actif{" "}
-          {formatEffectiveDate(pending.effectiveAt)}
+          {pending.item ? <>Après l’épreuve : {pending.item.name}</> : "Retrait prévu après l’épreuve."}
+          <span className="mt-1 block font-semibold">Le montage actuel reste utilisé jusqu’à la fin de l’épreuve.</span>
         </p>
       ) : null}
 
-      {canManage && (item || pending) ? (
+      {canManage && pending ? (
+        <form action={item ? equipRiderAction : unequipRiderAction} className="mt-2 flex justify-end">
+          <input type="hidden" name="riderId" value={riderId} />
+          <input type="hidden" name="slot" value={slot} />
+          <input type="hidden" name="origin" value="rider" />
+          {item ? <input type="hidden" name="equipmentItemId" value={item.id} /> : null}
+          <EquipmentSubmitButton mode="remove" label="Annuler le changement" disabled={isApplying} />
+        </form>
+      ) : null}
+
+      {canManage && item && pending?.item !== null ? (
         <form
           action={unequipRiderAction}
           className="mt-2 flex justify-end border-t border-white/10 pt-2"
@@ -394,7 +407,7 @@ function EquipmentSlotInspector({
           <input type="hidden" name="slot" value={slot} />
           <EquipmentSubmitButton
             mode="remove"
-            label={item ? "Retirer le matériel" : "Annuler la programmation"}
+            label="Retirer le matériel"
             disabled={isApplying}
           />
         </form>
@@ -617,7 +630,7 @@ export function CyclistEquipmentVisual({
   pending: Partial<
     Record<
       EquipmentSlot,
-      { item: TeamEquipmentCatalogItem; effectiveAt: string }
+      RiderEquipmentPendingChange
     >
   >;
   compatibleDragSlot: EquipmentSlot | null;
@@ -714,7 +727,7 @@ type EquipmentSlotInteractionProps = {
   pending: Partial<
     Record<
       EquipmentSlot,
-      { item: TeamEquipmentCatalogItem; effectiveAt: string }
+      RiderEquipmentPendingChange
     >
   >;
   compatibleDragSlot: EquipmentSlot | null;
@@ -779,14 +792,15 @@ function EquipmentLoadoutSlot({
   onDropSlot,
 }: EquipmentSlotInteractionProps & { definition: SlotDefinition }) {
   const item = equipment[definition.slot];
-  const pendingItem = pending[definition.slot]?.item;
+  const pendingChange = pending[definition.slot];
+  const pendingItem = pendingChange?.item;
   const isCompatible = compatibleDragSlot === definition.slot;
   const isActive = activeDropSlot === definition.slot;
   const isSelected = selectedSlot === definition.slot;
   const isDraggable = Boolean(
     item && canDragEquipment && onDragStartEquipped,
   );
-  const state = item ? "equipped" : pendingItem ? "pending" : "empty";
+  const state = item ? "equipped" : pendingChange ? "pending" : "empty";
   const dropLabel = item
     ? `Remplacer ${item.name}${draggedItemName ? ` par ${draggedItemName}` : ""}`
     : `Équiper${draggedItemName ? ` ${draggedItemName}` : ""}`;
@@ -842,8 +856,8 @@ function EquipmentLoadoutSlot({
       <span className="mt-2 line-clamp-3 block max-w-full break-words text-[8px] font-bold leading-3 text-[#9FB5A8] [overflow-wrap:anywhere] sm:text-[9px]">
         {isActive
           ? dropLabel
-          : pendingItem && !item
-            ? "Changement programmé"
+          : pendingChange
+            ? pendingItem ? "Changement après l’épreuve" : "Retrait après l’épreuve"
             : item?.effectSummary ??
               (isCompatible ? "Déposer ici" : "Disponible")}
       </span>
@@ -873,7 +887,7 @@ function EquipmentThumbnail({
   fallback,
   size,
 }: {
-  item?: Pick<TeamEquipmentCatalogItem, "imagePath" | "name"> | EquipmentItem;
+  item?: Pick<TeamEquipmentCatalogItem, "imagePath" | "name"> | EquipmentItem | null;
   fallback: string;
   size: "slot" | "option" | "available";
 }) {
@@ -913,7 +927,7 @@ export function collectAvailableEquipment(
   const unavailableIds = new Set(
     [
       ...Object.values(activeEquipment).map((item) => item?.id),
-      ...Object.values(management.pending).map((entry) => entry?.item.id),
+      ...Object.values(management.pending).map((entry) => entry?.item?.id),
     ].filter((id): id is string => Boolean(id)),
   );
   const uniqueItems = new Map<string, TeamEquipmentCatalogItem>();
@@ -1015,13 +1029,4 @@ function formatBonus(value: number) {
   return new Intl.NumberFormat("fr-FR", {
     maximumFractionDigits: 2,
   }).format(value);
-}
-
-function formatEffectiveDate(value: string) {
-  return new Intl.DateTimeFormat("fr-FR", {
-    timeZone: "Europe/Paris",
-    weekday: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
 }

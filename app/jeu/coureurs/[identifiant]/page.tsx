@@ -334,7 +334,7 @@ export default async function RiderProfilePage({
         {query.equipement ? (
           <p className="mb-5 rounded-2xl border border-[#42B99A]/25 bg-[#DFF5EA] px-5 py-4 text-sm font-bold text-[#176951]">
             {query.equipement === "retire"
-              ? "Le matériel a été retiré et replacé dans l’inventaire."
+              ? "Le retrait est enregistré. Si une épreuve est déjà figée, le matériel restera utilisé jusqu’à sa fin."
               : "Le changement d’équipement a été enregistré."}
           </p>
         ) : null}

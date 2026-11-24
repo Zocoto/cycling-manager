@@ -457,9 +457,9 @@ export default async function MaterialPage({
               </h2>
             </div>
             <p className="max-w-xl text-right text-xs font-semibold leading-5 text-[#60756E]">
-              Les changements sont immédiats, sauf de cinq minutes avant le
-              départ jusqu’à la fin de la course du coureur, période pendant
-              laquelle son équipement est figé.
+              Vous pouvez modifier le matériel à tout moment. Si une épreuve
+              est déjà figée, le changement prendra effet après sa fin ; pour
+              un tour, après la dernière étape.
             </p>
           </div>
 

@@ -74,7 +74,10 @@ type EquippedRow = {
   slot_type: EquipmentSlot;
   equipment_item_id: string;
 };
-type PendingRow = EquippedRow & { effective_at: string };
+type PendingRow = Omit<EquippedRow, "equipment_item_id"> & {
+  equipment_item_id: string | null;
+  effective_at: string;
+};
 type PartnerContractRow = {
   id: string;
   supplier_key: string;
@@ -121,7 +124,13 @@ export type TeamEquipmentAssignment = {
   equipmentItemId: string;
 };
 
-export type TeamEquipmentPendingAssignment = TeamEquipmentAssignment & {
+export type TeamEquipmentPendingAssignment = Omit<TeamEquipmentAssignment, "equipmentItemId"> & {
+  equipmentItemId: string | null;
+  effectiveAt: string;
+};
+
+export type RiderEquipmentPendingChange = {
+  item: TeamEquipmentCatalogItem | null;
   effectiveAt: string;
 };
 
@@ -167,7 +176,7 @@ export type RiderEquipmentManagement = {
   pending: Partial<
     Record<
       EquipmentSlot,
-      { item: TeamEquipmentCatalogItem; effectiveAt: string }
+      RiderEquipmentPendingChange
     >
   >;
   availableBySlot: Record<EquipmentSlot, TeamEquipmentCatalogItem[]>;
@@ -228,10 +237,10 @@ export async function getRiderEquipmentManagement(
 
   for (const assignment of context.pending) {
     if (assignment.rider_id !== riderId) continue;
-    const item = itemById.get(assignment.equipment_item_id);
-    if (item) {
+    const item = assignment.equipment_item_id ? itemById.get(assignment.equipment_item_id) : null;
+    if (item || assignment.equipment_item_id === null) {
       pending[assignment.slot_type] = {
-        item,
+        item: item ?? null,
         effectiveAt: assignment.effective_at,
       };
     }

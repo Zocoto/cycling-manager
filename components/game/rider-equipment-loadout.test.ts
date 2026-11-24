@@ -268,6 +268,38 @@ describe("resolveEquipmentDropAction", () => {
   });
 });
 describe("RiderEquipmentLoadout", () => {
+  it("garde le matériel actuel visible et permet d’annuler un retrait après course", () => {
+    const worn = equipment("helmet-worn", "Casque porté", "helmet");
+    const markup = renderToStaticMarkup(createElement(RiderEquipmentLoadout, {
+      riderId: "rider", equipment: {}, canManage: true,
+      management: {
+        current: { helmet: worn }, pending: { helmet: { item: null, effectiveAt: "infinity" } },
+        availableBySlot: { ...EMPTY_BY_SLOT, helmet: [worn] },
+      },
+    }));
+    expect(markup).toContain("Casque porté");
+    expect(markup).toContain("Retrait prévu après l’épreuve.");
+    expect(markup).toContain("Annuler le changement");
+    expect(markup).toContain('name="equipmentItemId" value="helmet-worn"');
+    expect(markup).not.toContain("Retirer le matériel");
+  });
+
+  it("annule aussi un remplacement prévu sur un emplacement actuellement vide", () => {
+    const next = equipment("helmet-next", "Casque futur", "helmet");
+    const management: RiderEquipmentManagement = {
+      current: {}, pending: { helmet: { item: next, effectiveAt: "infinity" } },
+      availableBySlot: { ...EMPTY_BY_SLOT, helmet: [next] },
+    };
+    const markup = renderToStaticMarkup(createElement(RiderEquipmentLoadout, {
+      riderId: "rider", equipment: {}, canManage: true, management,
+    }));
+    expect(markup).toContain("Après l’épreuve : Casque futur");
+    expect(markup).toContain("Annuler le changement");
+    expect(markup).not.toContain('name="equipmentItemId"');
+    expect(collectAvailableEquipment({ ...management, pending: { helmet: { item: null, effectiveAt: "infinity" } } }, {}))
+      .toEqual([next]);
+  });
+
   it("conserve un en-tête sobre sans les textes redondants", () => {
     const markup = renderToStaticMarkup(
       createElement(RiderEquipmentLoadout, {

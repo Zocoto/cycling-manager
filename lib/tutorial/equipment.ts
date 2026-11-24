@@ -130,7 +130,7 @@ export const equipmentTutorialDefinition = {
       targetId: "equipment-welcome-gift",
       title: "Équipez ou retirez sans perdre l’objet",
       content:
-        "Vous pouvez aussi gérer l’équipement depuis la fiche d’un coureur : glissez une pièce vers le slot surligné ou utilisez « Remplir ce slot ». Le bouton « Retirer le matériel » libère immédiatement l’emplacement et replace l’objet dans les disponibilités de l’inventaire.\n\nDe cinq minutes avant le départ jusqu’à la fin de la course du coureur, son équipement est figé afin de préserver la simulation.",
+        "Vous pouvez aussi gérer l’équipement depuis la fiche d’un coureur : glissez une pièce vers le slot surligné ou utilisez « Remplir ce slot ». Le bouton « Retirer le matériel » replace l’objet dans la réserve.\n\nVous pouvez enregistrer un changement même pendant une épreuve. Dès que son matériel est figé, le coureur conserve son montage jusqu’à la fin de cette épreuve, y compris toutes les étapes d’un tour. Le changement s’applique ensuite et les pièces concernées restent réservées entre-temps.",
       placement: "left",
       highlightPadding: 8,
     },

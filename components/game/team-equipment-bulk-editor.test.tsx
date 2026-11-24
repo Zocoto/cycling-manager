@@ -5,7 +5,7 @@ import { EMPTY_EQUIPMENT_EFFECTS } from "@/lib/game/equipment";
 import { PARTNER_BULK_EQUIPMENT_SLOTS } from "@/lib/game/partner-equipment-bulk";
 import { FREE_AGENT_RIDER_JERSEY } from "@/lib/rider-jersey";
 import type { TeamEquipmentCatalogItem } from "@/services/team-equipment";
-import { TeamEquipmentBulkEditor } from "./team-equipment-bulk-editor";
+import { buildInitialEquipmentValues, getEquipmentProjectedUsage, TeamEquipmentBulkEditor } from "./team-equipment-bulk-editor";
 
 vi.mock("@/app/jeu/materiel/actions", () => ({
   saveTeamEquipmentAssignmentsAction: async () => undefined,
@@ -31,6 +31,33 @@ function render(overrides: Partial<Parameters<typeof TeamEquipmentBulkEditor>[0]
 }
 
 describe("raccourci compact d’équipementier", () => {
+  it("affiche un retrait prévu sans libérer prématurément la pièce actuellement portée", () => {
+    const worn = { ...catalog[2], id: "old-frame", name: "Cadre porté", isUnlimited: false,
+      channel: "commercial" as const, ownedQuantity: 1, equippedQuantity: 1 };
+    const assignments = [{ riderId: rider.id, slot: "frame" as const, equipmentItemId: worn.id }];
+    const pendingAssignments = [{ riderId: rider.id, slot: "frame" as const, equipmentItemId: null, effectiveAt: "infinity" }];
+    const initial = buildInitialEquipmentValues({ riders: [rider], assignments, pendingAssignments });
+    expect(initial[`${rider.id}:frame`]).toBe("");
+    expect(getEquipmentProjectedUsage(assignments, pendingAssignments, initial)[worn.id]).toBe(1);
+    const restored = { ...initial, [`${rider.id}:frame`]: worn.id };
+    expect(getEquipmentProjectedUsage(assignments, pendingAssignments, restored)[worn.id]).toBe(1);
+    const html = render({ catalog: [...catalog, worn], assignments, pendingAssignments });
+    expect(html).toContain("Retrait prévu");
+    expect(html).toContain("Actuel : Cadre porté");
+    expect(html).toContain("Préparer 2 attributions");
+    const currentOptions = [...html.matchAll(/<option\b[^>]*value="old-frame"[^>]*>/g)].map(([option]) => option);
+    expect(currentOptions).toHaveLength(2);
+    expect(currentOptions.every(option => !/\sdisabled=/.test(option))).toBe(true);
+    expect(html).not.toMatch(/<option value="" disabled=/);
+  });
+
+  it("réserve le matériel actuel et le remplacement tout en préparant un autre choix", () => {
+    const assignments = [{ riderId: rider.id, slot: "frame" as const, equipmentItemId: "old" }];
+    const pending = [{ ...assignments[0], equipmentItemId: "next", effectiveAt: "infinity" }];
+    expect(getEquipmentProjectedUsage(assignments, pending, { [`${rider.id}:frame`]: "third" }))
+      .toEqual({ old: 1, third: 1 });
+  });
+
   it("affiche les trois choix cumulables avant le tableau des coureurs", () => {
     const html = render();
     expect(html).toContain("Équiper le matériel de l’équipementier en masse");

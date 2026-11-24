@@ -150,7 +150,7 @@ export function TeamEquipmentManager({
   const selectedCurrentItem = selectedAssignment
     ? itemById.get(selectedAssignment.equipmentItemId) ?? null
     : null;
-  const selectedPendingItem = selectedPending
+  const selectedPendingItem = selectedPending?.equipmentItemId
     ? itemById.get(selectedPending.equipmentItemId) ?? null
     : null;
   const compatibleItems = selection
@@ -341,7 +341,7 @@ function DesktopRiderRow({ rider, jersey, slots, itemById, assignmentByKey, pend
         const key = riderSlotKey(rider.id, slot);
         const assignment = assignmentByKey.get(key);
         const pending = pendingByKey.get(key);
-        return <EquipmentSlotButton key={slot} slot={slot} currentItem={assignment ? itemById.get(assignment.equipmentItemId) ?? null : null} pendingItem={pending ? itemById.get(pending.equipmentItemId) ?? null : null} selected={selection?.riderId === rider.id && selection.slot === slot} onClick={() => onSelect({ riderId: rider.id, slot })} expanded={focused} />;
+        return <EquipmentSlotButton key={slot} slot={slot} currentItem={assignment ? itemById.get(assignment.equipmentItemId) ?? null : null} pendingItem={pending?.equipmentItemId ? itemById.get(pending.equipmentItemId) ?? null : null} selected={selection?.riderId === rider.id && selection.slot === slot} onClick={() => onSelect({ riderId: rider.id, slot })} expanded={focused} />;
       })}
     </div>
   );
@@ -366,7 +366,7 @@ function MobileRiderCard({ rider, jersey, slots, itemById, assignmentByKey, pend
           const key = riderSlotKey(rider.id, slot);
           const assignment = assignmentByKey.get(key);
           const pending = pendingByKey.get(key);
-          return <EquipmentSlotButton key={slot} slot={slot} currentItem={assignment ? itemById.get(assignment.equipmentItemId) ?? null : null} pendingItem={pending ? itemById.get(pending.equipmentItemId) ?? null : null} selected={selection?.riderId === rider.id && selection.slot === slot} onClick={() => onSelect({ riderId: rider.id, slot })} expanded={slots.length === 1} />;
+          return <EquipmentSlotButton key={slot} slot={slot} currentItem={assignment ? itemById.get(assignment.equipmentItemId) ?? null : null} pendingItem={pending?.equipmentItemId ? itemById.get(pending.equipmentItemId) ?? null : null} selected={selection?.riderId === rider.id && selection.slot === slot} onClick={() => onSelect({ riderId: rider.id, slot })} expanded={slots.length === 1} />;
         })}
       </div>
     </article>
