@@ -3562,10 +3562,12 @@ describe("simulateRaceStage", () => {
       role: "protected_rider" as const,
       form: 100,
     };
+    // Keep this support-priority fixture below the elite curve: only the
+    // protected sprinter should be detached when the rescue is evaluated.
     const helpers = Array.from({ length: 3 }, (_, index) => ({
       ...createSelectionTestRider(`mountain-priority-helper-${index}`, {
-        mountain: 92 - index,
-        hills: 88 - index,
+        mountain: 85 - index,
+        hills: 83 - index,
         endurance: 78,
         resistance: 76,
       }),
@@ -4818,7 +4820,7 @@ describe("simulateRaceStage", () => {
     expect(preparedExpired.ratings).toEqual(witnessExpired.ratings);
   });
 
-  it("réserve au matériel le dépassement artificiel du plafond de 100", () => {
+  it("conserve les plafonds contextuels et sépare le matériel du supplément natif", () => {
     const baseInput = createDemoSimulationInput("collines-ardennes", 1);
     const rider = {
       ...createSelectionTestRider("materiel-hors-plafond", {
@@ -4863,8 +4865,12 @@ describe("simulateRaceStage", () => {
       (candidate) => candidate.id === rider.id,
     )!;
 
-    expect(resolved.ratings.mountain).toBe(109);
-    expect(resolved.ratings.sprint).toBe(100);
+    const nativePremium = 7.5; // Native 100 has the same intrinsic value on each axis.
+    expect(resolved.ratings.mountain - nativePremium).toBe(109);
+    expect(resolved.ratings.sprint - nativePremium).toBe(100);
+    expect(resolved.ratings.mountain - resolved.ratings.sprint).toBe(9);
+    expect(rider.ratings.mountain).toBe(100);
+    expect(rider.ratings.sprint).toBe(100);
   });
 
   it("applique le bonus de reconnaissance aux treize notes pour la seule étape ciblée", () => {

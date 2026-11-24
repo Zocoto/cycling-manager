@@ -244,10 +244,18 @@ describe("flat sprint chronology remains scoped to physical road groups", () => 
   });
 });
 
-// Independent v51 baselines already recorded by urban-cobbles-regression.
-// Flat-finish rebalancing must not change time trials or uphill arrivals.
-function fingerprint(input: StageSimulationInput) {
-  const simulation = simulateRaceStage(input);
+// Independent pre-elite-curve engine baselines (46f19feaa49), with every native
+// axis capped at 85. These still guard unrelated TT/uphill behavior exactly;
+// the new elite-native tests cover the deliberate changes above that threshold.
+function fingerprintNonElite(input: StageSimulationInput) {
+  const simulation = simulateRaceStage({
+    ...input,
+    riders: input.riders.map(candidate => ({
+      ...candidate,
+      ratings: Object.fromEntries(Object.entries(candidate.ratings)
+        .map(([key, value]) => [key, Math.min(85, value)])) as RiderSimulationInput["ratings"],
+    })),
+  });
   return createHash("sha256").update(JSON.stringify({
     results: simulation.results,
     timeline: simulation.timeline,
@@ -259,15 +267,15 @@ function fingerprint(input: StageSimulationInput) {
   })).digest("hex");
 }
 
-describe("flat sprint change leaves unrelated sporting outputs intact", () => {
+describe("unrelated sporting outputs remain exact below elite native thresholds", () => {
   it("preserves the individual time trial exactly", () => {
-    expect(fingerprint(createDemoSimulationInput("chrono-algarve", 41)))
-      .toBe("b79ea31a29f267fd184cd161e3bd49c659f9db6b44e6167f42e40b36be04431d");
+    expect(fingerprintNonElite(createDemoSimulationInput("chrono-algarve", 41)))
+      .toBe("84b3b1bb04ce82ec1bf6a951503eb6625d19a57c0887fbd7eecdd9d0878b24aa");
   });
 
   it.each([
-    ["prologue", "0e56603ad05240c2dcbe61fab2a512083b7ae467399589d811743a62b5929bff"],
-    ["team_time_trial", "f513c81d5ceaf1ca9123334f95f46629e6182e0c0eb7eb5f3f2b4051e8030b3e"],
+    ["prologue", "cb3da3ccd54945303d5a33381519e3cbb45cdd630daa8c75b53100c3aaba1503"],
+    ["team_time_trial", "ff0db7949bb7969414472e8ce552fd1b625b7c826b3f511fe212021d0a4f6538"],
   ] as const)("preserves %s exactly", (stageType, expected) => {
     const base = createDemoSimulationInput("chrono-algarve", 41);
     const input: StageSimulationInput = {
@@ -281,7 +289,7 @@ describe("flat sprint change leaves unrelated sporting outputs intact", () => {
           : null,
       }])),
     };
-    expect(fingerprint(input)).toBe(expected);
+    expect(fingerprintNonElite(input)).toBe(expected);
   });
 
   it("preserves the selective uphill arrival with DS role priority", () => {
@@ -293,8 +301,6 @@ describe("flat sprint change leaves unrelated sporting outputs intact", () => {
         ? { ...segment, terrain: "climb", averageGradientPct: 7 }
         : segment),
     };
-    // v53 removes the implicit favorite protection of a designated support rider.
-    // Restoring only that old protection reproduces the previous v51 fingerprint.
-    expect(fingerprint(input)).toBe("788e73ee1ccfc67a6577319623ff82cfe364730b58b2fb920773a3e82def2712");
+    expect(fingerprintNonElite(input)).toBe("1412609d0015b6d93f17455eaf64a57fcc61baa389d3550a04e118ef98c82a43");
   });
 });

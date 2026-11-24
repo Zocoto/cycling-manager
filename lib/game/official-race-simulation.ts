@@ -102,7 +102,7 @@ export function buildOfficialStageRaceStandings(
 }
 
 export const OFFICIAL_RACE_ENGINE_VERSION =
-  "2026.11-mountain-time-trial-balance-v64";
+  "2026.11-elite-native-ratings-v65";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;

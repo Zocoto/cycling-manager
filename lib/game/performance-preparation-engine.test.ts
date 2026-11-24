@@ -186,7 +186,7 @@ describe.each([
     expect(prepared.role).toBe("domestique");
   });
 
-  it("prépare aussi les lanceurs, plafonne les notes à 100 et ne modifie aucune note permanente", () => {
+  it("prépare aussi les lanceurs, plafonne la préparation avant le supplément natif et ne modifie aucune note permanente", () => {
     const input = createInput([
       preparation("indoor_track", 3.3),
       preparation("wind_tunnel", 3.3),
@@ -213,15 +213,21 @@ describe.each([
       ...PREPARATION_STATS.indoor_track,
       ...PREPARATION_STATS.wind_tunnel,
     ]) {
-      expect(prepared.ratings[stat]).toBe(100);
+      // The camp still adds only one point to native 99 before the ceiling.
+      // The native-only race premium is a separate 6.75 points.
+      expect(prepared.ratings[stat]).toBe(106.75);
     }
     expect(prepared.role).toBe("leadout");
     expect(input).toEqual(before);
 
     const expired = simulate({ ...input, gameDayIndex: BONUS_END + 1 });
-    expect(
-      expired.resolvedRiders.find((rider) => rider.id === helper.id)!.ratings,
-    ).toEqual(before.riders[1].ratings);
+    const expectedExpired = { ...before.riders[1].ratings };
+    for (const stat of [
+      ...PREPARATION_STATS.indoor_track,
+      ...PREPARATION_STATS.wind_tunnel,
+    ]) expectedExpired[stat] = 105.75;
+    expect(expired.resolvedRiders.find((rider) => rider.id === helper.id)!.ratings)
+      .toEqual(expectedExpired);
     expect(input).toEqual(before);
   });
 });

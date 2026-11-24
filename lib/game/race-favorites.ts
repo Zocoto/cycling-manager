@@ -10,6 +10,7 @@ import type {
 import { getRiderPhysiologyProfileModifier } from "./rider-physiology";
 import { getTimeTrialClimbRating, withTimeTrialClimbWeights } from "./time-trial-climb-rating";
 import { isUrbanCobbles } from "./urban-cobbles";
+import { applyEliteNativeRatingPremium } from "./elite-native-ratings";
 
 export type RaceFavoriteStars = 1 | 2 | 3;
 
@@ -157,7 +158,7 @@ export function buildTeamTimeTrialFavorites({
       const representative = orderedTeammates[0];
       const collectiveRating = average(
         orderedTeammates.map((rider) =>
-          getTimeTrialFavoriteRating(rider.ratings, stage) +
+          getTimeTrialFavoriteRating(applyEliteNativeRatingPremium(rider.ratings), stage) +
           getRiderPhysiologyProfileModifier({
             physiology: rider.physiology,
             ratings: rider.ratings,
@@ -209,7 +210,7 @@ export function getRaceFavoriteScore(
       first.id.localeCompare(second.id),
   );
   if (stages.length === 0) {
-    return getRatingsAverage(rider.ratings);
+    return getRatingsAverage(applyEliteNativeRatingPremium(rider.ratings));
   }
 
   if (edition.raceFormat === "one_day") {
@@ -240,7 +241,7 @@ export function getRaceFavoriteScore(
       ) / totalWeight
     : 0;
   return (
-    getGeneralClassificationFavoriteScore(rider.ratings, stages) +
+    getGeneralClassificationFavoriteScore(applyEliteNativeRatingPremium(rider.ratings), stages) +
     physiologyModifier
   );
 }
@@ -251,7 +252,7 @@ export function getStageFavoriteScore(
   rider: RiderSimulationInput,
 ) {
   return (
-    getOneDayFavoriteScore(rider.ratings, stage) +
+    getOneDayFavoriteScore(applyEliteNativeRatingPremium(rider.ratings), stage) +
     getRiderPhysiologyProfileModifier({
       physiology: rider.physiology,
       ratings: rider.ratings,

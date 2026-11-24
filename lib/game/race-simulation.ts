@@ -1,4 +1,5 @@
 import { getClimbBlocks, type RaceSegmentPrime, type RaceStageSegment } from "./race-profiles";
+import { applyEliteNativeRatingPremium } from "./elite-native-ratings";
 import {
   getTimeTrialClimbRating,
   withTimeTrialClimbWeights,
@@ -1494,22 +1495,27 @@ function normalizeStageSimulationInput(
                     homeAdvantageEffects.localExecutionBonusPoints
                   : 0)
               : 0,
-          ratings: applyFavoriteRaceRatingBonus(
-            applyFanClubRaceRatingBoost({
-              ratings: applyRaceInfrastructurePerformanceBonuses({
-                ratings: weatherCenterAdjustedRatings,
-                rider,
+          // Contextual bonuses do not cross native thresholds. Add the native
+          // premium last so equipment/weather/preparation caps cannot erase it.
+          ratings: applyEliteNativeRatingPremium(
+            applyFavoriteRaceRatingBonus(
+              applyFanClubRaceRatingBoost({
+                ratings: applyRaceInfrastructurePerformanceBonuses({
+                  ratings: weatherCenterAdjustedRatings,
+                  rider,
+                  stageType: input.stageType,
+                  raceCountryCode: input.raceCountryCode,
+                }),
+                ratingBoost:
+                  (rider.fanClubSupport?.ratingBoost ?? 0) *
+                  (1 +
+                    homeAdvantageEffects.fanClubBoostEffectivenessPercentage / 100),
+                profileType: input.profileType,
                 stageType: input.stageType,
-                raceCountryCode: input.raceCountryCode,
               }),
-              ratingBoost:
-                (rider.fanClubSupport?.ratingBoost ?? 0) *
-                (1 +
-                  homeAdvantageEffects.fanClubBoostEffectivenessPercentage / 100),
-              profileType: input.profileType,
-              stageType: input.stageType,
-            }),
-            rider.favoriteRaceBonus,
+              rider.favoriteRaceBonus,
+            ),
+            rider.ratings,
           ),
         };
       }),
