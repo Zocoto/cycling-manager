@@ -42,6 +42,7 @@ const LIVE_DATA = {
 
 const MANAGEMENT = {
   shopSpecialization: null,
+  financialDirectorSalesBonusPercentage: 0,
   fleet: {},
   trips: [],
   inventory: [],

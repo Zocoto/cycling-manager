@@ -14,6 +14,12 @@ describe("French to English UI catalog", () => {
     expect(translateUiText("−10 % sur les prochaines échéances salariales du staff, hors salaire du Directeur financier")).toBe("−10% on upcoming staff salary instalments, excluding the finance director’s own salary");
     expect(translateUiText("−10 % sur les prochaines échéances salariales des coureurs")).toBe("−10% on upcoming rider salary instalments");
   });
+  it("translates the merchandising bonus at each level", () => {
+    for (const bonus of [3, 6, 9, 12, 15]) {
+      expect(translateUiText(`+${bonus} % de demande pour les articles de la boutique du Fan Club`))
+        .toBe(`+${bonus}% demand for Fan Club shop items`);
+    }
+  });
   it.each([
     ["Belgique", "Belgium"],
     ["Royaume-Uni", "United Kingdom"],

@@ -67,6 +67,7 @@ export type FanClubManagementState = {
     minimumStocks: Readonly<Record<string, number>>;
   };
   shopSpecialization: ClubShopSpecialization | null;
+  financialDirectorSalesBonusPercentage: number;
   fleet: Readonly<Record<string, number>>;
   trips: ReadonlyArray<FanClubTripAllocation>;
   internationalTrips?: ReadonlyArray<FanClubInternationalTrip>;
@@ -95,6 +96,7 @@ export function estimateDailyProductSalesForecast(input: {
   supporterCount: number;
   fervor: number;
   shopSpecialization?: ClubShopSpecialization | null;
+  financialDirectorSalesBonusPercentage?: number;
 }): FanClubSalesForecast {
   const effectiveSalePrice = getClubShopEffectiveDemandPrice({
     salePrice: input.salePrice,
@@ -103,16 +105,16 @@ export function estimateDailyProductSalesForecast(input: {
   const { salesVolumeBonusPercentage } = getClubShopSpecializationEffects(
     input.shopSpecialization,
   );
+  const salesVolumeMultiplier =
+    (1 + salesVolumeBonusPercentage / 100) *
+    (1 + (input.financialDirectorSalesBonusPercentage ?? 0) / 100);
   const priceAdjustedInput = {
     ...input,
     salePrice: effectiveSalePrice,
   };
   const expected = Math.max(
     0,
-    Math.round(
-      estimateDailyProductSales(priceAdjustedInput) *
-        (1 + salesVolumeBonusPercentage / 100),
-    ),
+    Math.round(estimateDailyProductSales(priceAdjustedInput) * salesVolumeMultiplier),
   );
   const priceFactor = getFanClubPriceDemandFactor(priceAdjustedInput);
   const ratio = effectiveSalePrice / input.product.suggestedSalePrice;

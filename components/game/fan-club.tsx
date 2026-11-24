@@ -927,6 +927,8 @@ function StorePanel({
               supporterCount: data.supporterCount,
               fervor: data.fervor,
               shopSpecialization: management.shopSpecialization,
+              financialDirectorSalesBonusPercentage:
+                management.financialDirectorSalesBonusPercentage,
             });
             return (
               <article key={product.id} className="group overflow-hidden rounded-[1.35rem] border border-[var(--fan-line)] bg-[var(--fan-surface)] shadow-[0_12px_30px_var(--fan-shadow)] transition hover:-translate-y-0.5 hover:border-[var(--fan-secondary)] hover:shadow-[0_18px_38px_var(--fan-shadow)]">

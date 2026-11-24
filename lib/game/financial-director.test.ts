@@ -9,7 +9,7 @@ describe("Directeur financier", () => {
     expect(isStaffRole("financial_director")).toBe(true);
     expect(STAFF_DAILY_ROLE_DISTRIBUTION).toContain("financial_director");
     const codes = getStaffTalentCodes("financial_director");
-    expect(codes).toHaveLength(5);
+    expect(codes).toHaveLength(6);
     for (const level of [1,2,3,4,5]) for (let roll=0;roll<20;roll++) {
       const initial = selectInitialStaffTalent({ role: "financial_director", staffLevel: level, roll });
       expect(typeof initial).toBe("string");
@@ -33,6 +33,13 @@ describe("Directeur financier", () => {
     expect(describeStaffTalent("finance_rider_salary",5)).toContain("−10 %");
     expect(describeStaffTalent("finance_rider_salary",5)).toContain("des coureurs");
   });
+  it("offers merchandising from level 1 and describes demand at each level", () => {
+    expect(STAFF_TALENT_DEFINITIONS.finance_shop_sales.label).toBe("Merchandising");
+    expect([1, 2, 3, 4, 5].map(level => describeStaffTalent("finance_shop_sales", level))).toEqual(
+      [3, 6, 9, 12, 15].map(bonus => `+${bonus} % de demande pour les articles de la boutique du Fan Club`),
+    );
+    expect(selectInitialStaffTalent({ role: "financial_director", staffLevel: 1, roll: 5 })).toBe("finance_shop_sales");
+  });
   it("provides a progressive base income independently of the recruited affix", () => {
     expect([1,2,3,4,5].map(getFinancialDirectorDailyIncome)).toEqual([200,450,850,1600,2900]);
     let previousCoverage = 0;
@@ -50,12 +57,12 @@ describe("Directeur financier", () => {
     const migration=readFileSync("supabase/migrations/20261020100000_financial_director_base_income_and_salary_savings.sql","utf8");
     expect(migration).toContain(`array[${[1,2,3,4,5].map(getFinancialDirectorDailyIncome).join(",")}]`);
   });
-  it("draws each of the five complementary affixes equally, never the base income", () => {
+  it("draws each of the six complementary affixes equally, never the base income", () => {
     const distribution = new Map<string, number>();
-    for (let roll=0;roll<500;roll++) {
+    for (let roll=0;roll<600;roll++) {
       const code=selectInitialStaffTalent({role:"financial_director",staffLevel:5,roll});
       distribution.set(code,(distribution.get(code)??0)+1);
     }
-    expect([...distribution.values()]).toEqual([100,100,100,100,100]);
+    expect([...distribution.values()]).toEqual([100,100,100,100,100,100]);
   });
 });

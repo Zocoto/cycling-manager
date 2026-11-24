@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { FAN_CLUB_PRODUCTS } from "./fan-club-pilot";
+import { estimateDailyProductSales, FAN_CLUB_PRODUCTS } from "./fan-club-pilot";
 import {
   estimateDailyProductSalesForecast,
   getAvailableCarsForRace,
@@ -80,5 +80,29 @@ describe("gestion de production du Fan Club", () => {
     });
 
     expect(volume.expected).toBe(Math.round(baseline.expected * 1.1));
+  });
+
+  it("cumule Merchandising et Grande diffusion dans la prévision de demande", () => {
+    const product = FAN_CLUB_PRODUCTS[0];
+    const input = {
+      product,
+      salePrice: product.suggestedSalePrice,
+      unitCost: 38,
+      supporterCount: 12_480,
+      fervor: 74,
+    };
+    const specialization = {
+      shopSpecialization: { code: "volume_retail", infrastructureLevel: 5 },
+    } as const;
+    const baseline = estimateDailyProductSalesForecast({ ...input, ...specialization });
+    const boosted = estimateDailyProductSalesForecast({
+      ...input,
+      ...specialization,
+      financialDirectorSalesBonusPercentage: 16.5,
+    });
+
+    expect(boosted.expected).toBe(Math.round(estimateDailyProductSales(input) * 1.10 * 1.165));
+    expect(boosted.expected).toBeGreaterThan(baseline.expected);
+    expect(boosted.assessment).toBe(baseline.assessment);
   });
 });

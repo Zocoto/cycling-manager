@@ -97,6 +97,7 @@ export async function getFanClubManagementState({
     wholesaleMarketResult,
     collectorProductsResult,
     restockResult,
+    financialDirectorSalesBonusResult,
   ] =
     await Promise.all([
       supabase
@@ -132,6 +133,7 @@ export async function getFanClubManagementState({
       supabase.from("fan_club_shop_restock_settings")
         .select("enabled, allow_negative_projection, minimum_stocks")
         .eq("team_id", teamId).maybeSingle(),
+      supabase.rpc("get_current_team_fan_club_finance_sales_bonus"),
     ]);
 
   assertQuery(fleetResult.error, "le parc de cars du Fan Club");
@@ -146,6 +148,10 @@ export async function getFanClubManagementState({
   assertQuery(
     collectorProductsResult.error,
     "les maillots collectors du Fan Club",
+  );
+  assertQuery(
+    financialDirectorSalesBonusResult.error,
+    "le bonus de ventes du Directeur financier",
   );
 
   const tripRows = tripsResult.data ?? [];
@@ -197,6 +203,7 @@ export async function getFanClubManagementState({
       minimumStocks: restockResult.data?.minimum_stocks ?? {},
     },
     shopSpecialization,
+    financialDirectorSalesBonusPercentage: Number(financialDirectorSalesBonusResult.data ?? 0),
     fleet: Object.fromEntries(
       (fleetResult.data ?? []).map((row) => [row.model_code, row.quantity]),
     ),

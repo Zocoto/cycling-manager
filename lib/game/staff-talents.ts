@@ -26,6 +26,7 @@ export const STAFF_TALENTS_BY_ROLE = {
     "finance_main_sponsor",
     "finance_secondary_sponsor",
     "finance_rider_salary",
+    "finance_shop_sales",
   ],
   physiotherapist: [
     "physio_race_recovery",
@@ -148,6 +149,12 @@ export const STAFF_TALENT_DEFINITIONS: Record<
   finance_rider_salary: {
     role: "financial_director", label: "Optimisation des salaires coureurs",
     description: (level) => `−${percentage(level, 2)} % sur les prochaines échéances salariales des coureurs`,
+  },
+  finance_shop_sales: {
+    role: "financial_director",
+    label: "Merchandising",
+    description: (level) =>
+      `+${percentage(level, 3)} % de demande pour les articles de la boutique du Fan Club`,
   },
   physio_race_recovery: {
     role: "physiotherapist",
