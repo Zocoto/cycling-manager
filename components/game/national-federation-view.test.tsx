@@ -80,6 +80,38 @@ const financeBaseline: FederationFinanceBaseline = {
 };
 
 describe("NationalFederationView", () => {
+  it.each([
+    ["an elected president", { mode: "elected", presidentName: "Président Test" }, false],
+    ["a vacant presidency", { mode: "automatic", presidentName: null }, true],
+  ] as const)("shows the correct Races notice with %s", (_, presidency, showsNotice) => {
+    const markup = renderToStaticMarkup(
+      <NationalFederationView
+        country={{ id: "country-es", code: "ES", name: "Espagne" }}
+        snapshot={{
+          ...snapshot,
+          season: { ...snapshot.season, id: "season-5", name: "Saison 5", gameYear: 5 },
+          presidency,
+        }}
+        nationRanking={null}
+        memberTeams={[]}
+        memberTeamCount={0}
+        selectedTab="races"
+        publishedJersey={null}
+        federationChat={null}
+        financeBaseline={null}
+        selectionRiders={[]}
+        internationalResults={null}
+        governanceOverview={null}
+        selectionState={null}
+        treasuryState={null}
+        infrastructureState={null}
+      />,
+    );
+
+    expect(markup).toContain(presidency.presidentName ?? "Automatique");
+    expect(markup.includes("La fédération fonctionne automatiquement")).toBe(showsNotice);
+  });
+
   it("opens a read-only Season 2 overview with real nation data", () => {
     const markup = renderToStaticMarkup(
       <NationalFederationView
@@ -169,6 +201,8 @@ describe("NationalFederationView", () => {
     );
 
     expect(markup).toContain("Dès J1");
+    expect(markup).toContain("gestion inchangée en Saison 2");
+    expect(markup).not.toContain("La fédération fonctionne automatiquement");
     expect(markup).toContain("Championnats continentaux");
     expect(markup).toContain("Nations Cup");
     expect(markup).toContain("Championnats continentaux juniors");

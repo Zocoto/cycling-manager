@@ -189,6 +189,8 @@ export function NationalFederationView({
   const phase = getFederationManagementPhase(snapshot.season.gameYear);
   const division = getFederationDivisionPreview(nationRanking?.rank ?? null);
   const isPreview = phase === "preview";
+  const isAutomatic =
+    snapshot.presidency.mode === "automatic" && snapshot.presidency.presidentName === null;
   const baseHref = `/jeu/federations/${country.code.toLowerCase()}`;
   const nationTheme = getFederationNationTheme(
     country.code,
@@ -275,9 +277,8 @@ export function NationalFederationView({
         </div>
       </header>
 
-      {selectedTab !== "overview" ? (
-        isPreview ? <SeasonTwoPreviewNotice /> : <AutomaticModeNotice />
-      ) : null}
+      {selectedTab !== "overview" &&
+        (isPreview ? <SeasonTwoPreviewNotice /> : isAutomatic && <AutomaticModeNotice />)}
 
       <GameSectionTabs
         ariaLabel="Rubriques de la fédération"
