@@ -94,7 +94,7 @@ function preview(seed = {}, hash = "#tournee") {
     state: () => JSON.parse(storage.get(storeKey)), click, message, acknowledgements, sniperMessages,
     items: plain(scope.noelCatalogue.items), advent: plain(scope.noelCatalogue.advent), element,
     start: (runId, sniper = false) => message({ type: "noel:tournee-demarree", runId, sniper }),
-    finish: (runId, score = 1100, deliveries = 5) => message({ type: "noel:tournee-terminee", runId, score, deliveries }),
+    finish: (runId, score = 1100, deliveries = 5, qualities) => message({ type: "noel:tournee-terminee", runId, score, deliveries, qualities }),
     summary: () => element("#flight-result").innerHTML,
     tree: () => treeRenders.at(-1),
   };
@@ -160,7 +160,7 @@ for (const item of catalog.filter(item => !item.source && item.category !== "por
   p.start("first"); p.finish("first");
   same(p.state().balance, before.balance + 18, "First paid run adds its actual Grelots");
   same(p.state().deliveries, before.deliveries + 5, "First paid run adds five collective lights");
-  same(p.acknowledgements[0].data, { type: "noel:tournee-bilan", runId: "first", grelots: 18, lights: 5, deliveries: 5, practice: false, retry: false, improved: true }, "Iframe receives the authoritative two-currency balance");
+  same(p.acknowledgements[0].data, { type: "noel:tournee-bilan", runId: "first", grelots: 18, lights: 5, deliveries: 5, qualities: { successful: 5, super: 0, perfect: 0 }, practice: false, retry: false, improved: true }, "Iframe receives the authoritative two-currency balance and normalized quality counts");
   check(p.summary().includes("run-summary-grelots") && p.summary().includes("+18") && p.summary().includes("run-summary-lights") && p.summary().includes("+5"), "The visible summary identifies both real gains");
   check(!/points|\bpts\b/i.test(p.summary()), "Run summary never exposes the internal score");
   const paid = p.state(), summary = p.summary();
@@ -171,8 +171,82 @@ for (const item of catalog.filter(item => !item.source && item.category !== "por
   p.start("practice"); p.finish("practice", 2200, 8);
   same(p.state().balance, paid.balance, "Practice does not add Grelots");
   same(p.state().deliveries, paid.deliveries, "Practice does not add collective lights");
-  same(p.acknowledgements[1].data, { type: "noel:tournee-bilan", runId: "practice", grelots: 0, lights: 0, deliveries: 8, practice: true, retry: false, improved: false }, "Practice still receives an explicit zero/zero balance");
+  same(p.acknowledgements[1].data, { type: "noel:tournee-bilan", runId: "practice", grelots: 0, lights: 0, deliveries: 8, qualities: { successful: 8, super: 0, perfect: 0 }, practice: true, retry: false, improved: false }, "Practice still receives an explicit zero/zero balance");
   check(p.summary().includes("Tournée d’entraînement") && p.summary().includes("Aucun nouveau gain"), "Practice explains why both gains are zero");
+}
+{
+  const balances = [];
+  for (const [quality, score, lights, grelots] of [["successful", 1100, 5, 18], ["super", 1320, 10, 20], ["perfect", 1540, 15, 22]]) {
+    const p = preview(), before = p.state();
+    const qualities = { successful: 0, super: 0, perfect: 0, [quality]: 5 };
+    p.start("quality-" + quality); p.finish("quality-" + quality, score, 5, qualities);
+    same(p.state().balance, before.balance + grelots, `${quality}: the actual score determines Grelots`);
+    same(p.state().deliveries, before.deliveries + lights, `${quality}: five deliveries credit their quality-weighted lights`);
+    same(p.state().runs[12].deliveries, 5, `${quality}: real delivered gifts remain distinct from lights`);
+    same(p.state().runs[12].lights, lights, `${quality}: daily result persists separate lights`);
+    same(p.state().runs[12].history[0].qualities, qualities, `${quality}: normalized quality counts are retained`);
+    check(p.summary().includes(`+${lights}`) && p.summary().includes(`${lights} lumières`), `${quality}: summary shows quality-weighted lights`);
+    balances.push({ balance: p.state().balance, lights: p.state().deliveries });
+    const settled = p.state();
+    p.finish("quality-" + quality, 7000, 14, { successful: 0, super: 0, perfect: 14 });
+    same(p.state(), settled, `${quality}: repeated final messages cannot replace already settled quality`);
+  }
+  check(balances[0].balance < balances[1].balance && balances[1].balance < balances[2].balance
+    && balances[0].lights < balances[1].lights && balances[1].lights < balances[2].lights,
+  "Better throw quality and its higher score improve both currencies for the same delivery count");
+}
+{
+  const invalid = [null, {}, [], { successful: 5, super: 0 }, { successful: 6, super: 0, perfect: 0 },
+    { successful: -1, super: 6, perfect: 0 }, { successful: 4.5, super: .5, perfect: 0 },
+    { successful: 5, super: 0, perfect: 0, lights: 999 }, { successful: NaN, super: 0, perfect: 0 }];
+  for (const qualities of invalid) {
+    const p = preview(), before = p.state();
+    p.start("bad-quality"); p.finish("bad-quality", 1100, 5, qualities);
+    same(p.state(), before, "Invalid quality counters cannot credit or settle a run");
+    same(p.acknowledgements.length, 0, "Invalid quality counters receive no authoritative balance");
+    p.finish("bad-quality", 1100, 5, { successful: 1, super: 2, perfect: 2 });
+    same(p.state().deliveries, before.deliveries + 11, "A corrected final message still settles the unconsumed run once");
+    same(p.acknowledgements.length, 1, "Exactly one corrected quality balance is acknowledged");
+  }
+}
+{
+  const p = preview(), before = p.state();
+  p.start("untrusted-lights");
+  const payload = { type: "noel:tournee-terminee", runId: "untrusted-lights", score: 1540, deliveries: 5,
+    qualities: { successful: 0, super: 0, perfect: 5 }, lights: 999999 };
+  p.message(payload, { source: {} }); p.message(payload, { origin: "https://other.example.test" });
+  same(p.state(), before, "Quality payloads from a different iframe or origin do not settle the active run");
+  p.message(payload);
+  same(p.state().deliveries, before.deliveries + 15, "Arbitrary client light fields are ignored in favor of validated quality counts");
+  same(p.acknowledgements[0].data.lights, 15, "The iframe sees only the rule-derived light balance");
+  const paid = p.state();
+  p.start("perfect-practice"); p.finish("perfect-practice", 7000, 14, { successful: 0, super: 0, perfect: 14 });
+  same(p.state().balance, paid.balance, "Even a perfect practice run never credits Grelots");
+  same(p.state().deliveries, paid.deliveries, "Even a perfect practice run never credits lights");
+  same(p.acknowledgements.at(-1).data.qualities.perfect, 14, "A practice balance preserves its actual throw quality despite zero rewards");
+}
+{
+  const p = preview({ balance: 500, deliveries: 5, quantities: { "grelot-repechage": 1 },
+    runs: { 12: { score: 1100, deliveries: 5, reward: 18 } } });
+  p.click("inventory-item", "grelot-repechage"); p.click("use-item", "grelot-repechage");
+  p.start("quality-retry");
+  const before = p.state();
+  p.finish("quality-retry", 1320, 5, { successful: 1, super: 1, perfect: 1 });
+  same(p.state(), before, "An invalid quality message does not consume the armed Second tour credit");
+  p.finish("quality-retry", 1320, 5, { successful: 1, super: 2, perfect: 2 });
+  same(p.state().runs[12].deliveries, 10, "The Second tour adds its five real deliveries to the previous five");
+  same(p.state().runs[12].lights, 16, "The Second tour adds eleven quality lights to the five historical lights");
+  same(p.state().deliveries, 16, "Only the new quality lights are added to the persisted personal balance");
+  same(p.state().retryDays, [], "Only the valid quality result consumes the Second tour credit");
+  check(p.summary().includes("16 lumières") && p.summary().includes("Super : 2") && p.summary().includes("Parfait : 2"), "The summary distinguishes cumulative light totals and per-run quality");
+  const restored = preview(p.state());
+  same(restored.state().balance, p.state().balance, "Reloading a quality history never recredits Grelots");
+  same(restored.state().deliveries, 16, "Reloading a quality history never recredits lights");
+  same(restored.state().runs[12], p.state().runs[12], "Normalized quality run history is stable across reloads");
+  const historyOnly = preview({ ...p.state(), lastFlight: null });
+  check(historyOnly.summary().includes("+11") && historyOnly.summary().includes("5/14 cadeaux livrés") && historyOnly.summary().includes("16 lumières"),
+    "A history-only restored summary uses the latest run's eleven lights, five real deliveries, and sixteen daily lights");
+  same(historyOnly.state().deliveries, 16, "Rendering the history-only quality balance never adds its lights again");
 }
 {
   const p = preview({ balance: 500, deliveries: 5, runs: { 12: { score: 1100, deliveries: 5, reward: 18 } } });
@@ -252,6 +326,7 @@ for (const item of catalog.filter(item => !item.source && item.category !== "por
   same(p.state().balance, 500, "Migrating historical best-run storage never grants retroactive currency");
   same(p.state().deliveries, 5, "Migrating historical best-run storage never changes prior tree lights");
   same(p.state().runs[12].count, 1, "A historical daily result is preserved as one completed run");
+  same(p.state().runs[12].lights, 5, "Historical result lights normalize to the original delivered amount");
   const restored = preview(p.state());
   same(restored.state().runs[12], p.state().runs[12], "Repeated storage migrations leave cumulative daily history unchanged");
 }

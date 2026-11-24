@@ -4,7 +4,8 @@
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       const physics = globalThis.ChristmasFlightPhysics;
-      if (!physics) return;
+      const rules = globalThis.noelRules;
+      if (!physics || !rules) return;
 
       const parentOrigin = window.location.origin === "null" ? "*" : window.location.origin;
       function notifyPilot(type, details = {}) {
@@ -66,6 +67,7 @@
       const status = root.querySelector("[data-status]");
       const gifts = root.querySelector("[data-gifts]");
       const streak = root.querySelector("[data-streak]");
+      const scoreLabel = root.querySelector("[data-score]");
       const windLabel = root.querySelector("[data-wind]");
       const sleighLabel = root.querySelector("[data-sleigh]");
       const targetLabel = root.querySelector("[data-target]");
@@ -77,6 +79,7 @@
       const summary = root.querySelector("[data-flight-summary]");
       const summaryTitle = root.querySelector("[data-summary-title]");
       const summaryDeliveries = root.querySelector("[data-summary-deliveries]");
+      const summaryQualities = root.querySelector("[data-summary-qualities]");
       const summaryValues = root.querySelector("[data-summary-values]");
       const summaryGrelots = root.querySelector("[data-summary-grelots]");
       const summaryLights = root.querySelector("[data-summary-lights]");
@@ -122,6 +125,7 @@
           chimneys: route.map(([x, y, size]) => ({ x, y, size, outcome: "open" })),
           parcel: null, available: route.length, score: 0, streak: 0,
           deliveries: 0, flash: null, progress: -1,
+          qualities: { successful: 0, super: 0, perfect: 0 },
           dropLockedUntil: 0, contactedObstacles: new Set(),
           nextReleaseAt: 0,
         };
@@ -157,6 +161,7 @@
       function syncHud() {
         if (gifts.textContent !== String(game.available)) gifts.textContent = String(game.available);
         if (streak.textContent !== String(game.streak)) streak.textContent = String(game.streak);
+        if (scoreLabel && scoreLabel.textContent !== String(game.score)) scoreLabel.textContent = String(game.score);
         const wind = windAt(game.distance);
         const strength = Math.abs(wind);
         const breeze = strength < 85 ? "Brise variable" : strength < 170 ? "Vent variable" : "Rafale";
@@ -217,7 +222,12 @@
         return landing;
       }
 
-      function deliver(chimney, error) {
+      function precisionTargetX(chimney, time = game.time) {
+        return chimney.x + rules.throwPrecisionOffset(time, chimney.size, chimney.x * .013);
+      }
+
+      function deliver(landing) {
+        const { chimney, quality } = landing;
         for (const previous of game.chimneys) {
           if (previous === chimney) break;
           if (previous.outcome === "open") {
@@ -225,17 +235,17 @@
             game.streak = 0;
           }
         }
-        const opening = chimney.size / 2 - parcelRadius;
         const base = chimney.size <= 33 ? 230 : chimney.size <= 46 ? 160 : 100;
-        const accuracy = Math.round(50 * Math.max(0, 1 - error / opening));
-        const earned = base + accuracy + Math.min(game.streak, 5) * 20;
+        const grade = rules.throwQualities[quality];
+        const earned = base + grade.bonus + Math.min(game.streak, 5) * 20;
         chimney.outcome = "delivered";
         game.score += earned;
         game.streak += 1;
         game.deliveries += 1;
-        game.flash = { x: chimney.x, y: chimney.y, at: game.time };
+        game.qualities[quality] += 1;
+        game.flash = { x: chimney.x, y: chimney.y, at: game.time, quality, earned };
         game.parcel = null;
-        status.textContent = accuracy >= 43 ? "Plein centre · cadeau livré !" : "Cadeau livré !";
+        status.textContent = `${grade.label} · +${earned} points · +${grade.lights} lumière${grade.lights > 1 ? "s" : ""}`;
       }
 
       function updateParcel() {
@@ -244,7 +254,7 @@
         parcel.age += step;
         const landing = parcel.landing;
         if (landing && parcel.age >= landing.time) {
-          deliver(landing.chimney, landing.error);
+          deliver(landing);
           return;
         }
         if (parcelAt(parcel, parcel.age).y > height + 8) {
@@ -347,11 +357,14 @@
         primary.textContent = "Rejouer";
         status.textContent = game.deliveries + "/14 cadeaux livrés";
         summary.hidden = false;
+        summary.scrollTop = 0;
         summaryTitle.textContent = "Tournée terminée";
-        summaryDeliveries.textContent = game.deliveries + "/14 cadeaux livrés";
+        summaryDeliveries.textContent = game.deliveries + "/14 cadeaux livrés · " + game.score + " points";
+        if (summaryQualities) summaryQualities.textContent = Object.entries(game.qualities)
+          .map(([quality, count]) => `${rules.throwQualities[quality].label} : ${count}`).join(" · ");
         summaryValues.hidden = true;
         summaryNote.textContent = "Bilan en cours…";
-        notifyPilot("noel:tournee-terminee", { runId: game.runId, score: game.score, deliveries: game.deliveries });
+        notifyPilot("noel:tournee-terminee", { runId: game.runId, score: game.score, deliveries: game.deliveries, qualities: { ...game.qualities } });
         readyForSniper();
       }
 
@@ -790,12 +803,17 @@
         }
         if (!target) return;
         const aligned = landing?.chimney === target.chimney;
+        const precisionX = game.parcel && aligned ? landing.precisionX : precisionTargetX(target.chimney);
+        const quality = aligned
+          ? game.parcel ? landing.quality : rules.classifyThrow(Math.abs(target.point.x - precisionX), target.chimney.size)
+          : null;
         const locked = game.dropLockedUntil > game.time || game.nextReleaseAt > game.time;
-        const colour = locked ? "#f0b3b5" : aligned ? "#b5ffd0" : "#a9e4ff";
+        const colour = locked ? "#f0b3b5" : quality === "perfect" ? "#ffe18d" : aligned ? "#b5ffd0" : "#a9e4ff";
         const s = markerScale;
         const x = target.point.x - game.distance;
         const y = target.chimney.y;
         const chimneyX = target.chimney.x - game.distance;
+        const precisionMarkerX = precisionX - game.distance;
         ctx.save();
         // One shared ballistic guide: it displays the actual throw and never
         // changes its direction or the collision tolerance on either device.
@@ -806,7 +824,10 @@
           ellipse(point.x - game.distance, point.y, 1.8 * s, 1.8 * s, colour + "99");
         }
         line([[chimneyX - target.chimney.size / 2, y - 2], [chimneyX + target.chimney.size / 2, y - 2]], aligned ? "#b5ffd0" : "#ffe6a3", 3 * s);
-        shape([[chimneyX - 5 * s, y - 24 * s], [chimneyX + 5 * s, y - 24 * s], [chimneyX, y - 17 * s]], "#ffe6a3");
+        // The gold marker moves inside the opening; the crosshair and dotted
+        // trajectory still show the real ballistic landing, without assistance.
+        shape([[precisionMarkerX - 5 * s, y - 24 * s], [precisionMarkerX + 5 * s, y - 24 * s], [precisionMarkerX, y - 17 * s]], "#ffe6a3");
+        shape([[precisionMarkerX - 4 * s, y], [precisionMarkerX, y - 4 * s], [precisionMarkerX + 4 * s, y], [precisionMarkerX, y + 4 * s]], "#ffe6a3");
         if (x > -30 && x < width + 30) {
           ctx.beginPath();
           ctx.arc(x, y, 12 * s, 0, Math.PI * 2);
@@ -820,7 +841,7 @@
         }
         ctx.restore();
         const label = game.parcel ? "Cadeau en vol" : locked ? "Lancer suspendu"
-          : aligned ? game.sniperGranted && autoDrop.checked ? "Cible alignée · envoi automatique" : "Cible alignée · lance !"
+          : aligned ? rules.throwQualities[quality].label + (game.sniperGranted && autoDrop.checked ? " · envoi automatique" : " · lance !")
             : x < chimneyX ? "Le viseur est à gauche de la cheminée" : "Le viseur est à droite de la cheminée";
         if (targetLabel && targetLabel.textContent !== label) targetLabel.textContent = label;
         if (targetLabel) targetLabel.classList.toggle("is-aligned", aligned && !locked && !game.parcel);
@@ -850,7 +871,7 @@
             ctx.fillStyle = "#ffe6a6";
             ctx.font = "500 28px system-ui, sans-serif";
             ctx.textAlign = "center";
-            ctx.fillText("Livré !", game.flash.x - game.distance, game.flash.y - 26 - age * 30);
+            ctx.fillText(`${rules.throwQualities[game.flash.quality].label} +${game.flash.earned}`, game.flash.x - game.distance, game.flash.y - 26 - age * 30);
             ctx.globalAlpha = 1;
           }
         }
@@ -903,7 +924,14 @@
       }
 
       function releaseParcel(parcel, landing = findLanding(parcel)) {
-        parcel.landing = landing;
+        // Precision is decided at release, never by a later movement of the
+        // marker while the gift is in flight. Physical hit detection is intact.
+        const precisionX = landing ? precisionTargetX(landing.chimney) : null;
+        const precisionError = landing ? Math.abs(parcelAt(parcel, landing.time).x - precisionX) : null;
+        parcel.landing = landing ? {
+          ...landing, precisionX, precisionError,
+          quality: rules.classifyThrow(precisionError, landing.chimney.size),
+        } : null;
         game.available -= 1;
         game.parcel = parcel;
         game.nextReleaseAt = game.time + releaseCooldown;

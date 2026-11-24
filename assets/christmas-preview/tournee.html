@@ -129,6 +129,7 @@
     .flight-shell { border-radius: 13px; }
     #cyclo-winter-flight canvas { min-height: 170px; }
     .flight-controls .btn { margin-left: auto; }
+    .flight-summary { align-content: start; overflow-y: auto; }
   }
   @media (prefers-reduced-motion: reduce) { .progress-bar { transition: none; } }
 </style>
@@ -172,6 +173,7 @@
     <div class="viz-row">
       <span><strong data-gifts>14</strong> cadeaux</span>
       <span>Série <strong data-streak>0</strong></span>
+      <span>Score <strong data-score>0</strong></span>
       <span class="text-small" data-sleigh>Traîneau stable</span>
     </div>
     <span class="text-small" data-wind>Vent calme</span>
@@ -181,6 +183,7 @@
     <section class="flight-summary" data-flight-summary aria-live="polite" hidden>
       <h2 data-summary-title>Tournée terminée</h2>
       <p data-summary-deliveries></p>
+      <p data-summary-qualities></p>
       <div class="flight-summary-values" data-summary-values hidden>
         <div>
           <svg viewBox="0 0 28 32" aria-hidden="true">
@@ -209,6 +212,7 @@
   <label class="flight-assistance" data-sniper-control hidden><input type="checkbox" data-auto-drop disabled> Utiliser une lunette pour lancer automatiquement quand le viseur est aligné</label>
   <p class="flight-sniper-status" data-sniper-status>Lancer manuel · la Lunette de sniper de cadeaux débloque le lancer automatique pour une tournée. Disponible à la boutique de Noël pour 10 Grelots.</p>
   <script src="flight-physics.js"></script>
+  <script src="rules.js"></script>
   <script src="tournee.js"></script>
 </div>
 
@@ -217,6 +221,7 @@
   <p class="touch-help">Glisse pour diriger les rennes et éviter les obstacles. Relâche pour stabiliser le traîneau, puis touche <strong>Lâcher un cadeau</strong> quand le viseur passe au vert. Tu peux aussi lancer avec un second doigt tout en pilotant.</p>
   <p>Le traîneau se balance quand les rennes changent de direction. Stabilise-le avant de lancer : le cadeau garde son élan, puis le vent le dévie.</p>
   <p>Le grand viseur et les pointillés montrent la trajectoire réelle sur tous les appareils. Le viseur passe au vert quand le lancer est aligné avec la cheminée. La <strong>Lunette de sniper de cadeaux</strong> permet de lancer automatiquement à ce moment pour une seule tournée, sans corriger la trajectoire, le vent ou les collisions. Prépare-la avant de décoller.</p>
+  <p>Le petit repère doré oscille dans l’ouverture : rapproche le viseur de son centre au moment du lâcher. Un lancer <strong>Réussi</strong> apporte 1 lumière, un <strong>Super</strong> 2 et un <strong>Parfait</strong> 3. La précision ajoute aussi des points, qui augmentent les Grelots reçus en fin de tournée.</p>
   <p>Les trois premières cheminées sont à l’abri du vent. Ensuite, les rafales varient doucement : regarde la manche à air et prépare ton prochain lancer.</p>
   <p>Évite les oies, les ballons et les boules de neige qui traversent en diagonale : un choc bloque les lancers pendant 1,2 seconde, sans retirer les cadeaux déjà livrés.</p>
 </div>

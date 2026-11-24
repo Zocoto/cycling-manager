@@ -7,7 +7,7 @@ context.window = context;
 for (const file of ["catalogue.js", "rules.js", "sapin.js"]) {
   vm.runInContext(readFileSync(new URL(`../assets/christmas-preview/${file}`, import.meta.url), "utf8"), context);
 }
-const { rankContributors, contributionPrize, contributionRewards, render, rewardLabel } = context.noelTree;
+const { rankContributors, contributionPrize, contributionRewards, render } = context.noelTree;
 const plain = value => JSON.parse(JSON.stringify(value));
 let checks = 0;
 function check(value, message) { assert.ok(value, message); checks++; }
@@ -43,7 +43,8 @@ render({ art, panel, total: 14000, personal: 6, participants: 12, claimed: [], m
   contributors: Array.from({ length: 12 }, (_, index) => ({ id: String(index), name: index === 11 ? '<script>alert("x")</script>' : `DS ${index}`, lights: 20 - index, isCurrent: index === 11 })) });
 check((panel.innerHTML.match(/class="contributor-rank"/g) ?? []).length === 11, "Ten leaders plus personal position are visible when outside top ten");
 check(panel.innerHTML.includes("&lt;script&gt;") && !panel.innerHTML.includes('<script>alert("x")</script>'), "Contributor names are HTML escaped");
-check(panel.innerHTML.includes("1 cadeau livré = 1 lumière") && panel.innerHTML.includes("résultat validé à la fin"), "Tree explains how completed deliveries light the garland");
+check(panel.innerHTML.includes("Réussi : 1 lumière · Super : 2 · Parfait : 3") && panel.innerHTML.includes("validée à la fin"), "Tree explains how the validated quality of completed deliveries lights the garland");
+check(panel.innerHTML.includes('aria-label="Lumières de tout le peloton"') && panel.innerHTML.includes("lumières avant le prochain palier"), "Shared progress and remaining milestones are counted in lights rather than delivered gifts");
 check(panel.innerHTML.includes("Talent révélé") && panel.innerHTML.includes("Nouveau chapitre"), "Intermediate talent and personality rewards are visible");
 check(panel.innerHTML.includes("Classement final du 31 décembre") && panel.innerHTML.includes("même rang et même cadeau"), "Preview clearly presents final ranking prizes and tie rule");
 check(panel.innerHTML.includes("tous tes Seconds tours compris") && panel.innerHTML.includes("Les entraînements sans gains"), "Contribution totals cover the whole event and paid extra runs, excluding training runs");
@@ -58,4 +59,6 @@ check(panel.innerHTML.includes("Cuissard Quatre Saisons") && panel.innerHTML.inc
 render({ art, panel, total: 0, personal: 0, participants: 0, claimed: [], milestones: context.noelRules.milestones, itemById });
 check(panel.innerHTML.includes("attend ses premiers éclaireurs"), "Empty ranking invites first contribution");
 check(!art.innerHTML.includes("sapin-bonnet") && art.innerHTML.includes('class="sapin-star"'), "The shared tree retains its potential star without a ranking-only helmet decoration");
+render({ art, panel, total: 499, personal: 0, participants: 1, claimed: [], milestones: context.noelRules.milestones, itemById });
+check(panel.innerHTML.includes("1 lumière avant le prochain palier"), "A single remaining quality light uses the singular unit");
 console.log(`Passed ${checks} Christmas contribution ranking, prizes and tree checks.`);

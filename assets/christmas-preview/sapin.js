@@ -126,10 +126,10 @@
     panel.innerHTML = `<div class="collective-label"><span class="collective-dot"></span>Progression commune à tous les joueurs</div>
       <div class="tree-metric"><strong>${num(total)}</strong><span> / ${num(ceiling)} lumières</span></div>
       <p class="collective-caption">${num(participants)} DS réunis autour du même sapin. <strong>Chaque palier débloque sa récompense pour chaque joueur du site.</strong></p>
-      <div class="tree-how-it-works"><strong>1 cadeau livré = 1 lumière</strong><p>C’est le résultat validé à la fin de ta tournée qui allume la guirlande. Les lumières de chaque Second tour s’ajoutent elles aussi et restent acquises.</p><a href="#tournee">Faire grandir la guirlande →</a></div>
+      <div class="tree-how-it-works"><strong>Réussi : 1 lumière · Super : 2 · Parfait : 3</strong><p>C’est la qualité des cadeaux livrés, validée à la fin de ta tournée, qui allume la guirlande. Les lumières de chaque Second tour s’ajoutent elles aussi et restent acquises.</p><a href="#tournee">Faire grandir la guirlande →</a></div>
       <p class="personal-contribution">Ta contribution · <strong>${num(personal)} lumière${personal > 1 ? "s" : ""}</strong> apportée${personal > 1 ? "s" : ""} au sapin</p>
-      <div class="tree-track" role="progressbar" aria-valuemax="${ceiling}" aria-valuemin="0" aria-valuenow="${Math.min(total, ceiling)}" aria-label="Livraisons de tout le peloton"><span style="width:${Math.min(100, total / ceiling * 100)}%"></span></div>
-      <p class="next-tree-goal">${next ? `${num(next.goal - total)} livraisons avant le prochain palier` : "L’étoile brille pour tout le peloton !"}</p>
+      <div class="tree-track" role="progressbar" aria-valuemax="${ceiling}" aria-valuemin="0" aria-valuenow="${Math.min(total, ceiling)}" aria-label="Lumières de tout le peloton"><span style="width:${Math.min(100, total / ceiling * 100)}%"></span></div>
+      <p class="next-tree-goal">${next ? `${num(next.goal - total)} lumière${next.goal - total > 1 ? "s" : ""} avant le prochain palier` : "L’étoile brille pour tout le peloton !"}</p>
       <ol class="collective-milestones">${milestones.map((milestone, i) => {
         const unlocked = total >= milestone.goal;
         const collected = claimed.includes(milestone.goal);

@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
 
-// Exercise the shipped browser handlers and animation loop. Observations come
-// from calls to the real physics API, without exposing or changing game state.
+// Exercise the shipped browser handlers and animation loop. Original controls
+// observe the real physics API; precision fixtures instrument a test-only copy
+// of the game closure. No hooks are shipped or production state accessed.
 const physicsSource = readFileSync(new URL("../assets/christmas-preview/flight-physics.js", import.meta.url), "utf8");
+const rulesSource = readFileSync(new URL("../assets/christmas-preview/rules.js", import.meta.url), "utf8");
 const gameSource = readFileSync(new URL("../assets/christmas-preview/tournee.js", import.meta.url), "utf8");
 const initialPosition = { x: 295, y: 143 };
 let checks = 0;
@@ -127,6 +129,7 @@ function createHarness({ width = 800, height = 400, coarse = false, standalone =
     requestAnimationFrame(callback) { scheduledFrame = callback; return 1; },
     cancelAnimationFrame() { scheduledFrame = null; },
   });
+  vm.runInContext(rulesSource, scope, { filename: "rules.js" });
   vm.runInContext(physicsSource, scope, { filename: "flight-physics.js" });
   const physics = scope.ChristmasFlightPhysics;
   scope.ChristmasFlightPhysics = {
@@ -149,7 +152,12 @@ function createHarness({ width = 800, height = 400, coarse = false, standalone =
       });
     },
   };
-  vm.runInContext(gameSource, scope, { filename: "tournee.js" });
+  // Test-only observation of closure state. No hooks are shipped in the game.
+  const observedSource = gameSource.replace(/\}\)\(\);\s*$/, `
+    globalThis.__flightQA = { state: () => game, launchState, findLanding, releaseParcel, precisionTargetX, draw };
+  })();`);
+  assert.notEqual(observedSource, gameSource, "Locate the shipped game's closure for isolated observations");
+  vm.runInContext(observedSource, scope, { filename: "tournee.js" });
   fire(browserWindow, "load");
 
   function advance(milliseconds) {
@@ -207,7 +215,7 @@ function createHarness({ width = 800, height = 400, coarse = false, standalone =
   return {
     advance, pointer, key, space, start, latest, loseCapture, fire, setAutomatic, autoDrop, parentMessage, stock, grant,
     primary, canvas, root, browserWindow, bounds, captured,
-    samples, launches, messages, physics,
+    samples, launches, messages, physics, rules: scope.noelRules, qa: scope.__flightQA,
     element: selector => root.querySelector(selector),
     elapsed: () => now,
   };
@@ -554,7 +562,7 @@ for (const tamper of ["source", "origin", "run", "denied", "missing"]) {
   for (const [label, { harness, collisions }] of runs) {
     const results = harness.messages.filter(message => message.type === "noel:tournee-terminee");
     check(results.length === 1, `${label} finishes exactly once`);
-    const result = { score: results[0].score, deliveries: results[0].deliveries };
+    const result = { score: results[0].score, deliveries: results[0].deliveries, qualities: results[0].qualities };
     check(result.deliveries >= 10, `${label} delivers most of the village using one steering gesture`);
     check(collisions.length === 0, `${label} retains the same obstacle avoidance challenge`);
     check(harness.launches.length <= 14, `${label} never spends more than the gift allowance`);
@@ -569,4 +577,78 @@ for (const tamper of ["source", "origin", "run", "denied", "missing"]) {
   }
 }
 
-console.log(`Passed ${checks} Christmas flight controls, obstacle recovery, assistance and parity checks.`);
+// The precision target moves inside the opening while the actual ballistic
+// forecast remains untouched. Samples use the shipped rule and game helper.
+{
+  const harness = createHarness();
+  const chimney = harness.qa.state().chimneys[0];
+  const positions = [0, .275, .55, .825, 1.1].map(time => harness.qa.precisionTargetX(chimney, time));
+  check(Math.max(...positions) - Math.min(...positions) > 1, "The anchored precision marker visibly oscillates");
+  near(positions[0], positions.at(-1), "The precision marker has a stable period");
+  check(positions.every(x => Math.abs(x - chimney.x) <= Math.min(8, (chimney.size / 2 - 5) * .65) + 1e-7), "Precision movement stays small and inside the opening");
+}
+
+function preparePrecisionThrow(harness, error) {
+  harness.start();
+  const state = harness.qa.state();
+  state.time = 1.375;
+  state.distance = 300;
+  const chimney = state.chimneys[0];
+  const parcel = harness.qa.launchState();
+  const time = harness.physics.fallTime(parcel, chimney.y);
+  const forecastX = harness.physics.parcelAt(parcel, time).x;
+  const precisionX = harness.qa.precisionTargetX(chimney);
+  const shift = precisionX + error - forecastX;
+  state.sleigh.x += shift;
+  state.player.x += shift;
+  harness.qa.draw();
+  return { state, chimney, precisionX };
+}
+
+// Identical mouse/keyboard/touch releases grade the same true trajectory.
+// The target may subsequently move, but an accepted parcel never changes grade.
+for (const [quality, error, label, expectedScore] of [
+  ["perfect", 0, "Parfait", 150],
+  ["super", 7.2, "Super", 130],
+  ["successful", 20.4, "Réussi", 110],
+]) {
+  let reference;
+  for (const [device, options] of [["desktop", {}], ["touch", { width: 400, height: 200, coarse: true }]]) {
+    const harness = createHarness(options);
+    const { state, precisionX } = preparePrecisionThrow(harness, error);
+    const predicted = harness.qa.launchState();
+    if (device === "desktop") harness.space();
+    else harness.fire(harness.primary, "click", { detail: 1 });
+    const accepted = state.parcel?.landing;
+    check(accepted?.quality === quality, `${device} captures the ${quality} tier at release`);
+    near(accepted.precisionX, precisionX, `${device} captures the moving target position`);
+    const frozen = plain(accepted);
+    assert.deepEqual(plain(state.parcel).x, predicted.x, "Quality never changes the physical launch origin");
+    near(state.parcel.vx, predicted.vx, "Quality never changes physical horizontal speed");
+    near(state.parcel.vy, predicted.vy, "Quality never changes physical vertical speed");
+    harness.advance(180);
+    check(state.parcel?.landing.quality === quality, `${device} retains the release tier while airborne`);
+    near(state.parcel.landing.precisionX, frozen.precisionX, `${device} retains the release target while airborne`);
+    harness.advance(700);
+    check(state.qualities[quality] === 1 && Object.values(state.qualities).reduce((sum, count) => sum + count, 0) === 1,
+      `${device} counts exactly one ${quality} delivery`);
+    check(state.score === expectedScore && state.deliveries === 1, `${device} awards the ${quality} points once`);
+    check(harness.element("[data-status]").textContent.includes(label), `${device} announces ${label} feedback`);
+    const result = { qualities: plain(state.qualities), score: state.score, deliveries: state.deliveries };
+    if (reference) { assert.deepEqual(result, reference, `${quality} has identical desktop and touch rewards`); checks++; }
+    reference = result;
+  }
+}
+
+// Full assisted results carry all grades through the real message boundary.
+{
+  const { harness } = traceObstacleRun({ waypoints: [[0, 72], [11.5, 175], [17.4, 72]], automatic: true });
+  const result = harness.messages.find(message => message.type === "noel:tournee-terminee");
+  check(result && Object.keys(result.qualities).sort().join(",") === "perfect,successful,super", "The completion message includes exactly the three quality counters");
+  check(Object.values(result.qualities).every(Number.isSafeInteger)
+    && Object.values(result.qualities).reduce((sum, count) => sum + count, 0) === result.deliveries,
+    "Completion qualities match real successful deliveries");
+  check(result.qualities.perfect < result.deliveries, "A scope does not turn all assisted launches into perfect throws");
+}
+
+console.log(`Passed ${checks} Christmas flight controls, obstacle recovery, quality, assistance and parity checks.`);

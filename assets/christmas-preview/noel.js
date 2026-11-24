@@ -1,7 +1,7 @@
 (() => {
   "use strict";
   const { items, advent } = window.noelCatalogue;
-  const { milestones, normalizeFlightDay, settleFlight, rarity, silverTrade } = window.noelRules;
+  const { milestones, normalizeFlightDay, settleFlight, rarity, silverTrade, throwQualities, normalizeThrowQualities } = window.noelRules;
   const cards = window.noelAlbumS4;
   const cardByNumber = new Map(cards.map(card => [String(card.number), card]));
   const find = (selector, root = document) => root.querySelector(selector);
@@ -83,6 +83,8 @@
   function price(item) { return num(item.price) + " Grelots"; }
   function dayLabel(day) { return day === 1 ? "1er décembre" : day + " décembre"; }
   function previewNow() { return Date.UTC(2026, 11, state.day, 12); }
+  // The legacy persisted "deliveries" field is the already-credited personal
+  // light balance. Run histories keep physical deliveries and lights separate.
   function totalLights() { return state.communityLights + state.deliveries; }
   function contributors() {
     const count = Math.max(1, Math.min(1000, Math.floor(Number(state.participants) || 1)));
@@ -354,15 +356,19 @@
     }
     const previousRun = run?.history.at(-1);
     const last = state.lastFlight?.day === state.day ? state.lastFlight : previousRun ? {
-      grelots: previousRun.reward, lights: previousRun.deliveries, deliveries: previousRun.deliveries, previous: true,
+      grelots: previousRun.reward, lights: previousRun.lights, deliveries: previousRun.deliveries, qualities: previousRun.qualities, previous: true,
     } : null;
     if (!last) {
-      container.textContent = "Une première tournée récompensée chaque jour. Un Second tour ajoute une tournée et tous ses gains. Chaque cadeau livré ajoute une lumière au sapin commun à tous les DS.";
+      container.textContent = "Une première tournée récompensée chaque jour. Un Second tour ajoute une tournée et tous ses gains. Un lancer réussi, super ou parfait apporte 1, 2 ou 3 lumières au sapin commun à tous les DS.";
       return;
     }
     const gainedGrelots = Math.max(0, Number(last.grelots) || 0);
     const gainedLights = Math.max(0, Number(last.lights) || 0);
     const delivered = Math.max(0, Math.min(14, Number(last.deliveries) || 0));
+    const qualities = normalizeThrowQualities(last.qualities, delivered);
+    const qualityKeys = Object.keys(throwQualities);
+    const qualitySummary = qualities
+      ? qualityKeys.map(key => `${esc(throwQualities[key].label)} : ${num(qualities[key])}`).join(" · ") : "";
     const note = last.practice ? "Tournée d’entraînement : la récompense du jour a déjà été reçue. Aucun nouveau gain."
       : last.retry ? "Second tour : tous les gains de cette nouvelle tournée s’ajoutent aux précédents, quel que soit le résultat."
         : last.previous ? "Bilan de ta tournée récompensée. Tu peux rejouer pour t’entraîner." : "Ces gains ont été crédités à ton inventaire et au sapin collectif de l’aperçu.";
@@ -370,7 +376,8 @@
       <div class="run-summary-values"><div class="run-summary-value run-summary-grelots"><span class="bell" aria-hidden="true"></span><strong>${gainedGrelots > 0 ? "+" : ""}${num(gainedGrelots)}</strong><span>Grelots reçus</span></div>
       <div class="run-summary-value run-summary-lights"><span class="light-spark" aria-hidden="true"></span><strong>${gainedLights > 0 ? "+" : ""}${num(gainedLights)}</strong><span>Lumières pour le sapin</span></div></div>
       <p class="run-summary-note">${delivered}/14 cadeaux livrés. ${note}${state.retryDays.includes(state.day) ? " Ton Second tour est prêt pour la prochaine tournée." : ""}</p>
-      ${run ? `<p class="run-summary-note">Cumul du jour · ${run.count} tournée${run.count > 1 ? "s" : ""} récompensée${run.count > 1 ? "s" : ""} · ${num(run.reward)} Grelots · ${num(run.deliveries)} lumières.</p>` : ""}</section>`;
+      ${qualitySummary ? `<p class="run-summary-note">${qualitySummary}</p>` : ""}
+      ${run ? `<p class="run-summary-note">Cumul du jour · ${run.count} tournée${run.count > 1 ? "s" : ""} récompensée${run.count > 1 ? "s" : ""} · ${num(run.reward)} Grelots · ${num(run.lights)} lumières.</p>` : ""}</section>`;
   }
   function receiveFlight(event) {
     if (event.source !== frame.contentWindow || event.origin !== window.location.origin) return;
@@ -421,8 +428,13 @@
       if (!activeFlight || activeFlight.settled || (activeFlight.runId !== null && payload.runId !== activeFlight.runId)
         || !Number.isInteger(payload.score) || payload.score < 0 || payload.score > 7000
         || !Number.isInteger(payload.deliveries) || payload.deliveries < 0 || payload.deliveries > 14) return;
+      // Validate the payload before marking even a practice run as settled.
+      // The rules derive light gains from the three quality counters; a caller's
+      // arbitrary "lights" field can never choose the credited amount.
+      const qualities = normalizeThrowQualities(payload.qualities, payload.deliveries);
+      if (!qualities) return;
       const retry = activeFlight.retry;
-      const result = settleFlight(state.runs[currentRunDay], payload.score, payload.deliveries, retry, activeFlight.runId);
+      const result = settleFlight(state.runs[currentRunDay], payload.score, payload.deliveries, retry, activeFlight.runId, qualities);
       activeFlight.settled = true;
       state.settledRunIds.push(activeFlight.runId);
       const practice = !result;
@@ -433,9 +445,9 @@
         state.runs[currentRunDay] = result.result; state.balance += grelots; state.deliveries += lights;
         record("Tournée · +" + grelots + " Grelots · +" + lights + " lumières", currentRunDay);
       }
-      state.lastFlight = { day: currentRunDay, grelots, lights, deliveries: payload.deliveries, practice, retry, improved: result?.improved ?? false };
+      state.lastFlight = { day: currentRunDay, grelots, lights, deliveries: payload.deliveries, qualities, practice, retry, improved: result?.improved ?? false };
       commit();
-      frame.contentWindow.postMessage({ type: "noel:tournee-bilan", runId: activeFlight.runId, grelots, lights, deliveries: payload.deliveries, practice, retry, improved: result?.improved ?? false }, window.location.origin);
+      frame.contentWindow.postMessage({ type: "noel:tournee-bilan", runId: activeFlight.runId, grelots, lights, deliveries: payload.deliveries, qualities, practice, retry, improved: result?.improved ?? false }, window.location.origin);
     }
   }
   function openDialog(markup) { dialogBody.innerHTML = markup; drawItems(dialogBody); if (!dialog.open) dialog.showModal(); }
