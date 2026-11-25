@@ -1,5 +1,5 @@
 import { getClimbBlocks, type RaceStageSegment } from "./race-profiles";
-import type { RiderSimulationRatings } from "./race-simulation";
+import type { RiderSimulationRatings, SimulationStageType } from "./race-simulation";
 
 export type TimeTrialClimbWeights = {
   timeTrial: number;
@@ -25,6 +25,7 @@ const CLIMB_WEIGHT_ANCHORS = [
 /** Adjacent climb segments remain one pass, including flatter ramps. */
 export function withTimeTrialClimbWeights(
   segments: readonly RaceStageSegment[],
+  stageType: SimulationStageType,
 ): TimeTrialClimbSegment[] {
   const climbs = getClimbBlocks([...segments]);
   const passes = climbs.filter((climb) =>
@@ -52,14 +53,22 @@ export function withTimeTrialClimbWeights(
     const partOfPassChain = hasRepeatedPasses && passes.includes(climb);
     for (let index = climb.startIndex; index <= climb.finishIndex; index += 1) {
       ratedSegments[index].timeTrialClimbWeights = getClimbWeights(
-        Math.max(0, segments[index].averageGradientPct), climb.distanceKm, partOfPassChain,
+        Math.max(0, segments[index].averageGradientPct),
+        climb.distanceKm,
+        partOfPassChain,
+        stageType,
       );
     }
   }
   return ratedSegments;
 }
 
-function getClimbWeights(gradient: number, climbLengthKm: number, repeatedPasses: boolean): TimeTrialClimbWeights {
+function getClimbWeights(
+  gradient: number,
+  climbLengthKm: number,
+  repeatedPasses: boolean,
+  stageType: SimulationStageType,
+): TimeTrialClimbWeights {
   const upper = CLIMB_WEIGHT_ANCHORS.find((anchor) => anchor.gradient >= gradient)
     ?? CLIMB_WEIGHT_ANCHORS[3];
   const lower = CLIMB_WEIGHT_ANCHORS[Math.max(0, CLIMB_WEIGHT_ANCHORS.indexOf(upper) - 1)];
@@ -77,9 +86,16 @@ function getClimbWeights(gradient: number, climbLengthKm: number, repeatedPasses
   const extraMountain = mountain - interpolate("mountain");
   const flatReduction = Math.min(interpolate("flat"), extraMountain);
   const hills = repeatedPasses ? Math.min(0.05, mountain) : 0;
+  // Transfer up to three points from CLM to MO on sustained individual climbs.
+  // The full shift applies from 5 km and 8%, with a gradual onset on both axes.
+  const gradientProgress = Math.min(1, Math.max(0, (gradient - 2) / 6));
+  const lengthProgress = Math.min(1, Math.max(0, (climbLengthKm - 2) / 3));
+  const mountainShift = stageType === "individual_time_trial"
+    ? 0.03 * gradientProgress * lengthProgress
+    : 0;
   return {
-    timeTrial: interpolate("timeTrial") - (extraMountain - flatReduction),
-    mountain: mountain - hills,
+    timeTrial: interpolate("timeTrial") - (extraMountain - flatReduction) - mountainShift,
+    mountain: mountain - hills + mountainShift,
     hills,
     flat: interpolate("flat") - flatReduction,
     endurance: 0.1,

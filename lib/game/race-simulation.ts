@@ -1355,7 +1355,9 @@ function normalizeStageSimulationInput(
   }));
   const eligibleInput = {
     ...input,
-    segments: input.stageType === "road" ? eligibleSegments : withTimeTrialClimbWeights(eligibleSegments),
+    segments: input.stageType === "road"
+      ? eligibleSegments
+      : withTimeTrialClimbWeights(eligibleSegments, input.stageType),
     weather,
     ...(eligibleTeamStrategies
       ? { teamStrategies: eligibleTeamStrategies }

@@ -119,6 +119,17 @@ describe("mountain time-trial rating behavior", () => {
     expect(improvedMountain).toBeLessThan(baseline);
   });
 
+  it("lets a stronger climber challenge the chrono specialist on a sustained ascent while preserving the flat hierarchy", () => {
+    const climber = { mountain: 93 };
+    const specialist = { timeTrial: 90 };
+    const uphill = [segment(1, 12, 8)];
+    const flat = [segment(1, 12, 0)];
+
+    expect(soloElapsed(uphill, climber)).toBeLessThan(soloElapsed(uphill, specialist));
+    expect(soloElapsed(flat, specialist)).toBeLessThan(soloElapsed(flat, climber));
+    expect(soloElapsed(flat, climber)).toBe(soloElapsed(flat, {}));
+  });
+
   it("increases the mountain contribution continuously with the ascent gradient", () => {
     const relativeGains = [2, 4, 6, 8].map((gradient) => {
       const route = [segment(1, 6, gradient)];

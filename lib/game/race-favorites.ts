@@ -457,7 +457,7 @@ function getTimeTrialFavoriteRating(
   ratings: RiderSimulationRatings,
   stage: RaceFavoriteStage,
 ) {
-  const segments = withTimeTrialClimbWeights(stage.segments);
+  const segments = withTimeTrialClimbWeights(stage.segments, stage.stageType);
   if (!segments.some((segment) => segment.timeTrialClimbWeights)) {
     return getStandardTimeTrialFavoriteRating(ratings, stage);
   }
