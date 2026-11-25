@@ -14,6 +14,7 @@ import { SponsorObjectiveName } from "./sponsor-objective-name";
 import Link from "../ui/app-link";
 import { SponsorLogoMark } from "./sponsor-logo";
 import { TeamJerseyPreview } from "./team-jersey-preview";
+import { SponsorSatisfactionGauge } from "./sponsor-satisfaction-gauge";
 
 type DashboardSponsorCardProps = {
   sponsor: Sponsor;
@@ -98,17 +99,6 @@ export function DashboardSponsorCard({
             <span className="text-xs font-semibold text-white/65 sm:text-sm">
               Budget annuel&nbsp;: {budgetLabel}
             </span>
-            {objectiveSummary && objectiveSummary.total > 0 ? (
-              <span
-                className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-white/80 backdrop-blur-sm"
-                aria-label={`Satisfaction sponsor : ${objectiveSummary.satisfactionScore} sur 100`}
-              >
-                <span aria-hidden="true" className="text-[var(--dashboard-sponsor-accent)]">
-                  ✓
-                </span>
-                Satisfaction {objectiveSummary.satisfactionScore}/100
-              </span>
-            ) : null}
           </div>
 
           {project ? <div className="mt-3 min-w-0 border-t border-white/15 pt-2 text-[11px] leading-5 text-white/80" data-dashboard-sponsor-project>
@@ -137,6 +127,9 @@ export function DashboardSponsorCard({
           </span>
         </div>
       </div>
+      {objectiveSummary ? (
+        <SponsorSatisfactionGauge score={objectiveSummary.satisfactionScore} variant="dashboard" />
+      ) : null}
     </Link>
   );
 }

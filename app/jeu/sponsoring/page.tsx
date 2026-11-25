@@ -25,6 +25,7 @@ import { GAMEPLAY_RULES } from "@/lib/gameplay-rules";
 import { SPONSOR_SPORTING_PHILOSOPHY_CONFIG } from "@/lib/game/sponsor-philosophy";
 import { sponsorProjectFromContract } from "@/lib/game/sponsor-project";
 import { SponsorProjectPanel } from "@/components/game/sponsor-project-panel";
+import { SponsorSatisfactionGauge } from "@/components/game/sponsor-satisfaction-gauge";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import type { PersistedSponsorOffer } from "../../../services/persisted-sponsor-offers";
 import {
@@ -1221,8 +1222,6 @@ function ContractObjectivesSection({
 
         <SponsorSatisfactionGauge
           score={contract.satisfactionScore}
-          primaryColor={sponsor.colors.primary}
-          textColor={sponsor.colors.text}
         />
       </div>
 
@@ -1353,43 +1352,6 @@ function SponsorPerformanceSatisfactionSection({
   );
 }
 
-function SponsorSatisfactionGauge({
-  score,
-  primaryColor,
-  textColor,
-}: {
-  score: number;
-  primaryColor: string;
-  textColor: string;
-}) {
-  const normalizedScore = Math.max(0, Math.min(100, Math.round(score)));
-
-  return (
-    <div
-      className="min-w-52 rounded-xl border bg-white/90 px-4 py-3"
-      style={{ borderColor: `${primaryColor}30` }}
-      aria-label={`Satisfaction sponsor : ${normalizedScore} sur 100`}
-    >
-      <div className="flex items-end justify-between gap-4">
-        <p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#72847E]">
-          Satisfaction sponsor
-        </p>
-        <p className="text-xl font-black" style={{ color: textColor }}>
-          {normalizedScore}<span className="text-xs">/100</span>
-        </p>
-      </div>
-      <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#E4ECE8]">
-        <div
-          className="h-full rounded-full transition-[width] duration-500"
-          style={{
-            width: `${normalizedScore}%`,
-            backgroundColor: primaryColor,
-          }}
-        />
-      </div>
-    </div>
-  );
-}
 function ContractObjectiveItem({
   objective,
   textColor,

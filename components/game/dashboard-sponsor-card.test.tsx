@@ -48,8 +48,9 @@ describe("dashboard sponsor card", () => {
     expect(markup).toContain("Graphicool Mobilités");
     expect(markup).toContain("510 000");
     expect(markup).toContain("Maillot officiel");
-    expect(markup).toContain("Satisfaction 28/100");
-    expect(markup).toContain("Satisfaction sponsor : 28 sur 100");
+    expect(markup).toContain("Satisfaction sponsor");
+    expect(markup).toContain('aria-valuenow="28"');
+    expect(markup).toContain("width:28%");
     expect(markup).toContain(encodeURIComponent(sponsor.logoPath));
     expect(markup).toContain(
       encodeURIComponent(sponsor.jerseys[0].imagePath),
@@ -70,5 +71,21 @@ describe("dashboard sponsor card", () => {
     expect(markup).toContain("--dashboard-sponsor-accent:#F2C94C");
     expect(markup).toContain('href="/jeu/sponsoring"');
     expect(markup).toContain('data-tutorial-id="dashboard-sponsoring"');
+    expect(markup).not.toContain('role="progressbar"');
+  });
+
+  it("shows overall satisfaction even without contractual objectives", () => {
+    const markup = renderToStaticMarkup(
+      <DashboardSponsorCard
+        sponsor={sponsor}
+        jersey={sponsor.jerseys[0]}
+        budgetLabel="510 000 €"
+        objectiveSummary={{ completed: 0, total: 0, satisfactionScore: 25, satisfactionMaximum: 0 }}
+      />,
+    );
+
+    expect(markup).toContain('aria-valuenow="25"');
+    expect(markup).toContain('aria-valuemax="100"');
+    expect(markup).toContain("width:25%");
   });
 });
