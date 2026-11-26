@@ -30,6 +30,7 @@ vi.mock("@/services/daily-rewards", () => ({ getCurrentDailyRewardOverview: asyn
 vi.mock("@/services/trophy-gallery", () => ({ getSportingDirectorTrophyGallery: async () => null }));
 
 import { ALBUM_ACHIEVEMENTS } from "@/lib/game/collector-album";
+import type { GameObjectiveRow } from "@/lib/game/objectives";
 
 import { claimCycloStickersObjectiveAction } from "./actions";
 import ObjectivesPage from "./page";
@@ -59,11 +60,32 @@ function claim(achievementId: string) {
   return claimCycloStickersObjectiveAction(form);
 }
 
-function stubObjectives(rows: Array<Omit<typeof finalObjective, "claimed_at"> & { claimed_at: string | null }>) {
+const careerObjective: GameObjectiveRow = {
+  objective_key: "recruit_first_rider",
+  objective_type: "primary",
+  objective_group: "transfers",
+  title: "Recruter un premier coureur",
+  description: "Recrutez un coureur dans votre équipe.",
+  current_value: 1,
+  target_value: 1,
+  reward_cash: 1000,
+  reward_experience: 100,
+  reward_reputation: 0,
+  reward_item_name: null,
+  reward_item_kind: null,
+  display_order: 1,
+  claimed_at: null,
+  is_completed: true,
+};
+
+function stubObjectives(
+  rows: Array<Omit<typeof finalObjective, "claimed_at"> & { claimed_at: string | null }>,
+  careerRows: GameObjectiveRow[] = [],
+) {
   mocks.rpc.mockImplementation((name: string) =>
     name === "get_current_cyclo_stickers_reward_objectives"
       ? { abortSignal: async () => ({ data: rows, error: null }) }
-      : Promise.resolve({ data: [], error: null }),
+      : Promise.resolve({ data: name === "get_current_game_objectives" ? careerRows : [], error: null }),
   );
 }
 
@@ -97,6 +119,45 @@ describe("Cyclo-Stickers objectives", () => {
     expect(html).not.toContain("name=\"achievementId\"");
     expect(html).toContain("Récompense récupérée le");
     expect(html).toContain("Trophée · Mémoire du peloton");
+  });
+
+  it("uses the same game date for receipts across server and browser timezones", async () => {
+    stubObjectives([{ ...finalObjective, claimed_at: "2026-11-25T23:30:00Z" }]);
+    const html = renderToStaticMarkup(await ObjectivesPage({ searchParams: Promise.resolve({}) }));
+    expect(html).toContain("Récompense récupérée le 26 nov. 2026");
+  });
+
+  it("keeps ready career and album rewards first with consistent totals and server forms", async () => {
+    stubObjectives([finalObjective], [
+      { ...careerObjective, objective_key: "future", title: "Objectif encore en cours", is_completed: false, current_value: 0 },
+      careerObjective,
+      { ...careerObjective, objective_key: "past", title: "Objectif déjà récupéré", claimed_at: "2026-11-16T10:00:00Z" },
+    ]);
+    const html = renderToStaticMarkup(await ObjectivesPage({ searchParams: Promise.resolve({}) }));
+
+    expect(html).toContain("2 récompenses vous attendent");
+    expect(html).toContain("Cyclo-Stickers (1)");
+    expect(html).toMatch(/Terminés<\/p><p[^>]*>3\/4<\/p>/);
+    expect(html).toMatch(/À récupérer<\/p><p[^>]*>2<\/p>/);
+    expect(html).toMatch(/Réclamés<\/p><p[^>]*>1<\/p>/);
+    expect(html.indexOf("Recruter un premier coureur")).toBeLessThan(html.indexOf("Objectif encore en cours"));
+    expect(html.indexOf("Mémoire du peloton")).toBeLessThan(html.indexOf("Objectif encore en cours"));
+    expect(html).toContain('name="objectiveKey" value="recruit_first_rider"');
+    expect(html).toContain('name="editionId" value="cyclo-stickers-s4-v1"');
+    expect(html.match(/Récupérer la récompense/g)).toHaveLength(2);
+  });
+
+  it("applies the status, type and group filters while preserving global ready totals", async () => {
+    stubObjectives([finalObjective], [careerObjective]);
+    const html = renderToStaticMarkup(await ObjectivesPage({
+      searchParams: Promise.resolve({ groupe: "transfers", statut: "completed", type: "primary" }),
+    }));
+
+    expect(html).toContain("2 récompenses vous attendent");
+    expect(html).toContain("1 objectif affiché sur 2");
+    expect(html).toContain("Recruter un premier coureur");
+    expect(html).not.toContain("Mémoire du peloton");
+    expect(html).toContain('name="returnPath" value="/jeu/objectifs?type=primary&amp;statut=completed&amp;groupe=transfers#objectives-list"');
   });
 
   it.each(ALBUM_ACHIEVEMENTS.map(({ id }) => id))("passes the catalogue key %s verbatim to the claim RPC", async (id) => {

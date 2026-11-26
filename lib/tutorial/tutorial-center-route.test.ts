@@ -21,16 +21,16 @@ describe("tutorial center deep link", () => {
   });
 
   it("dirige l'objectif historique vers les didacticiels plutôt que le profil du DS", () => {
-    const objectivesPage = readFileSync(
-      resolve(process.cwd(), "app/jeu/objectifs/page.tsx"),
+    const objectivesPanel = readFileSync(
+      resolve(process.cwd(), "components/game/objectives-panel.tsx"),
       "utf8",
     );
 
-    expect(objectivesPage).toContain(
+    expect(objectivesPanel).toContain(
       'objective.key === "complete_tutorial"',
     );
-    expect(objectivesPage).toContain("? groupLinks.tutorials");
-    expect(objectivesPage).toContain("href: TUTORIAL_CENTER_ROUTE");
+    expect(objectivesPanel).toContain("? groupLinks.tutorials");
+    expect(objectivesPanel).toContain("href: TUTORIAL_CENTER_ROUTE");
   });
 
   it("active puis rouvre le menu lorsque la route dédiée est visitée", () => {

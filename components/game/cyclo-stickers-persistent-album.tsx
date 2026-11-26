@@ -48,6 +48,7 @@ export function CycloStickersPersistentAlbum({
   const [state, setState] = useState(initialState);
   const [leaderboard, setLeaderboard] = useState(initialLeaderboard);
   const [busy, setBusy] = useState(false);
+  const [pendingAchievementId, setPendingAchievementId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const locked = useRef(false);
   const refreshingLeaderboard = useRef(false);
@@ -71,6 +72,7 @@ export function CycloStickersPersistentAlbum({
   const mutate: Mutation = async (name, args, message, onError) => {
     if (locked.current) return null;
     locked.current = true; setBusy(true); setNotice("");
+    setPendingAchievementId(name === "claim_current_cyclo_stickers_achievement" && typeof args.p_achievement_id === "string" ? args.p_achievement_id : null);
     try {
       const result = await createSupabaseBrowserClient().rpc(name, args);
       if (result.error) throw new Error(result.error.message);
@@ -87,7 +89,7 @@ export function CycloStickersPersistentAlbum({
       if (onError) onError(reason);
       else setNotice(reason);
       return null;
-    } finally { locked.current = false; setBusy(false); }
+    } finally { locked.current = false; setBusy(false); setPendingAchievementId(null); }
   };
   const send = (action: AlbumPilotAction) => {
     try {
@@ -141,8 +143,8 @@ export function CycloStickersPersistentAlbum({
                 <span>{achievement.xp} XP · {achievement.reputation} réputation</span>
                 {achievement.trophy ? <span>Trophée{" · S"}{state.edition.sourceSeason}</span> : null}
               </div>
-              <button type="button" disabled={busy || !ready} onClick={() => send({ type: "claim-achievement", id: achievement.id })}>
-                {claimed ? "Récompense reçue" : ready ? "Récupérer la récompense" : "À compléter"}
+              <button type="button" aria-busy={pendingAchievementId === achievement.id} disabled={busy || !ready} onClick={() => send({ type: "claim-achievement", id: achievement.id })}>
+                {pendingAchievementId === achievement.id ? "Attribution…" : claimed ? "Récompense reçue" : ready ? "Récupérer la récompense" : "À compléter"}
               </button>
             </article>
           ))}

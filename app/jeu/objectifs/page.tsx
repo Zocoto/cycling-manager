@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import {
-  claimCycloStickersObjectiveAction,
-  claimGameObjectiveAction,
-} from "@/app/jeu/objectifs/actions";
+import { ObjectivesClaimProvider, ObjectivesHeroMetrics, ObjectivesPanel, ObjectivesTabLink } from "@/components/game/objectives-panel";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { DailyRewardsPanel } from "@/components/game/daily-rewards-panel";
 import { GameHeader } from "@/components/game/game-header";
@@ -12,29 +9,15 @@ import {
   GameSectionTabLink,
   GameSectionTabs,
 } from "@/components/game/game-section-tabs";
-import { ObjectiveClaimButton } from "@/components/game/objective-claim-button";
-import { ObjectiveFilters } from "@/components/game/objective-filters";
 import { TrophyGallery } from "@/components/game/trophy-gallery";
-import Link from "@/components/ui/app-link";
 import { DAILY_REWARD_CYCLE_LENGTH } from "@/lib/game/daily-rewards";
 import { buildObjectivesReturnPath } from "@/lib/game/filtered-page-paths";
 import {
-  getAchievementTrophyForObjective,
-  getAlbumCompletionTrophy,
-} from "@/lib/game/achievement-trophies";
-import { PATRIOT_OBJECTIVE_KEY } from "@/lib/game/patriot-achievement";
-import { getProspectiveAchievement } from "@/lib/game/prospective-achievements";
-import {
-  filterGameObjectives,
-  getGameObjectiveLongTermTier,
   parseGameObjectiveStatusFilter,
   parseGameObjectiveTypeFilter,
-  summarizeGameObjectiveRewards,
-  type GameObjective,
 } from "@/lib/game/objectives";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { TUTORIAL_CENTER_ROUTE } from "@/lib/tutorial/tutorial-center-route";
 import { getGameHeaderData } from "@/services/game-header-data";
 import {
   getCurrentCycloStickersRewardObjectives,
@@ -52,86 +35,6 @@ export const metadata: Metadata = {
 
 type ObjectivesPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
-};
-
-const groupLabels: Record<string, string> = {
-  transfers: "Transferts",
-  onboarding: "Début de carrière",
-  victories: "Victoires",
-  roster: "Effectif",
-  equipment: "Matériel",
-  staff: "Staff",
-  progression: "Progression du DS",
-  jerseys: "Maillots distinctifs",
-  participations: "Participations",
-  wildcards: "Wildcards",
-  racing: "Animation de course",
-  sponsoring: "Sponsoring",
-  monuments: "Monuments",
-  grand_tours: "Grands Tours",
-  rankings: "Classements UCI",
-  youth: "Centre de formation",
-  training: "Entraînement",
-  reconnaissance: "Reconnaissance",
-  health: "Santé et récupération",
-  tutorials: "Didacticiels",
-  infrastructures: "Infrastructures",
-  rider_preparation: "Préparation coureurs",
-  research: "Laboratoire R&D",
-  social: "Vie du peloton",
-  diversity: "Diversité",
-  referrals: "Parrainage",
-  fan_club: "Fan Club",
-  championships: "Championnats",
-  gazette_games: "Jeux de La Cyclogazette",
-  cyclo_stickers: "Album de Cyclo-Stickers",
-};
-
-const groupLinks: Record<string, { href: string; label: string }> = {
-  onboarding: {
-    href: "/jeu/directeur-sportif",
-    label: "Continuer ma création",
-  },
-  victories: { href: "/jeu/resultats", label: "Voir les résultats" },
-  roster: { href: "/jeu/effectif", label: "Gérer l’effectif" },
-  equipment: { href: "/jeu/materiel", label: "Voir le matériel" },
-  staff: { href: "/jeu/staff", label: "Gérer le staff" },
-  progression: { href: "/jeu/directeur-sportif", label: "Voir ma progression" },
-  jerseys: { href: "/jeu/resultats", label: "Voir les résultats" },
-  participations: { href: "/jeu/calendrier", label: "Voir le calendrier" },
-  wildcards: { href: "/jeu/calendrier", label: "Voir le calendrier" },
-  racing: { href: "/jeu/resultats", label: "Voir les courses" },
-  sponsoring: { href: "/jeu/sponsoring", label: "Voir le sponsoring" },
-  monuments: { href: "/jeu/calendrier", label: "Voir le calendrier" },
-  grand_tours: { href: "/jeu/calendrier", label: "Voir le calendrier" },
-  rankings: { href: "/jeu/classements", label: "Voir les classements" },
-  youth: { href: "/jeu/centre-de-formation", label: "Voir les juniors" },
-  training: { href: "/jeu/entrainement", label: "Gérer l’entraînement" },
-  reconnaissance: { href: "/jeu/entrainement", label: "Planifier un stage" },
-  health: { href: "/jeu/centre-de-soin", label: "Voir le centre médical" },
-  tutorials: {
-    href: TUTORIAL_CENTER_ROUTE,
-    label: "Ouvrir le centre des didacticiels",
-  },
-  infrastructures: {
-    href: "/jeu/infrastructures",
-    label: "Voir les infrastructures",
-  },
-  rider_preparation: {
-    href: "/jeu/entrainement",
-    label: "Préparer les coureurs",
-  },
-  research: {
-    href: "/jeu/materiel/laboratoire",
-    label: "Ouvrir le laboratoire",
-  },
-  social: { href: "/jeu/gazette", label: "Lire la Cyclogazette" },
-  diversity: { href: "/jeu/effectif", label: "Voir le collectif" },
-  referrals: { href: "/jeu/parrainage", label: "Voir le parrainage" },
-  fan_club: { href: "/jeu/fan-club", label: "Ouvrir le Fan Club" },
-  championships: { href: "/jeu/resultats", label: "Voir les championnats" },
-  gazette_games: { href: "/jeu/gazette", label: "Jouer dans la Gazette" },
-  cyclo_stickers: { href: "/jeu/album?onglet=succes", label: "Ouvrir l’album" },
 };
 
 export default async function ObjectivesPage({
@@ -161,7 +64,6 @@ export default async function ObjectivesPage({
       selectedTab === "quotidiennes" ? getCurrentDailyRewardOverview(supabase) : Promise.resolve(null),
       getCurrentCycloStickersRewardObjectives(supabase),
     ]);
-  const albumReadyCount = summarizeGameObjectiveRewards(albumObjectives).readyCount;
   const objectives: RewardsPageObjective[] = selectedTab === "objectifs"
     ? [...careerObjectives, ...albumObjectives].sort((left, right) =>
         Number(right.completed && !right.claimedAt) - Number(left.completed && !left.claimedAt),
@@ -180,16 +82,6 @@ export default async function ObjectivesPage({
   const selectedStatus = parseGameObjectiveStatusFilter(
     readQuery(query.statut),
   );
-  const visibleObjectives = filterGameObjectives(objectives, {
-    type: selectedType,
-    status: selectedStatus,
-    group: selectedGroup,
-  });
-  const groupOptions = availableGroups
-    .map((group) => ({ value: group, label: groupLabels[group] ?? group }))
-    .sort((left, right) => left.label.localeCompare(right.label, "fr"));
-  const { completedCount, readyCount, claimedCount } =
-    summarizeGameObjectiveRewards(objectives);
   const success = readQuery(query.succes);
   const errorMessage = readQuery(query.erreur);
   const returnPath = buildObjectivesReturnPath({
@@ -207,6 +99,7 @@ export default async function ObjectivesPage({
         maxWidth="wide"
       />
 
+      <ObjectivesClaimProvider initialObjectives={[...careerObjectives, ...albumObjectives]} ownerUserId={user.id} key={user.id + ":" + selectedTab + ":" + returnPath}>
       <section className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8 sm:py-12">
         <BackToOfficeLink />
 
@@ -236,18 +129,7 @@ export default async function ObjectivesPage({
             </div>
 
             <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur sm:grid-cols-3 xl:grid-cols-2">
-              {selectedTab === "objectifs" ? <>
-              <HeroMetric
-                label="Terminés"
-                value={`${completedCount}/${objectives.length}`}
-              />
-              <HeroMetric
-                label="À récupérer"
-                value={String(readyCount)}
-                highlight
-              />
-              <HeroMetric label="Réclamés" value={String(claimedCount)} />
-              </> : null}
+              {selectedTab === "objectifs" ? <ObjectivesHeroMetrics /> : null}
               {trophyGallery ? <HeroMetric
                 label="Trophées"
                 value={String(trophyGallery.counts.total)}
@@ -263,15 +145,7 @@ export default async function ObjectivesPage({
           columns={3}
           className="mt-7"
         >
-          <GameSectionTabLink
-            href="/jeu/objectifs?onglet=objectifs"
-            label="Objectifs & récompenses"
-            description={albumReadyCount > 0
-              ? "Récompenses Cyclo-Stickers à récupérer"
-              : "Suivre les paliers et récupérer les gains"}
-            badge={selectedTab === "objectifs" ? readyCount : albumReadyCount}
-            active={selectedTab === "objectifs"}
-          />
+          <ObjectivesTabLink active={selectedTab === "objectifs"} />
           <GameSectionTabLink
             href="/jeu/objectifs?onglet=quotidiennes"
             label="Récompenses quotidiennes"
@@ -295,81 +169,7 @@ export default async function ObjectivesPage({
         </GameSectionTabs>
 
         {selectedTab === "objectifs" ? (
-          <>
-            {success ? <Notice tone="success">{success}</Notice> : null}
-            {errorMessage ? <Notice tone="error">{errorMessage}</Notice> : null}
-
-            {readyCount > 0 ? (
-              <aside className="mt-7 flex flex-col gap-4 rounded-2xl border border-[#D6A600]/25 bg-[#FFF7D2] p-5 shadow-[0_12px_30px_rgba(100,75,0,0.08)] sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-start gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F2C94C] text-lg font-black text-[#071A17]">
-                    {readyCount}
-                  </span>
-                  <div>
-                    <p className="font-black text-[#4A3A00]">
-                      {readyCount === 1
-                        ? "Une récompense vous attend"
-                        : `${readyCount} récompenses vous attendent`}
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-[#75631C]">
-                      Les objectifs prêts à être réclamés sont signalés en
-                      premier.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  {albumReadyCount > 0 ? (
-                    <Link
-                      href="/jeu/objectifs?onglet=objectifs&groupe=cyclo_stickers&statut=completed#objectives-list"
-                      className="inline-flex min-h-11 items-center rounded-xl border border-[#D6A600]/35 px-4 text-xs font-black text-[#4A3A00] hover:bg-[#FFF0AF]"
-                    >
-                      Cyclo-Stickers{" "}({albumReadyCount})
-                    </Link>
-                  ) : null}
-                  <Link
-                    href="/jeu/objectifs?onglet=objectifs&statut=completed#objectives-list"
-                    className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#F2C94C] px-5 text-xs font-black uppercase tracking-[0.12em] text-[#4A3A00] transition hover:bg-[#E8BC32]"
-                  >
-                    Afficher et récupérer →
-                  </Link>
-                </div>
-              </aside>
-            ) : null}
-
-            <div id="objectives-list" className="scroll-mt-6">
-              <ObjectiveFilters
-                key={`${selectedType}-${selectedStatus}-${selectedGroup}`}
-                groups={groupOptions}
-                initialType={selectedType}
-                initialStatus={selectedStatus}
-                initialGroup={selectedGroup}
-                totalCount={objectives.length}
-                visibleCount={visibleObjectives.length}
-              />
-            </div>
-
-            <ObjectiveSection
-              eyebrow="Catalogue"
-              title="Objectifs de carrière"
-              description="Chaque objectif a sa condition et sa récompense. Ils se récupèrent indépendamment, sans parcours supplémentaire à suivre."
-              objectives={visibleObjectives}
-              returnPath={returnPath}
-            />
-
-            {visibleObjectives.length === 0 ? (
-              <div className="mt-8 rounded-[1.65rem] border border-dashed border-[#315B3E]/25 bg-white px-6 py-12 text-center">
-                <p className="text-xl font-black text-[#183F37]">
-                  Aucun objectif ne correspond à ces filtres.
-                </p>
-                <Link
-                  href="/jeu/objectifs?onglet=objectifs#objectives-list"
-                  className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-[#176951] px-5 text-xs font-black uppercase tracking-[0.12em] text-white transition hover:bg-[#0B302B]"
-                >
-                  Réinitialiser les filtres
-                </Link>
-              </div>
-            ) : null}
-          </>
+          <ObjectivesPanel filters={{type: selectedType, status: selectedStatus, group: selectedGroup}} returnPath={returnPath} success={success} errorMessage={errorMessage} />
         ) : selectedTab === "quotidiennes" ? (
           <>
             {success ? <Notice tone="success">{success}</Notice> : null}
@@ -380,313 +180,8 @@ export default async function ObjectivesPage({
           trophyGallery ? <TrophyGallery gallery={trophyGallery} focusedSource={readQuery(query.trophee) ?? undefined} acknowledgeNotifications /> : null
         )}
       </section>
+      </ObjectivesClaimProvider>
     </main>
-  );
-}
-
-function ObjectiveSection({
-  eyebrow,
-  title,
-  description,
-  objectives,
-  returnPath,
-  featured = false,
-}: {
-  eyebrow: string;
-  title: string;
-  description: string;
-  objectives: RewardsPageObjective[];
-  returnPath: string;
-  featured?: boolean;
-}) {
-  const sectionId = featured
-    ? "primary-career-objectives"
-    : "secondary-career-objectives";
-
-  if (objectives.length === 0) {
-    return null;
-  }
-
-  return (
-    <section className="mt-10" aria-labelledby={sectionId}>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#278B70]">
-            {eyebrow}
-          </p>
-          <h2
-            id={sectionId}
-            className="mt-2 text-3xl font-black tracking-tight"
-          >
-            {title}
-          </h2>
-        </div>
-        <p className="max-w-2xl text-sm font-semibold leading-6 text-[#60756E] sm:text-right">
-          {description}
-        </p>
-      </div>
-
-      <div
-        className={`mt-6 grid gap-5 ${
-          featured ? "xl:grid-cols-2" : "md:grid-cols-2 xl:grid-cols-3"
-        }`}
-      >
-        {objectives.map((objective) => (
-          <ObjectiveCard
-            key={objective.key}
-            objective={objective}
-            featured={featured}
-            returnPath={returnPath}
-          />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function ObjectiveCard({
-  objective,
-  featured,
-  returnPath,
-}: {
-  objective: RewardsPageObjective;
-  featured: boolean;
-  returnPath: string;
-}) {
-  const ready = objective.completed && !objective.claimedAt;
-  const claimed = Boolean(objective.claimedAt);
-  // Cet objectif historique est encore rattaché au groupe `onboarding` en
-  // base. Son action doit néanmoins ouvrir le centre des didacticiels, pas le
-  // profil du Directeur Sportif associé au reste de l'onboarding.
-  const groupLink =
-    objective.key === "complete_tutorial"
-      ? groupLinks.tutorials
-      : objective.group === "transfers" ? { href: "/jeu/transferts", label: "Voir les transferts" }
-      : /^journey_(community_days|private_contacts)_/.test(objective.key) ? { href: "/jeu/chat", label: "Ouvrir le chat et les MP" }
-      : groupLinks[objective.group];
-  const trophyReward = objective.album?.trophy
-    ? getAlbumCompletionTrophy(objective.album.sourceSeason)
-    : getAchievementTrophyForObjective(objective.key);
-  const nationalFlagReward = objective.key === PATRIOT_OBJECTIVE_KEY;
-  const achievement = getProspectiveAchievement(objective.key);
-  // Les dates de mise en service sont internes au suivi des succès.
-  const description = achievement
-    ? objective.description
-        .replace(/ Seuls les accomplissements postérieurs à l’activation du 15 octobre 2026 comptent\.$/u, "")
-        .replace(/ Actions réalisées depuis le 16 octobre 2026 uniquement\.$/u, "")
-        .replace(/ (?:après|depuis) (?:l’)?activation(?: de ces succès)?/gu, "")
-    : objective.description;
-  const outfitReward = achievement?.tier === "gold" && "cosmetic" in achievement.definition;
-  const longTermTier = getGameObjectiveLongTermTier(objective.key);
-
-  return (
-    <article
-      className={`relative flex min-h-full flex-col overflow-hidden rounded-[1.65rem] border p-5 shadow-[0_16px_42px_rgba(19,60,46,0.08)] [contain-intrinsic-size:auto_28rem] [content-visibility:auto] sm:p-6 ${
-        ready
-          ? "border-[#D5AC18]/45 bg-[#FFFDF4] ring-2 ring-[#F2C94C]/25"
-          : claimed
-            ? "border-[#315B3E]/10 bg-[#F4F7F5]"
-            : "border-[#315B3E]/14 bg-white"
-      }`}
-    >
-      <div
-        aria-hidden="true"
-        className={`absolute inset-x-0 top-0 h-1 ${
-          ready
-            ? "bg-[#F2C94C]"
-            : objective.type === "primary"
-              ? "bg-[#42B99A]"
-              : "bg-[#9AB4AA]"
-        }`}
-      />
-
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex flex-wrap gap-2">
-          <span
-            className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] ${
-              objective.type === "primary"
-                ? "bg-[#DDF3E7] text-[#176951]"
-                : "bg-[#EAF0ED] text-[#526B62]"
-            }`}
-          >
-            {objective.type === "primary" ? "Primaire" : "Secondaire"}
-          </span>
-          <span className="rounded-full bg-[#EFF4F1] px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#60756E]">
-            {groupLabels[objective.group] ?? objective.group}
-            {objective.album ? ` · S${objective.album.sourceSeason}` : null}
-          </span>
-          {longTermTier ? (
-            <span
-              className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] ${
-                longTermTier === "THL"
-                  ? "bg-[#2B1D3D] text-[#E9D7FF]"
-                  : "bg-[#FFF1BF] text-[#806300]"
-              }`}
-            >
-              {longTermTier === "THL" ? "Très longue durée" : "Longue durée"}
-            </span>
-          ) : null}
-        </div>
-
-        <ObjectiveStatus objective={objective} />
-      </div>
-
-      <h3
-        className={`mt-5 font-black text-[#183F37] ${featured ? "text-2xl" : "text-xl"}`}
-      >
-        {objective.title}
-      </h3>
-      <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
-        {description}
-      </p>
-
-      <div className="mt-5">
-        <div className="flex items-center justify-between gap-3 text-xs font-black">
-          <span className="uppercase tracking-[0.12em] text-[#60756E]">
-            Progression
-          </span>
-          <span className={ready ? "text-[#8A7000]" : "text-[#176951]"}>
-            {formatProgressValue(objective.currentValue)} /{" "}
-            {formatProgressValue(objective.targetValue)}
-          </span>
-        </div>
-        <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-[#DCE7E2]">
-          <div
-            className={`h-full rounded-full transition-all ${
-              ready || claimed ? "bg-[#F2C94C]" : "bg-[#42B99A]"
-            }`}
-            style={{ width: `${objective.progressPercent}%` }}
-          />
-        </div>
-        <p className="mt-2 text-right text-[11px] font-bold text-[#789087]">
-          {objective.progressPercent} %
-        </p>
-      </div>
-
-      <div className="mt-5 border-t border-[#315B3E]/10 pt-4">
-        <p className="text-[10px] font-black uppercase tracking-[0.15em] text-[#60756E]">
-          Récompense annoncée
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {objective.reward.cash > 0 ? (
-            <RewardChip icon="€" label={formatMoney(objective.reward.cash)} />
-          ) : null}
-          {objective.reward.experience > 0 ? (
-            <RewardChip icon="XP" label={`${objective.reward.experience} XP`} />
-          ) : null}
-          {objective.reward.reputation > 0 ? (
-            <RewardChip
-              icon="★"
-              label={`${formatProgressValue(objective.reward.reputation)} réputation`}
-            />
-          ) : null}
-          {trophyReward ? (
-            <RewardChip
-              icon="♛"
-              label={`Trophée · ${trophyReward.title}`}
-              rare
-            />
-          ) : null}
-          {outfitReward ? (
-            <RewardChip icon="★" label="Tenue d’avatar exclusive" rare />
-          ) : null}
-          {nationalFlagReward ? (
-            <RewardChip icon="⚑" label="Fond d’avatar · Drapeau national" rare />
-          ) : null}
-          {objective.reward.itemName ? (
-            <RewardChip
-              icon={getRewardItemIcon(objective.reward.itemKind)}
-              label={objective.reward.itemName}
-              rare={objective.reward.itemKind === "special_ability"}
-            />
-          ) : null}
-        </div>
-      </div>
-
-      <div className="mt-auto pt-5">
-        {ready ? (
-          <form action={objective.album ? claimCycloStickersObjectiveAction : claimGameObjectiveAction}>
-            {objective.album ? (
-              <>
-                <input type="hidden" name="editionId" value={objective.album.editionId} />
-                <input type="hidden" name="achievementId" value={objective.album.achievementId} />
-              </>
-            ) : (
-              <input type="hidden" name="objectiveKey" value={objective.key} />
-            )}
-            <input type="hidden" name="returnPath" value={returnPath} />
-            <ObjectiveClaimButton />
-          </form>
-        ) : claimed ? (
-          <div className="flex flex-wrap items-center gap-3">
-            <p className="inline-flex min-h-11 items-center rounded-xl bg-[#DDF3E7] px-4 py-2 text-xs font-black text-[#176951]">
-              ✓ Récompense récupérée le {formatDate(objective.claimedAt!)}
-            </p>
-            {nationalFlagReward ? (
-              <Link href="/jeu/directeur-sportif#distinction-avatar" className="inline-flex min-h-11 items-center text-xs font-black text-[#176951] underline underline-offset-4">
-                Personnaliser mon avatar
-              </Link>
-            ) : null}
-          </div>
-        ) : groupLink ? (
-          <Link
-            href={groupLink.href}
-            className="inline-flex min-h-10 items-center text-xs font-black uppercase tracking-[0.12em] text-[#176951] transition hover:text-[#0B302B]"
-          >
-            {groupLink.label} →
-          </Link>
-        ) : null}
-      </div>
-    </article>
-  );
-}
-
-function ObjectiveStatus({ objective }: { objective: GameObjective }) {
-  if (objective.claimedAt) {
-    return (
-      <span className="shrink-0 rounded-full bg-[#DDF3E7] px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#176951]">
-        Récupéré
-      </span>
-    );
-  }
-
-  if (objective.completed) {
-    return (
-      <span className="shrink-0 motion-safe:animate-pulse rounded-full bg-[#F2C94C] px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#071A17]">
-        À récupérer
-      </span>
-    );
-  }
-
-  return (
-    <span className="shrink-0 rounded-full bg-[#EAF0ED] px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#60756E]">
-      En cours
-    </span>
-  );
-}
-
-function RewardChip({
-  icon,
-  label,
-  rare = false,
-}: {
-  icon: string;
-  label: string;
-  rare?: boolean;
-}) {
-  return (
-    <span
-      className={`inline-flex min-h-8 items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-black ${
-        rare
-          ? "border-[#CBA021]/35 bg-[#FFF4B8] text-[#665000]"
-          : "border-[#315B3E]/10 bg-[#F3F8F6] text-[#315B3E]"
-      }`}
-    >
-      <span aria-hidden="true" className="text-[10px]">
-        {icon}
-      </span>
-      {label}
-    </span>
   );
 }
 
@@ -732,36 +227,6 @@ function Notice({
       {children}
     </div>
   );
-}
-
-function getRewardItemIcon(kind: GameObjective["reward"]["itemKind"]) {
-  if (kind === "equipment") return "◆";
-  if (kind === "special_ability") return "✦";
-  if (kind === "potential_boost") return "↗";
-  if (kind === "rating_boost") return "+";
-  return "●";
-}
-
-function formatMoney(value: number) {
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-function formatProgressValue(value: number) {
-  return new Intl.NumberFormat("fr-FR", {
-    maximumFractionDigits: 2,
-  }).format(value);
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(value));
 }
 
 function readQuery(value: string | string[] | undefined) {

@@ -6,8 +6,8 @@ const appLinkSource = readFileSync(
   new URL("../../components/ui/app-link.tsx", import.meta.url),
   "utf8",
 );
-const objectivesPageSource = readFileSync(
-  new URL("../../app/jeu/objectifs/page.tsx", import.meta.url),
+const objectivesPanelSource = readFileSync(
+  new URL("../../components/game/objectives-panel.tsx", import.meta.url),
   "utf8",
 );
 const staffPageSource = readFileSync(
@@ -50,7 +50,7 @@ describe("game navigation performance", () => {
   });
 
   it("uses the optimized link on list-heavy game pages", () => {
-    for (const source of [objectivesPageSource, staffPageSource]) {
+    for (const source of [objectivesPanelSource, staffPageSource]) {
       expect(source).toContain('import Link from "@/components/ui/app-link"');
       expect(source).not.toContain('import Link from "next/link"');
     }

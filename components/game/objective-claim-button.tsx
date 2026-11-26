@@ -2,13 +2,18 @@
 
 import { useFormStatus } from "react-dom";
 
-export function ObjectiveClaimButton() {
-  const { pending } = useFormStatus();
+export function ObjectiveClaimButton({ pending: inlinePending, disabled = false }: {
+  pending?: boolean;
+  disabled?: boolean;
+} = {}) {
+  const { pending: formPending } = useFormStatus();
+  const pending = Boolean(inlinePending || formPending);
 
   return (
     <button
       type="submit"
-      disabled={pending}
+      disabled={pending || disabled}
+      aria-busy={pending || undefined}
       className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#F2C94C] px-5 py-2.5 text-xs font-black uppercase tracking-[0.12em] text-[#071A17] transition hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-65"
     >
       <GiftIcon />

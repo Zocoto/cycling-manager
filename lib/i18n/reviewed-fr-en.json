@@ -1,4 +1,11 @@
 {
+  "Cette récompense n’est pas disponible.": "This reward is not available.",
+  "Cyclo-Stickers (": "Cyclo-Stickers (",
+  "Impossible d’actualiser les autres objectifs après la récompense.": "Unable to refresh the other objectives after claiming the reward.",
+  "L’action n’a pas pu être confirmée. Réessayez pour vérifier votre récompense.": "The action could not be confirmed. Try again to check your reward.",
+  "La récompense n’a pas pu être confirmée. Réessayez dans un instant.": "The reward could not be confirmed. Please try again in a moment.",
+  "Les gains sont bien attribués. Actualisez la page pour mettre à jour les autres objectifs.": "Your rewards have been credited. Refresh the page to update the other objectives.",
+  "Votre session a changé. Rechargez la page avant de récupérer une récompense.": "Your session has changed. Reload the page before claiming a reward.",
   "Annulation à valider": "Cancellation to save",
   "Annuler le changement": "Cancel the change",
   "Après l’épreuve": "After the event",

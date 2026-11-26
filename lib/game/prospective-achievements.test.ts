@@ -19,11 +19,11 @@ describe("prospective career achievements", () => {
     expect(getProspectiveAchievement("journey_missing_gold")).toBeNull();
   });
   it("renders every objective independently without the extra journey interface", () => {
-    const page = readFileSync("app/jeu/objectifs/page.tsx", "utf8");
-    expect(page).toContain("objectives.map((objective)");
-    expect(page).toContain("totalCount={objectives.length}");
-    expect(page).not.toContain("groupProspectiveAchievementCards");
-    expect(page).not.toContain("ProspectiveAchievementMilestones");
+    const panel = readFileSync("components/game/objectives-panel.tsx", "utf8");
+    expect(panel).toContain("objectives.map((objective)");
+    expect(panel).toContain("totalCount={objectives.length}");
+    expect(panel).not.toContain("groupProspectiveAchievementCards");
+    expect(panel).not.toContain("ProspectiveAchievementMilestones");
   });
   it("does not reveal secret trophies in the locked catalogue", () => {
     const targets = getLockedTrophyTargets([]);
