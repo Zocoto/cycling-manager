@@ -4,7 +4,9 @@ La nouvelle préparation est visible uniquement par le propriétaire déjà auto
 
 ## Habillage préparé
 
-Couverture et sachet partagent une illustration SVG dessinée en aplats, vert profond, papier crème et cuivre. Une fiche de Cycl’o Quizz et les trois rubans des grands tours accompagnent le cycliste en montagne : « La saison Cumbre ». Il s’agit d’un récit éditorial, sans résultat sportif inventé.
+Couverture et sachet partagent une illustration SVG éditoriale : paysage de montagne, cycliste au maillot Cumbre Coca Rush « néon » (torse crème, panneaux verts, éclairs lime et montagne brune), et trois trophées nommés. La mention « 3 Grands Tours · 3 victoires » rend le triplé demandé explicite. Le maillot sélectionné a été confirmé par la lecture du contrat actif de Cumbre ; aucun asset sponsor n'a été retouché.
+
+Quizz’o Stratège reprend exactement le visage, la casquette et la moustache de l'avatar du chat (`public/images/chat/quizz-o-stratege.svg`), avec une nouvelle pose tenant une carte jaune de questions. Ce dessin reste un habillage éditorial : aucun palmarès de carte ni identité de coureur n'est généré.
 
 Le composant de couverture reçoit cette skin uniquement depuis l’aperçu privé. L’album S4 ne charge pas ses nouveaux assets et conserve son habillage Halloween/Jeux.
 

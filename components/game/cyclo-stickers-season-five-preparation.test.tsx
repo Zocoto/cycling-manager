@@ -10,7 +10,7 @@ describe("private S5 album artwork and empty book", () => {
     expect(html).toContain('data-source-season="5" data-collection-season="6"');
     expect(html).toContain("Maquette privée · S5 à collectionner en S6");
     expect(html).toContain("Les coureurs, les équipes et les champions seront renseignés à J28.");
-    expect(html).toContain("CYCL’O QUIZZ · LA SAISON CUMBRE");
+    expect(html).toContain("CYCL’O QUIZZ · LE TRIPLÉ CUMBRE");
     expect(html).toContain("Maquette du sachet S5, sans carte ni booster disponible");
     expect(html).toContain("0 / 72 vignettes");
     expect(html).not.toContain("data-prepared-slot=");

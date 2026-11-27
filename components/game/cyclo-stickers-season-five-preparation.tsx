@@ -12,7 +12,7 @@ import book from "./collector-album-book.module.css";
 const seasonFiveCoverSkin = {
   coverClassName: styles.cover, spineClassName: styles.spine, headingClassName: styles.coverTheme,
   editionClassName: styles.edition, actionsClassName: styles.coverActions,
-  heading: "CYCL’O QUIZZ · LA SAISON CUMBRE",
+  heading: "CYCL’O QUIZZ · LE TRIPLÉ CUMBRE",
   artwork: <CycloStickersSeasonFiveArtwork className={`${book.coverArt} ${styles.art}`} />,
   poem: <>Des sommets dans les jambes.<br />Des réponses dans la tête.</>,
 };
@@ -32,18 +32,18 @@ export function CycloStickersSeasonFivePreparation({ ownerName = "Zocoto", initi
     </header>
     <aside className={styles.notice}>
       <p><strong>L’habillage est prêt, les cartes restent à écrire.</strong></p>
-      <p>Les coureurs, les équipes et les champions seront renseignés à J28. Les cases restent vides : aucun classement ni titre n’est figé dans cette maquette.</p>
+      <p>Les coureurs, les équipes et les champions seront renseignés à J28. Les 72 cases restent vides : les cartes et leurs résultats détaillés seront préparés à J28.</p>
     </aside>
     {!bookOpen ? <div className={styles.overview}>
       <div><CollectorAlbumCover season={plan.sourceSeason} count={0} total={SEASON_FIVE_ALBUM_SLOTS.length} skin={seasonFiveCoverSkin} ownerName={ownerName} onOpen={() => setBookOpen(true)} /></div>
       <div className={styles.notes}>
-        <p className={styles.eyebrow}>La saison Cumbre</p>
-        <h2>Du sommet au quiz.</h2>
-        <p>Les trois couleurs des grands tours traversent la couverture. La montagne raconte l’empreinte de Cumbre ; la fiche de quiz garde le souvenir du Cycl’o Quizz.</p>
+        <p className={styles.eyebrow}>Le triplé Cumbre</p>
+        <h2>Trois GT. Un maillot.</h2>
+        <p>Le maillot Cumbre Coca Rush et les trois trophées célèbrent ses victoires sur les grands tours. Quizz’o Stratège, le personnage du chat, tient sa carte jaune de questions.</p>
         <dl><div><dt>Saison racontée</dt><dd>S5</dd></div><div><dt>Collection prévue</dt><dd>S6</dd></div><div><dt>Emplacements</dt><dd>{SEASON_FIVE_ALBUM_SLOTS.length}</dd></div><div><dt>Cartes créées</dt><dd>0</dd></div></dl>
         <div className={styles.packPreview}>
           <div className={styles.pack} role="img" aria-label="Maquette du sachet S5, sans carte ni booster disponible">
-            <div className={styles.packEdge} /><div className={styles.packBody}><span>CYCLO STRATÈGE · ÉDITION S5</span><strong>ALBUM DE<br />CYCLO-STICKERS</strong><CycloStickersSeasonFiveArtwork /><small>CYCL’O QUIZZ · LA SAISON CUMBRE</small></div><div className={styles.packEdge} />
+            <div className={styles.packEdge} /><div className={styles.packBody}><span>CYCLO STRATÈGE · ÉDITION S5</span><strong>ALBUM DE<br />CYCLO-STICKERS</strong><CycloStickersSeasonFiveArtwork /><small>{seasonFiveCoverSkin.heading}</small></div><div className={styles.packEdge} />
           </div>
           <p><strong>Le même souvenir, du sachet à l’album.</strong><br />Aperçu graphique uniquement.</p>
         </div>
