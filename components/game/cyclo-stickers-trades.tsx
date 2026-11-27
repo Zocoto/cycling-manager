@@ -194,7 +194,12 @@ export function CycloStickersTrades({ snapshot, state, busy, mutate, initialTarg
   const [responseError, setResponseError] = useState<{ id: string; message: string } | null>(null);
 
   const cards = new Map(snapshot.cards.map(card => [card.number, card]));
-  const cardName = (number: number) => cards.get(number)?.name ?? `#${number}`;
+  const cardReference = (number: number) => `#${String(number).padStart(2, "0")}`;
+  const cardLabel = (number: number, quantity = 1) => {
+    const card = cards.get(number);
+    const label = [cardReference(number), card?.name, card?.stickerTitle].filter(Boolean).join(" · ");
+    return quantity > 1 ? `${quantity} × ${label}` : label;
+  };
   const stock = state.owned.flatMap(row => {
     const quantity = row.quantity - 1 - row.reserved;
     return quantity > 0 && cards.has(row.cardNumber) ? [{ cardNumber: row.cardNumber, quantity }] : [];
@@ -328,17 +333,21 @@ export function CycloStickersTrades({ snapshot, state, busy, mutate, initialTarg
         const rarity = getCollectorCardRarity(card);
         const canAdd = values.length < LIMIT && count < quantity;
         return <li key={cardNumber} className={styles.sticker} data-rarity={rarity} data-selected={count > 0}>
-          <button type="button" className={styles.cardButton} data-trade-start-target={offering || undefined} aria-label={locale === "en" ? `Add ${card.name}` : `Ajouter ${card.name}`} disabled={!canAdd} onClick={() => change([...values, cardNumber])}>
+          <button type="button" className={styles.cardButton} data-trade-start-target={offering || undefined} aria-label={locale === "en" ? `Add ${cardLabel(cardNumber)}` : `Ajouter ${cardLabel(cardNumber)}`} disabled={!canAdd} onClick={() => change([...values, cardNumber])}>
             <span className={styles.portrait} aria-hidden="true">
               {card.kind
                 ? <span className={`fi fi-${card.countryCode.toLowerCase()}`} />
                 : <RiderAvatar profileKey={card.avatarProfileKey} seed={card.avatarSeed} riderId={card.id} age={card.age} jersey={card.jersey} renderMode="compact" className={styles.avatar} />}
             </span>
-            <span className={styles.identity}><strong>{card.name}</strong><small>#{String(cardNumber).padStart(2, "0")} · {t[rarity]} · ×{quantity}</small></span>
+            <span className={styles.identity}>
+              <strong>{card.name}</strong>
+              <small>{cardReference(cardNumber)} · {t[rarity]} · ×{quantity}</small>
+              {card.stickerTitle ? <small>{card.stickerTitle}</small> : null}
+            </span>
             <span className={styles.add}>{offering && !values.length ? t.find : t.add} <span aria-hidden="true">+</span></span>
           </button>
           {count > 0 ? <div className={styles.quantity}>
-            <button type="button" aria-label={locale === "en" ? `Remove ${card.name}` : `Retirer ${card.name}`} disabled={count === 0} onClick={() => {
+            <button type="button" aria-label={locale === "en" ? `Remove ${cardLabel(cardNumber)}` : `Retirer ${cardLabel(cardNumber)}`} disabled={count === 0} onClick={() => {
               const index = values.lastIndexOf(cardNumber);
               change(values.filter((_, position) => position !== index));
             }}>−</button>
@@ -349,10 +358,8 @@ export function CycloStickersTrades({ snapshot, state, busy, mutate, initialTarg
     </ul>;
   }
 
-  const describe = (numbers: readonly number[]) => [...new Set(numbers)].map(number => {
-    const count = countCopies(numbers, number);
-    return count > 1 ? `${count} × ${cardName(number)}` : cardName(number);
-  }).join(" + ");
+  const describe = (numbers: readonly number[]) => [...new Set(numbers)]
+    .map(number => cardLabel(number, countCopies(numbers, number))).join(" + ");
 
   const receipt = (offer: CycloStickersTrade, outgoing: boolean) => {
     const received = getCycloStickersReceivedCards(outgoing ? requestedCards(offer) : offer.give, state.owned);
@@ -364,7 +371,7 @@ export function CycloStickersTrades({ snapshot, state, busy, mutate, initialTarg
       <div><dt>{t.givenTo}</dt><dd>{describe(outgoing ? offer.give : requestedCards(offer))}</dd></div>
       <div><dt>{t.askingFor}</dt><dd><ul className={styles.receivedCards}>
         {received.map(card => <li key={card.cardNumber}>
-          <span>#{String(card.cardNumber).padStart(2, "0")} · {card.quantity > 1 ? `${card.quantity} × ` : ""}{cardName(card.cardNumber)}</span>
+          <span>{cardLabel(card.cardNumber, card.quantity)}</span>
           <small className={styles.collectionStatus} data-owned={!card.newForCollection}>
             {card.newForCollection ? t.newForYou : t.alreadyOwned}
             {card.newForCollection && card.duplicateQuantity > 0 ? locale === "en" ? ` · ${card.duplicateQuantity} spare${card.duplicateQuantity > 1 ? "s" : ""}` : ` · ${card.duplicateQuantity} double${card.duplicateQuantity > 1 ? "s" : ""}` : null}
@@ -416,7 +423,7 @@ export function CycloStickersTrades({ snapshot, state, busy, mutate, initialTarg
             }}>
               <option value="missing">{t.missing}</option>
               {wanted.length ? <option value="saved">{t.saved} ({wanted.length})</option> : null}
-              {initialTarget ? <option value="selected">{t.selected} · {cardName(initialTarget)}</option> : null}
+              {initialTarget ? <option value="selected">{t.selected} · {cardLabel(initialTarget)}</option> : null}
             </select>
           </label>
         </div> : null}

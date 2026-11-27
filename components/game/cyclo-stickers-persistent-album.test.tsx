@@ -58,13 +58,14 @@ it("starts from available duplicate copies and keeps the book's requested sticke
   const first = snapshot.cards.find(card => card.number === 1)!;
   const second = snapshot.cards.find(card => card.number === 2)!;
   expect(html).toContain("Tes doubles disponibles");
-  expect(html).toContain(`aria-label="Ajouter ${first.name}"`);
+  expect(html).toContain(`aria-label="Ajouter #01 · ${first.name}"`);
   expect(html).toContain("×2");
-  expect(html).not.toContain(`aria-label="Ajouter ${second.name}"`);
-  expect(html).not.toContain(`aria-label="Ajouter ${snapshot.cards.find(card => card.number === 6)?.name}"`);
+  expect(html).not.toContain(`aria-label="Ajouter #02 · ${second.name}"`);
+  expect(html).not.toContain(`aria-label="Ajouter #06 · ${snapshot.cards.find(card => card.number === 6)?.name}"`);
   expect(html).toContain('value="selected" selected=""');
+  expect(html).toContain(`#03 · ${snapshot.cards.find(card => card.number === 3)?.name}`);
   expect(html).toContain("Ma liste de recherche (2)");
-  expect(html).toMatch(new RegExp(`<button[^>]*aria-label="Ajouter ${first.name}"[^>]*>.*?Trouver un échange`));
+  expect(html).toMatch(new RegExp(`<button[^>]*aria-label="Ajouter #01 · ${first.name}"[^>]*>.*?Trouver un échange`));
 });
 
 it("preselects an available duplicate opened from the doubles inventory", () => {
@@ -89,7 +90,7 @@ it("renders each requested copy on a multi-sticker incoming offer in English", (
   expect(html).toContain("Sticker trades");
   expect(html).toContain("Start a trade");
   expect(html).toContain("Collector One");
-  expect(html).toContain(`2 × ${snapshot.cards.find(card => card.number === 2)?.name} + ${snapshot.cards.find(card => card.number === 3)?.name}`);
+  expect(html).toContain(`2 × #02 · ${snapshot.cards.find(card => card.number === 2)?.name} + #03 · ${snapshot.cards.find(card => card.number === 3)?.name}`);
   expect(html).toContain("Accept this trade");
   expect(html).not.toContain("Your available spares");
 });

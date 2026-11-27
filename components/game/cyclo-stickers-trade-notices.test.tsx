@@ -14,9 +14,9 @@ const offer: CycloStickersTrade = {
   status: "pending", createdAt: "2026-11-24", expiresAt: "2026-11-26",
 };
 
-function render(state: CycloStickersPersistentState, locale: "fr" | "en" = "fr") {
+function render(state: CycloStickersPersistentState, locale: "fr" | "en" = "fr", album = snapshot) {
   return renderToStaticMarkup(<LocaleProvider initialLocale={locale}><CycloStickersTrades
-    snapshot={snapshot} state={state} busy={false} mutate={async () => null}
+    snapshot={album} state={state} busy={false} mutate={async () => null}
     initialTarget={null} wanted={[]} initialView="inbox"
   /></LocaleProvider>);
 }
@@ -43,7 +43,24 @@ describe("Cyclo-Stickers trade ownership notices", () => {
     const html = render(state);
     expect(html).toContain("Tu recevras 2 exemplaires en double.");
     expect(html).toContain("Nouvelle pour toi · 1 double");
-    expect(html).toContain(`2 × ${snapshot.cards.find(card => card.number === 2)?.name}`);
+    expect(html).toContain(`2 × #02 · ${snapshot.cards.find(card => card.number === 2)?.name}`);
+  });
+
+  it("distinguishes two trade stickers with the same rider name and tracks each separately", () => {
+    const album = {
+      ...snapshot,
+      cards: snapshot.cards.map(card => {
+        if (card.number === 47) return { ...card, name: "Zaven Davtyan" };
+        if (card.number === 59) return { ...card, name: "Zaven Davtyan", stickerTitle: "Champion continental · Amérique · CLM" };
+        return card;
+      }),
+    };
+    const state = createCycloStickersPersistentStateFixture();
+    state.owned = [{ cardNumber: 47, quantity: 1, pasted: true, reserved: 0 }];
+    state.incomingOffers = [{ ...offer, give: [47, 59] }];
+    const html = render(state, "fr", album);
+    expect(html).toMatch(/#47 · Zaven Davtyan<\/span><small[^>]*data-owned="true">Déjà dans ta collection/);
+    expect(html).toMatch(/#59 · Zaven Davtyan · Champion continental · Amérique · CLM<\/span><small[^>]*data-owned="false">Nouvelle pour toi/);
   });
 
   it("shows no duplicate warning when all received cards are new", () => {
