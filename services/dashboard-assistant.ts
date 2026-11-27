@@ -20,6 +20,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { DashboardFastSummary } from "@/services/dashboard-fast-summary";
 import { getDashboardFederationConstructionOpportunity } from "@/services/dashboard-federation-construction";
 import { getDashboardHalloweenEdition } from "@/services/dashboard-halloween";
+import { getDashboardSecondarySponsorOpportunity } from "@/services/dashboard-secondary-sponsor";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type SupabaseServerClient = Awaited<
@@ -119,6 +120,10 @@ export function getCurrentDashboardAssistantSummaries(
   const federationConstruction = fastSummary?.then((summary) => summary
     ? getDashboardFederationConstructionOpportunity(summary, signal)
     : null);
+  // Shared only within this assistant request; a signed contract hides the alert immediately.
+  const secondarySponsor = fastSummary?.then((summary) => summary
+    ? getDashboardSecondarySponsorOpportunity(summary, signal)
+    : null);
   let previousSeason: Promise<boolean> | undefined;
 
   async function loadSummary(enrich: boolean) {
@@ -144,10 +149,14 @@ export function getCurrentDashboardAssistantSummaries(
 
   return {
     initial: loadSummary(false),
-    complete: Promise.all([loadSummary(true), federationConstruction])
-      .then(([snapshot, opportunity]) => snapshot && opportunity
-        ? { ...snapshot, federationConstructionOpportunity: opportunity }
-        : snapshot),
+    complete: Promise.all([loadSummary(true), federationConstruction, secondarySponsor])
+      .then(([snapshot, opportunity, secondary]) => snapshot
+        ? { ...snapshot,
+            ...(opportunity ? { federationConstructionOpportunity: opportunity } : {}),
+            secondarySponsorSignatureAvailable: Boolean(secondary),
+            secondarySponsorTargetSeasonName: secondary?.targetSeasonName ?? null,
+          }
+        : null),
   };
 }
 

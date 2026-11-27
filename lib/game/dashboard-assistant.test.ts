@@ -75,6 +75,23 @@ const snapshot: DashboardAssistantSnapshot = {
   journalItems: [],
 };
 
+describe("secondary sponsor signature alert", () => {
+  it("links to the secondary tab with the target season and stays independent of primary negotiations", () => {
+    const groups = buildDashboardAssistantLines({
+      snapshot: { ...snapshot, secondarySponsorSignatureAvailable: true, secondarySponsorTargetSeasonName: "Saison 6" },
+      rewardCount: 0, cashBalance: 1_000,
+    });
+    expect(groups.alerts).toContainEqual({
+      id: "secondary-sponsor-signature", tone: "alert", metric: "S6",
+      title: "Signature sponsor secondaire disponible",
+      detail: "Trois offres peuvent être comparées et signées dès maintenant.",
+      href: "/jeu/sponsoring?onglet=secondaire",
+    });
+    const unavailable = buildDashboardAssistantLines({ snapshot, rewardCount: 0, cashBalance: 1_000 });
+    expect(unavailable.alerts.some(line => line.id === "secondary-sponsor-signature")).toBe(false);
+  });
+});
+
 describe("individual naturalization alerts", () => {
   it("links available staff naturalization to the team staff list and caps its count at the quota", () => {
     const groups = buildDashboardAssistantLines({

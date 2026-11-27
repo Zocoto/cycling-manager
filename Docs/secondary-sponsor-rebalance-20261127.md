@@ -27,3 +27,13 @@ L’identité principale et secondaire est visible sur la page équipe et dans l
 Appliquer `20261127130000_rebalance_secondary_sponsor_objectives.sql` avant l’interface : colonnes nouvelles, RPC de génération réservée au service, RPC de lecture du contexte et édition du logo compatible avec l’ancienne signature. Diagnostics et vérifications de production limités à cinq secondes en lecture seule ; tests métier et SQL exécutés hors production.
 
 Validation : 74 tests Vitest ciblés (métier, service, identité et interface) et 47 assertions SQL isolées. Contrôles navigateur à 390 et 1440 px en français et en anglais, sans débordement ni erreur JavaScript ; pays et contingents localisés ; sélections noir/blanc vérifiées. Les définitions des quatre fonctions historiques ont été comparées en lecture seule à la production avant leur remplacement.
+
+## Alerte de négociation
+
+Le bureau du DS doit signaler l’ouverture d’un sponsor secondaire avec un accès direct à `/jeu/sponsoring?onglet=secondaire`. Le contrôle s’appuie sur le résumé déjà authentifié : aucune lecture supplémentaire avant J21, puis vérification bornée de la réputation, de la prochaine saison et de l’absence de contrat secondaire pour cette équipe/saison. Le contrôle ne crée ni offre ni objectif et ne charge aucun calendrier. La présence d’un contrat masque l’alerte.
+
+## Constat de production
+
+Après migration, les trois offres ouvertes S6 de La Cumbre ont été renouvelées par le générateur applicatif. Les partenaires sont colombien, français et kirghiz selon les affinités réelles de l’équipe. Les plafonds de gains sont de 2 120 000 € pour le partenaire colombien et 1 865 000 € pour les autres ; ils correspondent à des objectifs Élite avec un risque explicite de 45 points de réputation par objectif sportif. L’offre colombienne ne contient aucun objectif de contingent puisque le principal est lui aussi colombien. Les deux autres demandent trois pros de leur pays. La lecture de contrôle confirme le plafond de 10 %, les catégories de courses et les trois offres en version 2 ; le contrat S5 signé conserve ses conditions.
+
+L’alerte complémentaire et l’assistant existant sont validés par 166 tests ciblés. La vérification applicative en lecture seule confirme une opportunité de signature S6 pour La Cumbre. Toutes les lectures supplémentaires de cette alerte partagent un budget de 1,5 seconde et sont effectuées au plus une fois dans le rendu complet de l’assistant ; son rendu initial conserve son fonctionnement.

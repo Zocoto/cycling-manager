@@ -124,6 +124,8 @@ export type DashboardAssistantSnapshot = {
   sponsorRenewalAvailable: boolean;
   sponsorJerseyChangeAvailable: boolean;
   sponsorTargetSeasonName: string | null;
+  secondarySponsorSignatureAvailable?: boolean;
+  secondarySponsorTargetSeasonName?: string | null;
   equipmentPartnerSignatureAvailable: boolean;
   federationEquipmentSelectionRequired: boolean;
   federationEquipmentCountryCode: string | null;
@@ -240,6 +242,7 @@ const ALERT_PRIORITY = [
   "pending-direct-offers",
   "sponsor-signature",
   "sponsor-renewal",
+  "secondary-sponsor-signature",
   "sponsor-jersey-change",
   "equipment-partner-signature",
   "federation-equipment-selection",
@@ -634,6 +637,17 @@ export function buildDashboardAssistantLines({
       title: "Renouvellement sponsor disponible",
       detail: "Votre sponsor actuel et deux alternatives attendent votre décision.",
       href: "/jeu/sponsoring",
+    });
+  }
+
+  if (snapshot.secondarySponsorSignatureAvailable) {
+    alerts.push({
+      id: "secondary-sponsor-signature",
+      tone: "alert",
+      metric: getSponsorSeasonLabel(snapshot.secondarySponsorTargetSeasonName ?? null),
+      title: "Signature sponsor secondaire disponible",
+      detail: "Trois offres peuvent être comparées et signées dès maintenant.",
+      href: "/jeu/sponsoring?onglet=secondaire",
     });
   }
 
