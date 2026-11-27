@@ -649,8 +649,10 @@ async function loadDailyReactions(
     }
 
     const context = row.context as PostRaceInterviewContext;
+    const event = context?.zoneMixteEvent;
+    const coachingQuestionId = event?.riderName ? `event:${event.id}` : null;
     const answers = (row.answers as PostRaceInterviewAnswer[]).filter(
-      (answer) => Boolean(answer?.answer?.trim()),
+      (answer) => Boolean(answer?.answer?.trim()) && answer.questionId !== coachingQuestionId,
     );
     const excerpt = selectReactionExcerpt(answers);
     if (!context || !excerpt) continue;

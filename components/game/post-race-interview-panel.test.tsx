@@ -74,6 +74,33 @@ const PENDING_INTERVIEW = {
   eventResolution: null,
 } satisfies PostRaceInterviewSnapshot;
 
+const RIDER_INTERVIEW = {
+  ...PENDING_INTERVIEW,
+  context: {
+    ...PENDING_INTERVIEW.context,
+    zoneMixteEvent: {
+      ...PENDING_INTERVIEW.context.zoneMixteEvent,
+      riderId: "rider-secondary",
+      riderName: "Anahit Sarkissian",
+      riderPersonalityKey: "discret",
+      riderMorale: 42,
+      choices: [
+        ...PENDING_INTERVIEW.context.zoneMixteEvent.choices,
+        ...[
+          ["private-talk", "Débriefer au bus"],
+          ["value-effort", "Souligner l’effort en course"],
+          ["share-responsibility", "Assumer le plan de course"],
+          ["next-race", "Fixer un objectif pour la suite"],
+        ].map(([id, label]) => ({
+          ...PENDING_INTERVIEW.context.zoneMixteEvent.choices[0],
+          id,
+          label,
+        })),
+      ],
+    },
+  },
+} satisfies PostRaceInterviewSnapshot;
+
 describe("décisions du DS en zone mixte", () => {
   it("masque tous les effets avant la validation du choix", () => {
     const markup = renderToStaticMarkup(
@@ -84,6 +111,23 @@ describe("décisions du DS en zone mixte", () => {
     expect(markup).toContain("Reconnaître que le plan pouvait être meilleur.");
     expect(markup).not.toContain("+1 réputation et +1 popularité");
     expect(markup).not.toContain("Aucun effet");
+  });
+
+  it("affiche le coureur concerné et laisse choisir parmi toutes ses réponses", () => {
+    const markup = renderToStaticMarkup(
+      <PostRaceInterviewPanel initialInterview={RIDER_INTERVIEW} />,
+    );
+
+    expect(markup).toContain("Anahit Sarkissian");
+    expect(markup).toContain("Discret");
+    expect(markup).toContain("Moral du coureur");
+    expect(markup).toContain("42 %");
+    expect(markup).toContain("Fragile");
+    expect(markup).not.toContain("Mesfin Deng");
+    expect(markup.match(/type="radio"/g)).toHaveLength(6);
+    expect(markup).toContain("Fixer un objectif pour la suite");
+    expect(markup).toContain("Poursuivre l’interview sans lui répondre.");
+    expect(markup).not.toContain("+1 réputation et +1 popularité");
   });
 
   it("révèle la conséquence après l’enregistrement de la décision", () => {
@@ -120,9 +164,42 @@ describe("décisions du DS en zone mixte", () => {
       <PostRaceInterviewPanel initialInterview={submittedInterview} />,
     );
 
-    expect(markup).toContain("Conséquence :");
+    expect(markup).toContain("Conséquence");
     expect(markup).toContain(
       "La réponse rassemble l’équipe : +1 réputation et +1 popularité.",
     );
+  });
+
+  it("affiche la réaction et la variation de moral effectivement enregistrée", () => {
+    const submittedInterview = {
+      ...RIDER_INTERVIEW,
+      status: "submitted",
+      answers: [{
+        questionId: "event",
+        question: "Décision du DS",
+        answer: "Ancien récapitulatif de décision",
+      }],
+      submittedAt: "2026-11-27T14:30:00.000Z",
+      eventResolution: {
+        choiceId: "private-talk",
+        choiceLabel: "Débriefer au bus",
+        appliedRiderMoraleDelta: 1,
+        outcome: {
+          weight: 100,
+          riderMoraleDelta: 5,
+          summary: "Anahit Sarkissian apprécie l’échange à l’écart des micros.",
+        },
+      },
+    } satisfies PostRaceInterviewSnapshot;
+    const markup = renderToStaticMarkup(
+      <PostRaceInterviewPanel initialInterview={submittedInterview} />,
+    );
+
+    expect(markup).toContain("Réaction du coureur");
+    expect(markup).toContain("Débriefer au bus");
+    expect(markup).toContain("Anahit Sarkissian apprécie l’échange à l’écart des micros.");
+    expect(markup).toContain("<span>Moral</span><span>+1</span>");
+    expect(markup).not.toContain("+5");
+    expect(markup).not.toContain("Ancien récapitulatif de décision");
   });
 });

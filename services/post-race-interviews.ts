@@ -19,6 +19,8 @@ import type { RaceCourseJournalEntry } from "@/lib/game/race-course-journal";
 import type { StageSimulationResult } from "@/lib/game/race-simulation";
 import type { OfficialRaceEditionResults, OfficialRiderResult } from "@/lib/game/race-results";
 import { isPostRaceInterviewWindowOpen } from "@/lib/game/post-race-interview-window";
+import { normalizeRiderMorale } from "@/lib/game/rider-morale";
+import { parseRiderPersonalityKey } from "@/lib/game/rider-personalities";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { loadPostRaceInterviewEditorialFacts } from "@/services/post-race-interview-season-facts";
 import { getUciRankings } from "@/services/uci-rankings";
@@ -125,7 +127,8 @@ export async function getOrCreatePostRaceInterview({
   if (teamResults.length === 0) return null;
 
   const admin = createSupabaseAdminClient();
-  if (!(await hasOpenPostRaceInterviewWindow(admin, stageId))) return null;
+  const seasonDayId = await getOpenInterviewSeasonDayId(admin, stageId);
+  if (!seasonDayId) return null;
 
   const [directorResult, seasonResult] = await Promise.all([
     admin
@@ -174,9 +177,9 @@ export async function getOrCreatePostRaceInterview({
     );
   }
   // Keep the recorded question order stable while a director is answering.
-  if (existing.data) return mapInterview(existing.data);
+  if (existing.data) return loadRecordedInterview(admin, existing.data);
 
-  const [rankings, raceFacts, rivalry, priorQuestions, editorialFacts] = await Promise.all([
+  const [rankings, raceFacts, rivalry, priorQuestions, editorialFacts, personalityRiders] = await Promise.all([
     getUciRankings().catch(() => null),
     loadRaceFactContext(admin, stageId),
     loadRivalryContext(admin, {
@@ -191,6 +194,13 @@ export async function getOrCreatePostRaceInterview({
       stageId,
       stageResults,
     }).catch(() => undefined),
+    loadZoneMixtePersonalityRiders(
+      admin,
+      seasonDayId,
+      teamResults,
+      simulation?.stageId === stageId ? simulation : null,
+      courseJournal,
+    ),
   ]);
   const uciLeader = rankings?.riders[0] ?? null;
   const detailedRaceFacts = extractDetailedRaceInterviewFacts({
@@ -255,11 +265,7 @@ export async function getOrCreatePostRaceInterview({
   context.zoneMixteEvent = selectZoneMixteEvent({
     context,
     seed,
-    personalityRiders: getZoneMixtePersonalityRiders(
-      teamResults,
-      simulation?.stageId === stageId ? simulation : null,
-      courseJournal,
-    ),
+    personalityRiders,
     usedEventIds: priorQuestions.flat().flatMap(({ id }) =>
       id.startsWith("event:") ? [id.slice("event:".length)] : [],
     ),
@@ -300,18 +306,34 @@ export async function getOrCreatePostRaceInterview({
       `Impossible de préparer l’interview après-course : ${inserted.error?.message ?? "erreur inconnue"}`,
     );
   }
-  return mapInterview(concurrent.data);
+  return loadRecordedInterview(admin, concurrent.data);
 }
 
-function getZoneMixtePersonalityRiders(
+async function loadZoneMixtePersonalityRiders(
+  admin: SupabaseAdminClient,
+  seasonDayId: string,
   teamResults: readonly OfficialRiderResult[],
   simulation: StageSimulationResult | null | undefined,
   courseJournal: readonly RaceCourseJournalEntry[] = [],
-): ZoneMixtePersonalityRider[] {
-  if (!simulation) return [];
-  const ridersById = new Map(simulation.resolvedRiders.map((rider) => [rider.id, rider]));
+): Promise<ZoneMixtePersonalityRider[]> {
+  const ridersById = new Map(simulation?.resolvedRiders.map((rider) => [rider.id, rider]));
+  const riderIds = teamResults.map(({ riderId }) => riderId);
+  const missingTraits = riderIds.filter((id) => !parseRiderPersonalityKey(ridersById.get(id)?.personalityKey));
+  const [conditions, profiles] = await Promise.all([
+    admin.from("rider_condition_states").select("rider_id, morale")
+      .eq("season_day_id", seasonDayId).in("rider_id", riderIds)
+      .abortSignal(AbortSignal.timeout(2000))
+      .returns<{ rider_id: string; morale: number | string | null }[]>(),
+    missingTraits.length
+      ? admin.from("riders").select("id, personality_key").in("id", missingTraits)
+          .abortSignal(AbortSignal.timeout(2000))
+          .returns<{ id: string; personality_key: string | null }[]>()
+      : null,
+  ]);
+  const moraleById = new Map((conditions.data ?? []).map(({ rider_id, morale }) => [rider_id, morale]));
+  const traitsById = new Map((profiles?.data ?? []).map(({ id, personality_key }) => [id, parseRiderPersonalityKey(personality_key)]));
   const ridersWithSetback = new Set<string>();
-  for (const frame of simulation.timeline) {
+  for (const frame of simulation?.timeline ?? []) {
     for (const incident of frame.incidents ?? []) {
       if (incident.type !== "crash_individual" && incident.type !== "crash_mass") continue;
       for (const riderId of incident.riderIds) ridersWithSetback.add(riderId);
@@ -324,16 +346,20 @@ function getZoneMixtePersonalityRiders(
   }
 
   return teamResults.flatMap((result) => {
+    if (result.status !== "finished" && result.status !== "did_not_finish" && result.status !== "outside_time_limit") return [];
     const rider = ridersById.get(result.riderId);
-    if (!rider?.personalityKey || !["finished", "did_not_finish", "outside_time_limit"].includes(result.status)) return [];
+    const morale = moraleById.get(result.riderId) ?? rider?.morale;
 
     return [{
       riderId: result.riderId,
       riderName: result.riderName,
-      riderPersonalityKey: rider.personalityKey,
-      riderHadSetback: ridersWithSetback.has(rider.id),
+      riderPersonalityKey: parseRiderPersonalityKey(rider?.personalityKey) ?? traitsById.get(result.riderId) ?? null,
+      riderMorale: morale == null ? null : normalizeRiderMorale(Number(morale)),
+      riderResultStatus: result.status,
+      riderHadSetback: ridersWithSetback.has(result.riderId),
       bestRank: result.status === "finished" ? result.rank : null,
-      wasTeamLeader: ["leader", "leader_sprinter", "sprinter"].includes(rider.role),
+      wasTeamLeader: rider ? ["leader", "leader_sprinter", "sprinter"].includes(rider.role) : false,
+      wasTeamSupport: rider?.role === "domestique" || rider?.role === "leadout",
     }];
   });
 }
@@ -386,28 +412,28 @@ export async function submitPostRaceInterview({
       `Impossible d’enregistrer l’interview : ${updated.error?.message ?? "erreur inconnue"}`,
     );
   }
-  return mapInterview(updated.data);
+  return loadRecordedInterview(admin, updated.data);
 }
 
-async function hasOpenPostRaceInterviewWindow(
+async function getOpenInterviewSeasonDayId(
   admin: SupabaseAdminClient,
   stageId: string,
-): Promise<boolean> {
+): Promise<string | null> {
   const stage = await admin
     .from("stages")
     .select("season_day_id")
     .eq("id", stageId)
     .maybeSingle<StageRow>();
-  if (stage.error || !stage.data) return false;
+  if (stage.error || !stage.data) return null;
 
   const seasonDay = await admin
     .from("season_days")
     .select("calendar_date")
     .eq("id", stage.data.season_day_id)
     .maybeSingle<SeasonDayRow>();
-  if (seasonDay.error || !seasonDay.data) return false;
+  if (seasonDay.error || !seasonDay.data) return null;
 
-  return isPostRaceInterviewWindowOpen(seasonDay.data.calendar_date);
+  return isPostRaceInterviewWindowOpen(seasonDay.data.calendar_date) ? stage.data.season_day_id : null;
 }
 
 async function loadRaceFactContext(
@@ -627,6 +653,31 @@ function mapInterview(row: PostRaceInterviewRow): PostRaceInterviewSnapshot {
     submittedAt: row.submitted_at,
     eventResolution: asEventResolution(row.event_choice_id, row.event_outcome),
   };
+}
+
+async function loadRecordedInterview(admin: SupabaseAdminClient, row: PostRaceInterviewRow): Promise<PostRaceInterviewSnapshot> {
+  const interview = mapInterview(row);
+  const event = interview.context.zoneMixteEvent;
+  const resolution = interview.eventResolution;
+  const requestedDelta = resolution?.outcome.riderMoraleDelta;
+  if (interview.status !== "submitted" || !event?.riderId || !event.riderName || !resolution || requestedDelta == null) {
+    return interview;
+  }
+
+  if (requestedDelta === 0) {
+    resolution.appliedRiderMoraleDelta = 0;
+    return interview;
+  }
+
+  const ledger = await admin.from("rider_morale_events")
+    .select("applied_delta")
+    .eq("rider_id", event.riderId)
+    .eq("source_type", "mixed_zone_interview")
+    .eq("source_reference", row.id)
+    .abortSignal(AbortSignal.timeout(2000))
+    .maybeSingle<{ applied_delta: number | string }>();
+  if (ledger.data) resolution.appliedRiderMoraleDelta = Number(ledger.data.applied_delta);
+  return interview;
 }
 
 async function loadRecentInterviewQuestions(

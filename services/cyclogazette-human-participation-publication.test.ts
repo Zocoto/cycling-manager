@@ -7,7 +7,7 @@ vi.mock("@/services/cyclogazette-editorial",()=>({loadCyclogazetteFeatureStories
 vi.mock("@/services/cyclogazette-jerseys",()=>({loadCyclogazetteJerseyStories:async()=>[]}));
 import { publishCyclogazetteEdition, recoverCyclogazetteSeasonFinale } from "./cyclogazette";
 type Row=Record<string,unknown>;
-function fixture(humanIds:string[],{dayNumber=13,gameYear=4,mediaBlocks=null}:{dayNumber?:number;gameYear?:number;mediaBlocks?:MediaCenterArticleBlock[]|null}={}){
+function fixture(humanIds:string[],{dayNumber=13,gameYear=4,mediaBlocks=null,interviews=[]}:{dayNumber?:number;gameYear?:number;mediaBlocks?:MediaCenterArticleBlock[]|null;interviews?:Row[]}={}){
  let edition:Row|null=null;
  const records:Record<string,Row[]>={
   seasons:[{id:"season",name:`Saison ${gameYear}`,game_year:gameYear,current_day_number:dayNumber,status:"active"}],
@@ -17,6 +17,7 @@ function fixture(humanIds:string[],{dayNumber=13,gameYear=4,mediaBlocks=null}:{d
   race_rosters:["mixed","ai-only"].map(id=>({id:`roster-${id}`,rider_id:`rider-${id}`})),
   riders:["mixed","ai-only"].map(id=>({id:`rider-${id}`,first_name:"Vainqueur IA",last_name:id})),
   media_center_articles:[{id:"article",season_id:"season",status:"queued",day_number:13,title:"Tribune conservée",body:"Une actualité générale.",content_blocks:mediaBlocks,team_name:"Équipe",sponsor_name:null,building_level:1}],
+  post_race_interviews: interviews,
  };
  const rpc=vi.fn(async(name:string)=>({data:name==="prepare_cyclogazette_season_gala"?{ready:true,awardCount:22}:name==="get_cyclogazette_human_race_editions"?humanIds.map(race_edition_id=>({race_edition_id})):0,error:null}));
  const inserted=vi.fn();
@@ -82,6 +83,34 @@ describe("Gazette publication scoped to human races",()=>{
   expect(result.status).toBe("published");expect(result.edition?.content.tourSummaries).toEqual([]);
   expect(result.edition?.content.raceStories).toEqual([]);expect(result.edition?.content.lead?.id).toBe("movement");
   expect(result.edition?.content.mediaArticles).toHaveLength(1);
+ });
+ it("publishes editorial quotes and keeps structured rider conversations inside the mixed zone", async () => {
+  const quote = { questionId: "result", question: "Comment s’est passée la course ?", answer: "Nous avons beaucoup appris." };
+  const legacyQuote = { questionId: "event:legacy", question: "Le photographe", answer: "Une photo pour les supporters." };
+  const base = {
+   status: "submitted",
+   submitted_at: "2026-10-21T16:30:00Z",
+   closing_note: "Merci aux supporters.",
+  };
+  const context = { directorName: "DS test", teamId: "team", teamName: "Équipe", raceName: "Course", stageName: "Étape" };
+  fixture([], { interviews: [
+   {
+    ...base, id: "coaching-interview", sporting_director_id: "coach",
+    context: { ...context, zoneMixteEvent: { id: "check-in", riderId: "rider", riderName: "Coureur test" } },
+    answers: [quote, { questionId: "event:check-in", question: "Discussion après la course", answer: "Échange individuel avec le coureur." }],
+   },
+   {
+    ...base, id: "legacy-interview", sporting_director_id: "legacy",
+    context: { ...context, zoneMixteEvent: { id: "legacy" } },
+    answers: [quote, legacyQuote],
+   },
+  ] });
+
+  const result = await publishCyclogazetteEdition(new Date("2026-10-21T18:01:00Z"));
+  expect(result.edition?.content.reactions).toMatchObject([
+   { interviewId: "coaching-interview", answer: quote.answer, answers: [quote], closingNote: base.closing_note },
+   { interviewId: "legacy-interview", answer: quote.answer, answers: [quote, legacyQuote] },
+  ]);
  });
  it("archives the formatted blocks of a published media center article", async () => {
   const mediaBlocks: MediaCenterArticleBlock[] = [{

@@ -38,6 +38,9 @@ export type ZoneMixteEventChoice = {
 export type ZoneMixteEvent = {
   id: string;
   riderId?: string;
+  riderName?: string;
+  riderPersonalityKey?: RiderPersonalityKey | null;
+  riderMorale?: number | null;
   rarity: ZoneMixteEventRarity;
   title: string;
   story: string;
@@ -131,6 +134,7 @@ export type PostRaceInterviewEventResolution = {
   choiceId: string;
   choiceLabel: string;
   outcome: ZoneMixteEventOutcome;
+  appliedRiderMoraleDelta?: number;
 };
 
 export type PostRaceInterviewSnapshot = {

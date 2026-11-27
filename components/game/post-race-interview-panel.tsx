@@ -3,12 +3,14 @@
 import { useState, useTransition } from "react";
 
 import { submitPostRaceInterviewAction } from "@/app/jeu/resultats/interview-actions";
+import { RiderPersonalityBadge } from "@/components/game/rider-personality";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import { useLocale } from "@/components/i18n/locale-provider";
 import type {
   PostRaceInterviewSnapshot,
   ZoneMixteEvent,
 } from "@/lib/game/post-race-interview";
+import { getRiderMoraleLabel } from "@/lib/game/rider-morale";
 
 export function PostRaceInterviewPanel({
   initialInterview,
@@ -29,8 +31,15 @@ export function PostRaceInterviewPanel({
   const [closingNote, setClosingNote] = useState(initialInterview.closingNote);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const event = interview.context.zoneMixteEvent ?? null;
 
   if (interview.status === "submitted") {
+    const resolution = interview.eventResolution;
+    const eventQuestionId = interview.questions.find(({ category }) => category === "event")?.id;
+    const editorialAnswers = resolution
+      ? interview.answers.filter(({ questionId }) => questionId !== eventQuestionId)
+      : interview.answers;
+    const moraleDelta = resolution?.appliedRiderMoraleDelta;
     return (
       <section className="m-4 overflow-hidden rounded-2xl border border-[#B99A4A]/35 bg-[#FFF8DF] shadow-sm sm:m-6">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#B99A4A]/25 px-5 py-4 sm:px-6">
@@ -39,8 +48,8 @@ export function PostRaceInterviewPanel({
             Réaction transmise
           </span>
         </div>
-        <div className="grid gap-4 px-5 py-5 sm:px-6 lg:grid-cols-3">
-          {interview.answers.map((answer) => {
+        <div className={`grid gap-4 px-5 py-5 sm:px-6 ${resolution ? "lg:grid-cols-2" : "lg:grid-cols-3"}`}>
+          {editorialAnswers.map((answer) => {
             const translated = locale === "en"
               ? interview.questions.find(({ id }) => id === answer.questionId)?.textEn
               : undefined;
@@ -62,10 +71,27 @@ export function PostRaceInterviewPanel({
             );
           })}
         </div>
-        {interview.eventResolution ? (
+        {resolution ? (
           <div className="mx-5 mb-5 rounded-xl border border-[#176951]/20 bg-[#E8F5EE] px-4 py-3 text-sm font-bold text-[#174C3E] sm:mx-6">
-            <span className="mr-2">Conséquence :</span>
-            {interview.eventResolution.outcome.summary}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="font-black">
+                {event?.riderName ? "Réaction du coureur" : "Conséquence"}
+                {event?.riderName ? <span className="ml-2 font-semibold">{event.riderName}</span> : null}
+              </h3>
+              {event?.riderName && typeof moraleDelta === "number" ? (
+                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-black tabular-nums ${moraleDelta < 0 ? "bg-[#FCE8E9] text-[#94273A]" : "bg-white text-[#174C3E]"}`}>
+                  <span>Moral</span>
+                  <span>
+                    {moraleDelta.toLocaleString(locale === "en" ? "en-GB" : "fr-FR", {
+                      signDisplay: "exceptZero",
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                </span>
+              ) : null}
+            </div>
+            <p className="mt-2 font-black">{resolution.choiceLabel}</p>
+            <p className="mt-1 font-semibold leading-5">{resolution.outcome.summary}</p>
           </div>
         ) : null}
         <p className="border-t border-[#B99A4A]/20 px-5 py-3 text-xs font-bold text-[#6F6650] sm:px-6">
@@ -76,7 +102,6 @@ export function PostRaceInterviewPanel({
     );
   }
 
-  const event = interview.context.zoneMixteEvent ?? null;
   const standardQuestionIndexes = interview.questions.flatMap(
     (question, index) => (question.category === "event" ? [] : [index]),
   );
@@ -118,7 +143,7 @@ export function PostRaceInterviewPanel({
           <MicrophoneIcon /> Zone mixte
         </span>
       </div>
-      <div className="grid gap-5 px-5 py-5 sm:px-6 lg:grid-cols-3">
+      <div className={`grid gap-5 px-5 py-5 sm:px-6 ${event ? "lg:grid-cols-2" : "lg:grid-cols-3"}`}>
         {interview.questions.map((question, index) =>
           question.category === "event" && event ? (
             <ZoneMixteEventCard
@@ -208,7 +233,7 @@ function ZoneMixteEventCard({
   disabled: boolean;
 }) {
   return (
-    <fieldset className="min-w-0 rounded-2xl border-2 border-[#C72F5E]/25 bg-white/70 p-4 shadow-sm">
+    <fieldset className="min-w-0 rounded-2xl border-2 border-[#C72F5E]/25 bg-white/70 p-4 shadow-sm lg:col-span-2">
       <legend className="sr-only">Événement de zone mixte</legend>
       <div className="flex items-start gap-3">
         <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#C72F5E] text-[10px] font-black text-white">
@@ -231,11 +256,26 @@ function ZoneMixteEventCard({
       <p className="mt-3 text-xs font-semibold leading-5 text-[#6F6650]">
         {event.story}
       </p>
-      <div className="mt-4 space-y-2.5">
+      {event.riderName ? (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-x-5 gap-y-2 rounded-xl border border-[#176951]/15 bg-[#EAF5F3] px-3 py-2 text-[#183F37]">
+          <div className="flex flex-wrap items-center gap-2">
+            <strong className="text-sm">{event.riderName}</strong>
+            <RiderPersonalityBadge personality={event.riderPersonalityKey} compact />
+          </div>
+          {typeof event.riderMorale === "number" ? (
+            <div className="flex flex-wrap items-baseline gap-x-2 text-xs font-semibold">
+              <span>Moral du coureur</span>
+              <strong className="tabular-nums">{Math.round(event.riderMorale)} %</strong>
+              <span>{getRiderMoraleLabel(event.riderMorale)}</span>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+      <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
         {event.choices.map((choice) => (
           <label
             key={choice.id}
-            className={`block cursor-pointer rounded-xl border p-3 transition ${
+            className={`block cursor-pointer rounded-xl border p-3 transition focus-within:border-[#176951] ${
               selectedChoiceId === choice.id
                 ? "border-[#176951] bg-[#E5F4ED] ring-2 ring-[#176951]/15"
                 : "border-[#B99A4A]/30 bg-white/80 hover:border-[#176951]/45"
@@ -263,7 +303,7 @@ function ZoneMixteEventCard({
           </label>
         ))}
         <label
-          className={`block cursor-pointer rounded-xl border p-3 transition ${
+          className={`block cursor-pointer rounded-xl border p-3 transition focus-within:border-[#6F6650] ${
             selectedChoiceId === "skip"
               ? "border-[#6F6650] bg-[#F3EFE4] ring-2 ring-[#6F6650]/10"
               : "border-[#B99A4A]/25 bg-white/55 hover:border-[#6F6650]/40"
@@ -284,14 +324,16 @@ function ZoneMixteEventCard({
                 Ne pas réagir
               </span>
               <span className="mt-1 block text-[11px] font-semibold text-[#6F6650]">
-                L’organisation gère la situation.
+                {event.riderName ? "Poursuivre l’interview sans lui répondre." : "L’organisation gère la situation."}
               </span>
             </span>
           </span>
         </label>
       </div>
       <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.12em] text-[#9C234A]">
-        La conséquence sera révélée après validation.
+        {event.riderName
+          ? "Sa réaction dépend de son caractère et de son moral."
+          : "La conséquence sera révélée après validation."}
       </p>
     </fieldset>
   );

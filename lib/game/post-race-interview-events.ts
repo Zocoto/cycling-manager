@@ -1,5 +1,11 @@
 import { seededInterviewIndex } from "@/lib/game/post-race-interview";
 import type { RiderPersonalityKey } from "@/lib/game/rider-personalities";
+import { getRiderMoraleBand } from "./rider-morale";
+import { buildRiderCommunicationOutcome } from "./post-race-interview-communication";
+import {
+  RIDER_INTERVIEW_SCENARIOS,
+  type RiderInterviewScenarioRequirement,
+} from "./post-race-interview-rider-scenarios";
 import type {
   PostRaceInterviewContext,
   ZoneMixteEvent,
@@ -28,7 +34,11 @@ type ZoneMixteEventDefinition = ZoneMixteEvent & {
 export type ZoneMixtePersonalityRider = Pick<
   PostRaceInterviewContext,
   "riderId" | "riderName" | "riderPersonalityKey" | "riderHadSetback" | "bestRank" | "wasTeamLeader"
->;
+> & {
+  riderMorale?: number | null;
+  riderResultStatus?: "finished" | "did_not_finish" | "outside_time_limit";
+  wasTeamSupport?: boolean;
+};
 
 const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
   {
@@ -1289,9 +1299,20 @@ export function selectZoneMixteEvent({
   personalityRiders?: readonly ZoneMixtePersonalityRider[];
 }): ZoneMixteEvent | null {
   const triggerRoll = seededInterviewIndex(`${seed}:event-trigger`, 6);
-  if (triggerRoll > 1) return null;
+  if (triggerRoll > 3) return null;
+  const coachingRiders = personalityRiders.filter((rider) => rider.riderId && rider.riderResultStatus);
+  if (triggerRoll > 1 && !coachingRiders.length) return null;
   const selectedFamily =
     triggerRoll === 0 ? "general" : "rider_director_relationship";
+
+  if (
+    selectedFamily === "rider_director_relationship" &&
+    coachingRiders.length &&
+    (triggerRoll > 1 || seededInterviewIndex(`${seed}:coaching`, 4) !== 0)
+  ) {
+    const event = selectRiderCommunicationEvent(context, coachingRiders, seed, usedEventIds);
+    if (event) return event;
+  }
 
   const used = new Set(usedEventIds);
   const available = EVENT_DEFINITIONS.filter(
@@ -1321,6 +1342,92 @@ export function selectZoneMixteEvent({
   const candidates = rarityCandidates.length > 0 ? rarityCandidates : eligible;
   const selected = candidates[seededInterviewIndex(`${seed}:event-choice`, candidates.length)];
   return renderEvent(selected, context);
+}
+
+function selectRiderCommunicationEvent(
+  context: PostRaceInterviewContext,
+  riders: readonly ZoneMixtePersonalityRider[],
+  seed: string,
+  usedEventIds: readonly string[],
+): ZoneMixteEvent | null {
+  const candidates = RIDER_INTERVIEW_SCENARIOS.flatMap((scenario) => {
+    const eligible = riders.filter((rider) => matchesRiderScenario(scenario.requires, context, rider));
+    return eligible.length ? [{ scenario, eligible, lastSeen: usedEventIds.indexOf(scenario.id) }] : [];
+  });
+  if (!candidates.length) return null;
+
+  const unseen = candidates.filter(({ lastSeen }) => lastSeen === -1);
+  const available = unseen.length ? unseen : candidates.filter(({ lastSeen }) => lastSeen >= 6);
+  const specific = available.filter(({ scenario }) => scenario.requires !== "finished");
+  const pool = specific.length ? specific : available;
+  if (!pool.length) return null;
+
+  const urgent = pool.filter(({ scenario }) => ["dnf", "otl", "crash", "low-morale"].includes(scenario.requires));
+  const prioritized = urgent.length && seededInterviewIndex(`${seed}:coaching-priority`, 3) !== 0 ? urgent : pool;
+  const { scenario, eligible } = prioritized[seededInterviewIndex(`${seed}:coaching-situation`, prioritized.length)];
+  const rider = eligible[seededInterviewIndex(`${seed}:${scenario.id}:coaching-rider`, eligible.length)];
+  if (!rider.riderId) return null;
+
+  const rendered = renderEvent({
+    id: scenario.id,
+    rarity: scenario.rarity,
+    title: scenario.title,
+    story: scenario.story,
+    choices: scenario.choices.map((choice) => ({
+      id: choice.id,
+      label: choice.label,
+      description: choice.description,
+      impactPreview: "Conséquence cachée",
+      risk: choice.approach === "challenge" ? "bold" : "balanced",
+      outcomes: [buildRiderCommunicationOutcome({
+        approach: choice.approach,
+        baseMorale: choice.baseMorale,
+        popularityDelta: choice.popularityDelta,
+        personalityKey: rider.riderPersonalityKey,
+        morale: rider.riderMorale,
+      })],
+    })),
+  }, { ...context, ...rider });
+  return {
+    ...rendered,
+    riderId: rider.riderId,
+    riderName: rider.riderName,
+    riderPersonalityKey: rider.riderPersonalityKey,
+    riderMorale: rider.riderMorale,
+  };
+}
+
+function matchesRiderScenario(
+  requirement: RiderInterviewScenarioRequirement,
+  context: PostRaceInterviewContext,
+  rider: ZoneMixtePersonalityRider,
+): boolean {
+  const finished = rider.riderResultStatus === "finished";
+  const road = !context.stageType || context.stageType === "road";
+  const teamTrial = context.stageType === "team_time_trial";
+  const rank = finished && !teamTrial ? rider.bestRank : null;
+  const race = context.detailedRaceFacts;
+  switch (requirement) {
+    case "win": return rank === 1;
+    case "runner-up": return rank === 2;
+    case "podium": return rank === 2 || rank === 3;
+    case "top-ten": return rank !== null && rank >= 4 && rank <= 10;
+    case "leader-off-pace": return road && rider.wasTeamLeader === true && rank !== null && rank > 10;
+    case "setback": return road && finished && rider.riderHadSetback === true;
+    case "crash": return road && finished && Boolean(interviewRiderCrash({ ...context, ...rider }));
+    case "dropped": return road && finished && Boolean(rider.riderId && race?.lostContact?.riderId === rider.riderId);
+    case "pursuit": return road && finished && Boolean(rider.riderId && race?.pursuit?.riderId === rider.riderId);
+    case "dnf": return rider.riderResultStatus === "did_not_finish";
+    case "otl": return rider.riderResultStatus === "outside_time_limit";
+    case "individual-time-trial": return finished && (context.stageType === "individual_time_trial" || context.stageType === "prologue");
+    case "team-time-trial": return finished && teamTrial && Boolean(race?.teamTimeTrial);
+    case "low-morale":
+      return rider.riderMorale != null && ["dejected", "fragile"].includes(getRiderMoraleBand(rider.riderMorale));
+    case "support-after-team-podium":
+      return road && rider.wasTeamSupport === true && context.bestRank !== null &&
+        context.bestRank >= 1 && context.bestRank <= 3 && rank !== null && rank > context.bestRank;
+    case "finished": return finished;
+  }
 }
 
 function meetsRequirement(
@@ -1384,7 +1491,9 @@ function renderEvent(
 ): ZoneMixteEvent {
   const values: Record<string, string> = {
     teamName: context.teamName,
+    raceName: context.raceName,
     riderName: context.riderName,
+    riderRank: String(context.bestRank ?? ""),
     directorName: context.directorName,
     sponsorName: context.sponsorName ?? "votre sponsor",
     localSpecialty: getLocalSpecialty(context.raceCountryCode),

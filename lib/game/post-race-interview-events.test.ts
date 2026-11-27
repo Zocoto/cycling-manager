@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import { concealZoneMixteEventOutcomes, type PostRaceInterviewContext } from "./post-race-interview";
+import { buildRiderCommunicationOutcome } from "./post-race-interview-communication";
 import {
   selectZoneMixteEvent,
+  type ZoneMixtePersonalityRider,
   ZONE_MIXTE_EVENT_DEFINITIONS,
 } from "./post-race-interview-events";
+import { RIDER_INTERVIEW_SCENARIOS } from "./post-race-interview-rider-scenarios";
+import { RIDER_PERSONALITIES, type RiderPersonalityKey } from "./rider-personalities";
 
 const CONTEXT: PostRaceInterviewContext = {
   questionVersion: 3,
@@ -299,6 +303,123 @@ describe("événements de zone mixte", () => {
     })?.id).not.toBe(event.id);
   });
 });
+
+describe("communication du DS avec le coureur", () => {
+  const scenarioIds = new Set(RIDER_INTERVIEW_SCENARIOS.map(({ id }) => id));
+  const winner: ZoneMixtePersonalityRider = {
+    riderId: CONTEXT.riderId,
+    riderName: CONTEXT.riderName,
+    bestRank: 1,
+    riderResultStatus: "finished",
+    riderPersonalityKey: "sociable",
+    riderMorale: 64,
+  };
+  const teammate: ZoneMixtePersonalityRider = {
+    riderId: "00000000-0000-4000-8000-000000000004",
+    riderName: "Jules Test",
+    bestRank: null,
+    riderResultStatus: "did_not_finish",
+    riderPersonalityKey: "discret",
+    riderMorale: 32,
+  };
+
+  it("propose quatre réponses par situation et privilégie les événements de gestion dans les nouvelles interviews", () => {
+    expect(scenarioIds.size).toBe(16);
+    for (const scenario of RIDER_INTERVIEW_SCENARIOS) {
+      expect(new Set(scenario.choices.map(({ id }) => id)).size).toBe(4);
+      for (const choice of scenario.choices) {
+        for (const personalityKey of Object.keys(RIDER_PERSONALITIES) as RiderPersonalityKey[]) {
+          for (const morale of [0, 32, 60, 75, 100]) {
+            const { riderMoraleDelta, riderPopularityDelta, weight } = buildRiderCommunicationOutcome({
+              ...choice, personalityKey, morale,
+            });
+            expect(riderMoraleDelta).toBeGreaterThanOrEqual(-5);
+            expect(riderMoraleDelta).toBeLessThanOrEqual(5);
+            expect(riderPopularityDelta ?? 0).toBeLessThanOrEqual(1);
+            expect(weight).toBe(100);
+          }
+        }
+      }
+    }
+
+    const decisions = Array.from({ length: 1200 }, (_, index) =>
+      selectZoneMixteEvent({ seed: `coaching-frequency-${index}`, context: CONTEXT, personalityRiders: [winner, teammate] }),
+    ).filter((event) => event && scenarioIds.has(event.id));
+    expect(decisions.length).toBeGreaterThan(475);
+    expect(decisions.length).toBeLessThan(650);
+  });
+
+  it("cible le bon équipier et conditionne l’histoire à son résultat et à son moral", () => {
+    const abandoned = findCoachingEvent("rider-abandon-return-to-bus", [winner, teammate]);
+    expect(abandoned.event).toMatchObject({
+      riderId: teammate.riderId, riderName: teammate.riderName, riderPersonalityKey: "discret", riderMorale: 32,
+    });
+    expect(abandoned.event.story).toContain(teammate.riderName);
+    expect(abandoned.event.story).not.toContain(CONTEXT.riderName);
+    expect(selectZoneMixteEvent({ context: CONTEXT, seed: abandoned.seed, personalityRiders: [winner] })?.id)
+      .not.toBe(abandoned.event.id);
+    expect(selectZoneMixteEvent({
+      context: CONTEXT, seed: abandoned.seed, personalityRiders: [winner, teammate], usedEventIds: [abandoned.event.id],
+    })?.id).not.toBe(abandoned.event.id);
+
+    const low = findCoachingEvent("rider-low-morale-check-in", [winner, teammate]);
+    expect(low.event.riderId).toBe(teammate.riderId);
+    expect(selectZoneMixteEvent({
+      context: CONTEXT, seed: low.seed, personalityRiders: [winner, { ...teammate, riderMorale: 65 }],
+    })?.id).not.toBe(low.event.id);
+  });
+
+  it("fait réagir différemment deux caractères à la même mise en avant publique", () => {
+    const { seed, event } = findCoachingEvent("rider-first-microphone-after-win", [winner]);
+    const reserved = selectZoneMixteEvent({
+      context: CONTEXT,
+      seed,
+      personalityRiders: [{ ...winner, riderPersonalityKey: "discret" }],
+    });
+    expect(reserved?.id).toBe(event.id);
+    const praise = (candidate: typeof event | null) =>
+      candidate?.choices.find(({ id }) => id === "spotlight-winner")?.outcomes[0];
+    expect(praise(event)?.riderMoraleDelta).toBe(3);
+    expect(praise(reserved)?.riderMoraleDelta).toBe(-1);
+    expect(praise(reserved)?.summary).toContain(winner.riderName);
+
+    const view = concealZoneMixteEventOutcomes({ ...CONTEXT, zoneMixteEvent: event });
+    expect(view.zoneMixteEvent?.riderPersonalityKey).toBe("sociable");
+    expect(view.zoneMixteEvent?.choices.every(({ outcomes }) => outcomes.length === 0)).toBe(true);
+  });
+
+  it("change l’effet d’un défi quand le même Ambitieux est fragilisé", () => {
+    const choice = { approach: "challenge", baseMorale: -1, personalityKey: "ambitieux" } as const;
+    expect(buildRiderCommunicationOutcome({ ...choice, morale: 34 }).riderMoraleDelta).toBe(-1);
+    expect(buildRiderCommunicationOutcome({ ...choice, morale: 75 }).riderMoraleDelta).toBe(2);
+  });
+
+  it("distingue le vrai résultat du contre-la-montre par équipes d’un rang individuel", () => {
+    const context: PostRaceInterviewContext = {
+      ...CONTEXT,
+      stageType: "team_time_trial",
+      detailedRaceFacts: {
+        starters: 6, finishers: 6, incidents: [], primes: [], work: [],
+        teamTimeTrial: { rank: 1, timeMs: 120_000, gapMs: 0, winnerTeam: CONTEXT.teamName },
+      },
+    };
+    const { event } = findCoachingEvent("rider-team-chrono-relays", [winner], context);
+    expect(event.story).toContain(winner.riderName);
+    const choices = Array.from({ length: 200 }, (_, index) =>
+      selectZoneMixteEvent({ context, seed: `team-trial-coaching-${index}`, personalityRiders: [winner] })?.id,
+    );
+    expect(choices).not.toContain("rider-first-microphone-after-win");
+  });
+});
+
+function findCoachingEvent(id: string, personalityRiders: readonly ZoneMixtePersonalityRider[], context = CONTEXT) {
+  for (let index = 0; index < 500; index += 1) {
+    const seed = `coaching-${id}-${index}`;
+    const event = selectZoneMixteEvent({ context, seed, personalityRiders });
+    if (event?.id === id) return { seed, event };
+  }
+  throw new Error(`Missing coaching event: ${id}`);
+}
 
 function findEvent(prefix: string) {
   for (let index = 0; index < 2_000; index += 1) {
