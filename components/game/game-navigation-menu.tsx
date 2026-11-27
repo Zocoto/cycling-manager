@@ -6,7 +6,7 @@ import Link from "@/components/ui/app-link";
 import {useLocale} from "@/components/i18n/locale-provider";
 import {GameNavigationIcon} from "./game-navigation-icon";
 import {canAccessPrivateAdmin} from "@/lib/game/private-admin-access";
-import {getGameNavigationGroups,getActiveGameNavigationHref,NAVIGATION_EVENTS_FR,NAVIGATION_EVENTS_EN} from "@/lib/game/game-navigation";
+import {getGameNavigationGroups,getActiveGameNavigationHref,getGameNavigationEvents} from "@/lib/game/game-navigation";
 
 export {NAVIGATION_GROUPS_FR,NAVIGATION_GROUPS_EN} from "@/lib/game/game-navigation";
 
@@ -19,7 +19,7 @@ export function GameNavigationMenu({viewerEmail,federationCountryCode,showJersey
   const pathname=usePathname()??"";
   const english=locale==="en";
   const groups=getGameNavigationGroups({locale,federationCountryCode,showJerseyWorkshop});
-  const events=english?NAVIGATION_EVENTS_EN:NAVIGATION_EVENTS_FR;
+  const events=getGameNavigationEvents(locale);
   const activeHref=getActiveGameNavigationHref(groups,pathname);
   const showPrivateAdmin=canAccessPrivateAdmin(viewerEmail);
   const menuRef=useRef<HTMLDetailsElement>(null);

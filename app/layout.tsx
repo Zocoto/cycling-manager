@@ -144,7 +144,7 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full">
-        <SeasonalThemeSync />
+        <SeasonalThemeSync serverTime={new Date().getTime()} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

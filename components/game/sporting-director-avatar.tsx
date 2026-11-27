@@ -1,4 +1,6 @@
 import { halloweenAvatarArts } from "@/lib/game/halloween-avatar";
+import { christmasAvatarArts } from "@/lib/game/christmas-avatar";
+import { ChristmasAvatarBackground, ChristmasAvatarOverlay } from "./christmas-avatar-overlay";
 import { HalloweenAvatarBackground, HalloweenAvatarOverlay } from "./halloween-avatar-overlay";
 import {
   ALPHA_TESTER_AVATAR_FRAME_KEY,
@@ -55,12 +57,14 @@ export function SportingDirectorAvatar({
 }: SportingDirectorAvatarProps) {
   const avatar = resolveSportingDirectorAvatar(avatarKey);
   const halloweenArts = halloweenAvatarArts(avatarKey);
+  const christmasArts = christmasAvatarArts(avatarKey);
+  const christmasHat = christmasArts.some(id => ["bonnet-relais", "couronne-noel", "bois-renne", "avent-bonnet-constellation"].includes(id));
   const skin = getAvatarSkinTone(avatar.skinTone);
   const hair = getAvatarHairColor(avatar.hairColor);
   const eyes = getAvatarEyeColor(avatar.eyeColor);
   const outfit = getAvatarOutfit(avatar.outfit);
   const background = getAvatarBackground(avatar.background);
-  const flagCode = halloweenArts.includes("moon") ? null : getAvatarFlagCountryCode(avatar.background);
+  const flagCode = (halloweenArts.includes("moon") || christmasArts.some(id => ["lueurs-velodrome", "fond-neige", "avent-nuit-lanternes"].includes(id))) ? null : getAvatarFlagCountryCode(avatar.background);
 
   return (
     <span
@@ -90,6 +94,7 @@ export function SportingDirectorAvatar({
           <circle cx="99" cy="28" r="20" fill="#FFFFFF" opacity="0.15" />
         </>}
         <HalloweenAvatarBackground arts={halloweenArts} />
+        <ChristmasAvatarBackground arts={christmasArts} />
 
         <g data-avatar-hair-back={avatar.hairStyle}>
           <AvatarHairBack avatar={avatar} color={hair.color} />
@@ -131,10 +136,10 @@ export function SportingDirectorAvatar({
         <g data-avatar-hair-front={avatar.hairStyle}>
           <AvatarHairFront avatar={avatar} color={hair.color} />
         </g>
-        {avatar.outfit === PATRON_HAT_AVATAR_OUTFIT_KEY && !halloweenArts.includes("cap") ? (
+        {avatar.outfit === PATRON_HAT_AVATAR_OUTFIT_KEY && !halloweenArts.includes("cap") && !christmasHat ? (
           <AvatarPatronHat />
         ) : null}
-        {avatar.outfit === AMBULANCIER_AVATAR_OUTFIT_KEY && !halloweenArts.includes("cap") ? (
+        {avatar.outfit === AMBULANCIER_AVATAR_OUTFIT_KEY && !halloweenArts.includes("cap") && !christmasHat ? (
           <AvatarNurseCap />
         ) : null}
         <AvatarEyebrows avatar={avatar} color={hair.color} />
@@ -142,9 +147,10 @@ export function SportingDirectorAvatar({
         <AvatarNose avatar={avatar} color={skin.shadow} />
         <AvatarMouth avatar={avatar} />
         <AvatarFacialHair avatar={avatar} color={hair.color} />
-        <AvatarGlasses avatar={avatar} />
+        {!christmasArts.includes("lunettes-givre") ? <AvatarGlasses avatar={avatar} /> : null}
         <CareerAchievementAvatarOutfit outfit={avatar.outfit} />
         <HalloweenAvatarOverlay arts={halloweenArts} />
+        <ChristmasAvatarOverlay arts={christmasArts} />
         </svg>
       </span>
     </span>

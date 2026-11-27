@@ -154,6 +154,7 @@ type RegistrationRow = {
   entry_method: string;
 };
 type ReconnaissanceRow = {
+  christmas_reconnaissance_targets?: { stage_id: string }[];
   id: string;
   target_stage_id: string;
   preparer_contract_id: string | null;
@@ -339,7 +340,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
         await admin
           .from("stage_reconnaissances")
           .select(
-            "id, target_stage_id, preparer_contract_id, preparer_level, bonus_points, start_day_number, end_day_number, total_price, status, created_at, interruption_requested_at, interruption_effective_day_number",
+            "id, target_stage_id, preparer_contract_id, preparer_level, bonus_points, start_day_number, end_day_number, total_price, status, created_at, interruption_requested_at, interruption_effective_day_number, christmas_reconnaissance_targets(stage_id)",
           )
           .eq("team_season_id", teamSeason.id)
           .or("status.neq.cancelled,interruption_requested_at.not.is.null")
@@ -811,6 +812,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
 
   const missions = missionRows.map((mission): RaceReconnaissanceMission => {
     const stage = stageById.get(mission.target_stage_id);
+    const secondStage = stageById.get(mission.christmas_reconnaissance_targets?.[0]?.stage_id ?? "");
     const edition = stage ? editionById.get(stage.race_edition_id) : null;
     const preparerContract = mission.preparer_contract_id
       ? staffContractById.get(mission.preparer_contract_id)
@@ -824,7 +826,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
       id: mission.id,
       stageId: mission.target_stage_id,
       raceName: edition?.display_name ?? "Course",
-      stageName: stage?.name ?? "Étape",
+      stageName: secondStage ? `${stage?.name ?? "Étape"} + ${secondStage.name}` : stage?.name ?? "Étape",
       targetDayNumber: stage
         ? (dayById.get(stage.season_day_id)?.day_number ?? 0)
         : 0,

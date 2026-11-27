@@ -1433,11 +1433,12 @@ export async function getActiveSeasonRaceCalendar(
           values: stageIds,
           fetchPage: async (chunk, from, to) => {
             const result = await admin
-              .from("stage_reconnaissances")
+              .from("stage_reconnaissance_targets")
               .select("id, target_stage_id, bonus_points")
               .in("target_stage_id", chunk)
               .neq("status", "cancelled")
               .order("id", { ascending: true })
+              .order("target_stage_id", { ascending: true })
               .range(from, to)
               .returns<StageReconnaissanceRow[]>();
             return { data: result.data, error: result.error };
@@ -1569,9 +1570,7 @@ export async function getActiveSeasonRaceCalendar(
 
   const segmentRows = segmentsResult.data ?? [];
   const reconnaissanceRows = reconnaissanceResult.data ?? [];
-  const reconnaissanceIds = reconnaissanceRows.map(
-    (reconnaissance) => reconnaissance.id,
-  );
+  const reconnaissanceIds = [...new Set(reconnaissanceRows.map(reconnaissance => reconnaissance.id))];
   const reconnaissanceRidersResult =
     reconnaissanceIds.length > 0
       ? await collectChunkedPaginatedRows<
@@ -3696,26 +3695,20 @@ function groupReconnaissanceBonuses(
   reconnaissances: StageReconnaissanceRow[],
   participants: StageReconnaissanceRiderRow[],
 ) {
-  const reconnaissanceById = new Map(
-    reconnaissances.map((reconnaissance) => [
-      reconnaissance.id,
-      reconnaissance,
-    ]),
-  );
-  const bonusesByStageId = new Map<string, Record<string, number>>();
-
+  const ridersByMission = new Map<string, string[]>();
   for (const participant of participants) {
-    const reconnaissance = reconnaissanceById.get(
-      participant.reconnaissance_id,
-    );
-    if (!reconnaissance) continue;
-
-    const stageBonuses =
-      bonusesByStageId.get(reconnaissance.target_stage_id) ?? {};
-    stageBonuses[participant.rider_id] = Number(reconnaissance.bonus_points);
+    const riders = ridersByMission.get(participant.reconnaissance_id) ?? [];
+    riders.push(participant.rider_id);
+    ridersByMission.set(participant.reconnaissance_id, riders);
+  }
+  const bonusesByStageId = new Map<string, Record<string, number>>();
+  for (const reconnaissance of reconnaissances) {
+    const stageBonuses = bonusesByStageId.get(reconnaissance.target_stage_id) ?? {};
+    for (const riderId of ridersByMission.get(reconnaissance.id) ?? []) {
+      stageBonuses[riderId] = Math.max(stageBonuses[riderId] ?? 0, Number(reconnaissance.bonus_points));
+    }
     bonusesByStageId.set(reconnaissance.target_stage_id, stageBonuses);
   }
-
   return bonusesByStageId;
 }
 

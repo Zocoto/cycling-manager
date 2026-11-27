@@ -36,10 +36,14 @@ import {
   composeHalloweenAvatarKey, halloweenAvatarArts, HALLOWEEN_AVATAR_COSMETICS,
   toggleHalloweenAvatarItem, type HalloweenAvatarItemId,
 } from "@/lib/game/halloween-avatar";
+import { CHRISTMAS_AVATAR_ITEMS, composeChristmasAvatarKey, toggleChristmasAvatarItem, type ChristmasAvatarItemId } from "@/lib/game/christmas-avatar";
+import { ChristmasAvatarChoices } from "./christmas-avatar-choices";
 import { HalloweenAvatarChoices, type AvatarStyleCategory } from "./halloween-avatar-choices";
 
 type SportingDirectorAvatarEditorProps = {
   avatarKey: string | null;
+  ownedChristmasItems?: ChristmasAvatarItemId[];
+  selectedChristmasItems?: ChristmasAvatarItemId[];
   ownedHalloweenItems?: HalloweenAvatarItemId[];
   selectedHalloweenItems?: HalloweenAvatarItemId[];
   frameKey?: "alpha_tester" | null;
@@ -47,7 +51,7 @@ type SportingDirectorAvatarEditorProps = {
   hasAssiduTrophy?: boolean;
   hasHiddenSwitchbackTrophy?: boolean;
   onCancel: () => void;
-  onConfirm: (avatarKey: string, frameKey: "alpha_tester" | null, halloweenItems: HalloweenAvatarItemId[]) => void;
+  onConfirm: (avatarKey: string, frameKey: "alpha_tester" | null, halloweenItems: HalloweenAvatarItemId[], christmasItems: ChristmasAvatarItemId[]) => void;
   patronOutfitUnlocked?: boolean;
   patronHatUnlocked?: boolean;
   sponsorAmbassadorOutfitUnlocked?: boolean;
@@ -75,6 +79,8 @@ const editorTabs: Array<{
 
 export function SportingDirectorAvatarEditor({
   avatarKey,
+  ownedChristmasItems = [],
+  selectedChristmasItems = [],
   ownedHalloweenItems = [],
   selectedHalloweenItems = [],
   frameKey = null,
@@ -105,8 +111,10 @@ export function SportingDirectorAvatarEditor({
   const nationalFlagBackground = getNationalFlagAvatarBackground(nationalFlagCountryCode);
   const initialHalloweenItems = selectedHalloweenItems.filter(id => ownedHalloweenItems.includes(id));
   const [halloweenItems, setHalloweenItems] = useState(initialHalloweenItems);
+  const initialChristmasItems = selectedChristmasItems.filter(id => ownedChristmasItems.includes(id));
+  const [christmasItems, setChristmasItems] = useState(initialChristmasItems);
   const curse = halloweenAvatarArts(avatarKey).find(art => art === "vampire" || art === "mummy");
-  const previewKey = composeHalloweenAvatarKey(encodeSportingDirectorAvatar(config), halloweenItems, curse);
+  const previewKey = composeChristmasAvatarKey(composeHalloweenAvatarKey(encodeSportingDirectorAvatar(config), halloweenItems, curse), christmasItems);
   const availableGlassesStyles = getAvailableAvatarGlassesStyles({
     hasAssiduTrophy,
     hasHiddenSwitchbackTrophy,
@@ -138,6 +146,8 @@ export function SportingDirectorAvatarEditor({
     if (field === "background" || field === "outfit") {
       setHalloweenItems(current => current.filter(id => HALLOWEEN_AVATAR_COSMETICS[id].slot !== field));
     }
+    const christmasSlot = ({ background: "fond", outfit: "tenue", glasses: "lunettes" } as Record<string, string>)[field];
+    if (christmasSlot) setChristmasItems(current => current.filter(id => CHRISTMAS_AVATAR_ITEMS.find(item => item.id === id)?.slot !== christmasSlot));
     setConfig((currentConfig) => ({
       ...currentConfig,
       [field]: value,
@@ -196,6 +206,7 @@ export function SportingDirectorAvatarEditor({
                 onClick={() => {
                   setConfig(initialConfig);
                   setHalloweenItems(initialHalloweenItems);
+                  setChristmasItems(initialChristmasItems);
                   setSelectedFrameKey(
                     hasAlphaTesterTrophy ? frameKey : null,
                   );
@@ -445,6 +456,7 @@ export function SportingDirectorAvatarEditor({
                 {styleCategory !== "glasses" ? <HalloweenAvatarChoices category={styleCategory} owned={ownedHalloweenItems}
                   selected={halloweenItems} baseKey={encodeSportingDirectorAvatar(config)} curse={curse}
                   onToggle={id => setHalloweenItems(current => toggleHalloweenAvatarItem(current, id))} /> : null}
+                <ChristmasAvatarChoices category={styleCategory} owned={ownedChristmasItems} selected={christmasItems} baseKey={composeHalloweenAvatarKey(encodeSportingDirectorAvatar(config), halloweenItems, curse)} onToggle={id => setChristmasItems(current => toggleChristmasAvatarItem(current, id))} />
               </>
             ) : null}
           </div>
@@ -462,7 +474,7 @@ export function SportingDirectorAvatarEditor({
 
         <button
           type="button"
-          onClick={() => onConfirm(previewKey, selectedFrameKey, halloweenItems)}
+          onClick={() => onConfirm(previewKey, selectedFrameKey, halloweenItems, christmasItems)}
           className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#176951] px-5 py-2 text-sm font-extrabold text-white shadow-lg transition hover:bg-[#0E5141] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] focus-visible:ring-offset-2"
         >
           Valider ce portrait

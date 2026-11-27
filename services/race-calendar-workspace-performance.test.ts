@@ -72,12 +72,20 @@ describe("preparation calendar without unused simulation data", () => {
         { id: "s2", stage_id: "road", segment_number: 2, distance_km: 50, terrain_type: "mountain", surface_type: "asphalt", average_gradient_pct: 7,
           stage_segment_primes: [{ prime_type: "mountain", mountain_category: "1", points_scale: [10, 6, 4] }] },
       ],
-      stage_reconnaissances: [{ id: "recon", target_stage_id: "road", bonus_points: 3, status: "completed" }],
+      stage_reconnaissance_targets: [{ id: "recon", target_stage_id: "road", bonus_points: 3, status: "completed" }],
       stage_reconnaissance_riders: [{ reconnaissance_id: "recon", rider_id: "rider" }],
       national_federation_infrastructures: [{ country_id: "fr", infrastructure_code: "home_advantage_program", level: 3 }],
       national_federation_infrastructure_specializations: [{ country_id: "fr", infrastructure_code: "home_advantage_program", active_specialization_code: "home_roads" }],
     };
     fixture.client = client();
+  });
+  it("applies one double reconnaissance mission to both target stages without extra reads", async () => {
+    fixture.rows.stage_reconnaissance_targets.push({ id: "recon", target_stage_id: "tt", bonus_points: 3, status: "completed" });
+    const calendar = await getActiveSeasonRaceCalendar(fixture.client as Client, now, { includeEngagedRiders: false });
+    const stages = calendar!.editions.find(edition => edition.id === "tour")!.stages;
+    expect(stages.find(stage => stage.id === "road")!.reconnaissanceBonuses).toEqual({ rider: 3 });
+    expect(stages.find(stage => stage.id === "tt")!.reconnaissanceBonuses).toEqual({ rider: 3 });
+    expect(fixture.reads.filter(table => table === "stage_reconnaissance_riders")).toHaveLength(1);
   });
   it("preserves all data consumed by navigation, equipment and complete stage profiles", async () => {
     const baseline = await getActiveSeasonRaceCalendar(fixture.client as Client, now, { includeEngagedRiders: false });
@@ -103,7 +111,7 @@ describe("preparation calendar without unused simulation data", () => {
     expect(tour.stages[1].segments.reduce((sum, s) => sum + s.distanceKm, 0)).toBe(30);
     expect(optimized!.editions.find(e => e.id === "wildcard")!.currentTeamRegistration?.status).toBe("pending");
     expect(isRacePreparationStageAvailable({ edition: optimized!.editions.find(e => e.id === "international")!, stage: tour.stages[0] })).toBe(false);
-    const simulationTables = ["stage_reconnaissances", "stage_reconnaissance_riders", "national_federation_infrastructures", "national_federation_infrastructure_specializations"];
+    const simulationTables = ["stage_reconnaissance_targets", "stage_reconnaissance_riders", "national_federation_infrastructures", "national_federation_infrastructure_specializations"];
     expect(baselineReads).toEqual(expect.arrayContaining(simulationTables));
     for (const table of simulationTables) expect(fixture.reads).not.toContain(table);
     expect(baselineReads.length - fixture.reads.length).toBeGreaterThanOrEqual(4);
@@ -152,7 +160,7 @@ describe("preparation calendar without unused simulation data", () => {
     expect(fixture.reads).not.toContain("get_current_team_visible_calendar_edition_ids");
     expect(fixture.reads).not.toContain("get_active_calendar_engaged_counts");
     expect(fixture.reads).not.toContain("get_current_team_international_calendar_counts");
-    expect(fixture.reads).not.toContain("stage_reconnaissances");
+    expect(fixture.reads).not.toContain("stage_reconnaissance_targets");
     expect(before).toHaveLength(19);
     expect(fixture.reads).toHaveLength(12);
     fixture.reads = [];

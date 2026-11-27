@@ -98,3 +98,20 @@ describe("skin Halloween annuel", () => {
     expect(css).not.toMatch(/cursor\s*:|opacity\s*:|pointer-events\s*:\s*(auto|all)/);
   });
 });
+
+describe("Christmas 2026 site skin", () => {
+  it("switches the shared skin at the exact Paris opening and closing instants", () => {
+    expect(getActiveSiteTheme(new Date("2026-11-30T22:59:59.999Z"))).toBeUndefined();
+    expect(getActiveSiteTheme(new Date("2026-11-30T23:00:00Z"))).toBe("christmas");
+    expect(getActiveSiteTheme(new Date("2026-12-31T22:59:59.999Z"))).toBe("christmas");
+    expect(getActiveSiteTheme(new Date("2026-12-31T23:00:00Z"))).toBeUndefined();
+    expect(getActiveSiteTheme(new Date("2027-12-01T00:00:00Z"))).toBeUndefined();
+  });
+  it("keeps sponsor images and the fixed navigation footprint while adding the warm decoration", () => {
+    const css=readFileSync(resolve("app/seasonal-theme.css"),"utf8");
+    expect(css).toContain('[data-site-theme="christmas"]');
+    expect(css).toContain("--cm-night: #102e26");
+    expect(css).toContain('[data-christmas-logo-accent] { display: block; }');
+    expect(css).not.toMatch(/animation\s*:|backdrop-filter\s*:/);
+  });
+});

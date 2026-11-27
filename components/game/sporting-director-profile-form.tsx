@@ -11,9 +11,11 @@ import {
 import { CountrySelect, type CountryOption } from "./country-select";
 import { SportingDirectorAvatar } from "./sporting-director-avatar";
 import { SportingDirectorAvatarEditor } from "./sporting-director-avatar-editor";
+import type { ChristmasAvatarItemId } from "@/lib/game/christmas-avatar";
 import type { HalloweenAvatarItemId } from "@/lib/game/halloween-avatar";
 
 type SportingDirectorProfileFormProps = {
+  christmasWardrobe?: { owned: ChristmasAvatarItemId[]; selected: ChristmasAvatarItemId[] };
   halloweenWardrobe?: { owned: HalloweenAvatarItemId[]; selected: HalloweenAvatarItemId[] };
   countries: CountryOption[];
   initialDisplayName: string;
@@ -46,6 +48,7 @@ const profileFields: SportingDirectorProfileField[] = [
 
 export function SportingDirectorProfileForm({
   halloweenWardrobe,
+  christmasWardrobe,
   countries,
   initialDisplayName,
   initialCountryId,
@@ -74,6 +77,7 @@ export function SportingDirectorProfileForm({
   const [selectedAvatarKey, setSelectedAvatarKey] = useState(
     initialAvatarKey ?? "",
   );
+  const [selectedChristmasItems, setSelectedChristmasItems] = useState(christmasWardrobe?.selected ?? []);
   const [selectedHalloweenItems, setSelectedHalloweenItems] = useState(halloweenWardrobe?.selected ?? []);
   const [selectedAvatarFrameKey, setSelectedAvatarFrameKey] = useState<
     "alpha_tester" | null
@@ -190,9 +194,11 @@ export function SportingDirectorProfileForm({
     avatarKey: string,
     frameKey: "alpha_tester" | null,
     halloweenItems: HalloweenAvatarItemId[],
+    christmasItems: ChristmasAvatarItemId[],
   ) {
     setSelectedAvatarKey(avatarKey);
     setSelectedHalloweenItems(halloweenItems);
+    setSelectedChristmasItems(christmasItems);
     setSelectedAvatarFrameKey(frameKey);
     setIsAvatarModalOpen(false);
     dismissFieldError("avatarKey");
@@ -385,6 +391,7 @@ export function SportingDirectorProfileForm({
           </div>
 
           <input type="hidden" name="avatarKey" value={selectedAvatarKey} />
+          {christmasWardrobe ? <input type="hidden" name="christmasCosmetics" value={JSON.stringify(selectedChristmasItems)} /> : null}
           {halloweenWardrobe ? <input type="hidden" name="halloweenCosmetics" value={JSON.stringify(selectedHalloweenItems)} /> : null}
           <input
             type="hidden"
@@ -746,6 +753,8 @@ export function SportingDirectorProfileForm({
             </div>
 
             <SportingDirectorAvatarEditor
+              ownedChristmasItems={christmasWardrobe?.owned}
+              selectedChristmasItems={selectedChristmasItems}
               ownedHalloweenItems={halloweenWardrobe?.owned}
               selectedHalloweenItems={selectedHalloweenItems}
               avatarKey={selectedAvatarKey || null}

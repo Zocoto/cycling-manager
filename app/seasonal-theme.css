@@ -174,3 +174,74 @@
 
 /* Static decoration: no animation, extra asset download, layout shift or click interception. */
 [data-halloween-logo-web] { display: none; position: absolute; inset: -3px auto auto -3px; width: 70%; height: 70%; color: #e0c1a0; pointer-events: none; }
+
+/* Noël 2026: the validated pine, burgundy, warm paper and brass palette.
+   Decorative only; semantic result colours, rider art and sponsor assets stay intact. */
+[data-site-theme="christmas"] {
+  --cm-night: #102e26;
+  --cm-night-soft: #173c30;
+  --cm-forest: #194b39;
+  --cm-forest-light: #315f43;
+  --cm-olive: #b38e4d;
+  --cm-text-secondary: #e1d8c4;
+  --cm-border: #b8a47b;
+
+  & [data-game-header] {
+    --game-header-primary: #8b3945 !important;
+    --game-header-secondary: #315f43 !important;
+    --game-header-accent: #ebcc8a !important;
+    --game-header-primary-soft: #8b394522 !important;
+    --game-header-accent-soft: #ebcc8a1a !important;
+    background: linear-gradient(110deg, #102e26, #1c4133);
+    border-color: #d4b66f70;
+    box-shadow: inset 0 2px #ebcc8a;
+  }
+  & [data-game-header]::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0;
+    height: 7px;
+    pointer-events: none;
+    background: radial-gradient(ellipse 3px 4px at 14px 4px, #ebcc8a 40%, transparent 70%),
+      radial-gradient(ellipse 3px 4px at 38px 3px, #ad5260 40%, transparent 70%),
+      radial-gradient(ellipse 3px 4px at 62px 4px, #b3c98a 40%, transparent 70%);
+    background-size: 76px 7px;
+  }
+  & :is(.cm-surface, .cm-soft-surface):not([data-site-theme-preserve]) {
+    border-color: #d4b66f55;
+    box-shadow: inset 0 1px #ebcc8a40;
+  }
+  & [data-game-navigation-panel], & .mobile-game-navigation-dock {
+    background-color: #15382c;
+    border-color: #d4b66f70;
+  }
+  & [data-site-action-icon]:not([data-site-theme-preserve]) {
+    background-color: #8b394530;
+    color: #ebcc8a;
+  }
+  & [data-site-action-label]:not([data-site-theme-preserve]):not([data-site-theme-preserve] *) { color: #ebcc8a; }
+  & [data-site-action-overlay]:not([data-site-theme-preserve]) {
+    background-image: linear-gradient(180deg, #102e2670, #102e26f0);
+  }
+  & :is(button, a[data-site-action], input[type="submit"]):not([data-site-theme-preserve]):not([data-site-theme-preserve] *) {
+    &:is([class~="bg-[#176951]" i], [class~="bg-[#278B70]" i], [class~="bg-[#315B3E]" i], [class~="bg-forest"], [data-site-action="primary"]) {
+      background-color: #7c3542;
+      background-image: none;
+      border-color: #d4b66f;
+      color: #fff5dc;
+      &:where(:not(:disabled)):hover { background-color: #923f4f; }
+      &:focus-visible { outline-color: #d4b66f; }
+    }
+    &:is([class~="bg-[#071A17]" i], [class~="bg-[#0B302B]" i], [class~="bg-night"], [data-site-action="dark"]) {
+      background-color: #15382c;
+      border-color: #d4b66f80;
+      color: #fff5dc;
+    }
+    &:is([class~="bg-[#F2C94C]" i], [class~="bg-leader"], [class~="bg-[var(--game-header-accent)]"]) {
+      background-color: #ebcc8a;
+      color: #102e26;
+    }
+  }
+  & [data-christmas-logo-accent] { display: block; }
+}
+[data-christmas-logo-accent] { display: none; }

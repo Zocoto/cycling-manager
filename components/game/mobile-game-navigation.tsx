@@ -7,7 +7,7 @@ import { useLocale } from "@/components/i18n/locale-provider";
 import {GameNavigationIcon} from "@/components/game/game-navigation-icon";
 import {
   getGameNavigationGroups,getActiveGameNavigationGroupId,getActiveGameNavigationHref,
-  NAVIGATION_EVENTS_FR,NAVIGATION_EVENTS_EN,type GameNavigationGroupId,
+  getGameNavigationEvents,type GameNavigationGroupId,
 } from "@/lib/game/game-navigation";
 import Link from "@/components/ui/app-link";
 import { canAccessPlayerTracking } from "@/lib/game/player-tracking-access";
@@ -114,7 +114,7 @@ export function MobileGameNavigation({
   const activeHref=getActiveGameNavigationHref(allGroups,pathname);
   const expandedGroupIds=expandedGroupState?.pathname===pathname
     ? expandedGroupState.ids : new Set<GameNavigationGroupId>([activeGroupId]);
-  const events=isEnglish?NAVIGATION_EVENTS_EN:NAVIGATION_EVENTS_FR;
+  const events=getGameNavigationEvents(locale);
   const primaryLinks = isEnglish ? PRIMARY_LINKS_EN : PRIMARY_LINKS_FR;
   const courseLinks = isEnglish ? COURSE_LINKS_EN : COURSE_LINKS_FR;
   const showPlayerTracking = canAccessPlayerTracking(viewerEmail);

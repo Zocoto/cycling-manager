@@ -35,6 +35,7 @@ import {
   SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
 } from "../../../lib/sporting-director-avatar";
 import { createSupabaseAdminClient } from "../../../lib/supabase/admin";
+import { parseChristmasAvatarSelection } from "@/lib/game/christmas-avatar";
 import { originalHalloweenAvatarKey, parseHalloweenAvatarSelection } from "@/lib/game/halloween-avatar";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import type { AmateurTeamCreationState } from "./amateur-team-state";
@@ -152,7 +153,9 @@ export async function updateSportingDirectorProfile(
   ).trim()) ?? "";
 
   let halloweenCosmetics;
+  let christmasCosmetics;
   try {
+    christmasCosmetics = parseChristmasAvatarSelection(formData.get("christmasCosmetics"));
     halloweenCosmetics = parseHalloweenAvatarSelection(formData.get("halloweenCosmetics"));
   } catch {
     return { status: "error", message: "Vérifiez vos accessoires dans l’éditeur d’avatar.",
@@ -490,7 +493,11 @@ export async function updateSportingDirectorProfile(
     }
   }
 
-  const { error: updateError } = halloweenCosmetics === null ? await supabase
+  const { error: updateError } = christmasCosmetics !== null ? await createSupabaseAdminClient().rpc("save_sporting_director_seasonal_cosmetics", {
+      p_user: user.id, p_display_name: validationResult.data.displayName, p_country: validationResult.data.countryId,
+      p_avatar: validationResult.data.avatarKey, p_frame: validationResult.data.alphaTesterFrameEnabled ? "alpha_tester" : null,
+      p_email_visible: !validationResult.data.hideEmail, p_halloween_items: halloweenCosmetics, p_christmas_items: christmasCosmetics,
+    }) : halloweenCosmetics === null ? await supabase
     .from("sporting_directors")
     .update({
       display_name: validationResult.data.displayName,

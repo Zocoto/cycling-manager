@@ -15,6 +15,7 @@ import { DashboardGalaShortcut } from "../../components/game/dashboard-gala-shor
 import { DashboardSeasonFourGalaEvents } from "@/components/game/dashboard-season-four-gala-events";
 import { DashboardSeasonFiveGala } from "@/components/game/dashboard-season-five-gala";
 import { DashboardDraftShortcut } from "@/components/game/dashboard-draft-shortcut";
+import { DashboardChristmasShortcut } from "@/components/game/dashboard-christmas-shortcut";
 import { DashboardReferralInvite } from "../../components/game/dashboard-referral-invite";
 import { DashboardNewsTickerLoader } from "@/components/game/dashboard-news-ticker-loader";
 import { DashboardNewsTicker } from "@/components/game/dashboard-news-ticker";
@@ -731,6 +732,7 @@ export default async function GamePage() {
           {/* eslint-disable-next-line react-hooks/purity -- Request-time status for the gala's registration deadline. */}
           <DashboardSeasonFiveGala now={Date.now()} />
           <Suspense fallback={null}><DashboardDraftShortcut summaryPromise={fastSummaryPromise} /></Suspense>
+          <DashboardChristmasShortcut />
           <Suspense fallback={null}><DashboardSeasonFourGalaEvents userId={user.id} /></Suspense>
           <DashboardReferralInvite inviteUrl={referralInviteUrl} showBoosters={showReferralBoosters} />
 

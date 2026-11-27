@@ -1,0 +1,797 @@
+{
+  "editionId": "christmas-2026",
+  "albumEditionId": "cyclo-stickers-s5-s4-final-v1",
+  "items": [
+    {
+      "id": "lueurs-velodrome",
+      "name": "Lueurs du vélodrome",
+      "category": "portrait",
+      "slot": "fond",
+      "price": 70,
+      "description": "Une piste enneigée, éclairée par les guirlandes du dernier virage.",
+      "effect": "Fond de portrait à équiper dans la garde-robe.",
+      "limit": 1,
+      "art": "lueurs-velodrome",
+      "delivery": {
+        "kind": "cosmetic"
+      }
+    },
+    {
+      "id": "bonnet-relais",
+      "name": "Bonnet du dernier relais",
+      "category": "portrait",
+      "slot": "chapeau",
+      "price": 55,
+      "description": "Un bonnet rouge à pompon blanc, posé sur le portrait du DS.",
+      "effect": "Chapeau à équiper dans la garde-robe.",
+      "limit": 1,
+      "art": "bonnet-relais",
+      "delivery": {
+        "kind": "cosmetic"
+      }
+    },
+    {
+      "id": "tenue-facteur",
+      "name": "Maillot du facteur des neiges",
+      "category": "portrait",
+      "slot": "tenue",
+      "price": 140,
+      "description": "Le maillot bordeaux du renne livreur, avec ses poches à cadeaux et son col en laine.",
+      "effect": "Tenue à équiper dans la garde-robe.",
+      "limit": 1,
+      "art": "tenue-facteur",
+      "delivery": {
+        "kind": "cosmetic"
+      }
+    },
+    {
+      "id": "cache-cou-renne",
+      "name": "Cache-cou nez rouge",
+      "category": "portrait",
+      "slot": "masque",
+      "price": 60,
+      "description": "Un tour de cou de rouleur, avec un petit nez de renne brodé.",
+      "effect": "Masque à équiper dans la garde-robe.",
+      "limit": 1,
+      "art": "cache-cou-renne",
+      "delivery": {
+        "kind": "cosmetic"
+      }
+    },
+    {
+      "id": "lunettes-givre",
+      "name": "Lunettes de descente givrées",
+      "category": "portrait",
+      "slot": "lunettes",
+      "price": 80,
+      "description": "Verres dorés et une frange de givre sur la monture.",
+      "effect": "Lunettes à équiper dans la garde-robe.",
+      "limit": 1,
+      "art": "lunettes-givre",
+      "delivery": {
+        "kind": "cosmetic"
+      }
+    },
+    {
+      "id": "couronne-rayons",
+      "name": "Couronne de rayons",
+      "category": "portrait",
+      "slot": "cadre",
+      "price": 100,
+      "description": "Une couronne de sapin tressée sur une roue de vélo, avec un nœud rouge.",
+      "effect": "Cadre à équiper dans la garde-robe.",
+      "limit": 1,
+      "art": "couronne-rayons",
+      "delivery": {
+        "kind": "cosmetic"
+      }
+    },
+    {
+      "id": "fond-neige",
+      "name": "La vallée sous la neige",
+      "category": "portrait",
+      "slot": "fond",
+      "price": 85,
+      "description": "Des sapins enneigés, un ciel de décembre et les lumières du village.",
+      "effect": "Fond de portrait à équiper dans la garde-robe.",
+      "limit": 1,
+      "art": "fond-neige",
+      "delivery": {
+        "kind": "cosmetic"
+      }
+    },
+    {
+      "id": "couronne-noel",
+      "name": "Couronne de Noël",
+      "category": "portrait",
+      "slot": "chapeau",
+      "price": 75,
+      "description": "Une couronne de branches fraîches, de houx et de petites baies rouges.",
+      "effect": "Couronne à porter sur la tête du DS.",
+      "limit": 1,
+      "art": "couronne-noel",
+      "delivery": {
+        "kind": "cosmetic"
+      }
+    },
+    {
+      "id": "barbe-pere-noel",
+      "name": "Barbe du Père Noël",
+      "category": "portrait",
+      "slot": "masque",
+      "price": 65,
+      "description": "Une longue barbe blanche et sa moustache, pour assurer la tournée.",
+      "effect": "Barbe à équiper sur le portrait du DS.",
+      "limit": 1,
+      "art": "barbe-pere-noel",
+      "delivery": {
+        "kind": "cosmetic"
+      }
+    },
+    {
+      "id": "tenue-pere-noel",
+      "name": "Manteau du Père Noël",
+      "category": "portrait",
+      "slot": "tenue",
+      "price": 130,
+      "description": "Le manteau rouge, ses revers de fourrure et sa boucle dorée.",
+      "effect": "Tenue à équiper dans la garde-robe.",
+      "limit": 1,
+      "art": "tenue-pere-noel",
+      "delivery": {
+        "kind": "cosmetic"
+      }
+    },
+    {
+      "id": "tenue-lutin",
+      "name": "Veste du chef des lutins",
+      "category": "portrait",
+      "slot": "tenue",
+      "price": 105,
+      "description": "Une veste vert sapin, un col à pointes et des boutons dorés.",
+      "effect": "Tenue à équiper dans la garde-robe.",
+      "limit": 1,
+      "art": "tenue-lutin",
+      "delivery": {
+        "kind": "cosmetic"
+      }
+    },
+    {
+      "id": "bois-renne",
+      "name": "Bois du renne de tête",
+      "category": "portrait",
+      "slot": "chapeau",
+      "price": 70,
+      "description": "Un serre-tête à bois de renne, avec ses grelots de cuivre.",
+      "effect": "Accessoire de tête à équiper dans la garde-robe.",
+      "limit": 1,
+      "art": "bois-renne",
+      "delivery": {
+        "kind": "cosmetic"
+      }
+    },
+    {
+      "id": "halo-etoiles",
+      "name": "Guirlande des étoiles",
+      "category": "portrait",
+      "slot": "cadre",
+      "price": 95,
+      "description": "Un cercle de petites lumières chaudes autour du portrait.",
+      "effect": "Cadre lumineux à équiper dans la garde-robe.",
+      "limit": 1,
+      "art": "halo-etoiles",
+      "delivery": {
+        "kind": "cosmetic"
+      }
+    },
+    {
+      "id": "avent-bonnet-constellation",
+      "name": "Bonnet de la nuit étoilée",
+      "category": "portrait",
+      "slot": "chapeau",
+      "source": "avent",
+      "description": "Exclusivité de l’Avent · Un bonnet bleu nuit brodé d’étoiles dorées, avec son revers argenté.",
+      "effect": "Cosmétique exclusif du calendrier de l’Avent. Chapeau à équiper sur ton portrait.",
+      "limit": 1,
+      "art": "avent-bonnet-constellation",
+      "delivery": {
+        "kind": "cosmetic"
+      }
+    },
+    {
+      "id": "avent-nuit-lanternes",
+      "name": "La nuit des lanternes",
+      "category": "portrait",
+      "slot": "fond",
+      "source": "avent",
+      "description": "Exclusivité de l’Avent · Des lanternes ambrées éclairent les chalets dans une neige rose et mauve.",
+      "effect": "Cosmétique exclusif du calendrier de l’Avent. Fond à équiper sur ton portrait.",
+      "limit": 1,
+      "art": "avent-nuit-lanternes",
+      "delivery": {
+        "kind": "cosmetic"
+      }
+    },
+    {
+      "id": "avent-echarpe-pain-epices",
+      "name": "Écharpe de pain d’épices",
+      "category": "portrait",
+      "slot": "masque",
+      "source": "avent",
+      "description": "Exclusivité de l’Avent · Une écharpe cannelle à broderies crème et un petit bonhomme en pain d’épices.",
+      "effect": "Cosmétique exclusif du calendrier de l’Avent. Écharpe à équiper à l’emplacement Masque.",
+      "limit": 1,
+      "art": "avent-echarpe-pain-epices",
+      "delivery": {
+        "kind": "cosmetic"
+      }
+    },
+    {
+      "id": "avent-manteau-casse-noisette",
+      "name": "Manteau du Casse-Noisette",
+      "category": "portrait",
+      "slot": "tenue",
+      "source": "avent",
+      "description": "Exclusivité de l’Avent · Une veste bleu paon à brandebourgs dorés et épaulettes bordeaux.",
+      "effect": "Cosmétique exclusif du calendrier de l’Avent. Tenue à équiper sur ton portrait.",
+      "limit": 1,
+      "art": "avent-manteau-casse-noisette",
+      "delivery": {
+        "kind": "cosmetic"
+      }
+    },
+    {
+      "id": "avent-cadre-givre",
+      "name": "Dentelle de givre",
+      "category": "portrait",
+      "slot": "cadre",
+      "source": "avent",
+      "description": "Exclusivité de l’Avent · Des cristaux argentés et des flocons ciselés dessinent une couronne de glace.",
+      "effect": "Cosmétique exclusif du calendrier de l’Avent. Cadre à équiper autour de ton portrait.",
+      "limit": 1,
+      "art": "avent-cadre-givre",
+      "delivery": {
+        "kind": "cosmetic"
+      }
+    },
+    {
+      "id": "cadre-grand-sapin",
+      "name": "Couronne du Grand Sapin",
+      "category": "portrait",
+      "slot": "cadre",
+      "source": "sapin",
+      "description": "Des branches givrées, un grand nœud rouge et l’étoile du sapin collectif.",
+      "effect": "Cadre exclusif obtenu en illuminant le Grand Sapin.",
+      "limit": 1,
+      "art": "cadre-grand-sapin",
+      "delivery": {
+        "kind": "cosmetic"
+      }
+    },
+    {
+      "id": "tenue-aurore",
+      "name": "Tenue de l’aurore boréale",
+      "category": "portrait",
+      "slot": "tenue",
+      "source": "sapin",
+      "description": "Une veste bleu nuit brodée de lumières vertes et violettes.",
+      "effect": "Tenue exclusive obtenue en illuminant le Grand Sapin.",
+      "limit": 1,
+      "art": "tenue-aurore",
+      "delivery": {
+        "kind": "cosmetic"
+      }
+    },
+    {
+      "id": "boussole-polaire",
+      "name": "Boussole de l’étoile polaire",
+      "category": "gestion",
+      "price": 135,
+      "description": "Pendant une semaine, les scouts de l’équipe disposent d’un réseau prioritaire.",
+      "effect": "+20 % de qualité de scouting pendant 7 jours. Une nouvelle utilisation ajoute 7 jours à la durée restante ; le bonus reste à +20 %.",
+      "useKind": "scouting",
+      "backendRewardKey": "scouting-week-20",
+      "art": "boussole-polaire",
+      "delivery": {
+        "kind": "daily_reward",
+        "key": "scouting-week-20"
+      }
+    },
+    {
+      "id": "carnet-eclaireur",
+      "name": "Carnet de l’éclaireur",
+      "category": "gestion",
+      "price": 110,
+      "description": "Le préparateur rassemble deux étapes d’un même tour dans la même mission.",
+      "effect": "Une reconnaissance prépare deux étapes choisies du même tour, pour les mêmes coureurs inscrits. Les deux étapes sont choisies avant la réservation.",
+      "useKind": "reconnaissance",
+      "art": "carnet-eclaireur",
+      "delivery": {
+        "kind": "wallet_item"
+      }
+    },
+    {
+      "id": "lunette-sniper-cadeaux",
+      "name": "Lunette de sniper de cadeaux",
+      "category": "gestion",
+      "price": 10,
+      "description": "Rudolphe peut garder les yeux sur sa tournée : les cadeaux partent quand le viseur est aligné, pendant une seule tournée.",
+      "effect": "Débloque le lancer automatique pour une tournée, sur PC comme sur téléphone. Un exemplaire est consommé au décollage uniquement si l’option est activée. Le vent et la trajectoire restent inchangés. Une tournée abandonnée utilise aussi sa lunette.",
+      "useKind": "sniper",
+      "art": "lunette-sniper-cadeaux",
+      "delivery": {
+        "kind": "wallet_item"
+      }
+    },
+    {
+      "id": "grelot-repechage",
+      "name": "Second tour du traîneau",
+      "category": "gestion",
+      "price": 65,
+      "description": "Un grelot de secours pour ajouter une nouvelle tournée à ta journée.",
+      "effect": "Autorise une tournée récompensée supplémentaire le même jour. Son score, tous ses Grelots et toutes ses lumières s’ajoutent aux tournées précédentes, même si le résultat est moins bon. Un objet par tournée supplémentaire.",
+      "useKind": "retry",
+      "art": "grelot-repechage",
+      "delivery": {
+        "kind": "wallet_item"
+      }
+    },
+    {
+      "id": "personality-reroll",
+      "name": "Nouveau chapitre",
+      "category": "gestion",
+      "price": 150,
+      "description": "Un moment pour se réinventer, loin des habitudes du peloton.",
+      "effect": "Remplace définitivement le caractère d’un coureur de ton choix par un autre caractère aléatoire. Le caractère actuel est exclu du tirage ; les autres ont tous la même chance. Les notes, le moral et les talents restent inchangés.",
+      "useKind": "personality",
+      "backendItemKey": "personality-reroll",
+      "art": "personality-reroll",
+      "delivery": {
+        "kind": "inventory_item",
+        "key": "personality-reroll"
+      }
+    },
+    {
+      "id": "talent-revealed",
+      "name": "Talent révélé",
+      "category": "gestion",
+      "source": "sapin",
+      "description": "Un talent se révèle à mi-chemin de l’étoile du Peloton.",
+      "effect": "Débloque un talent permanent au choix pour un coureur de ton équipe. Un talent déjà acquis ne peut pas être choisi à nouveau. L’objet est conservé si aucun nouveau talent ne peut être attribué.",
+      "useKind": "special-ability",
+      "backendItemKey": "talent-revealed",
+      "art": "talent-revealed",
+      "delivery": {
+        "kind": "daily_reward",
+        "key": "talent-revealed"
+      }
+    },
+    {
+      "id": "hotte-doublons",
+      "name": "Hotte à double fond",
+      "category": "collection",
+      "price": 95,
+      "description": "Échange trois exemplaires Argent en double contre une carte Argent S4 que tu n’as pas.",
+      "effect": "Échange 3 doublons Argent de l’album S4 contre 1 carte Argent que tu n’as pas. Tu gardes au moins un exemplaire de chaque carte donnée. La hotte est conservée si les trois doublons ou une carte Argent manquante ne sont pas disponibles.",
+      "useKind": "silver-trade",
+      "art": "hotte-doublons",
+      "delivery": {
+        "kind": "wallet_item"
+      }
+    },
+    {
+      "id": "booster-noel",
+      "name": "Booster du réveillon",
+      "category": "collection",
+      "price": 90,
+      "description": "Deux cartes Cyclo-Stickers S4, avec les probabilités habituelles de l’album.",
+      "effect": "Un booster de 2 cartes de l’album S4. Pour chaque carte, probabilités habituelles : 80 % Bronze, 16,9 % Argent, 3 % Or et 0,1 % Hors Série. Des doublons sont possibles.",
+      "useKind": "booster",
+      "albumEditionId": "cyclo-stickers-s5-s4-final-v1",
+      "art": "booster-noel",
+      "delivery": {
+        "kind": "collector_booster",
+        "editionId": "cyclo-stickers-s5-s4-final-v1"
+      }
+    },
+    {
+      "id": "vignette-renne",
+      "name": "Vignette surprise du réveillon",
+      "category": "collection",
+      "price": 115,
+      "description": "Une vignette rare S4 au hasard : 10 % Hors Série, 20 % Or et 70 % Argent. Doublon possible.",
+      "effect": "Une vignette rare au hasard dans l’album S4 : 10 % Hors Série, 20 % Or et 70 % Argent. Le tirage peut donner une carte déjà possédée.",
+      "useKind": "sticker",
+      "rarityOdds": {
+        "holographic": 10,
+        "gold": 20,
+        "silver": 70
+      },
+      "albumEditionId": "cyclo-stickers-s5-s4-final-v1",
+      "art": "vignette-renne",
+      "delivery": {
+        "kind": "wallet_item"
+      }
+    },
+    {
+      "id": "bonnet-course-noel",
+      "name": "Bonnet de course de Noël",
+      "category": "equipment",
+      "source": "contribution",
+      "equipmentSlot": "helmet",
+      "description": "Un casque de course rouge habillé d’un revers de laine et d’un pompon de Noël. Le cadeau des contributeurs classés 4e à 6e.",
+      "effect": "Équipement de coureur · Casque · +2 en montagne et +2 en résistance. Conservé après l’événement. Il remplace le casque du coureur équipé, sans se cumuler avec lui.",
+      "bonuses": {
+        "mountain": 2,
+        "resistance": 2
+      },
+      "useKind": "equipment",
+      "art": "bonnet-course-noel",
+      "delivery": {
+        "kind": "equipment",
+        "key": "christmas-2026-bonnet-course-noel"
+      }
+    },
+    {
+      "id": "potential-notebook",
+      "name": "Carnet de progression",
+      "category": "gestion",
+      "source": "sapin",
+      "description": "Le consommable existant qui ouvre une nouvelle marge de progression à un coureur.",
+      "effect": "Ajoute définitivement 1 étoile de potentiel à un coureur de 3 étoiles ou moins, sans dépasser 4 étoiles. Aucun objet n’est consommé si l’étoile entière ne peut pas être appliquée.",
+      "useKind": "potential",
+      "backendItemKey": "potential-notebook",
+      "effectPayload": {
+        "potentialBonus": 1
+      },
+      "art": "potential-notebook",
+      "delivery": {
+        "kind": "inventory_item",
+        "key": "potential-notebook"
+      }
+    },
+    {
+      "id": "cuissard-quatre-saisons",
+      "name": "Cuissard Quatre Saisons",
+      "category": "equipment",
+      "source": "contribution",
+      "equipmentSlot": "bib_shorts",
+      "description": "Ignore les malus de notes liés à la météo",
+      "effect": "Ignore les malus de notes liés à la météo",
+      "bonuses": {},
+      "effects": {
+        "ignoreWeatherPenalties": true
+      },
+      "useKind": "equipment",
+      "art": "cuissard-quatre-saisons",
+      "delivery": {
+        "kind": "equipment",
+        "key": "christmas-2026-cuissard-quatre-saisons"
+      }
+    },
+    {
+      "id": "cadre-traineau-renne",
+      "name": "Traîneau du renne en danseuse",
+      "category": "equipment",
+      "source": "contribution",
+      "equipmentSlot": "frame",
+      "description": "+3 END / RES / REC · +2 MON",
+      "effect": "+3 END / RES / REC · +2 MON",
+      "bonuses": {
+        "endurance": 3,
+        "resistance": 3,
+        "recovery": 3,
+        "mountain": 2
+      },
+      "effects": {},
+      "useKind": "equipment",
+      "art": "cadre-traineau-renne",
+      "delivery": {
+        "kind": "equipment",
+        "key": "christmas-2026-cadre-traineau-renne"
+      }
+    },
+    {
+      "id": "gants-dernier-relais",
+      "name": "Gants du dernier relais",
+      "category": "equipment",
+      "source": "contribution",
+      "equipmentSlot": "gloves",
+      "description": "+1 END · +1 REC",
+      "effect": "+1 END · +1 REC",
+      "bonuses": {
+        "endurance": 1,
+        "recovery": 1
+      },
+      "effects": {},
+      "useKind": "equipment",
+      "art": "gants-dernier-relais",
+      "delivery": {
+        "kind": "equipment",
+        "key": "christmas-2026-gants-dernier-relais"
+      }
+    }
+  ],
+  "advent": [
+    {
+      "title": "Départ du vélodrome",
+      "description": "Le premier cadeau attend sous la ligne de départ.",
+      "kind": "grelots",
+      "amount": 35
+    },
+    {
+      "title": "Le petit braquet",
+      "description": "De quoi prendre son élan vers la boutique.",
+      "kind": "grelots",
+      "amount": 15
+    },
+    {
+      "title": "Le bonnet des étoiles",
+      "description": "Ton premier cosmétique exclusif de l’Avent : le Bonnet de la nuit étoilée.",
+      "kind": "item",
+      "itemId": "avent-bonnet-constellation"
+    },
+    {
+      "title": "La roue de secours",
+      "description": "Une poche de grelots était restée dans la sacoche.",
+      "kind": "grelots",
+      "amount": 15
+    },
+    {
+      "title": "Les éclaireurs polaires",
+      "description": "Une boussole pour renforcer la qualité de scouting pendant sept jours.",
+      "kind": "item",
+      "itemId": "boussole-polaire"
+    },
+    {
+      "title": "La table de fartage",
+      "description": "Un petit lot caché sous les chiffons de l’atelier.",
+      "kind": "grelots",
+      "amount": 15
+    },
+    {
+      "title": "La nuit des lanternes",
+      "description": "Un fond de portrait exclusif de l’Avent, entre lanternes ambrées et neige mauve.",
+      "kind": "item",
+      "itemId": "avent-nuit-lanternes"
+    },
+    {
+      "title": "Le virage des sapins",
+      "description": "Les bénévoles vous ont gardé quelques grelots.",
+      "kind": "grelots",
+      "amount": 20
+    },
+    {
+      "title": "Le grelot de secours",
+      "description": "Un Second tour du traîneau : une nouvelle tournée dont tous les gains s’ajoutent à ceux du jour.",
+      "kind": "item",
+      "itemId": "grelot-repechage"
+    },
+    {
+      "title": "Au pied du col",
+      "description": "Le ravitaillement est arrivé avant la neige.",
+      "kind": "grelots",
+      "amount": 20
+    },
+    {
+      "title": "L’odeur du pain d’épices",
+      "description": "Une écharpe brodée, exclusive de l’Avent, pour ton portrait.",
+      "kind": "item",
+      "itemId": "avent-echarpe-pain-epices"
+    },
+    {
+      "title": "La pause à l’atelier",
+      "description": "Le mécanicien a trouvé un grelot sous l’établi. Et vingt-quatre autres derrière.",
+      "kind": "grelots",
+      "amount": 25
+    },
+    {
+      "title": "Le sachet du facteur",
+      "description": "Un booster de deux cartes de l’album Cyclo-Stickers S4.",
+      "kind": "item",
+      "itemId": "booster-noel"
+    },
+    {
+      "title": "Un tour de piste",
+      "description": "Le petit bonus du dernier passage sous les lampes.",
+      "kind": "grelots",
+      "amount": 20
+    },
+    {
+      "title": "Deux étapes à reconnaître",
+      "description": "Le préparateur a laissé son carnet dans votre sacoche.",
+      "kind": "item",
+      "itemId": "carnet-eclaireur"
+    },
+    {
+      "title": "Le col dégagé",
+      "description": "Le chasse-neige a libéré la route et la caisse du ravitaillement.",
+      "kind": "grelots",
+      "amount": 20
+    },
+    {
+      "title": "La hotte des doublons",
+      "description": "Une Hotte à double fond pour échanger trois doublons Argent contre une Argent manquante.",
+      "kind": "item",
+      "itemId": "hotte-doublons"
+    },
+    {
+      "title": "La parade du Casse-Noisette",
+      "description": "Une veste de fête à brandebourgs dorés, exclusive de l’Avent.",
+      "kind": "item",
+      "itemId": "avent-manteau-casse-noisette"
+    },
+    {
+      "title": "Sur les pavés gelés",
+      "description": "Les grelots du vélo ont laissé quelques pièces en chemin.",
+      "kind": "grelots",
+      "amount": 20
+    },
+    {
+      "title": "La carte du retour",
+      "description": "Une vignette rare S4 au hasard : 10 % Hors Série, 20 % Or et 70 % Argent. Doublon possible.",
+      "kind": "item",
+      "itemId": "vignette-renne"
+    },
+    {
+      "title": "Les cartes sous le sapin",
+      "description": "Un sachet de Noël à ouvrir pour l’album Cyclo-Stickers.",
+      "kind": "item",
+      "itemId": "booster-noel"
+    },
+    {
+      "title": "Le dernier faux plat",
+      "description": "Les lutins ont préparé un ravitaillement avant la dernière tournée.",
+      "kind": "grelots",
+      "amount": 25
+    },
+    {
+      "title": "La veillée des DS",
+      "description": "Des grelots pour choisir un dernier objet à la boutique.",
+      "kind": "grelots",
+      "amount": 35
+    },
+    {
+      "title": "La dentelle du réveillon",
+      "description": "Le dernier cosmétique exclusif de l’Avent : un cadre de cristaux et de flocons argentés.",
+      "kind": "item",
+      "itemId": "avent-cadre-givre"
+    }
+  ],
+  "milestones": [
+    {
+      "goal": 500,
+      "name": "La première lueur",
+      "grelots": 25,
+      "items": []
+    },
+    {
+      "goal": 1500,
+      "name": "Le village s’éveille",
+      "grelots": 40,
+      "items": []
+    },
+    {
+      "goal": 3500,
+      "name": "Le relais des bonnets",
+      "grelots": 0,
+      "items": [
+        "bonnet-relais"
+      ]
+    },
+    {
+      "goal": 6500,
+      "name": "Des cartes sous le sapin",
+      "grelots": 60,
+      "items": [
+        "booster-noel"
+      ]
+    },
+    {
+      "goal": 10000,
+      "name": "La couronne du Peloton",
+      "grelots": 0,
+      "items": [
+        "cadre-grand-sapin",
+        "talent-revealed"
+      ]
+    },
+    {
+      "goal": 14000,
+      "name": "Les éclaireurs polaires",
+      "grelots": 0,
+      "items": [
+        "boussole-polaire",
+        "carnet-eclaireur",
+        "personality-reroll"
+      ]
+    },
+    {
+      "goal": 19000,
+      "name": "L’aurore des champions",
+      "grelots": 0,
+      "items": [
+        "tenue-aurore"
+      ]
+    },
+    {
+      "goal": 23500,
+      "name": "La hotte précieuse",
+      "grelots": 0,
+      "items": [
+        "booster-noel",
+        "booster-noel",
+        "vignette-renne",
+        "vignette-renne"
+      ]
+    },
+    {
+      "goal": 28000,
+      "name": "L’étoile du Peloton",
+      "grelots": 0,
+      "items": [
+        "potential-notebook"
+      ]
+    }
+  ],
+  "contributionRewards": [
+    {
+      "from": 1,
+      "to": 1,
+      "place": "1er",
+      "id": "cuissard-quatre-saisons",
+      "name": "Cuissard Quatre Saisons",
+      "type": "Cuissard",
+      "slot": "bib_shorts",
+      "effect": "Ignore les malus de notes liés à la météo",
+      "bonuses": {},
+      "effects": {
+        "ignoreWeatherPenalties": true
+      }
+    },
+    {
+      "from": 2,
+      "to": 3,
+      "place": "2e–3e",
+      "id": "cadre-traineau-renne",
+      "name": "Traîneau du renne en danseuse",
+      "type": "Cadre",
+      "slot": "frame",
+      "effect": "+3 END / RES / REC · +2 MON",
+      "bonuses": {
+        "endurance": 3,
+        "resistance": 3,
+        "recovery": 3,
+        "mountain": 2
+      }
+    },
+    {
+      "from": 4,
+      "to": 6,
+      "place": "4e–6e",
+      "id": "bonnet-course-noel",
+      "name": "Bonnet de course de Noël",
+      "type": "Casque",
+      "slot": "helmet",
+      "effect": "+2 MON · +2 RES",
+      "bonuses": {
+        "mountain": 2,
+        "resistance": 2
+      }
+    },
+    {
+      "from": 7,
+      "to": 10,
+      "place": "7e–10e",
+      "id": "gants-dernier-relais",
+      "name": "Gants du dernier relais",
+      "type": "Gants",
+      "slot": "gloves",
+      "effect": "+1 END · +1 REC",
+      "bonuses": {
+        "endurance": 1,
+        "recovery": 1
+      }
+    }
+  ]
+}

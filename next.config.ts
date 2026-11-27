@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["cdb-converter", "sql.js"],
   outputFileTracingIncludes: {
     "/apercus/noel/*": ["./assets/christmas-preview/*"],
+    "/jeu/noel/experience/*": ["./assets/christmas-preview/*", "./assets/christmas-production/*"],
+    "/api/christmas": ["./assets/christmas-preview/rules.js", "./assets/christmas-preview/flight-physics.js", "./assets/christmas-preview/tournee.js"],
     "/api/admin/gala-s4-export": [
       "./assets/pcm/OfficialRelease.template.cdb",
       "./assets/pcm/OfficialLocal.template.cdb",
@@ -82,6 +84,13 @@ const nextConfig: NextConfig = {
         source: "/apercus/noel/tournee.html",
         headers: [
           { key: "Content-Security-Policy", value: christmasPreviewCsp + "; frame-ancestors 'self'" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+        ],
+      },
+      {
+        source: "/jeu/noel/experience/:fichier",
+        headers: [
+          { key: "Content-Security-Policy", value: christmasPreviewCsp + "; connect-src 'self'; frame-ancestors 'self'" },
           { key: "X-Frame-Options", value: "SAMEORIGIN" },
         ],
       },

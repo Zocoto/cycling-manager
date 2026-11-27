@@ -1,4 +1,6 @@
-/** Visual skin only. Does not activate Halloween games, rewards or inventory. */
+import { isChristmasEventOpen, CHRISTMAS_STARTS_AT, CHRISTMAS_ENDS_AT } from "@/lib/game/christmas-event";
+
+/** Visual skin only. Does not activate seasonal games, rewards or inventory. */
 export type AnnualThemeWindow = { start: { month: number; day: number }; end: { month: number; day: number } };
 export type SeasonalThemeConfiguration = { enabled: boolean; window: AnnualThemeWindow | null };
 
@@ -9,6 +11,11 @@ export const HALLOWEEN_SITE_THEME: SeasonalThemeConfiguration = {
   enabled: true,
   window: { start: { month: 10, day: 9 }, end: { month: 11, day: 2 } },
 };
+export const CHRISTMAS_SITE_THEME = {
+  enabled: true,
+  startsAt: CHRISTMAS_STARTS_AT,
+  endsAt: CHRISTMAS_ENDS_AT,
+} as const;
 const parisDate = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Paris", month: "numeric", day: "numeric" });
 
 function validDay({ month, day }: { month: number; day: number }) {
@@ -25,9 +32,11 @@ export function isInAnnualThemeWindow(now: Date, window: AnnualThemeWindow): boo
   return start <= end ? day >= start && day <= end : day >= start || day <= end;
 }
 
-export function getActiveSiteTheme(now = new Date(), configuration = HALLOWEEN_SITE_THEME): "halloween" | undefined {
-  if (!configuration.enabled || !configuration.window) return undefined;
-  return isInAnnualThemeWindow(now, configuration.window) ? "halloween" : undefined;
+export function getActiveSiteTheme(now = new Date(), configuration?: SeasonalThemeConfiguration): "halloween" | "christmas" | undefined {
+  if (!configuration && CHRISTMAS_SITE_THEME.enabled && isChristmasEventOpen(now)) return "christmas";
+  const halloween = configuration ?? HALLOWEEN_SITE_THEME;
+  if (!halloween.enabled || !halloween.window) return undefined;
+  return isInAnnualThemeWindow(now, halloween.window) ? "halloween" : undefined;
 }
 
 /** Paris offsets are whole hours: checking on the next UTC hour covers civil midnight,

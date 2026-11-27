@@ -69,7 +69,7 @@ describe("mobile game navigation", () => {
     expect(source).toContain("getActiveGameNavigationGroupId");
     expect(source).toContain("expandedGroupIds.has(group.id)");
     expect(source).toContain("data-navigation-group={group.id}");
-    expect(source).toContain("NAVIGATION_EVENTS_FR");
+    expect(source).toContain("getGameNavigationEvents(locale)");
     expect(source).not.toContain("expandedGroupIndexes");
     expect(source).toContain("showJerseyWorkshop");
     expect(source).toContain("onNavigate={() => closePanel()}");

@@ -1,3 +1,5 @@
+import { CHRISTMAS_EVENT_HREF, isChristmasEventOpen } from "@/lib/game/christmas-event";
+
 export type GameNavigationGroupId = "team" | "races" | "equipment" | "club" | "federation" | "community";
 export type GameNavigationLink = readonly [label: string, href: string];
 export type GameNavigationGroup = {
@@ -80,6 +82,13 @@ export const NAVIGATION_GROUPS_EN: ReadonlyArray<GameNavigationGroup> = [
 // Album, Halloween and private/admin shortcuts retain their existing gates.
 export const NAVIGATION_EVENTS_FR: ReadonlyArray<GameNavigationLink> = [["Le Grand Gala · Saison 4","/jeu/gala-saison-4"]];
 export const NAVIGATION_EVENTS_EN: ReadonlyArray<GameNavigationLink> = [["The Grand Gala · Season 4","/jeu/gala-saison-4"]];
+
+export function getGameNavigationEvents(locale = "fr", now = new Date()): ReadonlyArray<GameNavigationLink> {
+  const events = locale === "en" ? NAVIGATION_EVENTS_EN : NAVIGATION_EVENTS_FR;
+  return isChristmasEventOpen(now)
+    ? [[locale === "en" ? "Christmas in the peloton" : "Le Noël du Peloton", CHRISTMAS_EVENT_HREF], ...events]
+    : events;
+}
 
 export function getGameNavigationGroups({locale="fr",federationCountryCode,showJerseyWorkshop=false}: {
   locale?: string;

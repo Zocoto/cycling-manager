@@ -34,6 +34,7 @@ import { getPublicSiteUrl } from "../../../lib/auth/public-site-url";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import { getCurrentReferralOverview } from "../../../services/referrals";
 import { getOnboardingCountryDirectorCounts } from "@/services/onboarding-country-counts";
+import { getChristmasAvatarWardrobe } from "@/services/christmas-avatar-wardrobe";
 import { getHalloweenAvatarWardrobe } from "@/services/halloween-avatar-wardrobe";
 import { getSportingDirectorSeasonAwards } from "../../../services/season-awards";
 import { getSportingDirectorReputationBreakdown } from "../../../services/sporting-director-reputation";
@@ -111,7 +112,7 @@ export default async function SportingDirectorProfilePage() {
     redirect("/connexion");
   }
 
-  const [profileResult, countriesResult, referralOverview, halloweenWardrobe] =
+  const [profileResult, countriesResult, referralOverview, halloweenWardrobe, christmasWardrobe] =
     await Promise.all([
       supabase
         .from("sporting_directors")
@@ -148,6 +149,7 @@ export default async function SportingDirectorProfilePage() {
         () => null,
       ),
       getHalloweenAvatarWardrobe(user.id),
+      getChristmasAvatarWardrobe(user.id),
     ]);
 
   let teamSponsorIdentity:
@@ -406,6 +408,7 @@ export default async function SportingDirectorProfilePage() {
                 <div className="mt-8">
                   <SportingDirectorProfileForm
                     halloweenWardrobe={halloweenWardrobe}
+                    christmasWardrobe={christmasWardrobe}
                     countries={countries}
                     initialDisplayName={
                       sportingDirector.display_name
