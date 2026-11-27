@@ -30,6 +30,7 @@ import {
 } from "@/lib/game/training";
 import { buildTrainingBonusBreakdown } from "@/lib/game/training-bonus-breakdown";
 import { getTrainingRewardMultiplierForDay } from "@/lib/game/training-reward-multiplier";
+import { getTrainingPersonalityBonus } from "@/lib/game/training-personality-bonus";
 import {
   parseSquadStatus,
   type SquadStatus,
@@ -63,6 +64,7 @@ type RiderRow = {
   avatar_seed: number | string | null;
   potential_steps: number;
   decline_resistance_multiplier: number | string;
+  personality_key?: string | null;
 };
 type CountryRow = { id: string; name: string; iso_alpha2: string };
 type SpecialAbilityRow = {
@@ -301,7 +303,7 @@ export async function getCurrentTeamTrainingOverview(
         ? admin
             .from("riders")
             .select(
-              "id, country_id, first_name, last_name, avatar_profile_key, avatar_seed, potential_steps, decline_resistance_multiplier",
+              "id, country_id, first_name, last_name, avatar_profile_key, avatar_seed, potential_steps, decline_resistance_multiplier, personality_key",
             )
             .in("id", riderIds)
             .returns<RiderRow[]>()
@@ -593,6 +595,13 @@ export async function getCurrentTeamTrainingOverview(
         const domain =
           planRow && isTrainingDomain(planRow.domain) ? planRow.domain : "stage_racer";
         const reportRow = latestSessionByRiderId.get(rider.id);
+        const reportPersonalityBonus = reportRow
+          ? getTrainingPersonalityBonus({
+              recordedPercentage: reportRow.personality_bonus_percentage,
+              currentPersonalityKey: rider.personality_key,
+              completed: reportRow.status === "completed",
+            })
+          : null;
         const reportDayNumber = reportRow
           ? (dayNumberById.get(reportRow.season_day_id) ?? currentDayNumber)
           : currentDayNumber;
@@ -700,6 +709,7 @@ export async function getCurrentTeamTrainingOverview(
                   progressMilli: reportRow.progress_milli ?? {},
                   declineMilli: reportRow.decline_milli ?? {},
                   ratingChanges: reportRow.rating_changes ?? {},
+                  personalityBonus: reportPersonalityBonus,
                   bonusBreakdownByStat: Object.fromEntries(
                     TRAINING_STAT_CODES.map((statCode) => [
                       statCode,
@@ -735,6 +745,9 @@ export async function getCurrentTeamTrainingOverview(
                           reportDayNumber,
                         ),
                         hasFirstInClass: firstInClassRiderIds.has(rider.id),
+                        personalityBonusPercentage: reportPersonalityBonus?.source === "session"
+                          ? reportPersonalityBonus.percentage
+                          : 0,
                       }),
                     ]),
                   ),

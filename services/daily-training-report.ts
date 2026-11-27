@@ -23,7 +23,7 @@ type SeasonRow = {
 type TeamSeasonRow = { display_name: string };
 type DayRow = { id: string; day_number: number; calendar_date: string };
 type ContractRow = { rider_id: string };
-type RiderRow = { id: string; first_name: string; last_name: string };
+type RiderRow = { id: string; first_name: string; last_name: string; personality_key?: string | null };
 type SeniorSessionRow = {
   rider_id: string;
   status: string;
@@ -31,11 +31,13 @@ type SeniorSessionRow = {
   form_before: number;
   form_delta: number;
   form_after: number;
+  personality_bonus_percentage?: number | string | null;
 };
 type AcademyRow = {
   id: string;
   first_name: string;
   last_name: string;
+  personality_key?: string | null;
 };
 type JuniorSessionRow = {
   academy_rider_id: string;
@@ -43,6 +45,7 @@ type JuniorSessionRow = {
   slot: string;
   game_type: string | null;
   rating_changes: Record<string, number> | null;
+  personality_bonus_percentage?: number | string | null;
 };
 
 type TrainingReportContext = {
@@ -78,7 +81,7 @@ export async function getDailySeniorTrainingReport(
     admin
       .from("rider_training_sessions")
       .select(
-        "rider_id, status, rating_changes, form_before, form_delta, form_after",
+        "rider_id, status, rating_changes, form_before, form_delta, form_after, personality_bonus_percentage",
       )
       .eq("team_id", context.teamId)
       .eq("season_id", context.seasonId)
@@ -103,6 +106,8 @@ export async function getDailySeniorTrainingReport(
     formBefore: session.form_before,
     formDelta: session.form_delta,
     formAfter: session.form_after,
+    personalityBonusPercentage: session.personality_bonus_percentage == null
+      ? null : Number(session.personality_bonus_percentage),
   }));
   const reportRiders = buildSeniorDailyTrainingRiders({ riders, sessions });
 
@@ -131,7 +136,7 @@ export async function getDailyJuniorTrainingReport(
 
   const academyResult = await admin
     .from("youth_academy_riders")
-    .select("id, first_name, last_name")
+    .select("id, first_name, last_name, personality_key")
     .eq("team_id", context.teamId)
     .in("status", ["active", "recruited"])
     .returns<AcademyRow[]>();
@@ -143,7 +148,7 @@ export async function getDailyJuniorTrainingReport(
     ? await admin
         .from("youth_academy_training_sessions")
         .select(
-          "academy_rider_id, training_mode, slot, game_type, rating_changes",
+          "academy_rider_id, training_mode, slot, game_type, rating_changes, personality_bonus_percentage",
         )
         .eq("season_id", context.seasonId)
         .eq("season_day_id", day.id)
@@ -156,6 +161,7 @@ export async function getDailyJuniorTrainingReport(
     id: rider.id,
     firstName: rider.first_name,
     lastName: rider.last_name,
+    personalityKey: rider.personality_key,
   }));
   const sessions: JuniorTrainingSessionSource[] = (
     sessionsResult.data ?? []
@@ -165,6 +171,8 @@ export async function getDailyJuniorTrainingReport(
     slot: session.slot,
     gameType: session.game_type,
     ratingChanges: session.rating_changes ?? {},
+    personalityBonusPercentage: session.personality_bonus_percentage == null
+      ? null : Number(session.personality_bonus_percentage),
   }));
   const reportRiders = buildJuniorDailyTrainingRiders({ riders, sessions });
 
@@ -270,7 +278,7 @@ async function loadRiders(
   if (!riderIds.length) return [];
   const { data, error } = await admin
     .from("riders")
-    .select("id, first_name, last_name")
+    .select("id, first_name, last_name, personality_key")
     .in("id", riderIds)
     .returns<RiderRow[]>();
   assertQuery(error, "l’identité des coureurs");
@@ -278,6 +286,7 @@ async function loadRiders(
     id: rider.id,
     firstName: rider.first_name,
     lastName: rider.last_name,
+    personalityKey: rider.personality_key,
   }));
 }
 

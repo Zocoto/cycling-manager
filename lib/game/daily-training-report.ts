@@ -3,6 +3,11 @@ import {
   type RiderRatingKey,
 } from "@/lib/game/rider-profile";
 import type { TrainingSessionStatus } from "@/lib/game/training";
+import {
+  getDailyTrainingPersonalityBonus,
+  getTrainingPersonalityBonus,
+  type TrainingPersonalityBonus,
+} from "@/lib/game/training-personality-bonus";
 
 export type DailyTrainingAudience = "senior" | "junior";
 
@@ -24,6 +29,7 @@ export type DailyTrainingRiderReport = {
   formBefore: number | null;
   formDelta: number | null;
   formAfter: number | null;
+  personalityBonus?: TrainingPersonalityBonus | null;
 };
 
 export type DailyTrainingReport = {
@@ -44,6 +50,7 @@ export type TrainingReportRiderSource = {
   id: string;
   firstName: string;
   lastName: string;
+  personalityKey?: unknown;
 };
 
 export type SeniorTrainingSessionSource = {
@@ -53,6 +60,7 @@ export type SeniorTrainingSessionSource = {
   formBefore: number;
   formDelta: number;
   formAfter: number;
+  personalityBonusPercentage?: number | null;
 };
 
 export type JuniorTrainingSessionSource = {
@@ -61,6 +69,7 @@ export type JuniorTrainingSessionSource = {
   slot: string;
   gameType: string | null;
   ratingChanges: Record<string, number>;
+  personalityBonusPercentage?: number | null;
 };
 
 const SENIOR_STAT_KEY_MAP: Record<string, RiderRatingKey> = {
@@ -115,6 +124,11 @@ export function buildSeniorDailyTrainingRiders({
         formBefore: session?.formBefore ?? null,
         formDelta: session?.formDelta ?? null,
         formAfter: session?.formAfter ?? null,
+        personalityBonus: getTrainingPersonalityBonus({
+          recordedPercentage: session?.personalityBonusPercentage,
+          currentPersonalityKey: rider.personalityKey,
+          completed: session?.status === "completed",
+        }),
       };
     })
     .sort(compareRiderNames);
@@ -159,6 +173,10 @@ export function buildJuniorDailyTrainingRiders({
         formBefore: null,
         formDelta: null,
         formAfter: null,
+        personalityBonus: getDailyTrainingPersonalityBonus({
+          recordedPercentages: riderSessions.map((session) => session.personalityBonusPercentage),
+          currentPersonalityKey: rider.personalityKey,
+        }),
       };
     })
     .sort(compareRiderNames);

@@ -4,6 +4,7 @@ import {
   type RiderRatings,
 } from "@/lib/game/rider-profile";
 import type { BonusBreakdown } from "@/lib/game/bonus-breakdown";
+import type { TrainingPersonalityBonus } from "@/lib/game/training-personality-bonus";
 import {
   getSkippedLowFormRecoveryGain,
   getTrainingCenterSpecializationProgressBonusPercentage,
@@ -70,6 +71,7 @@ export type RiderTrainingReport = {
   declineMilli: Record<string, number>;
   ratingChanges: Record<string, number>;
   bonusBreakdownByStat?: Partial<Record<TrainingStatCode, BonusBreakdown>>;
+  personalityBonus?: TrainingPersonalityBonus | null;
   processedAt: string;
 };
 

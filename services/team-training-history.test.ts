@@ -3,22 +3,23 @@ import { loadTeamTrainingHistory } from "./team-training-history";
 
 type Row = { id: string; rider_id: string; season_id: string; is_contract_eligible: boolean; processed_at: string };
 function fixture(rows: Row[], failAt = -1) {
-  const requests: Array<{ filters: Record<string, unknown>; from: number; to: number; order: string[] }> = [];
+  const requests: Array<{ filters: Record<string, unknown>; from: number; to: number; order: string[]; selected: string }> = [];
   let inFlight = 0, peak = 0;
   return { requests, peak: () => peak, client: { from(table: string) {
     expect(table).toBe("rider_training_sessions");
     const filters: Record<string, unknown> = {};
     const order: string[] = [];
+    let selected = "";
     let start = 0, end = 0;
     const builder = {
-      select: () => builder,
+      select(columns: string) { selected = columns; return builder; },
       eq(key: string, value: unknown) { filters[key] = value; return builder; },
       in(key: string, values: string[]) { filters[key] = values; return builder; },
       order(key: string, options?: { ascending: boolean }) { order.push(`${key}:${options?.ascending === false ? "desc" : "asc"}`); return builder; },
       range(from: number, to: number) { start = from; end = to; return builder; },
       async returns() {
         const requestIndex = requests.length;
-        requests.push({ filters, from: start, to: end, order });
+        requests.push({ filters, from: start, to: end, order, selected });
         peak = Math.max(peak, ++inFlight);
         await Promise.resolve();
         inFlight--;
@@ -54,6 +55,7 @@ describe("bounded training history", () => {
       expect((request.filters.rider_id as string[]).length).toBeLessThanOrEqual(50);
       expect(request.to - request.from).toBe(499);
       expect(request.order).toEqual(["rider_id:asc", "processed_at:desc", "id:desc"]);
+      expect(request.selected).toContain("personality_bonus_percentage");
     }
   });
   it("does not query an empty roster", async () => {

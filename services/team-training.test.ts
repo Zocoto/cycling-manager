@@ -107,3 +107,36 @@ describe("editable training coach references", () => {
     await expect(getCurrentTeamTrainingOverview("user")).rejects.toThrow("contrats des entraîneurs");
   });
 });
+
+describe("recorded training personality bonuses", () => {
+  it.each([
+    { recorded: 5, current: "fidele", status: "completed", source: "session", inBreakdown: true },
+    { recorded: "5", current: "assidu", status: "completed", source: "session", inBreakdown: true },
+    { recorded: 0, current: "assidu", status: "completed", source: null, inBreakdown: false },
+    { recorded: null, current: "assidu", status: "completed", source: "current", inBreakdown: false },
+    { recorded: 5, current: "assidu", status: "skipped_low_form", source: null, inBreakdown: false },
+  ])("preserves $recorded with current $current and $status", async ({ recorded, current, status, source, inBreakdown }) => {
+    const test = fixture("active-coach");
+    test.tables.riders[0].personality_key = current;
+    const session = {
+      rider_id: "tedla", season_day_id: "day17", status, intensity: 58,
+      domain: "stage_racer", minimum_form: 50, trainer_level: 4,
+      trainer_specialty: "flat", trainer_country_match: true,
+      physiotherapist_level: 0, form_before: 80, form_delta: -2, form_after: 78,
+      progress_milli: { mountain: 270 }, decline_milli: {}, rating_changes: {},
+      personality_bonus_percentage: recorded,
+    };
+    mocks.history.mockResolvedValue({ data: [session], error: null });
+    mocks.admin.mockReturnValue(test.client);
+
+    const overview = await getCurrentTeamTrainingOverview("user");
+    const report = overview?.riders[0].latestReport;
+    expect(report?.personalityBonus).toEqual(source ? { percentage: 5, source } : null);
+    expect(report?.bonusBreakdownByStat?.mountain?.items.some(item => item.key === "personality-assidu")).toBe(inBreakdown);
+    expect(report?.progressMilli).toEqual({ mountain: 270 });
+    expect(report?.formAfter).toBe(78);
+    expect(session.personality_bonus_percentage).toBe(recorded);
+    expect(test.calls.filter(table => table === "riders")).toHaveLength(1);
+    expect(mocks.history).toHaveBeenCalledOnce();
+  });
+});

@@ -1,4 +1,5 @@
 import Link from "@/components/ui/app-link";
+import { TrainingPersonalityBonusNotice } from "@/components/game/training-personality-bonus-notice";
 import {
   formatDailyTrainingRiderSentence,
   formatTrainingChange,
@@ -89,9 +90,10 @@ export function DailyTrainingTextReport({
                 <strong className="text-sm font-black text-[#183F37]">
                   {rider.firstName} {rider.lastName}
                 </strong>
-                <p className="col-start-2 text-xs font-semibold leading-5 text-[#60756E] sm:col-start-3 sm:text-[13px]">
-                  {formatDailyTrainingRiderSentence(rider)}
-                </p>
+                <div className="col-start-2 text-xs font-semibold leading-5 text-[#60756E] sm:col-start-3 sm:text-[13px]">
+                  <p>{formatDailyTrainingRiderSentence(rider)}</p>
+                  {rider.personalityBonus && (rider.status === "completed" || rider.status === "junior_completed") ? <div className="mt-1.5"><TrainingPersonalityBonusNotice bonus={rider.personalityBonus} /></div> : null}
+                </div>
               </li>
             ))}
           </ol>

@@ -36,6 +36,7 @@ export function buildTrainingBonusBreakdown({
   trainerMatchesFederation = false,
   dailyRewardMultiplier = 1,
   hasFirstInClass = false,
+  personalityBonusPercentage = 0,
 }: {
   ratingKey: RiderRatingKey;
   trainerLevel: number;
@@ -53,6 +54,7 @@ export function buildTrainingBonusBreakdown({
   trainerMatchesFederation?: boolean;
   dailyRewardMultiplier?: number;
   hasFirstInClass?: boolean;
+  personalityBonusPercentage?: number;
 }): BonusBreakdown {
   const safeTrainerLevel = Math.min(5, Math.max(0, Math.trunc(trainerLevel)));
   const items: BonusBreakdownItem[] = [];
@@ -202,6 +204,15 @@ export function buildTrainingBonusBreakdown({
       label: "Capacité Premier de la classe",
       percentage: (FIRST_IN_CLASS_TRAINING_MULTIPLIER - 1) * 100,
       detail: "Capacité spéciale permanente du coureur",
+    });
+  }
+
+  if (personalityBonusPercentage === 5) {
+    items.push({
+      key: "personality-assidu",
+      label: "Caractère Assidu",
+      percentage: 5,
+      detail: "Bonus de progression enregistré pour cette séance, avant plafonds et arrondis",
     });
   }
 

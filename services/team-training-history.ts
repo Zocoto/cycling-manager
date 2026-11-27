@@ -20,6 +20,7 @@ export type TrainingHistoryRow = {
   decline_milli: Record<string, number>;
   rating_changes: Record<string, number>;
   processed_at: string;
+  personality_bonus_percentage?: number | string | null;
 };
 
 /** Full season history, without an unbounded IN filter or silent 1,000-row truncation. */
@@ -36,7 +37,7 @@ export function loadTeamTrainingHistory(
     maxConcurrency: 1,
     fetchPage: async (chunk, from, to) => admin
       .from("rider_training_sessions")
-      .select("rider_id,season_day_id,status,intensity,domain,minimum_form,trainer_level,trainer_specialty,trainer_country_match,physiotherapist_level,form_before,form_delta,form_after,progress_milli,decline_milli,rating_changes,processed_at")
+      .select("rider_id,season_day_id,status,intensity,domain,minimum_form,trainer_level,trainer_specialty,trainer_country_match,physiotherapist_level,form_before,form_delta,form_after,progress_milli,decline_milli,rating_changes,processed_at,personality_bonus_percentage")
       .eq("season_id", seasonId)
       .eq("is_contract_eligible", true)
       .in("rider_id", chunk)

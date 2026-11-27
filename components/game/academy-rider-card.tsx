@@ -7,6 +7,7 @@ import { RiderPersonalityBadge } from "@/components/game/rider-personality";
 import { SpecialAbilityMedallion } from "@/components/game/special-ability-medallion";
 import { YouthPromotionForm } from "@/components/game/youth-promotion-form";
 import { YouthTrainingMiniGame } from "@/components/game/youth-training-mini-game";
+import { TrainingPersonalityBonusNotice } from "@/components/game/training-personality-bonus-notice";
 import { YouthDismissalSelectionField, YouthTrainingSettingsFields } from "@/components/game/youth-training-bulk-editor";
 import { RIDER_RATING_AXES, type RiderRatingKey } from "@/lib/game/rider-profile";
 import type { ReactNode } from "react";
@@ -203,6 +204,7 @@ function YouthTrainingReports({
 
         {latestReport ? (
           <div className="mt-3">
+            {latestReport.personalityBonus ? <div className="mb-2"><TrainingPersonalityBonusNotice bonus={latestReport.personalityBonus} /></div> : null}
             <p className="mb-2 text-[8px] font-black uppercase tracking-[0.12em] text-[#60756E]">
               Gains appliqués lors de cette séance
             </p>

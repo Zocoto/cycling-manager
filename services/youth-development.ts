@@ -1,4 +1,5 @@
 import "server-only";
+import { getTrainingPersonalityBonus, type TrainingPersonalityBonus } from "@/lib/game/training-personality-bonus";
 
 import { COUNTRY_MAP_COORDINATES } from "@/data/country-map-coordinates";
 import {
@@ -287,6 +288,7 @@ type YouthTrainingSessionRow = {
   score: number | null;
   rating_changes: Record<string, number>;
   processed_at: string;
+  personality_bonus_percentage?: number | string | null;
 };
 
 type YouthMoraleEventRow = {
@@ -446,6 +448,7 @@ export type AcademyYouth = {
     trainingMode: YouthTrainingMode;
     slot: "automatic" | YouthManualTrainingSlot;
     score: number | null;
+    personalityBonus?: TrainingPersonalityBonus | null;
   } | null;
   seasonTrainingReport: YouthSeasonTrainingSummary & {
     fromDayNumber: number;
@@ -1084,7 +1087,7 @@ async function loadOverview(admin: AdminClient, context: Context) {
         admin
           .from("youth_academy_training_sessions")
           .select(
-            "academy_rider_id, day_number, training_mode, slot, game_type, score, rating_changes, processed_at",
+            "academy_rider_id, day_number, training_mode, slot, game_type, score, rating_changes, processed_at, personality_bonus_percentage",
           )
           .in("academy_rider_id", academyIds)
           .eq("season_id", context.seasonId)
@@ -1126,6 +1129,7 @@ async function loadOverview(admin: AdminClient, context: Context) {
     moraleEventsByRider.set(event.academy_rider_id, events);
   }
   const sessionRows = latestSessionsResult.data ?? [];
+  const academyPersonalityByRiderId = new Map(academyRows.map((rider) => [rider.id, rider.personality_key]));
   const latestByRider = new Map<
     string,
     NonNullable<AcademyYouth["latestTrainingReport"]>
@@ -1156,6 +1160,10 @@ async function loadOverview(admin: AdminClient, context: Context) {
         trainingMode: session.training_mode,
         slot: session.slot,
         score: session.score,
+        personalityBonus: getTrainingPersonalityBonus({
+          recordedPercentage: session.personality_bonus_percentage,
+          currentPersonalityKey: academyPersonalityByRiderId.get(session.academy_rider_id),
+        }),
       });
     }
     if (session.day_number === context.currentDayNumber) {
@@ -2109,6 +2117,7 @@ async function settleAcademyTrainingSessions(
         slot: "automatic",
         game_type: null,
         score: null,
+        personality_bonus_percentage: personalityKey === "assidu" ? 5 : 0,
         rating_changes: changes,
         ratings_after: ratingsToRow(ratings),
       });

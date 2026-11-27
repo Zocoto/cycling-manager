@@ -4,6 +4,7 @@ import { useId, useState } from "react";
 
 import { TRAINER_SPECIALTY_LABELS } from "@/lib/game/staff";
 import { BonusBreakdownPopover } from "@/components/game/bonus-breakdown-popover";
+import { TrainingPersonalityBonusNotice } from "@/components/game/training-personality-bonus-notice";
 import {
   formatTrainingProgressMilli,
   getTrainingProgressLimit,
@@ -205,6 +206,9 @@ export function LatestTrainingReport({ report, seasonReport }: {
         </span>
       </div>
 
+      {isCompleted && report.personalityBonus ? (
+        <div className="mt-3"><TrainingPersonalityBonusNotice bonus={report.personalityBonus} tone="dark" /></div>
+      ) : null}
       <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-white/10 pt-4 text-xs">
         <ReportValue label="Avant" value={`${report.formBefore}%`} />
         <ReportValue label="Après" value={`${report.formAfter}%`} />

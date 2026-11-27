@@ -4882,5 +4882,12 @@
   "Ces décisions restent incluses dans la validation groupée.": "These decisions are still included in the bulk confirmation.",
   "Avant-course": "Before the race",
   "Fédération et Nations Cup": "Federation and Nations Cup",
-  "Programme et divisions.": "Schedule and divisions."
+  "Programme et divisions.": "Schedule and divisions.",
+  "Caractère Assidu": "Diligent personality",
+  "Caractère actuel : Assidu": "Current personality: Diligent",
+  "+5 % de progression": "+5% training progress",
+  "Bonus déjà inclus dans la progression, avant plafonds et arrondis.": "Bonus already included in training progress, before caps and rounding.",
+  "Cette ancienne séance ne détaille pas le caractère. Le bonus affiché est celui du caractère actuel.": "This older session did not record the personality. The displayed bonus belongs to the current personality.",
+  "Bonus de progression enregistré pour cette séance, avant plafonds et arrondis": "Training progress bonus recorded for this session, before caps and rounding",
+  "séances": "sessions"
 }
