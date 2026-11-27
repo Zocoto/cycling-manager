@@ -59,6 +59,7 @@ function createClient(): Client {
       eq: (key: string, value: unknown) => filter("eq", key, value),
       is: (key: string, value: unknown) => filter("is", key, value),
       neq: (key: string, value: unknown) => filter("neq", key, value),
+      not: (key: string, _operator: string, value: unknown) => filter("neq", key, value),
       in: (key: string, value: unknown[]) => filter("in", key, value),
       lte: (key: string, value: unknown) => filter("lte", key, value),
       gte: (key: string, value: unknown) => filter("gte", key, value),
@@ -149,6 +150,32 @@ describe("race preparation context season window", () => {
         time_trial: { riderId: RIDER, championshipType: "time_trial" },
       });
     } finally { warning.mockRestore(); }
+  });
+
+  it("removes stale compact RPC jerseys using the already loaded current country", async () => {
+    fixture.rows.riders[0].country_id = "co";
+    fixture.rows.countries.push({ id: "co", name: "Colombie", iso_alpha2: "CO", continent_code: "america" });
+    fixture.rows.riders[0].championship_titles = [
+      { championship_type: "road", country_code: "AM", country_name: "Arménie" },
+      { championship_type: "time_trial", country_code: "CO", country_name: "Colombie" },
+      { championship_type: "continental_asia_road" },
+      { championship_type: "continental_asia_time_trial" },
+      { championship_type: "world_road" },
+      { championship_type: "quadrennial_time_trial" },
+    ];
+
+    const calendar = await load();
+    const rider = calendar!.editions[0].engagedRiders[0];
+
+    expect(rider.nationalChampionships).toEqual({
+      time_trial: { riderId: RIDER, countryCode: "CO", countryName: "Colombie", championshipType: "time_trial", nationalDesign: undefined },
+    });
+    expect(rider.continentalChampionships).toBeUndefined();
+    expect(rider.worldChampionships).toMatchObject({ road: { championshipType: "road" } });
+    expect(rider.quadrennialChampionships).toMatchObject({ time_trial: { championshipType: "time_trial" } });
+    expect(fixture.calls.filter(call => call.source === "countries")).toHaveLength(1);
+    expect(fixture.calls.filter(call => call.source === "get_race_calendar_rider_context")).toHaveLength(1);
+    expect(fixture.calls.some(call => call.source === "rider_national_championship_titles" || call.source === "riders")).toBe(false);
   });
 
   it("retains both inclusive edges, previous-season carry-over and earlier replays even on J28", async () => {

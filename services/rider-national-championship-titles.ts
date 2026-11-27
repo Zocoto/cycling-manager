@@ -1,5 +1,10 @@
 import "server-only";
 
+import {
+  isChampionshipTitleEligibleForCurrentNationality,
+  type CurrentChampionshipRider,
+} from "@/lib/game/championship-title-eligibility";
+
 import { collectChunkedPaginatedRows } from "@/lib/supabase/pagination";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { NationalJerseyDraft } from "@/lib/game/national-jersey-preview";
@@ -47,6 +52,7 @@ type NationalChampionshipTitleRow = {
   rider_id: string;
   country_id: string;
   championship_type: "road" | "time_trial";
+  rider: CurrentChampionshipRider;
 };
 
 type CountryRow = {
@@ -91,7 +97,7 @@ export async function getActiveNationalChampionshipTitlesByDisciplineForRiders(
     fetchPage: async (riderIdChunk, from, to) => {
       const result = await supabase
         .from("rider_national_championship_titles")
-        .select("rider_id, country_id, championship_type")
+        .select("rider_id, country_id, championship_type, rider:riders!rider_national_championship_titles_rider_id_fkey(country_id, country:countries!riders_country_id_fkey(continent_code))")
         .in("rider_id", riderIdChunk)
         .in("championship_type", ["road", "time_trial"])
         .is("relinquished_at", null)
@@ -107,7 +113,14 @@ export async function getActiveNationalChampionshipTitlesByDisciplineForRiders(
     );
   }
 
-  const titleRows = titlesResult.data ?? [];
+  const titleRows = (titlesResult.data ?? []).filter((title) =>
+    isChampionshipTitleEligibleForCurrentNationality({
+      championshipType: title.championship_type,
+      titleCountryId: title.country_id,
+      riderCountryId: title.rider?.country_id,
+      riderContinentCode: title.rider?.country?.continent_code,
+    }),
+  );
   const countryIds = [...new Set(titleRows.map((title) => title.country_id))];
 
   if (countryIds.length === 0) {

@@ -1,6 +1,11 @@
 import "server-only";
 
 import {
+  isChampionshipTitleEligibleForCurrentNationality,
+  type CurrentChampionshipRider,
+} from "@/lib/game/championship-title-eligibility";
+
+import {
   CONTINENTAL_CHAMPION_PALETTES,
   type ContinentalChampionshipCode,
 } from "@/lib/rider-jersey";
@@ -28,6 +33,7 @@ export type ActiveContinentalChampionshipTitlesByDiscipline = Partial<
 type ContinentalChampionshipTitleRow = {
   rider_id: string;
   championship_type: string;
+  rider: CurrentChampionshipRider;
 };
 
 export const CONTINENTAL_CHAMPIONSHIP_TITLE_TYPES = [
@@ -79,7 +85,7 @@ export async function getActiveContinentalChampionshipTitlesByDisciplineForRider
     fetchPage: async (riderIdChunk, from, to) => {
       const result = await supabase
         .from("rider_national_championship_titles")
-        .select("rider_id, championship_type")
+        .select("rider_id, championship_type, rider:riders!rider_national_championship_titles_rider_id_fkey(country_id, country:countries!riders_country_id_fkey(continent_code))")
         .in("rider_id", riderIdChunk)
         .in("championship_type", [...CONTINENTAL_CHAMPIONSHIP_TITLE_TYPES])
         .is("relinquished_at", null)
@@ -101,6 +107,11 @@ export async function getActiveContinentalChampionshipTitlesByDisciplineForRider
   >();
 
   for (const title of titlesResult.data ?? []) {
+    if (!isChampionshipTitleEligibleForCurrentNationality({
+      championshipType: title.championship_type,
+      riderCountryId: title.rider?.country_id,
+      riderContinentCode: title.rider?.country?.continent_code,
+    })) continue;
     const parsed = parseContinentalChampionshipTitleType(
       title.championship_type,
     );

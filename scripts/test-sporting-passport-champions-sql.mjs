@@ -54,7 +54,7 @@ try {
     create table public.seasons(id uuid primary key,game_year integer,status text,current_day_number integer);
     create table public.team_seasons(id uuid primary key,team_id uuid,season_id uuid,registration_country_id uuid,status text);
     create table public.season_days(id uuid primary key,season_id uuid,day_number integer);
-    create table public.countries(id uuid primary key,name text,iso_alpha2 text,is_active boolean);
+    create table public.countries(id uuid primary key,name text,iso_alpha2 text,is_active boolean,continent_code text);
     create table public.riders(id uuid primary key,first_name text,last_name text,country_id uuid,status text,career_race_days integer default 0,potential_steps integer default 4);
     create table public.rider_contracts(id uuid primary key default gen_random_uuid(),rider_id uuid,team_id uuid,status text,start_season_id uuid,end_season_id uuid,joined_day_number integer default 1);
     create table public.rider_season_ratings(rider_id uuid,season_id uuid,
@@ -63,7 +63,7 @@ try {
     create table public.rider_condition_states(rider_id uuid,season_day_id uuid,form numeric,updated_at timestamptz default now());
     create table public.rider_special_abilities(rider_id uuid,ability_code text);
     create table public.rider_injuries(id uuid primary key,rider_id uuid,diagnosis_code text,expected_recovery_at timestamptz,status text);
-    create table public.rider_national_championship_titles(id uuid primary key default gen_random_uuid(),rider_id uuid,country_id uuid,championship_type text,is_active boolean,season_id uuid);
+    create table public.race_editions(id uuid primary key);
     create table public.rider_naturalizations(id uuid primary key default gen_random_uuid(),subject_type text,rider_id uuid,academy_rider_id uuid,team_id uuid,sporting_director_id uuid,
       season_id uuid,day_number integer,from_country_id uuid,to_country_id uuid,elapsed_tenure_days integer);
     create table public.rider_naturalization_country_progress(rider_id uuid,country_id uuid,required_days_override integer);
@@ -84,7 +84,7 @@ try {
     create trigger fixture_existing_country_trigger after update of country_id on public.riders
       for each row when (old.country_id is distinct from new.country_id)
       execute function public.fixture_existing_country_trigger();
-    insert into public.countries values('${id(1)}','Belgique','BE',true),('${id(2)}','France','FR',true);
+    insert into public.countries values('${id(1)}','Belgique','BE',true,'europe'),('${id(2)}','France','FR',true,'europe');
     insert into public.seasons values('${id(3)}',5,'active',4);
     insert into public.season_days values('${id(4)}','${id(3)}',4);
     insert into public.sporting_directors values('${id(5)}','${id(6)}','active'),('${id(7)}','${id(8)}','active');
@@ -92,6 +92,11 @@ try {
     insert into public.team_seasons values('${id(11)}','${id(9)}','${id(3)}','${id(1)}','active'),('${id(12)}','${id(10)}','${id(3)}','${id(2)}','active');
     select set_config('passport_fixture.user','${id(6)}',false);
   `);
+  const nationalSource = await readMigration("20260722160000_create_national_championships.sql");
+  const titleTableStart = nationalSource.indexOf("create table public.rider_national_championship_titles (");
+  const titleTableEnd = nationalSource.indexOf("alter table public.rider_national_championship_titles", titleTableStart);
+  assert(titleTableStart >= 0 && titleTableEnd > titleTableStart, "Missing real title table schema");
+  await db.exec(nationalSource.slice(titleTableStart, titleTableEnd));
   await db.exec(rewardsSource.match(/create table public\.daily_reward_catalog \([\s\S]*?\n\);/)[0]);
   await db.exec(`insert into public.daily_reward_catalog(reward_key,name,description,effect_summary,importance,effect_kind,effect_payload)
     values ('automatic-naturalization','Passeport sportif','Original description','Original summary',7,'naturalization','{}');`);
@@ -120,13 +125,15 @@ try {
     await db.query("insert into public.daily_reward_inventory(id,sporting_director_id,reward_key) values($1,$2,'automatic-naturalization')",
       [id(rider + 100), id(5)]);
   }
-  await db.exec(`insert into public.rider_national_championship_titles(rider_id,country_id,championship_type,is_active,season_id) values
-    ('${id(20)}','${id(2)}','road',true,'${id(3)}'),
-    ('${id(21)}','${id(2)}','road',false,'${id(3)}'),
-    ('${id(22)}','${id(2)}','time_trial',true,'${id(3)}'),
-    ('${id(23)}','${id(2)}','time_trial',false,'${id(3)}');`);
+  await db.exec(`insert into public.race_editions values('${id(220)}'),('${id(221)}'),('${id(222)}'),('${id(223)}');
+    insert into public.rider_national_championship_titles(rider_id,country_id,championship_type,relinquished_at,season_id,race_edition_id) values
+    ('${id(20)}','${id(2)}','road',null,'${id(3)}','${id(220)}'),
+    ('${id(21)}','${id(2)}','road','2026-10-01T00:00:00Z','${id(3)}','${id(221)}'),
+    ('${id(22)}','${id(2)}','time_trial',null,'${id(3)}','${id(222)}'),
+    ('${id(23)}','${id(2)}','time_trial','2026-10-01T00:00:00Z','${id(3)}','${id(223)}');`);
 
-  const titlesBefore = await scalar("select jsonb_agg(to_jsonb(t) order by id) from public.rider_national_championship_titles t");
+  const titlesBefore = await scalar("select jsonb_agg(to_jsonb(t)-'relinquished_at' order by id) from public.rider_national_championship_titles t");
+  const inactiveBefore = await scalar("select jsonb_agg(to_jsonb(t) order by id) from public.rider_national_championship_titles t where relinquished_at is not null");
   const wrapperBefore = await scalar("select pg_get_functiondef('public.redeem_current_daily_reward(uuid,uuid,text,text,uuid)'::regprocedure)");
   const manualBefore = await scalar("select pg_get_functiondef('public.naturalize_current_team_professional_rider(uuid)'::regprocedure)");
   const oldTargets = await targets();
@@ -141,6 +148,8 @@ try {
   const windowsMigration = passportMigration.replaceAll("\r\n", "\n").replaceAll("\n", "\r\n");
   check(windowsMigration.includes("\r\n"), true, "executes the actual migration with Windows line endings");
   await db.exec(windowsMigration);
+  await db.exec("create schema private");
+  await db.exec(await readMigration("20261127120000_relinquish_ineligible_champion_jerseys_on_nationality_change.sql"));
   check(await scalar("select pg_get_functiondef('public.redeem_current_daily_reward(uuid,uuid,text,text,uuid)'::regprocedure)"), wrapperBefore, "public high-performance wrapper is unchanged");
   check(await scalar("select pg_get_functiondef('public.naturalize_current_team_professional_rider(uuid)'::regprocedure)"), manualBefore, "ordinary naturalization function is unchanged");
   const newTargets = await targets();
@@ -165,7 +174,9 @@ try {
   await rejects(redeem(127, 27), /professionnel de votre équipe/);
   await db.exec("reset role");
   check(await scalar("select count(*)::integer from public.rider_naturalizations"), 4, "one history row per successful use");
-  check(await scalar("select jsonb_agg(to_jsonb(t) order by id) from public.rider_national_championship_titles t"), titlesBefore, "historical national titles retain their country and results");
+  check(await scalar("select jsonb_agg(to_jsonb(t)-'relinquished_at' order by id) from public.rider_national_championship_titles t"), titlesBefore, "historical national titles retain their country, win and results");
+  check(await scalar("select count(*)::integer from public.rider_national_championship_titles where relinquished_at is null"), 0, "passport immediately retires incompatible currently worn national jerseys");
+  check(await scalar(`select jsonb_agg(to_jsonb(t) order by id) from public.rider_national_championship_titles t where rider_id in ('${id(21)}','${id(23)}')`), inactiveBefore, "passport preserves already relinquished national title history exactly");
   check(await scalar("select count(*)::integer from public.fixture_country_changes"), 4, "existing nationality trigger still runs on every successful use");
 
   await db.exec(`select set_config('passport_fixture.user','${id(8)}',false); set role authenticated;`);

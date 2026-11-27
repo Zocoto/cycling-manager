@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { RiderArchiveReason } from "@/lib/game/rider-career-archive";
+import { isChampionshipTitleEligibleForCurrentNationality } from "@/lib/game/championship-title-eligibility";
 
 import {
   isPersistedEquipmentAssignmentCompatible,
@@ -281,6 +282,7 @@ type SummaryRow = {
 
 type NationalChampionshipTitleRow = {
   country_id: string;
+  country: CountryRow | null;
   season_id: string;
   race_edition_id: string;
   championship_type: string;
@@ -510,9 +512,9 @@ export async function getPublicRiderProfile({
   ] = await Promise.all([
     supabase
       .from("countries")
-      .select("id, name, iso_alpha2")
+      .select("id, name, iso_alpha2, continent_code")
       .eq("id", rider.country_id)
-      .maybeSingle<CountryRow>(),
+      .maybeSingle<CountryRow & { continent_code: string | null }>(),
     supabase
       .from("seasons")
       .select("id, game_year, name, status, current_day_number")
@@ -567,7 +569,7 @@ export async function getPublicRiderProfile({
     supabase
       .from("rider_national_championship_titles")
       .select(
-        "country_id, season_id, race_edition_id, championship_type, relinquished_at",
+        "country_id, season_id, race_edition_id, championship_type, relinquished_at, country:countries!rider_national_championship_titles_country_id_fkey(id, name, iso_alpha2)",
       )
       .eq("rider_id", rider.id)
       .returns<NationalChampionshipTitleRow[]>(),
@@ -609,8 +611,16 @@ export async function getPublicRiderProfile({
   const contracts = contractsResult.data ?? [];
   const summaries = summariesResult.data ?? [];
   const nationalTitleRows = nationalTitlesResult.data ?? [];
+  const isTitleActive = (title: NationalChampionshipTitleRow) =>
+    title.relinquished_at === null &&
+    isChampionshipTitleEligibleForCurrentNationality({
+      championshipType: title.championship_type,
+      titleCountryId: title.country_id,
+      riderCountryId: rider.country_id,
+      riderContinentCode: countryResult.data?.continent_code,
+    });
   const nationalDesigns = await loadNationalFederationJerseyDesigns([
-    ...new Set(nationalTitleRows.filter((title) => title.relinquished_at === null &&
+    ...new Set(nationalTitleRows.filter((title) => isTitleActive(title) &&
       (title.championship_type === "road" || title.championship_type === "time_trial"))
       .map((title) => title.country_id)),
   ], "national_champion");
@@ -1055,8 +1065,8 @@ export async function getPublicRiderProfile({
                   ? [
                       {
                         type: title.championship_type as "road" | "time_trial",
-                        countryName: countryResult.data!.name,
-                        countryCode: countryResult.data!.iso_alpha2,
+                        countryName: title.country?.name ?? "Pays inconnu",
+                        countryCode: title.country?.iso_alpha2 ?? "",
                       },
                     ]
                   : [],
@@ -1315,10 +1325,10 @@ export async function getPublicRiderProfile({
               seasonId: title.season_id,
               seasonName:
                 seasonById.get(title.season_id)?.name ?? "Saison inconnue",
-              countryName: countryResult.data!.name,
-              countryCode: countryResult.data!.iso_alpha2,
-              isActive: title.relinquished_at === null,
-              nationalDesign: title.relinquished_at === null ? nationalDesigns.get(title.country_id) : undefined,
+              countryName: title.country?.name ?? "Pays inconnu",
+              countryCode: title.country?.iso_alpha2 ?? "",
+              isActive: isTitleActive(title),
+              nationalDesign: isTitleActive(title) ? nationalDesigns.get(title.country_id) : undefined,
             },
           ]
         : [],
@@ -1357,7 +1367,7 @@ export async function getPublicRiderProfile({
               seasonId: title.season_id,
               seasonName:
                 seasonById.get(title.season_id)?.name ?? "Saison inconnue",
-              isActive: title.relinquished_at === null,
+              isActive: isTitleActive(title),
             },
           ]
         : [];

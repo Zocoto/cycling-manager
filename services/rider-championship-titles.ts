@@ -1,4 +1,8 @@
 import "server-only";
+import {
+  isChampionshipTitleEligibleForCurrentNationality,
+  type CurrentChampionshipRider,
+} from "@/lib/game/championship-title-eligibility";
 import { parseQuadrennialChampionshipType } from "@/lib/game/quadrennial-games";
 import type { ActiveQuadrennialChampionshipTitle } from "@/services/rider-quadrennial-championship-titles";
 
@@ -23,6 +27,7 @@ type ChampionshipTitleRow = {
   rider_id: string;
   country_id: string | null;
   championship_type: string;
+  rider: CurrentChampionshipRider;
 };
 
 type CountryRow = {
@@ -76,7 +81,7 @@ export async function getActiveChampionshipTitlesForRiders(
     fetchPage: async (riderIdChunk, from, to) => {
       const result = await supabase
         .from("rider_national_championship_titles")
-        .select("rider_id, country_id, championship_type")
+        .select("rider_id, country_id, championship_type, rider:riders!rider_national_championship_titles_rider_id_fkey(country_id, country:countries!riders_country_id_fkey(continent_code))")
         .in("rider_id", riderIdChunk)
         .in("championship_type", [...ACTIVE_CHAMPIONSHIP_TYPES])
         .is("relinquished_at", null)
@@ -93,7 +98,14 @@ export async function getActiveChampionshipTitlesForRiders(
     );
   }
 
-  const titleRows = titlesResult.data ?? [];
+  const titleRows = (titlesResult.data ?? []).filter((title) =>
+    isChampionshipTitleEligibleForCurrentNationality({
+      championshipType: title.championship_type,
+      titleCountryId: title.country_id,
+      riderCountryId: title.rider?.country_id,
+      riderContinentCode: title.rider?.country?.continent_code,
+    }),
+  );
   const nationalRows = titleRows.filter(
     (title) =>
       title.championship_type === "road" ||

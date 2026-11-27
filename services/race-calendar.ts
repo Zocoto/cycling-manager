@@ -1737,6 +1737,29 @@ export async function getActiveSeasonRaceCalendar(
   const countryById = new Map(
     (countriesResult.data ?? []).map((country) => [country.id, country]),
   );
+  // Validate current calendar jerseys, including titles from the compact RPC.
+  // Frozen replay/album snapshots retain their originally recorded appearance.
+  for (const rider of riderCountryRows) {
+    const country = countryById.get(rider.country_id);
+    const nationalTitles = nationalChampionshipTitlesByRiderId.get(rider.id);
+    const continentalTitles = continentalChampionshipTitlesByRiderId.get(rider.id);
+    for (const discipline of ["road", "time_trial"] as const) {
+      const nationalTitle = nationalTitles?.[discipline];
+      if (nationalTitle && nationalTitle.countryCode.toUpperCase() !== country?.iso_alpha2.toUpperCase()) {
+        delete nationalTitles![discipline];
+      }
+      const continentalTitle = continentalTitles?.[discipline];
+      if (continentalTitle && continentalTitle.continentCode !== country?.continent_code) {
+        delete continentalTitles![discipline];
+      }
+    }
+    if (nationalTitles && Object.keys(nationalTitles).length === 0) {
+      nationalChampionshipTitlesByRiderId.delete(rider.id);
+    }
+    if (continentalTitles && Object.keys(continentalTitles).length === 0) {
+      continentalChampionshipTitlesByRiderId.delete(rider.id);
+    }
+  }
   const federationInfrastructureLevelByCountryAndCode = new Map(
     (federationInfrastructureResult.data ?? []).map((infrastructure) => [
       `${infrastructure.country_id}:${infrastructure.infrastructure_code}`,

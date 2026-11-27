@@ -21,6 +21,7 @@ function from(table: string) {
 import { getNationalFederationJersey, loadNationalFederationJerseyDesigns, loadNationalFederationJerseyDesignsByCountryCode } from "./national-federation-jerseys";
 import { getActiveChampionshipTitlesForRiders } from "./rider-championship-titles";
 import { getActiveNationalChampionshipTitlesByDisciplineForRiders } from "./rider-national-championship-titles";
+import { getActiveContinentalChampionshipTitlesByDisciplineForRiders } from "./rider-continental-championship-titles";
 const client = { from } as unknown as Parameters<typeof getNationalFederationJersey>[0];
 
 beforeEach(() => {
@@ -32,9 +33,9 @@ beforeEach(() => {
     national_federation_champion_jerseys: [{ ...row, design: champion }],
     countries: [{ id: "mu", name: "Maurice", iso_alpha2: "MU" }],
     rider_national_championship_titles: [
-      { rider_id: "champion", country_id: "mu", championship_type: "time_trial", relinquished_at: null },
-      { rider_id: "champion", country_id: "mu", championship_type: "road", relinquished_at: null },
-      { rider_id: "former", country_id: "mu", championship_type: "road", relinquished_at: "2026-10-16" },
+      { rider_id: "champion", country_id: "mu", championship_type: "time_trial", relinquished_at: null, rider: { country_id: "mu", country: { continent_code: "africa" } } },
+      { rider_id: "champion", country_id: "mu", championship_type: "road", relinquished_at: null, rider: { country_id: "mu", country: { continent_code: "africa" } } },
+      { rider_id: "former", country_id: "mu", championship_type: "road", relinquished_at: "2026-10-16", rider: { country_id: "mu", country: { continent_code: "africa" } } },
       { rider_id: "world", country_id: null, championship_type: "world_road", relinquished_at: null },
     ],
   };
@@ -87,5 +88,61 @@ describe("independent national team and champion jerseys", () => {
     const titles = (await getActiveNationalChampionshipTitlesByDisciplineForRiders(client, ["champion"])).get("champion");
     expect(titles?.road?.nationalDesign).toEqual(champion);
     expect(titles?.time_trial?.nationalDesign).toEqual(champion);
+  });
+
+  it("drops incompatible current jerseys while preserving world, Games, and same-continent titles", async () => {
+    database.rows.rider_national_championship_titles = [
+      { rider_id: "moved", country_id: "am", championship_type: "road", relinquished_at: "2026-10-16", rider: { country_id: "co", country: { continent_code: "america" } } },
+      { rider_id: "moved", country_id: "am", championship_type: "time_trial", relinquished_at: null, rider: { country_id: "co", country: { continent_code: "america" } } },
+      { rider_id: "moved", country_id: "am", championship_type: "continental_asia_road", relinquished_at: null, rider: { country_id: "co", country: { continent_code: "america" } } },
+      { rider_id: "moved", country_id: "am", championship_type: "continental_asia_time_trial", relinquished_at: null, rider: { country_id: "co", country: { continent_code: "america" } } },
+      { rider_id: "same-continent", country_id: "mu", championship_type: "continental_africa_time_trial", relinquished_at: null, rider: { country_id: "za", country: { continent_code: "africa" } } },
+      { rider_id: "former-continent", country_id: "mu", championship_type: "continental_africa_road", relinquished_at: "2026-10-16", rider: { country_id: "mu", country: { continent_code: "africa" } } },
+      { rider_id: "world", country_id: "am", championship_type: "world_road", relinquished_at: null, rider: { country_id: "co", country: { continent_code: "america" } } },
+      { rider_id: "games", country_id: "am", championship_type: "quadrennial_road", relinquished_at: null, rider: { country_id: "co", country: { continent_code: "america" } } },
+    ];
+    const history = structuredClone(database.rows.rider_national_championship_titles);
+    const titles = await getActiveChampionshipTitlesForRiders(client, ["moved", "same-continent", "former-continent", "world", "games"]);
+
+    expect(titles.national.size).toBe(0);
+    expect(titles.continental.has("moved")).toBe(false);
+    expect(titles.continental.has("former-continent")).toBe(false);
+    expect(titles.continental.get("same-continent")).toMatchObject({ continentCode: "africa", championshipType: "time_trial" });
+    expect(titles.world.has("world")).toBe(true);
+    expect(titles.quadrennial.has("games")).toBe(true);
+    expect(database.rows.rider_national_championship_titles).toEqual(history);
+    expect(database.queries).toEqual(["rider_national_championship_titles"]);
+  });
+
+  it("applies nationality protection in the legacy discipline loaders and retains a valid fallback discipline", async () => {
+    database.rows.rider_national_championship_titles = [
+      { rider_id: "champion", country_id: "am", championship_type: "road", relinquished_at: null, rider: { country_id: "mu", country: { continent_code: "africa" } } },
+      { rider_id: "champion", country_id: "mu", championship_type: "time_trial", relinquished_at: null, rider: { country_id: "mu", country: { continent_code: "africa" } } },
+      { rider_id: "champion", country_id: "am", championship_type: "continental_asia_road", relinquished_at: null, rider: { country_id: "mu", country: { continent_code: "africa" } } },
+      { rider_id: "champion", country_id: "mu", championship_type: "continental_africa_time_trial", relinquished_at: null, rider: { country_id: "mu", country: { continent_code: "africa" } } },
+    ];
+
+    const national = await getActiveNationalChampionshipTitlesByDisciplineForRiders(client, ["champion"]);
+    const continental = await getActiveContinentalChampionshipTitlesByDisciplineForRiders(client, ["champion"]);
+    const combined = await getActiveChampionshipTitlesForRiders(client, ["champion"]);
+
+    expect(national.get("champion")?.road).toBeUndefined();
+    expect(national.get("champion")?.time_trial).toMatchObject({ countryCode: "MU", championshipType: "time_trial", nationalDesign: champion });
+    expect(continental.get("champion")).toEqual({ time_trial: { riderId: "champion", continentCode: "africa", continentName: "Afrique", championshipType: "time_trial" } });
+    expect(combined.national.get("champion")?.championshipType).toBe("time_trial");
+    expect(combined.continental.get("champion")?.championshipType).toBe("time_trial");
+    expect(database.queries.filter(table => table === "rider_national_championship_titles")).toHaveLength(3);
+    expect(database.queries).not.toContain("riders");
+  });
+
+  it("falls back to the regular jersey when current nationality cannot be resolved", async () => {
+    database.rows.rider_national_championship_titles = [
+      { rider_id: "unknown", country_id: "mu", championship_type: "road", relinquished_at: null, rider: null },
+      { rider_id: "unknown", country_id: "mu", championship_type: "continental_africa_road", relinquished_at: null, rider: { country_id: "mu", country: null } },
+    ];
+    const titles = await getActiveChampionshipTitlesForRiders(client, ["unknown"]);
+    expect(titles.national.size).toBe(0);
+    expect(titles.continental.size).toBe(0);
+    expect(database.queries).toEqual(["rider_national_championship_titles"]);
   });
 });
