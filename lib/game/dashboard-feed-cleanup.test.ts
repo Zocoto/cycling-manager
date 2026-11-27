@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { isDashboardNationsCupVisible } from "./dashboard-nations-cup";
 
 const dashboard = readFileSync(join(process.cwd(), "app/jeu/page.tsx"), "utf8");
 const tutorial = readFileSync(join(process.cwd(), "lib/tutorial/catalog.ts"), "utf8");
@@ -30,14 +31,21 @@ describe("Bureau du Directeur Sportif allégé", () => {
     expect(assistantIndex).toBeLessThan(raceOperationsIndex);
   });
 
-  it("scinde la tuile fédération avec la Nations Cup à J24 et J25", () => {
-    const visibilityCondition = dashboard.match(/showNationsCup=\{([\s\S]*?)\}/)?.[1] ?? "";
-    expect(visibilityCondition).toMatch(
-      /^\s*teamSummary\?\.season_day_number\s*===\s*24\s*\|\|\s*teamSummary\?\.season_day_number\s*===\s*25\s*$/,
-    );
-    expect(dashboard).toContain('data-dashboard-nations-cup="j24-j25"');
+  it("ouvre le raccourci à J22 à 14 h 10 heure de Paris, en hiver et en été", () => {
+    expect(isDashboardNationsCupVisible(22, new Date("2026-11-27T13:09:59Z"))).toBe(false);
+    expect(isDashboardNationsCupVisible(22, new Date("2026-11-27T13:10:00Z"))).toBe(true);
+    expect(isDashboardNationsCupVisible(22, new Date("2026-07-03T12:09:59Z"))).toBe(false);
+    expect(isDashboardNationsCupVisible(22, new Date("2026-07-03T12:10:00Z"))).toBe(true);
+  });
+
+  it("affiche la Nations Cup à droite jusqu’aux résultats officiels", () => {
+    const now = new Date("2026-11-28T00:00:00+01:00");
+    expect([null, 21, 23, 24, 25, 26].map((day) => isDashboardNationsCupVisible(day, now)))
+      .toEqual([false, false, true, true, true, false]);
+    expect(dashboard).toContain("isDashboardNationsCupVisible(nationsCupDay, now)");
+    expect(dashboard).toContain('data-dashboard-nations-cup="true"');
     expect(dashboard).toContain(
-      'href="/jeu/nations-cup#classement-de-ma-federation"',
+      'href={beforeRace ? "/jeu/nations-cup" : "/jeu/nations-cup#classement-de-ma-federation"}',
     );
     expect(dashboard).toContain("J25 · résultats officiels");
     expect(dashboard).toContain("Classements, divisions et mouvements.");

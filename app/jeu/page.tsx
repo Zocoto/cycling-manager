@@ -31,6 +31,7 @@ import { TeamDivisionBadge } from "../../components/game/team-division-badge";
 import { DEFAULT_AMATEUR_JERSEY } from "../../lib/amateur-team";
 import { appConfig } from "@/lib/app-config";
 import { getPublicSiteUrl } from "@/lib/auth/public-site-url";
+import { isDashboardNationsCupVisible } from "@/lib/game/dashboard-nations-cup";
 import { buildReferralInviteUrl } from "@/lib/game/referrals";
 import {
   GAMEPLAY_RULES,
@@ -218,15 +219,15 @@ function CardWatermark({
 function DashboardFederationGateway({
   countryCode,
   nationsCupDay,
-  showNationsCup,
+  now,
 }: {
   countryCode: string;
   nationsCupDay: number | null;
-  showNationsCup: boolean;
+  now: Date;
 }) {
   const normalizedCountryCode = countryCode.toLowerCase();
 
-  if (!showNationsCup) {
+  if (!isDashboardNationsCupVisible(nationsCupDay, now)) {
     return (
       <Link
         href={`/jeu/federations/${normalizedCountryCode}`}
@@ -263,11 +264,13 @@ function DashboardFederationGateway({
     );
   }
 
+  const beforeRace = nationsCupDay === 22 || nationsCupDay === 23;
+
   return (
     <section
       data-dashboard-federation={normalizedCountryCode}
-      data-dashboard-nations-cup="j24-j25"
-      aria-label="Fédération et résultats de la Nations Cup"
+      data-dashboard-nations-cup="true"
+      aria-label="Fédération et Nations Cup"
       className="mt-5 grid min-h-[96px] grid-cols-2 overflow-hidden rounded-2xl border border-[#D5AC18]/35 bg-[#071A17] text-white shadow-[0_16px_42px_rgba(7,26,23,0.2)] sm:min-h-[108px]"
     >
       <Link
@@ -303,7 +306,7 @@ function DashboardFederationGateway({
       </Link>
 
       <Link
-        href="/jeu/nations-cup#classement-de-ma-federation"
+        href={beforeRace ? "/jeu/nations-cup" : "/jeu/nations-cup#classement-de-ma-federation"}
         data-site-action="dark"
         prefetchOnIntent
         className="group relative flex min-w-0 items-center overflow-hidden border-l border-white/15 bg-[radial-gradient(circle_at_88%_15%,rgba(242,201,76,.2),transparent_28%),linear-gradient(115deg,#123B32_0%,#176951_58%,#A62F3B_145%)] px-3 py-4 transition hover:saturate-125 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#F2C94C] sm:px-6 sm:py-5"
@@ -312,7 +315,7 @@ function DashboardFederationGateway({
           aria-hidden="true"
           className="absolute -right-5 -top-8 text-8xl font-black italic text-white/[0.045]"
         >
-          {nationsCupDay ?? 24}
+          {beforeRace ? 24 : nationsCupDay}
         </span>
         <span className="relative min-w-0 flex-1">
           <span className="flex items-center gap-1.5 overflow-hidden">
@@ -324,13 +327,13 @@ function DashboardFederationGateway({
             ))}
           </span>
           <span className="mt-2 block text-[8px] font-black uppercase tracking-[0.14em] text-[#F2C94C] sm:text-[10px] sm:tracking-[0.18em]">
-            {nationsCupDay === 25 ? "J25 · résultats officiels" : "J24 · résultats"}
+            {beforeRace ? "Avant-course" : nationsCupDay === 25 ? "J25 · résultats officiels" : "J24 · résultats"}
           </span>
           <span className="mt-1 block text-base font-black sm:text-xl">
             Nations Cup
           </span>
           <span className="mt-1 hidden text-xs font-semibold text-[#D7E7DF] lg:block">
-            Classements, divisions et mouvements.
+            {beforeRace ? "Programme et divisions." : "Classements, divisions et mouvements."}
           </span>
         </span>
         <span
@@ -741,10 +744,7 @@ export default async function GamePage() {
             <DashboardFederationGateway
               countryCode={federationCountryCode}
               nationsCupDay={teamSummary?.season_day_number ?? null}
-              showNationsCup={
-                teamSummary?.season_day_number === 24
-                || teamSummary?.season_day_number === 25
-              }
+              now={new Date()}
             />
           ) : null}
 
