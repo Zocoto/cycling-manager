@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-const mocks=vi.hoisted(()=>({auth:vi.fn(),header:vi.fn(),client:vi.fn(),publicReady:false,publicAlbum:vi.fn(),redirect:vi.fn((url:string)=>{throw new Error(`redirect:${url}`);}),notFound:vi.fn(()=>{throw new Error("not-found");})}));
+const mocks=vi.hoisted(()=>({auth:vi.fn(),header:vi.fn(),client:vi.fn(),publicReady:false,publicAlbum:vi.fn(),library:vi.fn(),redirect:vi.fn((url:string)=>{throw new Error(`redirect:${url}`);}),notFound:vi.fn(()=>{throw new Error("not-found");})}));
 vi.mock("next/navigation",()=>({redirect:mocks.redirect,notFound:mocks.notFound}));
 vi.mock("@/lib/supabase/authenticated-user",()=>({getAuthenticatedUser:mocks.auth}));
 vi.mock("@/lib/supabase/server",()=>({createSupabaseServerClient:mocks.client}));
@@ -7,15 +7,16 @@ vi.mock("@/services/game-header-data",()=>({getGameHeaderData:mocks.header}));
 vi.mock("@/components/game/game-header",()=>({GameHeader:()=>null}));
 vi.mock("@/components/game/collector-album",()=>({CollectorAlbum:()=>null}));
 vi.mock("@/components/game/cyclo-stickers-persistent-album",()=>({CycloStickersPersistentAlbum:()=>null}));
-vi.mock("@/services/cyclo-stickers-album",()=>({getPublicCycloStickersAlbum:mocks.publicAlbum}));
+vi.mock("@/services/cyclo-stickers-album",()=>({getPublicCycloStickersAlbum:mocks.publicAlbum,getCycloStickersLibrary:mocks.library}));
 vi.mock("@/lib/game/cyclo-stickers-leaderboard",()=>({getCycloStickersLeaderboard:vi.fn().mockResolvedValue(null)}));
 vi.mock("@/lib/game/cyclo-stickers-release",async importOriginal=>{
   const original=await importOriginal<typeof import("@/lib/game/cyclo-stickers-release")>();
   return {...original,CYCLO_STICKERS_RELEASE:{...original.CYCLO_STICKERS_RELEASE,get publicReady(){return mocks.publicReady;}}};
 });
 import Page from "./page";
+const publishedS4 = {editionId:"final-s4",sourceSeasonId:"s4",collectionSeasonId:"s5",sourceSeason:4,collectionSeason:5,totalCards:72,pastedCount:18,ownedCount:23,completionPercent:25};
 describe("collector album server-side authorization",()=>{
-  beforeEach(()=>{vi.clearAllMocks();mocks.publicReady=false;mocks.publicAlbum.mockReset().mockResolvedValue(null);mocks.client.mockResolvedValue({});mocks.header.mockResolvedValue({displayName:"owner",teamSponsorVisual:null});});
+  beforeEach(()=>{vi.clearAllMocks();mocks.publicReady=false;mocks.publicAlbum.mockReset().mockResolvedValue(null);mocks.library.mockReset().mockResolvedValue([publishedS4]);mocks.client.mockResolvedValue({});mocks.header.mockResolvedValue({displayName:"owner",teamSponsorVisual:null});});
   it("redirects unauthenticated users before loading the album",async()=>{
     mocks.auth.mockResolvedValue({data:{user:null},error:null});
     await expect(Page({})).rejects.toThrow("redirect:/connexion");
@@ -67,9 +68,9 @@ describe("collector album server-side authorization",()=>{
     mocks.publicAlbum.mockResolvedValue(album);
     const page=await Page({searchParams});
     expect(mocks.publicAlbum).toHaveBeenCalledTimes(1);
-    expect(page.props.children[1].props.initialState).toBe(album.state);
-    expect(page.props.children[1].props.snapshot).toBe(album.snapshot);
-    expect(page.props.children[1].props.initialTab).toBe("trades");
+    expect(page.props.children[2].props.initialState).toBe(album.state);
+    expect(page.props.children[2].props.snapshot).toBe(album.snapshot);
+    expect(page.props.children[2].props.initialTab).toBe("trades");
   });
   it("loads S3 only from its explicit owner URL and uses genuine S4 while publication is pending",async()=>{
     mocks.publicReady=true;
@@ -80,15 +81,15 @@ describe("collector album server-side authorization",()=>{
     expect(preview.props.children[1].props.snapshot.sourceSeason).toBe(4);
     expect(mocks.publicAlbum).toHaveBeenCalledTimes(1);
   });
-  it.each(["58140add-54c6-40af-9528-f823d0051d0f","another-player"])("uses the real collection by default for every player after DB publication: %s",async userId=>{
+  it.each(["58140add-54c6-40af-9528-f823d0051d0f","another-player"])("opens the summary-only library by default after DB publication: %s",async userId=>{
     mocks.publicReady=true;
     mocks.auth.mockResolvedValue({data:{user:{id:userId}},error:null});
     const album={snapshot:{edition:"final-s4",sourceSeason:4,collectionSeason:5},state:{directorId:"real-owner"}};
     mocks.publicAlbum.mockResolvedValue(album);
     const page=await Page({});
-    expect(mocks.publicAlbum).toHaveBeenCalledTimes(1);
-    expect(page.props.children[1].props.initialState).toBe(album.state);
-    expect(page.props.children[1].props.snapshot).toBe(album.snapshot);
+    expect(mocks.publicAlbum).not.toHaveBeenCalled();
+    expect(page.props.children[1].props.editions).toEqual([publishedS4]);
+    expect(page.props.children[1].props.ownerPreview).toBe(userId==="58140add-54c6-40af-9528-f823d0051d0f");
   });
   it("keeps the explicit S3 owner archive out of the public collection even after publication",async()=>{
     mocks.publicReady=true;
@@ -105,5 +106,109 @@ describe("collector album server-side authorization",()=>{
     mocks.publicAlbum.mockResolvedValue(null);
     await expect(Page({searchParams:Promise.resolve({saison:"4",onglet:"echanges"})})).rejects.toThrow("not-found");
     expect(mocks.header).not.toHaveBeenCalled();
+  });
+
+  it("selects an explicit future edition without replacing it with the latest album",async()=>{
+    mocks.publicReady=true;
+    mocks.auth.mockResolvedValue({data:{user:{id:"another-player"}},error:null});
+    const publishedS5={...publishedS4,editionId:"final-s5",sourceSeason:5,collectionSeason:6};
+    mocks.library.mockResolvedValue([publishedS5,publishedS4]);
+    const album={snapshot:{edition:"final-s5",sourceSeason:5,collectionSeason:6},state:{directorId:"real-owner"}};
+    mocks.publicAlbum.mockResolvedValue(album);
+    const page=await Page({searchParams:Promise.resolve({edition:"final-s5",onglet:"echanges",vue:"recues"})});
+    expect(mocks.publicAlbum).toHaveBeenCalledExactlyOnceWith({},"final-s5");
+    expect(page.props.children[2].props.initialState).toBe(album.state);
+    expect(page.props.children[2].props.initialTradeView).toBe("inbox");
+    expect(page.props.children[1].props.selectedEditionId).toBe("final-s5");
+  });
+
+  it.each(["4","5"])("keeps the historical S%s URL pinned to the original S4 collection",async saison=>{
+    mocks.publicReady=true;
+    mocks.auth.mockResolvedValue({data:{user:{id:"another-player"}},error:null});
+    mocks.library.mockResolvedValue([{...publishedS4,editionId:"final-s5",sourceSeason:5,collectionSeason:6},publishedS4]);
+    mocks.publicAlbum.mockResolvedValue({snapshot:{edition:"final-s4",sourceSeason:4,collectionSeason:5},state:{directorId:"real-owner"}});
+    await Page({searchParams:Promise.resolve({saison})});
+    expect(mocks.publicAlbum).toHaveBeenCalledExactlyOnceWith({},"final-s4");
+  });
+
+  it("keeps a bare incoming-offer link direct instead of stopping at the shelf",async()=>{
+    mocks.publicReady=true;
+    mocks.auth.mockResolvedValue({data:{user:{id:"another-player"}},error:null});
+    mocks.publicAlbum.mockResolvedValue({snapshot:{edition:"final-s4",sourceSeason:4,collectionSeason:5},state:{directorId:"real-owner"}});
+    const page=await Page({searchParams:Promise.resolve({onglet:"echanges",vue:"recues"})});
+    expect(mocks.publicAlbum).toHaveBeenCalledExactlyOnceWith({},"final-s4");
+    expect(page.props.children[2].props.initialTradeView).toBe("inbox");
+  });
+
+  it("never substitutes a private preview for an unavailable explicit edition",async()=>{
+    mocks.publicReady=true;
+    mocks.auth.mockResolvedValue({data:{user:{id:"58140add-54c6-40af-9528-f823d0051d0f"}},error:null});
+    await expect(Page({searchParams:Promise.resolve({edition:"unpublished-s5"})})).rejects.toThrow("not-found");
+    expect(mocks.header).not.toHaveBeenCalled();
+  });
+
+  it.each(["boosters","echanges"])("opens the newest published edition from a bare %s link",async onglet=>{
+    mocks.publicReady=true;
+    mocks.auth.mockResolvedValue({data:{user:{id:"another-player"}},error:null});
+    const publishedS5={...publishedS4,editionId:"final-s5",sourceSeason:5,collectionSeason:6};
+    mocks.library.mockResolvedValue([publishedS5,publishedS4]);
+    const album={snapshot:{edition:"final-s5",sourceSeason:5,collectionSeason:6},state:{directorId:"real-owner"}};
+    mocks.publicAlbum.mockResolvedValue(album);
+    const page=await Page({searchParams:Promise.resolve({onglet})});
+    expect(mocks.publicAlbum).toHaveBeenCalledExactlyOnceWith({},"final-s5");
+    expect(page.props.children[2].props.snapshot).toBe(album.snapshot);
+    expect(page.props.children[2].props.initialTab).toBe(onglet==="boosters"?"boosters":"trades");
+  });
+
+  it("does not turn an unknown historical season into the newest album",async()=>{
+    mocks.publicReady=true;
+    mocks.auth.mockResolvedValue({data:{user:{id:"another-player"}},error:null});
+    mocks.publicAlbum.mockResolvedValue({snapshot:{edition:"final-s4",sourceSeason:4,collectionSeason:5},state:{directorId:"real-owner"}});
+    await expect(Page({searchParams:Promise.resolve({saison:"99",onglet:"echanges"})})).rejects.toThrow("not-found");
+    expect(mocks.publicAlbum).not.toHaveBeenCalled();
+  });
+
+  it("opens unclaimed older packs from a bare boosters link rather than an empty newer album",async()=>{
+    mocks.publicReady=true;
+    mocks.auth.mockResolvedValue({data:{user:{id:"another-player"}},error:null});
+    const publishedS5={...publishedS4,editionId:"final-s5",sourceSeason:5,collectionSeason:6,unopenedBoosterCount:0};
+    mocks.library.mockResolvedValue([publishedS5,{...publishedS4,unopenedBoosterCount:3}]);
+    const album={snapshot:{edition:"final-s4",sourceSeason:4,collectionSeason:5},state:{directorId:"real-owner"}};
+    mocks.publicAlbum.mockResolvedValue(album);
+    const page=await Page({searchParams:Promise.resolve({onglet:"boosters"})});
+    expect(mocks.publicAlbum).toHaveBeenCalledExactlyOnceWith({},"final-s4");
+    expect(page.props.children[2].props.snapshot).toBe(album.snapshot);
+    expect(page.props.children[2].props.initialTab).toBe("boosters");
+  });
+
+  it("honours an explicit edition even if a different album still contains packs",async()=>{
+    mocks.publicReady=true;
+    mocks.auth.mockResolvedValue({data:{user:{id:"another-player"}},error:null});
+    const publishedS5={...publishedS4,editionId:"final-s5",sourceSeason:5,collectionSeason:6,unopenedBoosterCount:0};
+    mocks.library.mockResolvedValue([publishedS5,{...publishedS4,unopenedBoosterCount:3}]);
+    mocks.publicAlbum.mockResolvedValue({snapshot:{edition:"final-s5",sourceSeason:5,collectionSeason:6},state:{directorId:"real-owner"}});
+    await Page({searchParams:Promise.resolve({edition:"final-s5",onglet:"boosters"})});
+    expect(mocks.publicAlbum).toHaveBeenCalledExactlyOnceWith({},"final-s5");
+  });
+
+  it.each(["4","5"])("keeps legacy season %s pinned when the newer collection has unopened packs",async saison=>{
+    mocks.publicReady=true;
+    mocks.auth.mockResolvedValue({data:{user:{id:"another-player"}},error:null});
+    const publishedS5={...publishedS4,editionId:"final-s5",sourceSeason:5,collectionSeason:6,unopenedBoosterCount:4};
+    mocks.library.mockResolvedValue([publishedS5,publishedS4]);
+    mocks.publicAlbum.mockResolvedValue({snapshot:{edition:"final-s4",sourceSeason:4,collectionSeason:5},state:{directorId:"real-owner"}});
+    await Page({searchParams:Promise.resolve({saison,onglet:"boosters"})});
+    expect(mocks.publicAlbum).toHaveBeenCalledExactlyOnceWith({},"final-s4");
+  });
+
+  it("does not redirect an incoming-offer link towards an old album merely because it contains packs",async()=>{
+    mocks.publicReady=true;
+    mocks.auth.mockResolvedValue({data:{user:{id:"another-player"}},error:null});
+    const publishedS5={...publishedS4,editionId:"final-s5",sourceSeason:5,collectionSeason:6,unopenedBoosterCount:0};
+    mocks.library.mockResolvedValue([publishedS5,{...publishedS4,unopenedBoosterCount:3}]);
+    mocks.publicAlbum.mockResolvedValue({snapshot:{edition:"final-s5",sourceSeason:5,collectionSeason:6},state:{directorId:"real-owner"}});
+    const page=await Page({searchParams:Promise.resolve({onglet:"echanges",vue:"recues"})});
+    expect(mocks.publicAlbum).toHaveBeenCalledExactlyOnceWith({},"final-s5");
+    expect(page.props.children[2].props.initialTradeView).toBe("inbox");
   });
 });

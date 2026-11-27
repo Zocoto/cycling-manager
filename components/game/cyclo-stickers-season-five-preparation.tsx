@@ -28,7 +28,7 @@ export function CycloStickersSeasonFivePreparation({ ownerName = "Zocoto", initi
   return <section className={styles.page} data-album-preparation="s5" data-source-season={plan.sourceSeason} data-collection-season={plan.collectionSeason}>
     <header className={styles.masthead}>
       <div><p className={styles.eyebrow}>Maquette privée · S5 à collectionner en S6</p><h1>Album de Cyclo-Stickers</h1></div>
-      <Link href="/jeu/album">Mon album actuel ↗</Link>
+      <Link href="/jeu/album">Ma bibliothèque ↗</Link>
     </header>
     <aside className={styles.notice}>
       <p><strong>L’habillage est prêt, les cartes restent à écrire.</strong></p>

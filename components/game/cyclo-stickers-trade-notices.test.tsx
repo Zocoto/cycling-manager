@@ -33,7 +33,9 @@ describe("Cyclo-Stickers trade ownership notices", () => {
     expect(html).toContain("Les doubles ne remplissent pas de nouvelle case");
     expect(html.indexOf("Tu recevras")).toBeLessThan(html.indexOf("Accepter cet échange"));
     expect(html).toMatch(/<button[^>]*aria-describedby="[^"]*proposal-1-duplicates"[^>]*>Accepter cet échange<\/button>/);
-    expect(html).not.toMatch(/<button[^>]*disabled[^>]*>Accepter cet échange/);
+    // Hydration authenticates the global inventory before actions are enabled.
+    // The DOM interaction suite confirms doubles themselves do not block consent.
+    expect(html).toContain("Chargement de tes collections…");
   });
 
   it("counts unpasted inventory cards and repeated received copies as spares", () => {
@@ -43,7 +45,7 @@ describe("Cyclo-Stickers trade ownership notices", () => {
     const html = render(state);
     expect(html).toContain("Tu recevras 2 exemplaires en double.");
     expect(html).toContain("Nouvelle pour toi · 1 double");
-    expect(html).toContain(`2 × #02 · ${snapshot.cards.find(card => card.number === 2)?.name}`);
+    expect(html).toContain(`2 × S4 · #02 · ${snapshot.cards.find(card => card.number === 2)?.name}`);
   });
 
   it("distinguishes two trade stickers with the same rider name and tracks each separately", () => {

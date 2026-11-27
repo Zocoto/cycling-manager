@@ -17,7 +17,7 @@ const color = z.string().regex(/^#[0-9a-f]{6}$/i);
 const nonnegative = z.number().finite().nonnegative();
 const championshipType = z.enum(["road", "time_trial"]);
 const continent = z.enum(["africa", "america", "asia", "europe", "oceania"]);
-const ratingsSchema = z.strictObject(Object.fromEntries(
+export const ratingsSchema = z.strictObject(Object.fromEntries(
   RIDER_RATING_AXES.map(({ key }) => [key, z.number().finite().min(0).max(100)]),
 ) as Record<keyof RiderRatings, z.ZodNumber>);
 const nationalDesignSchema = z.strictObject({
@@ -32,7 +32,7 @@ const nationalDesignSchema = z.strictObject({
     border: z.boolean().optional(), text: z.string().max(200).optional(),
   })).max(16),
 });
-const jerseySchema = z.strictObject({
+export const jerseySchema = z.strictObject({
   primaryColor: color, secondaryColor: color, accentColor: color,
   pattern: z.enum(["center", "diagonal", "hoops", "solid", "split", "vertical", "chevron", "quarters", "cross", "shoulders", "checkerboard", "wave", "pinstripes"]),
   status: z.enum(["amateur", "free-agent", "sponsored", "national-team", "national-champion", "continental-champion", "world-champion", "quadrennial-champion"]),

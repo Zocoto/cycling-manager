@@ -340,7 +340,8 @@ const ObjectiveCard = memo(function ObjectiveCard({
   // base. Son action doit néanmoins ouvrir le centre des didacticiels, pas le
   // profil du Directeur Sportif associé au reste de l'onboarding.
   const groupLink =
-    objective.key === "complete_tutorial"
+    objective.album ? { href: `/jeu/album?edition=${encodeURIComponent(objective.album.editionId)}&onglet=succes`, label: "Ouvrir l’album" }
+    : objective.key === "complete_tutorial"
       ? groupLinks.tutorials
       : objective.group === "transfers" ? { href: "/jeu/transferts", label: "Voir les transferts" }
       : /^journey_(community_days|private_contacts)_/.test(objective.key) ? { href: "/jeu/chat", label: "Ouvrir le chat et les MP" }

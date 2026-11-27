@@ -8,6 +8,14 @@
   scroll-margin-top: 7rem;
 }
 
+.collectionsHelp { margin: .8rem .1rem; color: var(--muted); font-size: .85rem; line-height: 1.6; }
+.collectionPickers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; margin: .65rem 0 1rem; }
+.collectionPickers label { display: grid; min-width: 0; gap: .35rem; font-size: .75rem; font-weight: 800; color: var(--muted); }
+.collectionPickers select { width: 100%; min-width: 0; min-height: 44px; border: 1px solid #aec5b5; border-radius: .3rem; background: #f7faf5; color: var(--ink); padding: .5rem; font-size: .85rem; }
+.collectionPickers select:focus-visible { outline: 2px solid #a3402f; outline-offset: 2px; }
+.season { display: inline-block; padding: .12rem .32rem; border-radius: .2rem; background: #234b40; color: #fff0c7; font-size: .69rem; font-weight: 900; letter-spacing: .04em; }
+@media(max-width: 430px) { .collectionPickers { grid-template-columns: minmax(0, 1fr); } }
+
 .header {
   display: flex;
   flex-wrap: wrap;

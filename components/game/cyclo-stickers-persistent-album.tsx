@@ -7,7 +7,8 @@ import { ALBUM_ACHIEVEMENTS, getAlbumAchievementProgress, type AlbumPilotAction,
 import { notifyCycloStickersBoostersChanged, notifyCycloStickersTradesChanged } from "@/lib/game/cyclo-stickers-booster-sync";
 import { getCycloStickersLeaderboard, type StickerAlbumLeaderboard } from "@/lib/game/cyclo-stickers-leaderboard";
 import { getCycloStickersActionRpc, getCycloStickersOpenRpc, toCycloStickersAlbumView } from "@/lib/game/cyclo-stickers-persistent-view";
-import type { CycloStickersPersistentState } from "@/lib/game/cyclo-stickers-persistence";
+import type { CycloStickersMutation, CycloStickersPersistentState } from "@/lib/game/cyclo-stickers-persistence";
+import { isCycloStickersTradeWorkspace } from "@/lib/game/cyclo-stickers-cross-trades";
 import type { WeeklyLoginBoosterProgress } from "@/lib/game/weekly-login-boosters";
 import { CollectorAlbum, type CollectorAlbumTab } from "./collector-album";
 import { CollectorCardFace } from "./collector-card-face";
@@ -17,12 +18,7 @@ import { CycloStickersTrades } from "./cyclo-stickers-trades";
 import styles from "./collector-album-retro.module.css";
 import collection from "./cyclo-stickers-collection.module.css";
 
-type Mutation = (
-  name: string,
-  args: Record<string, unknown>,
-  message: string | ((next: CycloStickersPersistentState) => string),
-  onError?: (message: string) => void,
-) => Promise<CycloStickersPersistentState | null>;
+type Mutation = CycloStickersMutation;
 const BOOSTER_SOURCE_LABELS = { login: "Connexion", referral: "Parrainage", edition: "Événement" };
 const BOOSTER_ACQUISITION_LABELS = new Map([
   ["gazette", "Cadeau Cyclogazette"],
@@ -32,6 +28,7 @@ const BOOSTER_ACQUISITION_LABELS = new Map([
 /** Only RPC responses can replace the collection. Browser demonstration saves are never read. */
 export function CycloStickersPersistentAlbum({
   snapshot,
+  authUserId,
   initialState,
   initialLeaderboard = null,
   initialTab = "album",
@@ -39,6 +36,7 @@ export function CycloStickersPersistentAlbum({
   loginBoosterProgress = null,
 }: {
   snapshot: CollectorAlbumSnapshot;
+  authUserId: string;
   initialState: CycloStickersPersistentState;
   initialLeaderboard?: StickerAlbumLeaderboard | null;
   initialTab?: CollectorAlbumTab;
@@ -50,6 +48,7 @@ export function CycloStickersPersistentAlbum({
   const [busy, setBusy] = useState(false);
   const [pendingAchievementId, setPendingAchievementId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
+  const [globalTradeCount, setGlobalTradeCount] = useState<number | null>(null);
   const locked = useRef(false);
   const refreshingLeaderboard = useRef(false);
 
@@ -69,19 +68,31 @@ export function CycloStickersPersistentAlbum({
       refreshingLeaderboard.current = false;
     }
   };
-  const mutate: Mutation = async (name, args, message, onError) => {
+  const mutate: Mutation = async (name, args, message, onError, onTradeState) => {
     if (locked.current) return null;
     locked.current = true; setBusy(true); setNotice("");
     setPendingAchievementId(name === "claim_current_cyclo_stickers_achievement" && typeof args.p_achievement_id === "string" ? args.p_achievement_id : null);
     try {
-      const result = await createSupabaseBrowserClient().rpc(name, args);
+      const client = createSupabaseBrowserClient();
+      const before = await client.auth.getSession();
+      if (before.error || before.data.session?.user.id !== authUserId) throw new Error("Votre session a changé. Rechargez la page avant de continuer.");
+      const result = await client.rpc(name, args);
+      const after = await client.auth.getSession();
+      if (after.error || after.data.session?.user.id !== authUserId) throw new Error("Votre session a changé. Rechargez la page avant de continuer.");
       if (result.error) throw new Error(result.error.message);
       const next = result.data?.state as CycloStickersPersistentState | undefined;
       if (!next || next.edition.id !== state.edition.id || next.directorId !== state.directorId) throw new Error("La réponse du serveur ne correspond pas à ta collection.");
+      const tradeState = result.data?.tradeState;
+      const crossSeasonTrade = name === "propose_cyclo_stickers_cross_season_trade" || name === "respond_cyclo_stickers_cross_season_trade";
+      if (crossSeasonTrade && !isCycloStickersTradeWorkspace(tradeState, state.directorId)) throw new Error("La réponse du serveur ne correspond pas à tes échanges.");
+      if (crossSeasonTrade) {
+        setGlobalTradeCount(tradeState.incomingOffers.length + tradeState.outgoingOffers.length);
+        onTradeState?.(tradeState, { status: result.data.status });
+      }
       setState(next);
       setNotice(typeof message === "function" ? message(next) : message);
-      if (name === "respond_current_cyclo_stickers_trade" && args.p_response !== "cancel") {
-        notifyCycloStickersTradesChanged(next.incomingOffers.length);
+      if ((name === "respond_current_cyclo_stickers_trade" || name === "respond_cyclo_stickers_cross_season_trade") && args.p_response !== "cancel") {
+        notifyCycloStickersTradesChanged(crossSeasonTrade ? tradeState.incomingOffers.length : next.incomingOffers.length);
       }
       return next;
     } catch (error) {
@@ -117,7 +128,7 @@ export function CycloStickersPersistentAlbum({
 
   return <CollectorAlbum snapshot={snapshot} storageOwnerId={state.directorId} initialTab={initialTab} runtime={{
     state: view, ready: !busy, ownerName: state.owner.displayName,
-    boosterCount: state.boosterCount, tradeCount: state.incomingOffers.length + state.outgoingOffers.length,
+    boosterCount: state.boosterCount, tradeCount: globalTradeCount ?? state.incomingOffers.length + state.outgoingOffers.length,
     achievementReadyCount: achievements.filter(objective => objective.ready).length,
     notice, onAction: send,
     leaderboard, onViewLeaderboard: () => void refreshLeaderboard(),
@@ -162,6 +173,7 @@ export function CycloStickersPersistentAlbum({
       initialView={requestedCard || offeredCard ? "compose" : initialTradeView}
       wanted={wanted}
       onViewBoosters={onViewBoosters}
+      onWorkspaceChange={workspace => setGlobalTradeCount(workspace.incomingOffers.length + workspace.outgoingOffers.length)}
     />,
   }} />;
 }
@@ -196,7 +208,7 @@ function PersistentBoosters({ snapshot, state, busy, mutate, loginBoosterProgres
   };
 
   return <section className={styles.boosterDesk} aria-label="Les sachets de cartes">
-    <header className={styles.sectionHeading}><p>LES SACHETS · COLLECTION S{state.edition.collectionSeason}</p><h2>Deux vignettes à découvrir.</h2><span>Chaque sachet conserve son édition. Les doublons sont possibles.</span></header>
+    <header className={styles.sectionHeading}><p>LES SACHETS · COLLECTION S{state.edition.sourceSeason}</p><h2>Deux vignettes à découvrir.</h2><span>Chaque sachet conserve son édition. Les doublons sont possibles.</span></header>
     {loginBoosterProgress ? <WeeklyLoginBoostersPanel progress={loginBoosterProgress} /> : null}
     <div className={styles.packShelf}>{closed.length ? closed.map((pack, index) => <div className={styles.packOffer} key={`${pack.inventorySource}:${pack.id}`}>
       <button type="button" className={styles.openPackButton} disabled={busy} aria-label={`Ouvrir le sachet ${index + 1}`} onClick={() => void openPack(pack)}><AlbumBoosterArtwork sourceSeason={snapshot.presentationSeason ?? snapshot.sourceSeason} gamesEdition={snapshot.gamesEdition} additionalRiders={snapshot.cards.filter(card=>!card.kind&&card.number>69).length} /><span>Ouvrir ce sachet ↗</span></button>

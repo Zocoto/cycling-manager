@@ -8,7 +8,7 @@ import { CycloStickersTrades } from "./cyclo-stickers-trades";
 import { LocaleProvider } from "@/components/i18n/locale-provider";
 
 it("renders the authenticated owner and empty server stock without demonstration grants", () => {
-  const html = renderToStaticMarkup(<CycloStickersPersistentAlbum snapshot={createCycloStickersFinalSnapshot(createFinalCycloStickersSourceFixture())} initialState={createCycloStickersPersistentStateFixture()} initialTab="boosters" />);
+  const html = renderToStaticMarkup(<CycloStickersPersistentAlbum authUserId="test-owner" snapshot={createCycloStickersFinalSnapshot(createFinalCycloStickersSourceFixture())} initialState={createCycloStickersPersistentStateFixture()} initialTab="boosters" />);
   expect(html).toContain("Collectionneur réel de recette");
   expect(html).toContain("Aucun sachet fermé");
   expect(html).not.toContain("Abbaye du Lion");
@@ -21,21 +21,21 @@ it("shows the connection cycle and the earned booster in the Boosters tab", () =
   const snapshot = createCycloStickersFinalSnapshot(createFinalCycloStickersSourceFixture());
   const initialState = createCycloStickersPersistentStateFixture();
   const loginBoosterProgress = { consecutiveDays: 6, totalBoostersAwarded: 2, boosterAwardedToday: true };
-  const boosters = renderToStaticMarkup(<CycloStickersPersistentAlbum snapshot={snapshot} initialState={initialState} initialTab="boosters" loginBoosterProgress={loginBoosterProgress} />);
+  const boosters = renderToStaticMarkup(<CycloStickersPersistentAlbum authUserId="test-owner" snapshot={snapshot} initialState={initialState} initialTab="boosters" loginBoosterProgress={loginBoosterProgress} />);
   expect(boosters).toContain("3 jours d’affilée, 1 booster");
   expect(boosters).toContain("Boosters gagnés : 2");
   expect(boosters).toContain("Votre booster du jour a été ajouté");
   expect(boosters).toContain('aria-valuenow="3"');
   expect(boosters).toContain("Un jour manqué remet la série à zéro");
 
-  const album = renderToStaticMarkup(<CycloStickersPersistentAlbum snapshot={snapshot} initialState={initialState} loginBoosterProgress={loginBoosterProgress} />);
+  const album = renderToStaticMarkup(<CycloStickersPersistentAlbum authUserId="test-owner" snapshot={snapshot} initialState={initialState} loginBoosterProgress={loginBoosterProgress} />);
   expect(album).not.toContain("3 jours d’affilée, 1 booster");
 });
 
 it("renders only real collectors and protects already pasted special cards", () => {
   const state = createCycloStickersPersistentStateFixture();
   state.owned = [{ cardNumber: 68, quantity: 1, pasted: true, reserved: 0 }];
-  const html = renderToStaticMarkup(<CycloStickersPersistentAlbum snapshot={createCycloStickersFinalSnapshot(createFinalCycloStickersSourceFixture())} initialState={state} initialTab="trades" />);
+  const html = renderToStaticMarkup(<CycloStickersPersistentAlbum authUserId="test-owner" snapshot={createCycloStickersFinalSnapshot(createFinalCycloStickersSourceFixture())} initialState={state} initialTab="trades" />);
   expect(html).toContain("Mes propositions");
   expect(html).toContain("Lancer un échange");
   expect(html).toContain("Tu n’as pas encore de double disponible pour un échange.");
@@ -58,14 +58,14 @@ it("starts from available duplicate copies and keeps the book's requested sticke
   const first = snapshot.cards.find(card => card.number === 1)!;
   const second = snapshot.cards.find(card => card.number === 2)!;
   expect(html).toContain("Tes doubles disponibles");
-  expect(html).toContain(`aria-label="Ajouter #01 · ${first.name}"`);
+  expect(html).toContain(`aria-label="Ajouter S4 · #01 · ${first.name}"`);
   expect(html).toContain("×2");
-  expect(html).not.toContain(`aria-label="Ajouter #02 · ${second.name}"`);
-  expect(html).not.toContain(`aria-label="Ajouter #06 · ${snapshot.cards.find(card => card.number === 6)?.name}"`);
+  expect(html).not.toContain(`aria-label="Ajouter S4 · #02 · ${second.name}"`);
+  expect(html).not.toContain(`aria-label="Ajouter S4 · #06 · ${snapshot.cards.find(card => card.number === 6)?.name}"`);
   expect(html).toContain('value="selected" selected=""');
   expect(html).toContain(`#03 · ${snapshot.cards.find(card => card.number === 3)?.name}`);
   expect(html).toContain("Ma liste de recherche (2)");
-  expect(html).toMatch(new RegExp(`<button[^>]*aria-label="Ajouter #01 · ${first.name}"[^>]*>.*?Trouver un échange`));
+  expect(html).toMatch(new RegExp(`<button[^>]*aria-label="Ajouter S4 · #01 · ${first.name}"[^>]*>.*?Trouver un échange`));
 });
 
 it("preselects an available duplicate opened from the doubles inventory", () => {
@@ -74,7 +74,7 @@ it("preselects an available duplicate opened from the doubles inventory", () => 
   state.owned = [{ cardNumber: 1, quantity: 2, pasted: false, reserved: 0 }];
   const html = renderToStaticMarkup(<CycloStickersTrades snapshot={snapshot} state={state} busy={false} mutate={async () => null} initialTarget={null} initialOffer={1} wanted={[]} />);
   expect(html).toContain('data-selected="true"');
-  expect(html).toContain('role="status">Recherche en cours…');
+  expect(html).toContain('Chargement de tes collections…');
   expect(html).toContain("Chercher un DS par son nom");
 });
 
@@ -86,11 +86,11 @@ it("renders each requested copy on a multi-sticker incoming offer in English", (
     toDirectorId: state.directorId, toName: state.owner.displayName,
     give: [1], receive: 2, receiveCards: [2, 2, 3], status: "pending", createdAt: "2026-11-14", expiresAt: "2026-11-16",
   }];
-  const html = renderToStaticMarkup(<LocaleProvider initialLocale="en"><CycloStickersPersistentAlbum snapshot={snapshot} initialState={state} initialTab="trades" initialTradeView="inbox" /></LocaleProvider>);
+  const html = renderToStaticMarkup(<LocaleProvider initialLocale="en"><CycloStickersPersistentAlbum authUserId="test-owner" snapshot={snapshot} initialState={state} initialTab="trades" initialTradeView="inbox" /></LocaleProvider>);
   expect(html).toContain("Sticker trades");
   expect(html).toContain("Start a trade");
   expect(html).toContain("Collector One");
-  expect(html).toContain(`2 × #02 · ${snapshot.cards.find(card => card.number === 2)?.name} + #03 · ${snapshot.cards.find(card => card.number === 3)?.name}`);
+  expect(html).toContain(`2 × S4 · #02 · ${snapshot.cards.find(card => card.number === 2)?.name} + S4 · #03 · ${snapshot.cards.find(card => card.number === 3)?.name}`);
   expect(html).toContain("Accept this trade");
   expect(html).not.toContain("Your available spares");
 });
@@ -100,12 +100,12 @@ it("offers a direct paste after opening and counts a second copy as a duplicate"
   const state = createCycloStickersPersistentStateFixture();
   state.openedPacks = [{ id: "new-pack", inventorySource: "edition", cards: [1, 1] }];
   state.owned = [{ cardNumber: 1, quantity: 2, pasted: false, reserved: 0 }];
-  const opened = renderToStaticMarkup(<CycloStickersPersistentAlbum snapshot={snapshot} initialState={state} initialTab="boosters" />);
+  const opened = renderToStaticMarkup(<CycloStickersPersistentAlbum authUserId="test-owner" snapshot={snapshot} initialState={state} initialTab="boosters" />);
   expect(opened.match(/>Coller dans mon album<\/button>/g)).toHaveLength(1);
   expect(opened).toContain("Double dans ce sachet");
 
   state.owned[0].pasted = true;
-  const pasted = renderToStaticMarkup(<CycloStickersPersistentAlbum snapshot={snapshot} initialState={state} initialTab="boosters" />);
+  const pasted = renderToStaticMarkup(<CycloStickersPersistentAlbum authUserId="test-owner" snapshot={snapshot} initialState={state} initialTab="boosters" />);
   expect(pasted).toContain("Collée dans l’album");
   expect(pasted).not.toContain(">Coller dans mon album<");
 });
@@ -117,7 +117,7 @@ it("shows available and reserved duplicate copies while excluding single sticker
     { cardNumber: 1, quantity: 4, pasted: true, reserved: 1 },
     { cardNumber: 2, quantity: 1, pasted: false, reserved: 0 },
   ];
-  const html = renderToStaticMarkup(<CycloStickersPersistentAlbum snapshot={snapshot} initialState={state} initialTab="duplicates" />);
+  const html = renderToStaticMarkup(<CycloStickersPersistentAlbum authUserId="test-owner" snapshot={snapshot} initialState={state} initialTab="duplicates" />);
   expect(html).toContain("Inventaire des doubles");
   expect(html).toContain("N° 01");
   expect(html).not.toContain("N° 02");
@@ -131,7 +131,7 @@ it("keeps the album reward highlighted and counted until it has been claimed", (
   const state = createCycloStickersPersistentStateFixture();
   state.owned = [{ cardNumber: 1, quantity: 1, pasted: true, reserved: 0 }];
   const render = () => renderToStaticMarkup(
-    <CycloStickersPersistentAlbum snapshot={snapshot} initialState={state} initialTab="achievements" />,
+    <CycloStickersPersistentAlbum authUserId="test-owner" snapshot={snapshot} initialState={state} initialTab="achievements" />,
   );
 
   expect(render()).toMatch(/title="Récompenses à récupérer">1/);

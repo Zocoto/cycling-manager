@@ -20,7 +20,7 @@ describe("paste menu", () => {
       { cardNumber: 3, quantity: 1, pasted: false, reserved: 1 },
       { cardNumber: 68, quantity: 1, pasted: false, reserved: 0 },
     ];
-    const html = renderToStaticMarkup(<CycloStickersPersistentAlbum snapshot={snapshot} initialState={state} initialTab={initialTab} />);
+    const html = renderToStaticMarkup(<CycloStickersPersistentAlbum authUserId="test-owner" snapshot={snapshot} initialState={state} initialTab={initialTab} />);
     expect(html).toContain('data-album-paste-menu="true"');
     expect(html).toContain('aria-label="Cartes à coller (2)"');
     expect(html).toMatch(/class="[^"]*available[^"]*"[^>]*aria-expanded="false"/);
