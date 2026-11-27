@@ -50,7 +50,7 @@ describe("bulk international selection responses", () => {
   it("keeps unanswered invitations pending and moves processed ones to history", () => {
     expect(page).toContain("splitDirectorInternationalSelections(");
     expect(page).toContain(
-      'audience === "professional" ? selections : []',
+      'matchingSelections = audience === "professional"',
     );
     expect(page).toContain("pendingSelections.map");
     expect(page).toContain("Historique des convocations");
@@ -64,7 +64,7 @@ describe("bulk international selection responses", () => {
       "Les décisions ont été enregistrées en une seule fois.",
     );
     expect(page).not.toContain("savedDecisionCount");
-    expect(action).toContain('redirect("/jeu/selections-internationales")');
+    expect(action).toContain("redirect(getInternationalSelectionsHref({ raceEditionId: epreuve }))");
     expect(action).not.toContain("?decision=enregistrees");
   });
 

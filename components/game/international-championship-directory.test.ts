@@ -11,6 +11,7 @@ import type {
 import {
   getInternationalChampionshipDirectoryHref,
   getInternationalChampionshipStartlistHref,
+  getInternationalSelectionsHref,
 } from "@/lib/game/international-championship-navigation";
 
 const pageSource = readFileSync(
@@ -154,9 +155,20 @@ describe("annuaire des championnats internationaux", () => {
     expect(selectionsSource).toContain("Profils et startlists");
     expect(selectionsSource).toContain("selection.championshipSlug");
     expect(selectionsSource).toContain("Voir le profil et la startlist");
-    expect(profileSource).toContain("INTERNATIONAL_SELECTIONS_HREF");
+    expect(profileSource).toContain("getInternationalSelectionsHref({ raceEditionId: edition.id })");
     expect(profileSource).toContain("Retour aux CC & CM");
     expect(profileSource).toContain("Voir mes convocations");
+  });
+
+  it("cible l’épreuve et conserve la catégorie des convocations", () => {
+    const raceEditionId = "a2f00814-872a-4bde-beef-3406775143c6";
+    expect(getInternationalSelectionsHref()).toBe("/jeu/selections-internationales");
+    expect(getInternationalSelectionsHref({ raceEditionId })).toBe(
+      `/jeu/selections-internationales?epreuve=${raceEditionId}`,
+    );
+    expect(getInternationalSelectionsHref({ audience: "junior", raceEditionId })).toBe(
+      `/jeu/selections-internationales?categorie=junior&epreuve=${raceEditionId}`,
+    );
   });
 
   it("fournit aussi un tracé visible aux championnats juniors", () => {

@@ -1,6 +1,7 @@
 import "server-only";
 import {
   isFederationCallupResponseOpen,
+  type FederationCallup,
   type FederationSelectionSchedule,
 } from "@/lib/game/federation-callups";
 
@@ -50,7 +51,7 @@ type MemberRow = {
   professional_rider_id: string | null;
   junior_rider_id: string | null;
   owner_team_id: string | null;
-  response_status: "draft" | "pending" | "confirmed" | "declined" | "ineligible";
+  response_status: "draft" | FederationCallup["response_status"];
 };
 type AssignmentRow = { sporting_director_id: string };
 type TermRow = { president_director_id: string | null };
@@ -194,7 +195,9 @@ export async function getFederationSelectionState({
             .map((member) => [member.professional_rider_id ?? member.junior_rider_id, member.response_status])),
           riderIds: members
             .filter((member) => member.selection_list_id === list.id
-              && member.response_status !== "ineligible" && member.response_status !== "declined")
+              && member.response_status !== "ineligible"
+              && member.response_status !== "declined"
+              && member.response_status !== "withdrawn")
             .map(
               (member) =>
                 member.professional_rider_id ?? member.junior_rider_id,

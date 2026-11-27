@@ -4,7 +4,7 @@ vi.mock("next/navigation", () => ({ redirect: (href: string) => { throw new Erro
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
 vi.mock("@/lib/supabase/server", () => ({ createSupabaseServerClient: async () => ({ rpc: mocks.rpc, auth: { getUser: mocks.user } }) }));
 vi.mock("@/services/international-championship-selections", () => ({ respondToInternationalChampionshipSelections: vi.fn() }));
-import { answerFederationCallupAction } from "./actions";
+import { answerFederationCallupAction, withdrawFederationCallupAction } from "./actions";
 const memberId = "71adc9a8-5df8-48c5-a6d4-7f2cc634f379";
 function payload(decision: string | null, audience = "professional") {
   const form = new FormData();
@@ -45,6 +45,45 @@ describe("réponse aux convocations fédérales", () => {
   it("bloque une session absente", async () => {
     mocks.user.mockResolvedValue({ data: { user: null } });
     await expect(answerFederationCallupAction(payload("confirm"))).rejects.toThrow("REDIRECT:/connexion");
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+});
+
+describe("retrait d’une convocation acceptée", () => {
+  const raceId = "81654074-4107-4fc2-ab08-147d34babe16";
+
+  it("utilise l’action dédiée et garde la catégorie junior et l’épreuve après validation", async () => {
+    mocks.rpc.mockResolvedValue({ data: "withdrawn", error: null });
+    const form = payload(null, "junior");
+    form.set("epreuve", raceId);
+    await expect(withdrawFederationCallupAction(form)).rejects.toThrow(
+      `REDIRECT:/jeu/selections-internationales?categorie=junior&epreuve=${raceId}&decision=retiree`,
+    );
+    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith(
+      "withdraw_confirmed_national_federation_callup", { p_member_id: memberId },
+    );
+    expect(mocks.revalidate).toHaveBeenCalledWith("/jeu/nations-cup");
+    expect(mocks.revalidate).toHaveBeenCalledWith("/jeu/centre-de-formation/development/[academyRiderId]", "page");
+    expect(mocks.revalidate).toHaveBeenCalledWith("/jeu/coureurs/[identifiant]", "page");
+  });
+
+  it("conserve l’épreuve si le serveur refuse le retrait, par exemple après l’échéance", async () => {
+    const message = "L’heure limite de retrait est dépassée.";
+    mocks.rpc.mockResolvedValue({ data: null, error: { message } });
+    const form = payload(null);
+    form.set("epreuve", raceId);
+    await expect(withdrawFederationCallupAction(form)).rejects.toThrow(
+      `REDIRECT:/jeu/selections-internationales?epreuve=${raceId}&erreur=${encodeURIComponent(message)}`,
+    );
+    expect(mocks.revalidate).not.toHaveBeenCalled();
+  });
+
+  it("filtre les identifiants invalides avant tout appel et exige une session", async () => {
+    const invalid = payload(null);
+    invalid.set("memberId", "invalide");
+    await expect(withdrawFederationCallupAction(invalid)).rejects.toThrow("Retrait%20invalide");
+    mocks.user.mockResolvedValue({ data: { user: null } });
+    await expect(withdrawFederationCallupAction(payload(null))).rejects.toThrow("REDIRECT:/connexion");
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
 });

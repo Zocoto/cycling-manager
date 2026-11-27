@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
+import { z } from "zod";
 
 import { answerInternationalSelectionsAction } from "./actions";
 import { GameHeader } from "@/components/game/game-header";
@@ -17,6 +18,7 @@ import { getGameHeaderData } from "@/services/game-header-data";
 import {
   INTERNATIONAL_CHAMPIONSHIPS_HREF,
   getInternationalChampionshipDirectoryHref,
+  getInternationalSelectionsHref,
 } from "@/lib/game/international-championship-navigation";
 import {
   getCurrentDirectorInternationalSelections,
@@ -36,6 +38,7 @@ type InternationalSelectionsPageProps = {
     decision?: string | string[];
     erreur?: string | string[];
     categorie?: string | string[];
+    epreuve?: string | string[];
   }>;
 };
 
@@ -97,6 +100,8 @@ export default async function InternationalSelectionsPage({
     readSingleSearchParam(resolvedSearchParams.categorie) === "junior"
       ? "junior"
       : "professional";
+  const requestedEdition = z.string().uuid().safeParse(readSingleSearchParam(resolvedSearchParams.epreuve));
+  const raceEditionId = requestedEdition.success ? requestedEdition.data.toLowerCase() : null;
 
   const [headerData, selections, federationResult] = await Promise.all([
     getGameHeaderData(supabase, user.id),
@@ -108,18 +113,19 @@ export default async function InternationalSelectionsPage({
   ]);
 
   if (federationResult.error) console.error("Chargement des convocations fédérales :", federationResult.error.message);
-  const federation = splitFederationCallups(
-    filterFederationCallupsByCategory(
-      Array.isArray(federationResult.data) ? federationResult.data : [],
-      audience,
-    ),
+  const matchingFederationCallups = filterFederationCallupsByCategory(
+    Array.isArray(federationResult.data) ? federationResult.data : [],
+    audience,
+  ).filter((callup) => !raceEditionId || callup.race_edition_id === raceEditionId);
+  const federation = splitFederationCallups(matchingFederationCallups);
+  const matchingSelections = audience === "professional"
+    ? selections.filter((selection) => !raceEditionId || selection.raceEditionId === raceEditionId)
+    : [];
+  const { pendingSelections, historicalSelections } = splitDirectorInternationalSelections(
+    matchingSelections,
   );
-
-  const { pendingSelections, historicalSelections } =
-    splitDirectorInternationalSelections(
-      audience === "professional" ? selections : [],
-    );
   const pendingCount = pendingSelections.length + federation.pending.length;
+  const historyCount = historicalSelections.length + federation.history.length;
   const decision = readSingleSearchParam(resolvedSearchParams.decision);
   const errorMessage = readSingleSearchParam(resolvedSearchParams.erreur);
 
@@ -156,8 +162,8 @@ export default async function InternationalSelectionsPage({
               </h1>
               <p className="mt-4 text-sm font-semibold leading-6 text-[#D6DFD2] sm:text-base">
                 {audience === "junior"
-                  ? "Répondez aux convocations des CM et CC juniors sans les mélanger avec l’effectif professionnel. Une participation confirmée ne peut plus être retirée de la liste fédérale."
-                  : "Répondez aux convocations professionnelles dès leur publication. Une participation confirmée ne peut plus être retirée de la liste fédérale. Sans réponse explicite avant la clôture, le coureur n’est pas mobilisé."}
+                  ? "Répondez aux convocations des CM et CC juniors. Les participations confirmées restent visibles jusqu’à la clôture des retraits."
+                  : "Répondez aux convocations professionnelles dès leur publication. Les participations confirmées restent visibles jusqu’à la clôture des retraits."}
               </p>
             </div>
             <div className="grid gap-3">
@@ -204,6 +210,17 @@ export default async function InternationalSelectionsPage({
           </Link>
         </nav>
 
+        {raceEditionId ? (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#315B3E]/15 bg-white px-4 py-3">
+            <p className="text-sm font-bold text-[#315B3E]">
+              {matchingFederationCallups[0]?.competition_label ?? matchingSelections[0]?.championshipName ?? "Convocations pour cette épreuve"}
+            </p>
+            <Link href={getInternationalSelectionsHref({ audience })} className="text-sm font-black text-[#176951] underline underline-offset-4">
+              Voir toutes mes convocations
+            </Link>
+          </div>
+        ) : null}
+
         {decision === "confirmee" ? (
           <FeedbackBanner tone="success">
             La participation est validée. Les courses, demandes de WildCard et
@@ -219,18 +236,25 @@ export default async function InternationalSelectionsPage({
           </FeedbackBanner>
         ) : null}
 
+        {decision === "retiree" ? (
+          <FeedbackBanner tone="success">
+            Le retrait est enregistré. La place est libérée dans la sélection fédérale.
+          </FeedbackBanner>
+        ) : null}
+
         {errorMessage ? (
           <FeedbackBanner tone="error">{errorMessage}</FeedbackBanner>
         ) : null}
 
         <section className="mt-7 space-y-6">
           {federationResult.error ? <FeedbackBanner tone="error">Les convocations fédérales n’ont pas pu être chargées. Veuillez réessayer.</FeedbackBanner> : null}
-          {federation.pending.map((callup) => <FederationCallupCard key={callup.member_id} callup={callup} />)}
+          {federation.pending.map((callup) => <FederationCallupCard key={callup.member_id} callup={callup} raceEditionFilter={raceEditionId} />)}
           {pendingSelections.length > 0 ? (
             <form
               action={answerInternationalSelectionsAction}
               className="space-y-5"
             >
+              {raceEditionId ? <input type="hidden" name="epreuve" value={raceEditionId} /> : null}
               {pendingSelections.map((selection) => (
                 <SelectionCard
                   key={selection.candidateId}
@@ -258,17 +282,26 @@ export default async function InternationalSelectionsPage({
                 </div>
               </div>
             </form>
-          ) : pendingCount === 0 && !federationResult.error ? (
+          ) : pendingCount === 0 && federation.confirmed.length === 0 && !federationResult.error ? (
             <div className="rounded-[2rem] border border-dashed border-[#315B3E]/25 bg-white px-6 py-12 text-center shadow-[0_16px_45px_rgba(19,60,46,0.06)]">
               <p className="text-xl font-black text-[#183F37]">
-                Aucune convocation en attente
+                {raceEditionId && historyCount === 0 ? "Aucune convocation pour cette épreuve" : "Aucune convocation en attente"}
               </p>
               <p className="mx-auto mt-2 max-w-2xl text-sm font-semibold leading-6 text-[#60756E]">
-                {historicalSelections.length + federation.history.length > 0
+                {historyCount > 0
                   ? "Toutes les convocations reçues ont déjà été traitées. Vous pouvez retrouver leur détail dans l’historique ci-dessous."
-                  : "Les convocations apparaîtront ici dès leur publication par la fédération. En mode automatique, celles des CC et Mondiaux sont envoyées après le classement de qualification figé à J8."}
+                  : "Les convocations apparaîtront ici dès leur publication par la fédération."}
               </p>
             </div>
+          ) : null}
+
+          {federation.confirmed.length > 0 ? (
+            <section aria-labelledby="confirmed-callups" className="space-y-4">
+              <h2 id="confirmed-callups" className="text-xl font-black text-[#183F37]">
+                Participations confirmées
+              </h2>
+              {federation.confirmed.map((callup) => <FederationCallupCard key={callup.member_id} callup={callup} raceEditionFilter={raceEditionId} />)}
+            </section>
           ) : null}
 
           {federation.history.length > 0 ? (

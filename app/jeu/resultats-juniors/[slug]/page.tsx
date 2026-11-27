@@ -5,6 +5,7 @@ import { FederationHostingResultViewMarker } from "@/components/game/federation-
 import { GameHeader } from "@/components/game/game-header";
 import { JuniorChampionshipResultEmptyState } from "@/components/game/junior-championship-result-empty-state";
 import Link from "@/components/ui/app-link";
+import { getInternationalSelectionsHref } from "@/lib/game/international-championship-navigation";
 import { RACE_PROFILE_LABELS } from "@/lib/game/race-calendar";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -60,12 +61,22 @@ export default async function JuniorChampionshipResultsPage({
       />
 
       <section className="mx-auto max-w-[1350px] px-4 py-8 sm:px-8 sm:py-12">
-        <Link
-          href="/jeu/calendrier"
-          className="inline-flex min-h-10 items-center rounded-xl border border-[#176951]/20 bg-white px-4 text-xs font-black text-[#176951] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-        >
-          ← Retour au calendrier
-        </Link>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link
+            href="/jeu/calendrier"
+            className="inline-flex min-h-10 items-center rounded-xl border border-[#176951]/20 bg-white px-4 text-xs font-black text-[#176951] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+          >
+            ← Retour au calendrier
+          </Link>
+          {!isNationsCup ? (
+            <Link
+              href={getInternationalSelectionsHref({ audience: "junior", raceEditionId: snapshot.race.id })}
+              className="inline-flex min-h-10 items-center justify-center rounded-xl border border-[#176951]/25 bg-white px-4 text-sm font-black text-[#176951] transition hover:bg-[#EEF8F4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]"
+            >
+              Voir mes convocations juniors
+            </Link>
+          ) : null}
+        </div>
 
         <header className="relative mt-5 overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17,#176951)] px-6 py-8 text-white shadow-[0_22px_60px_rgba(11,48,43,0.2)] sm:px-10 sm:py-10">
           <div

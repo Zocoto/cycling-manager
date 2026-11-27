@@ -40,8 +40,18 @@ describe("federation call-ups", () => {
       { ...callup, response_status: "confirmed" as const },
       { ...callup, response_status: "declined" as const },
       { ...callup, response_status: "ineligible" as const },
+      { ...callup, response_status: "withdrawn" as const, can_withdraw: true },
     ];
-    expect(splitFederationCallups(history)).toEqual({ pending: [], history });
+    expect(splitFederationCallups(history)).toEqual({ pending: [], confirmed: [], history });
+  });
+  it("exposes only confirmed and still-withdrawable participations above history", () => {
+    const locked = { ...callup, member_id: "past", response_status: "confirmed" as const, can_respond: false, can_withdraw: false };
+    const confirmed = {
+      ...locked, member_id: "open", can_withdraw: true, withdrawal_closes_at: "2026-11-29T16:00:00Z",
+    };
+    expect(splitFederationCallups([callup, locked, confirmed])).toEqual({
+      pending: [callup], confirmed: [confirmed], history: [locked],
+    });
   });
   it("keeps professional and junior invitations on separate pages", () => {
     const junior = {

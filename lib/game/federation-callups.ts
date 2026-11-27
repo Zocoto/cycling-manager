@@ -33,6 +33,8 @@ export type FederationSelectionSlotTiming = {
   departureAt: string | null;
 };
 
+export const FEDERATION_CALLUP_WITHDRAWAL_MORALE_COST = 10;
+
 export type FederationCallup = {
   member_id: string;
   country_code: string;
@@ -42,19 +44,29 @@ export type FederationCallup = {
   rider_id: string;
   rider_name: string;
   rider_category: "professional" | "junior";
-  response_status: "pending" | "confirmed" | "declined" | "ineligible";
+  response_status: "pending" | "confirmed" | "declined" | "ineligible" | "withdrawn";
   published_at: string;
   closes_at: string | null;
   can_respond: boolean;
+  can_withdraw?: boolean;
+  withdrawal_closes_at?: string | null;
+  race_edition_id?: string | null;
   race_href: string | null;
   conflicting_race_names: string[];
 };
 
 export function splitFederationCallups(callups: FederationCallup[]) {
-  return {
-    pending: callups.filter((callup) => callup.response_status === "pending" && callup.can_respond),
-    history: callups.filter((callup) => callup.response_status !== "pending" || !callup.can_respond),
-  };
+  const pending: FederationCallup[] = [];
+  const confirmed: FederationCallup[] = [];
+  const history: FederationCallup[] = [];
+
+  for (const callup of callups) {
+    if (callup.response_status === "pending" && callup.can_respond) pending.push(callup);
+    else if (callup.response_status === "confirmed" && callup.can_withdraw) confirmed.push(callup);
+    else history.push(callup);
+  }
+
+  return { pending, confirmed, history };
 }
 
 export function filterFederationCallupsByCategory(

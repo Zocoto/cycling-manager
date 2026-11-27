@@ -8,7 +8,9 @@ import { NationsCupEventTabs } from "@/components/game/nations-cup-event-tabs";
 import { NationsCupStandings } from "@/components/game/nations-cup-standings";
 import { OlympicNations } from "@/components/game/olympic-nations";
 import { QuadrennialGamesBanner } from "@/components/game/quadrennial-games-banner";
+import Link from "@/components/ui/app-link";
 import { isOlympicSeason } from "@/lib/game/federation-olympic-programme";
+import { INTERNATIONAL_SELECTIONS_HREF } from "@/lib/game/international-championship-navigation";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
@@ -41,7 +43,15 @@ export default async function NationsCupPage() {
         maxWidth="wide"
       />
       <section className="mx-auto max-w-[1500px] px-5 py-9 sm:px-8 sm:py-12">
-        <BackToOfficeLink />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <BackToOfficeLink />
+          <Link
+            href={INTERNATIONAL_SELECTIONS_HREF}
+            className="inline-flex min-h-10 items-center justify-center rounded-xl border border-[#176951]/25 bg-white px-4 text-sm font-black text-[#176951] transition hover:bg-[#EEF8F4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]"
+          >
+            Voir mes convocations
+          </Link>
+        </div>
         {olympic ? <QuadrennialGamesBanner seasonName={overview?.seasonName ?? "Saison active"} /> : <header className="relative mt-5 overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17,#176951)] px-6 py-8 text-white shadow-[0_24px_70px_rgba(19,60,46,0.18)] sm:px-10 sm:py-10">
           <div className="relative">
             <p className="text-xs font-black uppercase tracking-[0.2em] text-[#F2C94C]">

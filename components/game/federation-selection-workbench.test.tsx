@@ -261,4 +261,53 @@ describe("FederationSelectionWorkbench hosting", () => {
     expect(markup).toContain('data-rider-preview-trigger=""');
     expect(markup).toContain('aria-haspopup="dialog"');
   });
+
+  it("shows a withdrawn rider without reserving the slot or allowing a new call-up", () => {
+    const rider = {
+      id: "rider-withdrawn",
+      teamId: "team-1",
+      name: "Lou Martin",
+      category: "professional" as const,
+      juniorAffiliation: null,
+      teamName: "Vélo Club",
+      age: 24,
+      profile: "Montagne" as const,
+      overall: 78,
+      ratings: {
+        mountain: 84, hills: 80, flat: 71, timeTrial: 73, cobbles: 66, sprint: 64, acceleration: 76,
+        downhill: 79, endurance: 81, resistance: 82, recovery: 77, breakaway: 74, prologue: 69,
+      },
+    };
+    const markup = renderToStaticMarkup(<FederationSelectionWorkbench
+      countryCode="FR" countryName="France" gameYear={5}
+      riders={[rider, { ...rider, id: "rider-replacement", name: "Noa Dupont" }]}
+      selectionState={{
+        canManage: true,
+        automaticSelection: false,
+        competitionHosts: {},
+        forecasts: {},
+        pendingConfirmations: [],
+        schedules: {
+          "cc-pro-road": {
+            slot_key: "cc-pro-road", label: "CC Route", rider_category: "professional",
+            race_edition_id: "edition-cc", race_href: "/jeu/courses/cc", departure_at: "2026-10-23T16:00:00Z",
+            closes_at: "2026-10-22T16:00:00Z", is_open: true, can_prepare: true, rider_limit: 1,
+          },
+        },
+        selections: {
+          "cc-pro-road": {
+            status: "finalized", revision: 2, riderIds: [rider.id], confirmedRiderIds: [],
+            responses: { [rider.id]: "withdrawn" },
+          },
+        },
+      }}
+    />);
+    const withdrawn = markup.match(/<input[^>]*aria-label="Sélectionner Lou Martin"[^>]*>/)?.[0];
+    const replacement = markup.match(/<input[^>]*aria-label="Sélectionner Noa Dupont"[^>]*>/)?.[0];
+    expect(markup).toContain("Retiré par son DS");
+    expect(withdrawn).toContain('disabled=""');
+    expect(withdrawn).not.toContain('checked=""');
+    expect(replacement).toBeDefined();
+    expect(replacement).not.toContain('disabled=""');
+  });
 });

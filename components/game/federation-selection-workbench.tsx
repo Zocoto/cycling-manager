@@ -286,7 +286,8 @@ export function FederationSelectionWorkbench({
   ) as Record<SelectionCompetitionId, SelectionCompetitionProgress>;
   const storedSelection = selectionState?.selections[slot.id] ?? null;
   const confirmedRiderIds = storedSelection?.confirmedRiderIds ?? [];
-  const selected = [...new Set([...(selectedBySlot[slot.id] ?? storedSelection?.riderIds ?? []), ...confirmedRiderIds])];
+  const selected = [...new Set([...(selectedBySlot[slot.id] ?? storedSelection?.riderIds ?? []), ...confirmedRiderIds])]
+    .filter((riderId) => storedSelection?.responses?.[riderId] !== "withdrawn");
   const schedule = selectionState?.schedules?.[slot.id];
   const variableChampionshipQuota = gameYear >= 5 && (slot.id.startsWith("cc-pro-") || slot.id.startsWith("world-pro-"));
   const canPrepare = schedule?.can_prepare ?? (schedule?.is_open === true);
@@ -344,6 +345,7 @@ export function FederationSelectionWorkbench({
 
   function toggleRider(riderId: string) {
     if (!canManage || !canPrepare || automaticSelection || confirmedRiderIds.includes(riderId)) return;
+    if (storedSelection?.responses?.[riderId] === "withdrawn") return;
     if (slot.nationsCupProfile && Object.entries(selectionState?.selections ?? {}).some(
       ([key, selection]) => key !== slot.id && key.startsWith("nc-") && selection.confirmedRiderIds?.includes(riderId),
     )) return;
@@ -530,7 +532,7 @@ export function FederationSelectionWorkbench({
 
         <p className="border-b border-[#315B3E]/10 bg-[#F2F8F5] px-5 py-4 text-xs font-bold leading-5 text-[#526B62]">
           {getFederationPreselectionAvailabilityMessage(schedule)}
-          {" "}Un coureur confirmé par son DS reste sélectionné et ne peut plus être retiré.
+          {" "}Les changements d’une participation confirmée passent par le DS du coureur.
         </p>
 
         {variableChampionshipQuota ? (
@@ -575,6 +577,7 @@ export function FederationSelectionWorkbench({
                 const isSelected = selected.includes(rider.id);
                 const isConfirmed = confirmedRiderIds.includes(rider.id);
                 const response = storedSelection?.responses?.[rider.id];
+                const isWithdrawn = response === "withdrawn";
                 const confirmedElsewhere = Boolean(slot.nationsCupProfile && Object.entries(selectionState?.selections ?? {}).some(
                   ([key, selection]) => key !== slot.id && key.startsWith("nc-") && selection.confirmedRiderIds?.includes(rider.id),
                 ));
@@ -583,7 +586,7 @@ export function FederationSelectionWorkbench({
                 const weatherAdjustment = publishedWeather ? getRaceClimatePerformanceAdjustment(climateProfile, publishedWeather) : 0;
                 const selectedSortValue = getFederationSelectionSortValue(rider, { key: sortKey, countryCode, weather: publishedWeather });
                 const showSecondarySortValue = !["overall", "weatherAffinity", ...PRIMARY_RATING_COLUMNS.map((column) => column.key)].includes(sortKey);
-                return <tr key={rider.id} className={isConfirmed ? "bg-[#EEF3F1] text-[#60756E]" : isSelected ? "bg-[#E8F7F1]" : "bg-white"}><td className="px-5 py-4"><input type="checkbox" checked={isSelected} disabled={!canManage || !canPrepare || isConfirmed || confirmedElsewhere || limitReached} onChange={() => toggleRider(rider.id)} aria-label={`Sélectionner ${rider.name}`} className="h-5 w-5 accent-[var(--federation-secondary)]" /></td><td className="px-3 py-4"><p className="font-black text-[#183F37]"><FederationRiderPreviewLink rider={rider} countryCode={countryCode} countryName={countryName} /></p><p className="mt-1 text-xs font-semibold text-[#60756E]">{rider.age} ans · {rider.category === "junior" ? "Junior" : "Pro"}</p>{showSecondarySortValue ? <p className="mt-2 inline-flex rounded-full bg-[#FFF5C8] px-2 py-1 text-[9px] font-black uppercase tracking-wide text-[#745B00]">{getFederationSelectionSortLabel(sortKey)} · {formatRating(selectedSortValue)}</p> : null}</td><td className="max-w-56 px-3 py-4 text-sm font-bold text-[#526B62]"><p>{rider.teamName}</p>{rider.juniorAffiliation ? <span className="mt-1 inline-flex rounded-full bg-[#EEF3F1] px-2 py-1 text-[9px] font-black uppercase tracking-wide text-[#315B3E]">{rider.juniorAffiliation === "development_team" ? "DevTeam" : "École de cyclisme"}</span> : null}</td><td className="px-3 py-4"><span className="rounded-full bg-[#EEF3F1] px-3 py-1 text-xs font-black text-[#315B3E]">{rider.profile}</span></td>{PRIMARY_RATING_COLUMNS.map((column) => <td key={column.key} className={`px-2 py-4 text-center font-black ${sortKey === column.key ? "bg-[#FFF9DE] text-[#745B00]" : "text-[#183F37]"}`}>{formatRating(rider.ratings[column.key])}</td>)}<td className={`px-3 py-4 text-center text-base font-black ${sortKey === "overall" ? "bg-[#FFF9DE] text-[#745B00]" : "text-[var(--federation-secondary)]"}`}>{formatRating(rider.overall)}</td><td className={`min-w-48 px-3 py-4 ${sortKey === "weatherAffinity" ? "bg-[#FFF9DE]" : ""}`}><RiderClimateAffinities profile={climateProfile} adjustment={publishedWeather && rider.category === "professional" && forecast?.isOfficialCourse ? weatherAdjustment : null} /></td><td className="px-5 py-4 text-xs font-bold text-[#806300]">{isConfirmed ? "Participation confirmée · verrouillée" : confirmedElsewhere ? "Confirmé sur un autre profil" : response === "pending" ? "Réponse du DS attendue" : response === "declined" ? "Refusé par le DS" : isSelected ? "Brouillon · non envoyé" : "—"}</td></tr>;
+                return <tr key={rider.id} className={isConfirmed || isWithdrawn ? "bg-[#EEF3F1] text-[#60756E]" : isSelected ? "bg-[#E8F7F1]" : "bg-white"}><td className="px-5 py-4"><input type="checkbox" checked={isSelected} disabled={!canManage || !canPrepare || isConfirmed || isWithdrawn || confirmedElsewhere || limitReached} onChange={() => toggleRider(rider.id)} aria-label={`Sélectionner ${rider.name}`} className="h-5 w-5 accent-[var(--federation-secondary)]" /></td><td className="px-3 py-4"><p className="font-black text-[#183F37]"><FederationRiderPreviewLink rider={rider} countryCode={countryCode} countryName={countryName} /></p><p className="mt-1 text-xs font-semibold text-[#60756E]">{rider.age} ans · {rider.category === "junior" ? "Junior" : "Pro"}</p>{showSecondarySortValue ? <p className="mt-2 inline-flex rounded-full bg-[#FFF5C8] px-2 py-1 text-[9px] font-black uppercase tracking-wide text-[#745B00]">{getFederationSelectionSortLabel(sortKey)} · {formatRating(selectedSortValue)}</p> : null}</td><td className="max-w-56 px-3 py-4 text-sm font-bold text-[#526B62]"><p>{rider.teamName}</p>{rider.juniorAffiliation ? <span className="mt-1 inline-flex rounded-full bg-[#EEF3F1] px-2 py-1 text-[9px] font-black uppercase tracking-wide text-[#315B3E]">{rider.juniorAffiliation === "development_team" ? "DevTeam" : "École de cyclisme"}</span> : null}</td><td className="px-3 py-4"><span className="rounded-full bg-[#EEF3F1] px-3 py-1 text-xs font-black text-[#315B3E]">{rider.profile}</span></td>{PRIMARY_RATING_COLUMNS.map((column) => <td key={column.key} className={`px-2 py-4 text-center font-black ${sortKey === column.key ? "bg-[#FFF9DE] text-[#745B00]" : "text-[#183F37]"}`}>{formatRating(rider.ratings[column.key])}</td>)}<td className={`px-3 py-4 text-center text-base font-black ${sortKey === "overall" ? "bg-[#FFF9DE] text-[#745B00]" : "text-[var(--federation-secondary)]"}`}>{formatRating(rider.overall)}</td><td className={`min-w-48 px-3 py-4 ${sortKey === "weatherAffinity" ? "bg-[#FFF9DE]" : ""}`}><RiderClimateAffinities profile={climateProfile} adjustment={publishedWeather && rider.category === "professional" && forecast?.isOfficialCourse ? weatherAdjustment : null} /></td><td className="px-5 py-4 text-xs font-bold text-[#806300]">{isWithdrawn ? "Retiré par son DS" : isConfirmed ? "Participation confirmée · verrouillée" : confirmedElsewhere ? "Confirmé sur un autre profil" : response === "pending" ? "Réponse du DS attendue" : response === "declined" ? "Refusé par le DS" : isSelected ? "Brouillon · non envoyé" : "—"}</td></tr>;
               })}
             </tbody>
           </table>

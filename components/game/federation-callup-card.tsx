@@ -1,23 +1,33 @@
 import Link from "@/components/ui/app-link";
-import { answerFederationCallupAction } from "@/app/jeu/selections-internationales/actions";
+import { answerFederationCallupAction, withdrawFederationCallupAction } from "@/app/jeu/selections-internationales/actions";
 import { InternationalSelectionSubmitButton } from "@/components/game/international-selection-submit-button";
-import { formatFederationSelectionDeadline, type FederationCallup } from "@/lib/game/federation-callups";
+import {
+  FEDERATION_CALLUP_WITHDRAWAL_MORALE_COST,
+  formatFederationSelectionDeadline,
+  type FederationCallup,
+} from "@/lib/game/federation-callups";
 
-export function FederationCallupCard({ callup }: { callup: FederationCallup }) {
+export function FederationCallupCard({ callup, raceEditionFilter }: {
+  callup: FederationCallup;
+  raceEditionFilter?: string | null;
+}) {
   const canRespond = callup.response_status === "pending" && callup.can_respond;
+  const canWithdraw = callup.response_status === "confirmed" && callup.can_withdraw;
+  const withdrawn = callup.response_status === "withdrawn";
   const label = callup.response_status === "confirmed" ? "Participation confirmée"
+    : withdrawn ? "Participation retirée"
     : callup.response_status === "declined" ? "Participation refusée"
     : callup.response_status === "ineligible" ? "Convocation devenue inéligible"
     : canRespond ? "Réponse attendue" : "Délai de réponse dépassé";
   return (
-    <article className="rounded-[2rem] border border-[#315B3E]/15 bg-white p-6 shadow-sm sm:p-8">
+    <article id={`convocation-${callup.member_id}`} className={`scroll-mt-24 rounded-[2rem] border border-[#315B3E]/15 bg-white shadow-sm ${canWithdraw ? "p-5" : "p-6 sm:p-8"}`}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-black uppercase tracking-wider text-[#60756E]">Fédération · {callup.country_name}</p>
           <h2 className="mt-2 text-2xl font-black text-[#183F37]">{callup.rider_name}</h2>
           <p className="mt-2 font-bold text-[#315B3E]">{callup.competition_label}</p>
         </div>
-        <span className="rounded-full bg-[#E8F7F1] px-4 py-2 text-xs font-black text-[#176951]">{label}</span>
+        <span className={`rounded-full px-4 py-2 text-xs font-black ${withdrawn ? "bg-[#FFF1EF] text-[#9A3434]" : "bg-[#E8F7F1] text-[#176951]"}`}>{label}</span>
       </div>
       {callup.race_href ? <Link href={callup.race_href} className="mt-3 inline-block text-sm font-bold text-[#176951] underline underline-offset-4">Voir le profil et la startlist →</Link> : null}
       {canRespond ? (
@@ -44,10 +54,38 @@ export function FederationCallupCard({ callup }: { callup: FederationCallup }) {
                 <input type="hidden" name="memberId" value={callup.member_id} />
                 <input type="hidden" name="audience" value={callup.rider_category} />
                 <input type="hidden" name="decision" value={decision} />
+                {raceEditionFilter ? <input type="hidden" name="epreuve" value={raceEditionFilter} /> : null}
                 <InternationalSelectionSubmitButton variant={decision} pendingLabel="Enregistrement…">{decision === "confirm" ? "Confirmer la participation" : "Refuser"}</InternationalSelectionSubmitButton>
               </form>
             ))}
           </div>
+        </>
+      ) : canWithdraw ? (
+        <>
+          <p className="mt-3 text-sm font-semibold text-[#60756E]">
+            {`Retrait possible jusqu’au ${formatFederationSelectionDeadline(callup.withdrawal_closes_at ?? null)} (heure de Paris).`}
+          </p>
+          <details className="mt-3">
+            <summary className="inline-flex min-h-11 cursor-pointer list-none items-center rounded-xl border border-[#B94848]/25 bg-white px-4 text-sm font-black text-[#9A3434] hover:bg-[#FFF1EF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B94848]">
+              Retirer le coureur
+            </summary>
+            <form action={withdrawFederationCallupAction} className="mt-3 rounded-xl border border-[#B94848]/25 bg-[#FFF1EF] px-4 py-3">
+              <input type="hidden" name="memberId" value={callup.member_id} />
+              <input type="hidden" name="audience" value={callup.rider_category} />
+              {raceEditionFilter ? <input type="hidden" name="epreuve" value={raceEditionFilter} /> : null}
+              <p className="text-sm font-semibold leading-6 text-[#873527]">
+                {`Ce retrait coûte ${FEDERATION_CALLUP_WITHDRAWAL_MORALE_COST} points de moral au coureur et libère sa place en sélection.`}
+              </p>
+              <p className="mt-1 text-sm font-semibold leading-6 text-[#873527]">
+                Vous pourrez réinscrire le coureur aux courses de club dont les inscriptions sont encore ouvertes.
+              </p>
+              <div className="mt-3">
+                <InternationalSelectionSubmitButton variant="decline" pendingLabel="Retrait en cours…">
+                  Confirmer le retrait
+                </InternationalSelectionSubmitButton>
+              </div>
+            </form>
+          </details>
         </>
       ) : callup.response_status === "confirmed" ? (
         <p className="mt-4 text-sm font-semibold text-[#60756E]">La participation est enregistrée et verrouillée dans la liste du président.</p>

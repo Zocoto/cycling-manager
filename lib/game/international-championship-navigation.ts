@@ -5,6 +5,20 @@ export const INTERNATIONAL_CHAMPIONSHIPS_HREF =
 export const INTERNATIONAL_SELECTIONS_HREF =
   "/jeu/selections-internationales";
 
+export function getInternationalSelectionsHref({
+  audience = "professional",
+  raceEditionId,
+}: {
+  audience?: "professional" | "junior";
+  raceEditionId?: string | null;
+} = {}) {
+  const params = new URLSearchParams();
+  if (audience === "junior") params.set("categorie", "junior");
+  if (raceEditionId) params.set("epreuve", raceEditionId);
+  const query = params.toString();
+  return query ? `${INTERNATIONAL_SELECTIONS_HREF}?${query}` : INTERNATIONAL_SELECTIONS_HREF;
+}
+
 export function getInternationalChampionshipDirectoryHref(raceSlug?: string) {
   return raceSlug
     ? `${INTERNATIONAL_CHAMPIONSHIPS_HREF}#${encodeURIComponent(raceSlug.trim())}`

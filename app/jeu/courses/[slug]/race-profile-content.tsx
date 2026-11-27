@@ -56,8 +56,8 @@ import {
 } from "@/lib/game/race-weather";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import {
-  INTERNATIONAL_SELECTIONS_HREF,
   getInternationalChampionshipDirectoryHref,
+  getInternationalSelectionsHref,
 } from "@/lib/game/international-championship-navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
@@ -445,7 +445,7 @@ export async function RaceProfileContent({
           </Link>
           {isFederationSelection ? (
             <Link
-              href={INTERNATIONAL_SELECTIONS_HREF}
+              href={getInternationalSelectionsHref({ raceEditionId: edition.id })}
               className="inline-flex min-h-10 items-center justify-center rounded-xl border border-[#176951]/25 bg-white px-4 text-xs font-black uppercase tracking-[0.1em] text-[#176951] transition hover:bg-[#EEF8F4]"
             >
               Voir mes convocations

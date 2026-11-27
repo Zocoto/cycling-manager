@@ -6,7 +6,10 @@ import type { FederationCallup } from "@/lib/game/federation-callups";
 import type { FederationSelectionState } from "@/services/federation-selections";
 import type { FederationSelectionRider } from "@/services/federation-selection-pool";
 
-vi.mock("@/app/jeu/selections-internationales/actions", () => ({ answerFederationCallupAction: vi.fn() }));
+vi.mock("@/app/jeu/selections-internationales/actions", () => ({
+  answerFederationCallupAction: vi.fn(),
+  withdrawFederationCallupAction: vi.fn(),
+}));
 
 const callup: FederationCallup = {
   member_id: "member", country_code: "BE", country_name: "Belgique", slot_key: "cc-pro-road",
@@ -50,11 +53,46 @@ describe("federation call-up interface", () => {
     expect(html).toContain("Les refus de convocations distinctes se cumulent.");
   });
   it("does not offer a second decision for a confirmed or closed invitation", () => {
-    for (const value of [{ ...callup, response_status: "confirmed" as const }, { ...callup, can_respond: false }, { ...callup, response_status: "ineligible" as const }]) {
+    for (const value of [
+      { ...callup, response_status: "confirmed" as const },
+      { ...callup, can_respond: false },
+      { ...callup, response_status: "ineligible" as const },
+    ]) {
       const html = renderToStaticMarkup(<FederationCallupCard callup={value} />);
       expect(html).not.toContain('<form');
       expect(html).not.toContain("Chaque convocation refusée retire 10 points");
     }
+  });
+  it("offers withdrawal for a confirmed junior and keeps the filtered context", () => {
+    const raceEditionFilter = "a2f00814-872a-4bde-beef-3406775143c6";
+    const html = renderToStaticMarkup(<FederationCallupCard
+      callup={{
+        ...callup,
+        rider_category: "junior",
+        response_status: "confirmed",
+        can_respond: false,
+        can_withdraw: true,
+        withdrawal_closes_at: "2026-11-29T16:00:00Z",
+      }}
+      raceEditionFilter={raceEditionFilter}
+    />);
+    expect(html).toContain("<details");
+    expect(html).toContain("Retirer le coureur");
+    expect(html).toContain("29 novembre");
+    expect(html).toContain("17:00");
+    expect(html).toContain("10 points de moral");
+    expect(html).toContain("Confirmer le retrait");
+    expect(html).toContain('type="hidden" name="memberId" value="member"');
+    expect(html).toContain('type="hidden" name="audience" value="junior"');
+    expect(html).toContain(`type="hidden" name="epreuve" value="${raceEditionFilter}"`);
+    expect(html).not.toContain("Confirmer la participation");
+  });
+  it("shows a withdrawn participation without offering another decision", () => {
+    const html = renderToStaticMarkup(<FederationCallupCard callup={{
+      ...callup, response_status: "withdrawn", can_respond: false, can_withdraw: false,
+    }} />);
+    expect(html).toContain("Participation retirée");
+    expect(html).not.toContain("<form");
   });
   it("explains an ineligible call-up without describing it as a player refusal or expired deadline", () => {
     const html = renderToStaticMarkup(<FederationCallupCard callup={{ ...callup, response_status: "ineligible", can_respond: false }} />);
