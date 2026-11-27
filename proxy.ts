@@ -8,6 +8,11 @@ export async function proxy(request: NextRequest) {
   // This override belongs to the URL, never to a caller-supplied header.
   request.headers.delete(PUBLIC_LOCALE_HEADER);
   const pathname = request.nextUrl.pathname;
+  // Public, allowlisted artwork/scripts contain no account data. The event page
+  // and its API authenticate separately; do not refresh a session per asset.
+  if (pathname.startsWith("/jeu/noel/experience/")) {
+    return NextResponse.next({ request: { headers: request.headers } });
+  }
   const publicRoute = getPublicRouteInfo(pathname);
 
   if (publicRoute) {

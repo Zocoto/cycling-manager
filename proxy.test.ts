@@ -117,3 +117,16 @@ describe("session proxy coverage", () => {
     expect(session.update).not.toHaveBeenCalled();
   });
 });
+
+
+describe("Christmas public resource boundary", () => {
+  it.each(["index.html", "noel.js", "tournee.js", "village-hiver.jpg"])("avoids session work for public %s", async (file) => {
+    const response = await proxy(request("/jeu/noel/experience/" + file));
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+    expect(session.update).not.toHaveBeenCalled();
+  });
+  it.each(["/jeu/noel", "/jeu/noel/experience-extra/index.html"])("keeps authentication on %s", async (path) => {
+    await proxy(request(path));
+    expect(session.update).toHaveBeenCalledOnce();
+  });
+});
