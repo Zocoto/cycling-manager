@@ -49,7 +49,14 @@ export async function getDashboardSecondarySponsorOpportunity(
       .limit(1)
       .abortSignal(readSignal).maybeSingle<{ id: string }>();
     if (contract.error) throw contract.error;
-    return contract.data ? null : { targetSeasonName: target.name };
+    if (contract.data) return null;
+
+    const budget = await admin.rpc("get_secondary_sponsor_primary_budget", {
+      p_team_id: summary.teamId, p_target_season_id: target.id,
+    }).abortSignal(readSignal);
+    if (budget.error) throw budget.error;
+    const annualBudget = Number(budget.data);
+    return Number.isFinite(annualBudget) && annualBudget > 0 ? { targetSeasonName: target.name } : null;
   } catch (error) {
     console.warn("dashboard_secondary_sponsor_unavailable", {
       code: error && typeof error === "object" && "code" in error ? error.code : undefined,

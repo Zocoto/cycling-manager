@@ -18,7 +18,7 @@ function fixture() {
     ],
     secondary_sponsor_contracts: [],
   };
-  const state = { failedTable: "" };
+  const state = { failedTable: "", failedBudget: false, principalBudget: 2_000_000 as number | string | null };
   const requests: Array<{ table: string; limit?: number; signals: AbortSignal[] }> = [];
   const from = vi.fn((table: string) => {
     const request = { table, limit: undefined as number | undefined, signals: [] as AbortSignal[] };
@@ -45,19 +45,28 @@ function fixture() {
     };
     return query;
   });
-  mocks.createAdmin.mockReturnValue({ from });
-  return { tables, state, requests, from };
+  const budgetSignals: AbortSignal[] = [];
+  const rpc = vi.fn(() => {
+    const response = Promise.resolve({ data: state.principalBudget,
+      error: state.failedBudget ? { code: "57014", message: "Timed out" } : null });
+    return Object.assign(response, { abortSignal: (signal: AbortSignal) => { budgetSignals.push(signal); return response; } });
+  });
+  mocks.createAdmin.mockReturnValue({ from, rpc });
+  return { tables, state, requests, from, rpc, budgetSignals };
 }
 
 beforeEach(() => vi.clearAllMocks());
 
 describe("secondary sponsor dashboard opportunity", () => {
-  it("reads at most three bounded records for an eligible director without generating offers", async () => {
+  it("uses at most four bounded reads for an eligible director without generating offers", async () => {
     const f = fixture();
     expect(await getDashboardSecondarySponsorOpportunity(summary)).toEqual({ targetSeasonName: "Saison 6" });
     expect(f.requests.map(request => request.table)).toEqual(["sporting_directors", "seasons", "secondary_sponsor_contracts"]);
     expect(f.requests.map(request => request.limit)).toEqual([1, 2, 1]);
     expect(f.requests.every(request => request.signals.length === 1)).toBe(true);
+    expect(f.rpc).toHaveBeenCalledExactlyOnceWith("get_secondary_sponsor_primary_budget", { p_team_id: "team", p_target_season_id: "s6" });
+    expect(f.budgetSignals).toHaveLength(1);
+    expect(f.budgetSignals[0]).toBe(f.requests[0].signals[0]);
   });
 
   it("performs no lookup before the negotiation window", async () => {
@@ -78,6 +87,7 @@ describe("secondary sponsor dashboard opportunity", () => {
     const f = fixture();
     f.tables.secondary_sponsor_contracts.push({ id: "contract", team_id: "team", season_id: "s6", status });
     expect(await getDashboardSecondarySponsorOpportunity(summary)).toBeNull();
+    expect(f.rpc).not.toHaveBeenCalled();
   });
 
   it("ignores contracts for another team or season and reflects a new signature on the next read", async () => {
@@ -111,6 +121,23 @@ describe("secondary sponsor dashboard opportunity", () => {
       const before = f.requests.length;
       expect(await getDashboardSecondarySponsorOpportunity(summary, aborted)).toBeNull();
       expect(f.requests).toHaveLength(before);
+    } finally { warning.mockRestore(); }
+  });
+
+  it.each([null, 0, -1, Number.NaN, Number.POSITIVE_INFINITY, ""])("does not advertise signing without a valid covered principal budget (%s)", async budget => {
+    const f = fixture();
+    f.state.principalBudget = budget;
+    expect(await getDashboardSecondarySponsorOpportunity(summary)).toBeNull();
+    expect(f.rpc).toHaveBeenCalledExactlyOnceWith("get_secondary_sponsor_primary_budget", { p_team_id: "team", p_target_season_id: "s6" });
+  });
+
+  it("fails quietly when the covered budget cannot be verified", async () => {
+    const f = fixture();
+    f.state.failedBudget = true;
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      expect(await getDashboardSecondarySponsorOpportunity(summary)).toBeNull();
+      expect(warning).toHaveBeenCalledWith("dashboard_secondary_sponsor_unavailable", { code: "57014" });
     } finally { warning.mockRestore(); }
   });
 });

@@ -43,6 +43,34 @@ const contract: SecondarySponsorContract = {
 beforeEach(() => { captured.targets.length = 0; });
 
 describe("secondary sponsor course previews", () => {
+  it("requires a primary sponsor covering the target season while preserving the current secondary contract", () => {
+    const html = renderToStaticMarkup(<SecondarySponsorSection state={{
+      kind: "principal-required", targetGameYear: 6, targetSeasonName: "Saison 6",
+      activeContract: { ...contract, status: "active" },
+    }} />);
+
+    expect(html).toContain("Sponsor principal à choisir d’abord");
+    expect(html).toContain("Signez d’abord un sponsor principal couvrant Saison 6");
+    expect(html).toContain('href="/jeu/sponsoring"');
+    expect(html).toContain("Choisir le sponsor principal");
+    expect(html).toContain("Sponsor secondaire actif");
+    expect(html).not.toContain('name="offerId"');
+  });
+
+  it("shows the snapshotted 30 percent cap alongside the primary sponsor budget", () => {
+    const html = renderToStaticMarkup(<SecondarySponsorSection state={{
+      kind: "offers", activeContract: null, countryCode: "CO", countryName: "Colombie",
+      targetGameYear: 6, targetSeasonName: "Saison 6",
+      offers: [{ id: "offer", sponsor, objectives: [{ ...objective, cashReward: 600_000 }], totalMaximumReward: 600_000, principalBudgetPerSeason: 2_000_000, maximumRewardBudget: 600_000 }],
+    }} />);
+    const euros = (value: number) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value);
+
+    expect(html).toContain(`Maximum : ${euros(600_000)}`);
+    expect(html).toContain(`Plafond de primes : ${euros(600_000)} (30 % du budget principal de ${euros(2_000_000)}).`);
+    expect(captured.targets).toEqual([{ slug: "tour-test", stageNumber: null, raceEditionId: S5_EDITION }]);
+    expect(html).toContain('name="offerId" value="offer"');
+  });
+
   it("shows roster objectives without a race link and spells out the financial and reputation terms", () => {
     const roster: SecondarySponsorObjective = {
       id: "roster", name: "3 coureurs colombiens", kind: "roster_nationality",

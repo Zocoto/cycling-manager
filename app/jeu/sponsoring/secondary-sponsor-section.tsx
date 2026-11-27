@@ -1,4 +1,5 @@
 import { SecondarySponsorLogo } from "@/components/game/secondary-sponsor-logo";
+import Link from "@/components/ui/app-link";
 import { SponsorCountryBadge } from "@/components/game/sponsor-country-badge";
 import { SponsorObjectiveTitle } from "@/components/game/sponsor-objective-title";
 import { TeamNationalityBadges } from "@/components/game/team-nationality-badges";
@@ -113,6 +114,16 @@ function SecondarySponsorStateContent({
           ))}
         </div>
       </div>
+    );
+  }
+
+  if (state.kind === "principal-required") {
+    return (
+      <SecondaryNotice
+        title="Sponsor principal à choisir d’abord"
+        text={`Signez d’abord un sponsor principal couvrant ${state.targetSeasonName} pour obtenir des offres secondaires adaptées à son budget.`}
+        action={{ href: "/jeu/sponsoring", label: "Choisir le sponsor principal" }}
+      />
     );
   }
 
@@ -272,6 +283,12 @@ function SecondarySponsorOfferCard({
         <p className="mt-4 text-sm font-black text-[#0B4A3B]">
           Maximum : {moneyFormatter.format(offer.totalMaximumReward)}
         </p>
+        {typeof offer.principalBudgetPerSeason === "number" && offer.principalBudgetPerSeason > 0
+          && typeof offer.maximumRewardBudget === "number" && offer.maximumRewardBudget >= 0 ? (
+            <p className="mt-1 text-[11px] font-semibold leading-5 text-[#60756E]">
+              {`Plafond de primes : ${moneyFormatter.format(offer.maximumRewardBudget)} (30 % du budget principal de ${moneyFormatter.format(offer.principalBudgetPerSeason)}).`}
+            </p>
+          ) : null}
         <form action={signSecondarySponsorOfferAction} className="mt-auto pt-6">
           <input type="hidden" name="offerId" value={offer.id} />
           <button
@@ -319,13 +336,18 @@ function formatSecondaryObjectiveStatus(
   return "En cours";
 }
 
-function SecondaryNotice({ title, text }: { title: string; text: string }) {
+function SecondaryNotice({ title, text, action }: { title: string; text: string; action?: { href: string; label: string } }) {
   return (
     <aside className="mt-8 rounded-2xl border border-[#278B70]/20 bg-white/90 p-6 shadow-[0_14px_34px_rgba(19,60,46,0.06)]">
       <h2 className="text-xl font-black text-[#0B4A3B]">{title}</h2>
       <p className="mt-2 max-w-3xl text-sm leading-6 text-[#60756E]">
         {text}
       </p>
+      {action ? (
+        <Link href={action.href} className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl bg-[#082A2A] px-5 py-3 text-sm font-black text-white transition hover:bg-[#12473F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42B99A] focus-visible:ring-offset-2">
+          {action.label}
+        </Link>
+      ) : null}
     </aside>
   );
 }

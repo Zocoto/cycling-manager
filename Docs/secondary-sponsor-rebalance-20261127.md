@@ -1,39 +1,31 @@
-# Sponsors secondaires — rééquilibrage du 27 novembre 2026
+# Sponsors secondaires — règles au 27 novembre 2026
 
-Les contrats signés conservent leurs objectifs et montants. Les nouvelles règles remplacent les offres ouvertes non acceptées, de façon atomique et seulement lors de leur prochaine consultation. Aucun recalcul de calendrier n’est ajouté à l’affichage des offres déjà enregistrées.
+## Enveloppe financière
 
-## Affinités et niveau sportif
+Le cumul des primes d’une offre ordinaire est plafonné à 30 % du budget annuel du sponsor principal couvrant la saison du contrat. Ce plafond concerne l’offre entière et inclut ses éventuels objectifs de contingent. Le prestige et la difficulté pondèrent les primes individuelles ; ils ne permettent jamais de dépasser l’enveloppe. Aucun régime exceptionnel ne s’active automatiquement.
 
-La sélection reprend le pays d’enregistrement actuel, le pays du DS, les leaders, la majorité de l’effectif et les contacts des écoles internationales. Le pays fondateur ne détermine plus à lui seul les trois offres. Chaque partenaire conserve son vrai pays dans l’affichage.
+Exemple : principal à 2 000 000 € → maximum de primes secondaires 600 000 €. Pour La Cumbre, le budget primaire S6 constaté est de 1 706 100 €, donc son plafond est 511 830 €.
 
-La division projetée pour la saison du contrat est chargée par le même service que les objectifs du sponsor principal. Une équipe projetée en Élite reçoit des objectifs Élite/Mondial ; une équipe projetée en Mondial vise le Mondial. Les autres équipes éligibles peuvent viser le Continental et le Mondial. L’Élite n’est proposée qu’aux équipes dont la projection le permet. Une nationale ne complète un portefeuille qu’en dernier recours, dans le pays du sponsor et avec une limite d’une par offre.
+Les primes sous le plafond restent inchangées. Au-dessus, elles sont réduites proportionnellement en centimes, avec un centime réservé par objectif puis répartition des restes par ordre d’objectif. Le total ne dépasse jamais le plafond, même avec des arrondis. Les objectifs, courses, pays, IDs et états sont conservés.
 
-## Gains et risque
+La pénalité des nouvelles offres est nulle sous 100 000 € par objectif ; au-delà, elle vaut cinq points par tranche de 100 000 €, plafonnée à 25. Une correction d’offre déjà publiée ne peut pas augmenter son malus. Les bonus supplémentaires du directeur financier conservent leur fonctionnement distinct des primes contractuelles.
 
-La base par objectif est de 35 000 € en national, 65 000 € en continental, 110 000 € en mondial et 160 000 € en élite. Elle est modulée par le prestige du partenaire, le classement demandé et la réputation sportive. La réputation sportive respecte un plancher de 10 000 pour une projection Élite et 5 000 pour une projection Mondial ; elle ne modifie jamais les conditions réelles d’inscription aux courses.
+Sans principal couvrant la saison cible, la page demande de le choisir avant de proposer le secondaire. Le budget d’un contrat qui expire avant cette saison ne sert jamais de référence. L’alerte de signature du bureau du DS respecte aussi ce prérequis.
 
-À partir de 200 000 € par objectif, le risque annoncé est de 5 points de réputation par tranche de 50 000 €, avec un plafond de 100 points. Aucun malus n’est ajouté aux contrats précédemment signés. L’annulation d’une épreuve n’entraîne aucun malus.
+## Nationalités, sport et graphismes
 
-## Contingent et identité
+La sélection reprend le pays d’enregistrement actuel, le pays du DS, les leaders, la majorité de l’effectif et les contacts des écoles internationales. Chaque partenaire est affiché avec son vrai pays. L’identité principale et secondaire apparaît sur la fiche équipe et dans le sponsoring.
 
-Un objectif chiffré de nationalité peut remplacer une course si le sponsor secondaire est d’un autre pays que le sponsor principal de la saison visée. Il concerne au maximum 10 % de l’effectif professionnel actuel, arrondi à l’entier inférieur, et trois coureurs. Sous dix pros, aucun contingent n’est demandé. Les juniors ne comptent pas dans ce contingent.
+Les courses correspondent à la division projetée par le même service que les objectifs du principal. Une projection Élite permet Élite/Mondial ; une projection Mondial vise le Mondial. Une nationale ne sert de recours que dans le pays du sponsor et avec une limite d’une par offre.
 
-Le paiement est effectué dès que le nombre demandé est atteint pendant la saison active du contrat, avec la même référence financière unique que les objectifs sportifs. Les transferts et naturalisations réévaluent uniquement les équipes concernées. La fin de saison clôture les objectifs restants ; les règlements et leurs pénalités sont idempotents.
+Un objectif chiffré de nationalité peut remplacer une course si le partenaire secondaire est d’un autre pays que le principal de la saison visée. Il concerne au maximum 10 % des pros actuels, arrondi à l’entier inférieur, et trois coureurs. Les juniors ne comptent pas. Le paiement intervient dès le contingent atteint pendant la saison active ; les mêmes références financières empêchent les doublons. Une course annulée n’occasionne aucun malus.
 
-L’identité principale et secondaire est visible sur la page équipe et dans le sponsoring. Le logo peut être enregistré en noir, blanc ou couleurs d’origine, également pendant un contrat actif. La nationalité secondaire enrichit l’identité de l’équipe sans déplacer son affiliation principale.
+Les logos restent sélectionnables en noir, blanc ou couleurs d’origine, également sur un contrat actif. Le choix est conservé sur le maillot.
 
-## Livraison
+## Livraison et sûreté
 
-Appliquer `20261127130000_rebalance_secondary_sponsor_objectives.sql` avant l’interface : colonnes nouvelles, RPC de génération réservée au service, RPC de lecture du contexte et édition du logo compatible avec l’ancienne signature. Diagnostics et vérifications de production limités à cinq secondes en lecture seule ; tests métier et SQL exécutés hors production.
+La migration initiale est `20261127130000_rebalance_secondary_sponsor_objectives.sql`. La correction financière est `20261127160000_cap_secondary_sponsor_rewards_to_primary_budget.sql` ; elle précède son interface compatible avec les snapshots de budget. Les RPC gardent les validations d’identité, d’authentification et de quota. Le plafond est aussi imposé côté base à la création et à la signature, puis réévalué si le budget primaire change.
 
-Validation : 74 tests Vitest ciblés (métier, service, identité et interface) et 47 assertions SQL isolées. Contrôles navigateur à 390 et 1440 px en français et en anglais, sans débordement ni erreur JavaScript ; pays et contingents localisés ; sélections noir/blanc vérifiées. Les définitions des quatre fonctions historiques ont été comparées en lecture seule à la production avant leur remplacement.
+La réparation financière touche uniquement les offres V2 ouvertes et contrats V2 prévus de saisons futures, sans reroll ni remboursement forcé. Tout objectif déjà démarré ou payé empêche une correction automatique. Les contrats actifs et anciennes offres V1 sont préservés. Le diagnostic préalable de production a trouvé trois offres V2 ouvertes, zéro contrat V2 signé et zéro objectif démarré ou payé.
 
-## Alerte de négociation
-
-Le bureau du DS doit signaler l’ouverture d’un sponsor secondaire avec un accès direct à `/jeu/sponsoring?onglet=secondaire`. Le contrôle s’appuie sur le résumé déjà authentifié : aucune lecture supplémentaire avant J21, puis vérification bornée de la réputation, de la prochaine saison et de l’absence de contrat secondaire pour cette équipe/saison. Le contrôle ne crée ni offre ni objectif et ne charge aucun calendrier. La présence d’un contrat masque l’alerte.
-
-## Constat de production
-
-Après migration, les trois offres ouvertes S6 de La Cumbre ont été renouvelées par le générateur applicatif. Les partenaires sont colombien, français et kirghiz selon les affinités réelles de l’équipe. Les plafonds de gains sont de 2 120 000 € pour le partenaire colombien et 1 865 000 € pour les autres ; ils correspondent à des objectifs Élite avec un risque explicite de 45 points de réputation par objectif sportif. L’offre colombienne ne contient aucun objectif de contingent puisque le principal est lui aussi colombien. Les deux autres demandent trois pros de leur pays. La lecture de contrôle confirme le plafond de 10 %, les catégories de courses et les trois offres en version 2 ; le contrat S5 signé conserve ses conditions.
-
-L’alerte complémentaire et l’assistant existant sont validés par 166 tests ciblés. La vérification applicative en lecture seule confirme une opportunité de signature S6 pour La Cumbre. Toutes les lectures supplémentaires de cette alerte partagent un budget de 1,5 seconde et sont effectuées au plus une fois dans le rendu complet de l’assistant ; son rendu initial conserve son fonctionnement.
+Les tests SQL sont exécutés dans PostgreSQL isolé, jamais sur les joueurs réels. Les diagnostics de production sont en lecture seule, séquentiels et bornés à cinq secondes. L’alerte assistant garde zéro lecture avant J21 et une sortie précoce pour réputation insuffisante, saison cible absente ou contrat secondaire existant ; le cas éligible utilise au plus quatre petites lectures avec un budget partagé de 1,5 seconde, sans générer d’offre ni charger le calendrier.

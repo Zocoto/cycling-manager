@@ -5,6 +5,7 @@ export const SECONDARY_SPONSOR_REPUTATION_THRESHOLD = 1_500;
 export const SECONDARY_SPONSOR_START_GAME_YEAR = 4;
 export const SECONDARY_SPONSOR_OFFER_COUNT = 3;
 export const SECONDARY_SPONSOR_GENERATION_VERSION = 2;
+export const SECONDARY_SPONSOR_BUDGET_PERCENT = 30;
 export type SecondarySponsorLogoColorMode = "original" | "black" | "white";
 
 export type SecondarySponsorLogoVariant =
@@ -136,7 +137,43 @@ export function getSecondarySponsorReputationMultiplier(reputationPoints: number
 }
 
 export function getSecondarySponsorFailurePenalty(cashReward: number): number {
-  return cashReward >= 200_000 ? Math.min(100, Math.ceil(cashReward / 50_000) * 5) : 0;
+  return cashReward >= 100_000 ? Math.min(25, Math.ceil(cashReward / 100_000) * 5) : 0;
+}
+
+export function getSecondarySponsorMaximumReward(principalBudgetPerSeason: number): number {
+  if (!Number.isFinite(principalBudgetPerSeason) || principalBudgetPerSeason <= 0) return 0;
+  const principalCents = Math.round(principalBudgetPerSeason * 100);
+  return Math.floor(principalCents * SECONDARY_SPONSOR_BUDGET_PERCENT / 100) / 100;
+}
+
+/** Keeps the whole offer within its budget while preserving the relative objective weights. */
+export function capSecondarySponsorObjectiveRewards(
+  cashRewards: readonly number[],
+  principalBudgetPerSeason: number,
+): number[] {
+  if (cashRewards.length === 0) return [];
+  const weights = cashRewards.map(reward => {
+    const cents = Math.round(reward * 100);
+    if (!Number.isSafeInteger(cents) || cents < 1) throw new RangeError("Invalid secondary sponsor reward.");
+    return cents;
+  });
+  const maximumCents = Math.round(getSecondarySponsorMaximumReward(principalBudgetPerSeason) * 100);
+  const total = weights.reduce((sum, value) => sum + value, 0);
+  if (total <= maximumCents) return weights.map(value => value / 100);
+  if (maximumCents < weights.length) throw new RangeError("Insufficient primary sponsor budget.");
+
+  // Reserve a cent per objective: the database requires positive rewards.
+  const remaining = BigInt(maximumCents - weights.length);
+  const denominator = BigInt(total);
+  const allocations = weights.map((weight, index) => {
+    const numerator = remaining * BigInt(weight);
+    return { index, cents: 1 + Number(numerator / denominator), remainder: numerator % denominator };
+  });
+  const spare = maximumCents - allocations.reduce((sum, allocation) => sum + allocation.cents, 0);
+  const order = [...allocations].sort((first, second) =>
+    first.remainder === second.remainder ? first.index - second.index : first.remainder > second.remainder ? -1 : 1);
+  for (let index = 0; index < spare; index += 1) order[index].cents += 1;
+  return allocations.map(allocation => allocation.cents / 100);
 }
 
 export function getSecondarySponsorNationalityTarget({

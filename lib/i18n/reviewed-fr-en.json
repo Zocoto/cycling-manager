@@ -5141,5 +5141,20 @@
   "L’écouter avant de donner un avis": "Hear them out before giving an opinion",
   "Recueillir sa lecture du décrochage et ce qui l’aurait aidé sur le moment.": "Ask how they experienced losing contact and what would have helped at the time.",
   "Demander une réaction plus rapide": "Ask for a quicker response",
-  "Lui dire que vous attendez qu’il se signale plus tôt dès le prochain passage difficile.": "Say you expect the rider to speak up earlier on the next difficult stretch."
+  "Lui dire que vous attendez qu’il se signale plus tôt dès le prochain passage difficile.": "Say you expect the rider to speak up earlier on the next difficult stretch.",
+  "Signez d’abord un sponsor principal couvrant {{0}} pour obtenir des offres secondaires adaptées à son budget.": "First sign a main sponsor covering {{0}} to receive secondary offers suited to its budget.",
+  "Choisir le sponsor principal": "Choose the main sponsor",
+  "Plafond de primes : {{0}} (30 % du budget principal de {{1}}).": "Bonus cap: {{0}} (30% of the main sponsor budget of {{1}}).",
+  "(30 % du budget principal de": "(30% of the main sponsor budget of",
+  "Choisissez un sponsor principal couvrant cette saison avant le sponsor secondaire.": "Choose a main sponsor covering this season before the secondary sponsor.",
+  "La liste des objectifs secondaires est invalide.": "The secondary objective list is invalid.",
+  "Le budget principal est insuffisant pour les objectifs secondaires.": "The main sponsor budget is insufficient for secondary objectives.",
+  "Le contrat secondaire {{0}} a déjà été évalué ou payé et ne peut pas être réduit.": "Secondary contract {{0}} has already been evaluated or paid and cannot be reduced.",
+  "Le contrat secondaire % a déjà été évalué ou payé et ne peut pas être réduit.": "Secondary contract % has already been evaluated or paid and cannot be reduced.",
+  "Les propositions secondaires sont invalides.": "The secondary sponsor offers are invalid.",
+  "Plafond de primes :": "Bonus cap:",
+  "pour obtenir des offres secondaires adaptées à son budget.": "to receive secondary offers suited to its budget.",
+  "Signez d’abord un sponsor principal couvrant": "First sign a main sponsor covering",
+  "Sponsor principal à choisir d’abord": "Choose a main sponsor first",
+  "Une prime secondaire doit être strictement positive.": "A secondary sponsor bonus must be strictly positive."
 }
