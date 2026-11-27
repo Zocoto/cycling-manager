@@ -19241,5 +19241,22 @@
   "2 étoiles": "2 stars",
   "2,5 étoiles": "2.5 stars",
   "3,5 étoiles": "3.5 stars",
-  "4 étoiles": "4 stars"
+  "4 étoiles": "4 stars",
+  "avant de placer le logo secondaire.": "before placing the secondary logo.",
+  "Cette ancienne marque ne peut plus être proposée.": "This former brand can no longer be offered.",
+  "Cette marque de la bibliothèque est inactive.": "This brand in the library is inactive.",
+  "Cette proposition ne correspond plus à une marque disponible. Actualisez les offres.": "This offer no longer matches an available brand. Refresh the offers.",
+  "Choisir le prochain maillot": "Choose next season’s jersey",
+  "Choisissez le maillot principal de": "Choose the main sponsor jersey for",
+  "Choisissez le maillot principal de {{0}} avant de placer le logo secondaire.": "Choose the main sponsor jersey for {{0}} before placing the secondary logo.",
+  "L’identité et le pays d’une marque de la bibliothèque sont permanents.": "A library brand’s identity and country are permanent.",
+  "L’identité nationale d’un sponsor secondaire est incohérente avec la bibliothèque.": "A secondary sponsor’s nationality does not match the library.",
+  "La bibliothèque des sponsors a changé depuis la préparation de cette migration.": "The sponsor library has changed since this migration was prepared.",
+  "Le placement ne peut pas être modifié. Choisissez le maillot principal de la saison concernée.": "The placement cannot be changed. Choose the main sponsor jersey for the relevant season.",
+  "Le sponsor secondaire doit reprendre l’identité et le pays de sa marque dans la bibliothèque.": "The secondary sponsor must use its brand’s identity and country from the library.",
+  "Les propositions doivent présenter trois marques distinctes de la bibliothèque, différentes du sponsor principal.": "The offers must feature three distinct brands from the library, all different from the main sponsor.",
+  "Placement du logo ·": "Logo placement ·",
+  "Positionnez le logo secondaire sur le maillot choisi pour": "Place the secondary logo on the jersey selected for",
+  "Trois propositions secondaires de la bibliothèque sont requises.": "Three secondary sponsor offers from the library are required.",
+  "Une marque de la bibliothèque ne peut être associée qu’à un seul pays.": "A brand in the library can only be associated with one country."
 }

@@ -4,7 +4,7 @@ import type { SponsorPrestige } from "@/types/sponsor";
 export const SECONDARY_SPONSOR_REPUTATION_THRESHOLD = 1_500;
 export const SECONDARY_SPONSOR_START_GAME_YEAR = 4;
 export const SECONDARY_SPONSOR_OFFER_COUNT = 3;
-export const SECONDARY_SPONSOR_GENERATION_VERSION = 2;
+export const SECONDARY_SPONSOR_GENERATION_VERSION = 3;
 export const SECONDARY_SPONSOR_BUDGET_PERCENT = 30;
 export type SecondarySponsorLogoColorMode = "original" | "black" | "white";
 
@@ -24,6 +24,9 @@ export type SecondarySponsorIdentity = {
   primaryColor: string;
   accentColor: string;
   logoVariant: SecondarySponsorLogoVariant;
+  logoPath?: string;
+  logoBackgroundColor?: string;
+  sector?: string;
 };
 
 export type SecondarySponsorLogoPlacement = {

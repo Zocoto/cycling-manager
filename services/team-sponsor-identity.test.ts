@@ -66,6 +66,34 @@ describe("active sponsor identity independent reads", () => {
     };
     expect((await getActiveTeamSponsorIdentity("team"))?.secondaryLogoPlacement?.colorMode).toBe(colorMode);
   });
+  it("restores the actual library logo without another query and keeps the active-season scope", async () => {
+    const secondary = SPONSORS[1];
+    mock.rows.secondary_sponsor_catalog = {
+      ...(mock.rows.secondary_sponsor_catalog as Record<string, unknown>),
+      catalog_key: `library-${secondary.id}`, name: secondary.name, available_for_offers: false,
+    };
+    mock.rows.countries = { name: "Pays du partenaire", iso_alpha2: secondary.countryCode };
+
+    expect((await getActiveTeamSponsorIdentity("team"))?.secondarySponsor).toMatchObject({
+      name: secondary.name, countryCode: secondary.countryCode,
+      logoPath: secondary.logoPath, sector: secondary.sector,
+    });
+    expect(mock.queries.filter(query => query.table === "sponsors")).toHaveLength(1);
+    expect(mock.queries.find(query => query.table === "secondary_sponsor_catalog")?.filters)
+      .toEqual({ id: "second" });
+    expect(mock.queries.find(query => query.table === "secondary_sponsor_contracts")?.filters)
+      .toEqual({ team_id: "team", season_id: "active", status: "active" });
+  });
+  it.each(["country", "name"])("does not attach another brand's logo when its %s differs", async mismatch => {
+    const secondary = SPONSORS[1];
+    mock.rows.secondary_sponsor_catalog = {
+      ...(mock.rows.secondary_sponsor_catalog as Record<string, unknown>),
+      catalog_key: `library-${secondary.id}`, name: mismatch === "name" ? "Autre marque" : secondary.name,
+    };
+    mock.rows.countries = { name: "Pays", iso_alpha2: mismatch === "country" ? "ZZ" : secondary.countryCode };
+
+    expect((await getActiveTeamSponsorIdentity("team"))?.secondarySponsor).not.toHaveProperty("logoPath");
+  });
   it("retains the first-season and catalogue fallbacks without a secondary sponsor", async () => {
     mock.rows.seasons = null; mock.rows.team_seasons = null; mock.rows.secondary_sponsor_contracts = null;
     const identity = await getActiveTeamSponsorIdentity("team");

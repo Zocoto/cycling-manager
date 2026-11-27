@@ -13,12 +13,14 @@ import { updateSecondarySponsorLogoAction } from "./actions";
 
 export function SecondarySponsorJerseyEditor({
   contractId,
+  targetSeasonName,
   principalSponsor,
   jersey,
   secondarySponsor,
   initialPlacement,
 }: {
   contractId: string;
+  targetSeasonName: string;
   principalSponsor: Sponsor;
   jersey: Sponsor["jerseys"][number];
   secondarySponsor: SecondarySponsorIdentity;
@@ -45,14 +47,13 @@ export function SecondarySponsorJerseyEditor({
 
       <div>
         <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#278B70]">
-          Placement du logo
+          Placement du logo · {targetSeasonName}
         </p>
         <h3 className="mt-2 text-2xl font-black tracking-[-0.03em] text-[#082A2A]">
           Ajuster {secondarySponsor.name}
         </h3>
         <p className="mt-2 text-sm leading-6 text-[#60756E]">
-          Positionnez uniquement le logo secondaire. Le dessin et les couleurs
-          du maillot principal restent inchangés.
+          Positionnez le logo secondaire sur le maillot choisi pour {targetSeasonName}.
         </p>
 
         <fieldset className="mt-5">

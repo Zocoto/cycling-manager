@@ -133,8 +133,9 @@ describe("secondary sponsor course previews", () => {
     const html = renderToStaticMarkup(<SecondarySponsorSection state={{ kind: "signed", activeContract: null, contract }} />);
 
     expect(captured.targets).toEqual([{ slug: "tour-test", stageNumber: null, raceEditionId: S5_EDITION }]);
-    expect(html.match(/<a\b/g)).toHaveLength(2);
-    expect(html.match(/<\/a>/g)).toHaveLength(2);
+    expect(html.match(/<a\b/g)).toHaveLength(3);
+    expect(html.match(/<\/a>/g)).toHaveLength(3);
+    expect(html).toContain("Choisir le prochain maillot");
     expect(html).toContain("Aperçu · course");
     expect(html).toContain("Maillot principal à choisir d’abord");
     expect(html).not.toContain('name="offerId"');

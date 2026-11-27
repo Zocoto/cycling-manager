@@ -21,6 +21,9 @@ import {
   type SecondarySponsorObjective,
 } from "@/lib/game/secondary-sponsor";
 import { stableHash } from "@/lib/game/sponsor-main-objective";
+import { getSecondarySponsorLibraryBrand } from "@/lib/game/secondary-sponsor-library";
+import { getSecondarySponsorLogoBackgroundColor } from "@/lib/game/secondary-sponsor-logo-backgrounds";
+import { getSecondarySponsorPrincipalJerseyId } from "@/lib/game/secondary-sponsor-jersey";
 import { selectSecondarySponsorCountryCodes } from "@/lib/game/secondary-sponsor-nationality";
 import { resolveSponsorObjectiveSportingLevel } from "@/lib/game/sponsor-objective-sporting-level";
 import { loadSponsorObjectiveSportingContext } from "@/services/sponsor-objective-sporting-context";
@@ -65,6 +68,7 @@ export type SecondarySponsorContract = {
   logoPlacement: SecondarySponsorLogoPlacement;
   baseJersey: SecondarySponsorBaseJersey | null;
   principalCountryCode?: string | null;
+  principalTeamName?: string | null;
 };
 
 type SecondarySponsoringStateWithActiveContract = {
@@ -129,6 +133,9 @@ type SeasonRow = {
 
 type CatalogRow = {
   id: string;
+  catalog_key: string;
+  source_sponsor_id: string | null;
+  available_for_offers: boolean;
   country_id: string;
   name: string;
   prestige: number;
@@ -389,8 +396,9 @@ type SecondaryOfferContext = {
   roster_country_counts: Record<string, number>;
   principal_country_id: string | null;
   principal_budget_per_season: number | string | null;
+  principal_sponsor_id?: string | null;
 };
-const SECONDARY_CATALOG_COLUMNS = "id, country_id, name, prestige, primary_color, accent_color, logo_variant";
+const SECONDARY_CATALOG_COLUMNS = "id, catalog_key, source_sponsor_id, available_for_offers, country_id, name, prestige, primary_color, accent_color, logo_variant";
 
 async function loadSecondaryCatalog(supabase: SupabaseAdminClient, ids?: string[]): Promise<CatalogRow[]> {
   if (ids && ids.length === 0) return [];
@@ -399,6 +407,7 @@ async function loadSecondaryCatalog(supabase: SupabaseAdminClient, ids?: string[
     fetchPage: async (from, to) => {
       let query = supabase.from("secondary_sponsor_catalog").select(SECONDARY_CATALOG_COLUMNS);
       if (ids) query = query.in("id", ids);
+      else query = query.eq("available_for_offers", true).not("source_sponsor_id", "is", null);
       return await query.order("id", { ascending: true }).range(from, to).returns<CatalogRow[]>();
     },
   });
@@ -441,8 +450,9 @@ async function ensureAndLoadSecondarySponsorOffers({
     offerRows.filter(offer => offer.status === "open").length !== SECONDARY_SPONSOR_OFFER_COUNT ||
     offerRows.some(offer => offer.status === "open" && (
       offer.generation_version < SECONDARY_SPONSOR_GENERATION_VERSION ||
+      !isSelectableLibrarySponsor(sponsorById.get(offer.secondary_sponsor_id)) ||
       (objectivesByOffer.get(offer.id)?.length ?? 0) < getSecondarySponsorObjectiveCount(toSponsorPrestige(sponsorById.get(offer.secondary_sponsor_id)?.prestige ?? 1))
-    ))
+    )) || new Set(offerRows.filter(offer => offer.status === "open").map(offer => sponsorById.get(offer.secondary_sponsor_id)?.source_sponsor_id)).size !== SECONDARY_SPONSOR_OFFER_COUNT
   );
 
   if (!needsGeneration && offerRows.some(offer => offer.status === "open" && (
@@ -458,11 +468,13 @@ async function ensureAndLoadSecondarySponsorOffers({
     const context = contextResult.data as SecondaryOfferContext;
     const principalBudget = Number(context.principal_budget_per_season);
     if (!Number.isFinite(principalBudget) || principalBudget <= 0) return null;
-    const [catalog, affinity, snapshot] = await Promise.all([
+    const [catalogRows, affinity, snapshot] = await Promise.all([
       loadSecondaryCatalog(supabase),
       loadTeamSponsorCountryAffinity({ supabase, teamId, seasonId: currentSeasonId, directorCountryId }),
       loadSponsorObjectiveSportingContext({ supabase, teamId, seasonId: targetSeason.id, targetSeasonGameYear: targetSeason.game_year }),
     ]);
+    const catalog = catalogRows.filter(sponsor => isSelectableLibrarySponsor(sponsor)
+      && sponsor.source_sponsor_id !== context.principal_sponsor_id);
     const countries = await loadSecondaryCountries(supabase, [
       ...catalog.map(sponsor => sponsor.country_id), ...(context.principal_country_id ? [context.principal_country_id] : []),
     ]);
@@ -479,13 +491,17 @@ async function ensureAndLoadSecondarySponsorOffers({
       }),
     });
     const selectedIds = new Set<string>();
+    const selectedNames = new Set<string>();
     const targetPrestige = level?.division === "elite" ? 5 : level?.division === "world" ? 4 : 3;
+    const rankedCatalog = [...catalog].sort((first, second) => Math.abs(first.prestige - targetPrestige) - Math.abs(second.prestige - targetPrestige)
+      || stableHash(`${seed}:${first.id}`) - stableHash(`${seed}:${second.id}`) || first.id.localeCompare(second.id));
     const selectedSponsors = countrySlots.map(code => {
-      const sponsor = catalog.filter(candidate => countries.get(candidate.country_id)?.iso_alpha2.trim().toUpperCase() === code && !selectedIds.has(candidate.id))
-        .sort((first, second) => Math.abs(first.prestige - targetPrestige) - Math.abs(second.prestige - targetPrestige)
-          || stableHash(`${seed}:${first.id}`) - stableHash(`${seed}:${second.id}`) || first.id.localeCompare(second.id))[0];
+      const unused = (candidate: CatalogRow) => !selectedIds.has(candidate.source_sponsor_id!) && !selectedNames.has(candidate.name.trim().toLowerCase());
+      const sponsor = rankedCatalog.find(candidate => countries.get(candidate.country_id)?.iso_alpha2.trim().toUpperCase() === code && unused(candidate))
+        ?? rankedCatalog.find(unused);
       if (!sponsor) throw new Error("Le catalogue secondaire ne contient pas trois partenaires distincts adaptés à l’équipe.");
-      selectedIds.add(sponsor.id);
+      selectedIds.add(sponsor.source_sponsor_id!);
+      selectedNames.add(sponsor.name.trim().toLowerCase());
       return sponsor;
     });
     if (selectedSponsors.length !== SECONDARY_SPONSOR_OFFER_COUNT) throw new Error("Le catalogue secondaire est incomplet.");
@@ -591,12 +607,10 @@ async function hydrateSecondaryContract({
   targetSeason: SeasonRow;
   teamId: string;
 }): Promise<SecondarySponsorContract> {
-  const [catalogResult, countryResult, objectiveRows, baseJersey] = await Promise.all([
+  const [catalogResult, countryResult, objectiveRows, principalIdentity] = await Promise.all([
     supabase
       .from("secondary_sponsor_catalog")
-      .select(
-        "id, country_id, name, prestige, primary_color, accent_color, logo_variant",
-      )
+      .select(SECONDARY_CATALOG_COLUMNS)
       .eq("id", contract.secondary_sponsor_id)
       .maybeSingle<CatalogRow>(),
     loadContractCountry(supabase, contract.secondary_sponsor_id),
@@ -617,7 +631,8 @@ async function hydrateSecondaryContract({
     targetSeasonName: targetSeason.name,
     sponsor: hydrateSecondarySponsor(catalogResult.data, countryResult),
     objectives: objectiveRows.map(row => hydrateSecondaryObjective(row, objectiveCountries)),
-    principalCountryCode: baseJersey?.sponsor.countryCode ?? null,
+    principalCountryCode: principalIdentity?.sponsor.countryCode ?? null,
+    principalTeamName: principalIdentity?.sponsor.name ?? null,
     logoPlacement: {
       xPercent: Number(contract.logo_x_percent),
       yPercent: Number(contract.logo_y_percent),
@@ -625,7 +640,7 @@ async function hydrateSecondaryContract({
       rotationDegrees: Number(contract.logo_rotation_degrees),
       colorMode: contract.logo_color_mode ?? "original",
     },
-    baseJersey,
+    baseJersey: principalIdentity?.jersey ? { ...principalIdentity, jersey: principalIdentity.jersey } : null,
   };
 }
 
@@ -656,7 +671,7 @@ async function loadFuturePrincipalJersey({
   supabase: SupabaseAdminClient;
   teamId: string;
   targetSeason: SeasonRow;
-}): Promise<SecondarySponsorBaseJersey | null> {
+}): Promise<Omit<SecondarySponsorBaseJersey, "jersey"> & { jersey: SecondarySponsorBaseJersey["jersey"] | null } | null> {
   const { data: contracts, error } = await supabase
     .from("team_sponsor_contracts")
     .select(
@@ -672,10 +687,10 @@ async function loadFuturePrincipalJersey({
     throw new Error(`Impossible de charger le futur maillot principal : ${error.message}`);
   }
 
-  const planned = (contracts ?? []).find(
+  const planned = targetSeason.status === "planned" ? (contracts ?? []).find(
     (candidate) =>
       candidate.status === "planned" && candidate.start_season_id === targetSeason.id,
-  );
+  ) : undefined;
   const active = (contracts ?? []).find((candidate) => candidate.status === "active");
   const contract = planned ?? active;
   if (!contract) return null;
@@ -711,12 +726,8 @@ async function loadFuturePrincipalJersey({
   );
   if (!sponsor) return null;
 
-  const jerseyId =
-    contract.pending_jersey_season_id === targetSeason.id
-      ? contract.pending_jersey_id
-      : contract.selected_jersey_id;
-  const jersey = sponsor.jerseys.find((candidate) => candidate.id === jerseyId);
-  if (!jersey) return null;
+  const jerseyId = getSecondarySponsorPrincipalJerseyId(contract, targetSeason);
+  const jersey = sponsor.jerseys.find((candidate) => candidate.id === jerseyId) ?? null;
 
   return { sponsor, jersey, futureTeamName: sponsor.name };
 }
@@ -896,6 +907,10 @@ function hydrateSecondarySponsor(
   sponsor: CatalogRow,
   country: CountryRow,
 ): SecondarySponsorIdentity {
+  const brand = getSecondarySponsorLibraryBrand(sponsor.catalog_key);
+  if (sponsor.source_sponsor_id && (!brand || brand.countryCode !== country.iso_alpha2 || brand.name !== sponsor.name)) {
+    throw new Error("L’identité nationale d’un sponsor secondaire est incohérente avec la bibliothèque.");
+  }
   return {
     id: sponsor.id,
     name: sponsor.name,
@@ -905,7 +920,14 @@ function hydrateSecondarySponsor(
     primaryColor: sponsor.primary_color,
     accentColor: sponsor.accent_color,
     logoVariant: sponsor.logo_variant,
+    ...(brand ? { logoPath: brand.logoPath, sector: brand.sector,
+      logoBackgroundColor: getSecondarySponsorLogoBackgroundColor(brand.logoPath) } : {}),
   };
+}
+
+function isSelectableLibrarySponsor(sponsor: CatalogRow | undefined): sponsor is CatalogRow {
+  return Boolean(sponsor?.available_for_offers && sponsor.source_sponsor_id
+    && getSecondarySponsorLibraryBrand(sponsor.catalog_key)?.name === sponsor.name);
 }
 
 function hydrateSecondaryObjective(row: ObjectiveRow, countries: ReadonlyMap<string, CountryRow>): SecondarySponsorObjective {

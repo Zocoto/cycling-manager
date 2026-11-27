@@ -15,13 +15,14 @@ const sponsor = {
 
 describe("secondary sponsor jersey editor", () => {
   it("offers distinct black and white previews and restores the persisted selection", () => {
-    const html = renderToStaticMarkup(<SecondarySponsorJerseyEditor contractId="contract" principalSponsor={SPONSORS[0]} jersey={SPONSORS[0].jerseys[0]} secondarySponsor={sponsor} initialPlacement={{ ...DEFAULT_SECONDARY_SPONSOR_LOGO_PLACEMENT, colorMode: "white" }} />);
+    const html = renderToStaticMarkup(<SecondarySponsorJerseyEditor contractId="contract" targetSeasonName="Saison 6" principalSponsor={SPONSORS[0]} jersey={SPONSORS[0].jerseys[0]} secondarySponsor={sponsor} initialPlacement={{ ...DEFAULT_SECONDARY_SPONSOR_LOGO_PLACEMENT, colorMode: "white" }} />);
     expect(html).toContain('data-preview-color="white"');
     expect(html).toContain('name="contractId" value="contract"');
     const radios = html.match(/<input[^>]*type="radio"[^>]*>/g) ?? [];
     expect(radios).toHaveLength(3);
     expect(radios.find(radio => radio.includes('value="white"'))).toContain('checked=""');
     expect(radios.find(radio => radio.includes('value="black"'))).not.toContain('checked=""');
+    expect(html).toContain("Saison 6");
     expect(html).toContain("Noir");
     expect(html).toContain("Blanc");
     expect(html).toContain('data-secondary-logo-color="black"');

@@ -137,7 +137,9 @@ function SecondarySponsorContractDetails({ contract }: { contract: SecondarySpon
 
       {contract.baseJersey ? (
         <SecondarySponsorJerseyEditor
+          key={`${contract.id}:${contract.baseJersey.jersey.id}`}
           contractId={contract.id}
+          targetSeasonName={contract.targetSeasonName}
           principalSponsor={contract.baseJersey.sponsor}
           jersey={contract.baseJersey.jersey}
           secondarySponsor={contract.sponsor}
@@ -146,7 +148,8 @@ function SecondarySponsorContractDetails({ contract }: { contract: SecondarySpon
       ) : contract.status === "planned" ? (
         <SecondaryNotice
           title="Maillot principal à choisir d’abord"
-          text="Sélectionnez le sponsor et le maillot principal de la saison suivante. L’éditeur du logo secondaire s’activera ensuite automatiquement."
+          text={`Choisissez le maillot principal de ${contract.targetSeasonName} avant de placer le logo secondaire.`}
+          action={{ href: "/jeu/sponsoring", label: "Choisir le prochain maillot" }}
         />
       ) : null}
     </div>
@@ -158,8 +161,9 @@ function SecondarySponsorContractCard({
 }: {
   contract: SecondarySponsorContract;
 }) {
-  const combinedName = contract.baseJersey
-    ? `${contract.baseJersey.futureTeamName} - ${contract.sponsor.name}`
+  const principalName = contract.principalTeamName ?? contract.baseJersey?.futureTeamName;
+  const combinedName = principalName
+    ? `${principalName} - ${contract.sponsor.name}`
     : contract.sponsor.name;
   const isActive = contract.status === "active";
 

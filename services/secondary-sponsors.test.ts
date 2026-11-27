@@ -7,6 +7,14 @@ vi.mock("@/services/sponsor-team-affinity", () => ({ loadTeamSponsorCountryAffin
 vi.mock("@/services/sponsor-objective-sporting-context", () => ({ loadSponsorObjectiveSportingContext: mock.snapshot }));
 
 import { getSecondarySponsoringStateForAuthUser } from "./secondary-sponsors";
+import { SPONSORS } from "@/data/sponsors";
+
+function libraryRow(key: string, id: string, countryId: string, prestige = 1): Row {
+  const brand = SPONSORS.find(sponsor => sponsor.id === key);
+  if (!brand) throw Error("Missing library test brand: " + key);
+  return { id, catalog_key: "library-" + key, source_sponsor_id: "source-" + key, available_for_offers: true,
+    country_id: countryId, name: brand.name, prestige, primary_color: brand.colors.primary, accent_color: brand.colors.accent, logo_variant: "wordmark" };
+}
 
 type Row = Record<string, unknown>;
 type Filter = { kind: string; column: string; value: unknown };
@@ -52,10 +60,7 @@ function fixture(raceCount = 6) {
       team_id: "team", target_season_id: "s5", status: "open", generation_version: 1, principal_country_id: "be",
       principal_budget_per_season: 2_000_000, maximum_reward_budget: 600_000,
     })),
-    secondary_sponsor_catalog: ["a", "b", "c"].map((key) => ({
-      id: `sponsor-${key}`, country_id: "be", name: `Sponsor ${key}`, prestige: 1,
-      primary_color: "#174A8B", accent_color: "#7CC6F2", logo_variant: "wordmark",
-    })),
+    secondary_sponsor_catalog: ["ardennes-outillage", "brassel-foods", "nordika-glass"].map((key, index) => libraryRow(key, `sponsor-${["a", "b", "c"][index]}`, "be")),
     secondary_sponsor_objectives: [],
     race_categories: ["national", "continental", "world", "elite"].map(code => ({id: code, code})),
     race_editions: Array.from({ length: raceCount }, (_, index) => ({
@@ -73,7 +78,7 @@ function fixture(raceCount = 6) {
     failRaceId: "",
     activeRaceRequests: 0,
     maxActiveRaceRequests: 0,
-    rosterSize: 30, principalCountryId: "be" as string | null, principalBudgetPerSeason: 2_000_000 as number | null,
+    rosterSize: 30, principalSponsorId: "another-principal" as string | null, principalCountryId: "be" as string | null, principalBudgetPerSeason: 2_000_000 as number | null,
     beforeReplace: null as (() => void) | null,
   };
 
@@ -155,15 +160,15 @@ function fixture(raceCount = 6) {
   const rpcCalls: Array<{ name: string; args: Row }> = [];
   const rpc = vi.fn(async (name: string, args: Row) => {
     rpcCalls.push({name,args});
-    if (name === "get_secondary_sponsor_offer_context") return { data: {roster_size:state.rosterSize,roster_country_counts:{be:state.rosterSize},principal_country_id:state.principalCountryId,principal_budget_per_season:state.principalBudgetPerSeason},error:null };
+    if (name === "get_secondary_sponsor_offer_context") return { data: {roster_size:state.rosterSize,roster_country_counts:{be:state.rosterSize},principal_country_id:state.principalCountryId,principal_budget_per_season:state.principalBudgetPerSeason,principal_sponsor_id:state.principalSponsorId},error:null };
     if (name !== "replace_secondary_sponsor_offers") throw Error("Unexpected RPC: " + name);
     state.beforeReplace?.();
     const belongsToTeam = (offer: Row) => offer.team_id === args.p_team_id && offer.sporting_director_id === args.p_director_id && offer.target_season_id === args.p_target_season_id;
     if (tables.secondary_sponsor_offers.some(offer => belongsToTeam(offer) && offer.status === "accepted")) return {data:false,error:null};
-    if (tables.secondary_sponsor_offers.filter(offer => belongsToTeam(offer) && offer.status === "open" && Number(offer.generation_version)>=2).length===3) return {data:false,error:null};
+    if (tables.secondary_sponsor_offers.filter(offer => belongsToTeam(offer) && offer.status === "open" && Number(offer.generation_version)>=3).length===3) return {data:false,error:null};
     const proposals = args.p_offers as Array<{ secondary_sponsor_id:string;objectives:Row[] }>;
     tables.secondary_sponsor_offers = proposals.map((offer,index)=>({id:"generated-"+index,secondary_sponsor_id:offer.secondary_sponsor_id,
-      sporting_director_id:args.p_director_id,team_id:args.p_team_id,target_season_id:args.p_target_season_id,status:"open",generation_version:2,principal_country_id:state.principalCountryId,
+      sporting_director_id:args.p_director_id,team_id:args.p_team_id,target_season_id:args.p_target_season_id,status:"open",generation_version:3,principal_country_id:state.principalCountryId,
       principal_budget_per_season:state.principalBudgetPerSeason,maximum_reward_budget:state.principalBudgetPerSeason===null?null:Math.floor(Math.round(state.principalBudgetPerSeason*100)*3/10)/100}));
     tables.secondary_sponsor_objectives = proposals.flatMap((offer,index)=>offer.objectives.map((goal,order)=>({
       id:"generated-"+index+"-"+order,offer_id:"generated-"+index,display_order:order+1,status:"draft",best_rank:null,
@@ -180,6 +185,42 @@ function fixture(raceCount = 6) {
 beforeEach(() => vi.clearAllMocks());
 
 describe("secondary sponsor calendar resilience", () => {
+  it("does not offer the same brand as the principal sponsor", async () => {
+    const f=fixture(9);
+    f.state.principalSponsorId="source-ardennes-outillage";
+    f.tables.secondary_sponsor_catalog.push(libraryRow("veloria-bank","canonical-extra","be"));
+    const result=await getSecondarySponsoringStateForAuthUser("user");
+    if(result?.kind!=="offers") throw Error("Expected offers");
+    expect(result.offers).toHaveLength(3);
+    expect(result.offers.some(offer=>offer.sponsor.name==="Ardennes Outillage")).toBe(false);
+  });
+  it("replaces the three country clones with three real brands and their existing logos", async () => {
+    const f = fixture(9);
+    f.tables.countries.push({id:"tz",name:"Tanzanie",iso_alpha2:"TZ"},{id:"mz",name:"Mozambique",iso_alpha2:"MZ"});
+    f.tables.secondary_sponsor_catalog.forEach((row,index) => {
+      row.name="TerraNova"; row.country_id=["be","tz","mz"][index];
+      row.catalog_key="secondary-"+["be","tz","mz"][index]+"-9";
+      row.source_sponsor_id=null; row.available_for_offers=false;
+    });
+    f.tables.secondary_sponsor_offers.forEach(row => { row.generation_version=2; });
+    f.tables.secondary_sponsor_catalog.push(libraryRow("lumen-energy","canonical-be","be",5),
+      libraryRow("uhuru-baobab-charge","canonical-tz","tz",3),libraryRow("cabo-graphite","canonical-mz","mz",4));
+    mock.affinity.mockResolvedValue({teamCountryCode:"BE",directorCountryCode:"BE",leaderCountryCodes:["TZ","MZ"],rosterMajorityCountryCode:"BE",internationalSchoolAffinities:[],preferredSponsorIds:[]});
+    mock.snapshot.mockResolvedValue({teamSportingContext:{currentDivision:"elite",projectedDivision:"elite",projectedRank:4},teamRiderCandidates:[]});
+    f.tables.race_editions.forEach(row => { row.race_category_id="world"; });
+    const result=await getSecondarySponsoringStateForAuthUser("user");
+    if(result?.kind!=="offers") throw Error("Expected real secondary offers");
+    expect(result.offers.map(offer=>offer.sponsor.countryCode)).toEqual(["BE","TZ","MZ"]);
+    expect(new Set(result.offers.map(offer=>offer.sponsor.name)).size).toBe(3);
+    for(const offer of result.offers) {
+      expect(offer.sponsor.name).not.toBe("TerraNova");
+      expect(SPONSORS.some(brand=>brand.name===offer.sponsor.name && brand.countryCode===offer.sponsor.countryCode && brand.logoPath===offer.sponsor.logoPath)).toBe(true);
+      expect(offer.totalMaximumReward).toBeLessThanOrEqual(600_000);
+    }
+    expect(f.queries.some(query=>query.table==="secondary_sponsor_catalog" && query.filters.some(filter=>filter.column==="available_for_offers" && filter.value===true))).toBe(true);
+    expect(f.rpcCalls.filter(call=>call.name==="replace_secondary_sponsor_offers")).toHaveLength(1);
+  });
+
   it.each(["1569.26", 1569.26, 1569.99, 1500.01, 1570])("accepts reputation %s without rounding up an integer race threshold", async (reputation) => {
     const f = fixture(8);
     f.tables.sporting_directors[0].reputation_points = reputation;
@@ -239,7 +280,7 @@ describe("secondary sponsor calendar resilience", () => {
     const f = fixture();
     const existing = ["offer-a", "offer-b", "offer-c"].flatMap((id) => Array.from({ length: 3 }, (_, index) => objective(id, index)));
     f.tables.secondary_sponsor_objectives = structuredClone(existing);
-    f.tables.secondary_sponsor_offers.forEach(offer => { offer.generation_version=2; });
+    f.tables.secondary_sponsor_offers.forEach(offer => { offer.generation_version=3; });
     f.state.failCalendar = true;
     const state = await getSecondarySponsoringStateForAuthUser("user");
     expect(state?.kind).toBe("offers");
@@ -261,7 +302,7 @@ describe("secondary sponsor calendar resilience", () => {
     expect(result?.kind).toBe("offers");
     expect(f.rpcCalls.filter(call=>call.name==="replace_secondary_sponsor_offers")).toHaveLength(1);
     expect(f.tables.secondary_sponsor_offers).toHaveLength(3);
-    expect(f.tables.secondary_sponsor_offers.every(offer=>offer.generation_version===2)).toBe(true);
+    expect(f.tables.secondary_sponsor_offers.every(offer=>offer.generation_version===3)).toBe(true);
     expect(f.tables.secondary_sponsor_objectives).toHaveLength(9);
     expect(f.inserts).toEqual([]);
   });
@@ -300,7 +341,7 @@ describe("secondary sponsor calendar resilience", () => {
     f.tables.sporting_directors[0].reputation_points=2253;
     f.tables.sporting_directors[0].country_id="fr";
     f.tables.countries.push({id:"co",name:"Colombie",iso_alpha2:"CO"},{id:"fr",name:"France",iso_alpha2:"FR"},{id:"am",name:"Arménie",iso_alpha2:"AM"});
-    f.tables.secondary_sponsor_catalog=["co","fr","am"].map(code=>({id:"partner-"+code,country_id:code,name:"Partner "+code,prestige:5,primary_color:"#111111",accent_color:"#ffffff",logo_variant:"wordmark"}));
+    f.tables.secondary_sponsor_catalog=["cumbre-coca-rush", "terroirs-unis", "apricot-crown"].map((key,index)=>libraryRow(key,"partner-"+["co","fr","am"][index],["co","fr","am"][index],5));
     f.state.principalCountryId="co";
     mock.affinity.mockResolvedValue({teamCountryCode:"CO",directorCountryCode:"FR",leaderCountryCodes:["CO","AM"],rosterMajorityCountryCode:"CO",internationalSchoolAffinities:[],preferredSponsorIds:[]});
     mock.snapshot.mockResolvedValue({teamSportingContext:{currentDivision:"elite",projectedDivision:"elite",projectedRank:4},teamRiderCandidates:[]});
@@ -376,10 +417,10 @@ describe("secondary sponsor calendar resilience", () => {
 
   it("never loads offers belonging to the director's former team", async () => {
     const f=fixture();
-    f.tables.secondary_sponsor_offers.forEach(offer=>{offer.generation_version=2;});
+    f.tables.secondary_sponsor_offers.forEach(offer=>{offer.generation_version=3;});
     const existing=["offer-a","offer-b","offer-c"].flatMap(id=>Array.from({length:3},(_,index)=>objective(id,index)));
     f.tables.secondary_sponsor_objectives=structuredClone(existing);
-    f.tables.secondary_sponsor_offers.push({id:"former-accepted",secondary_sponsor_id:"unknown-old-brand",sporting_director_id:"director",team_id:"former-team",target_season_id:"s5",status:"accepted",generation_version:2});
+    f.tables.secondary_sponsor_offers.push({id:"former-accepted",secondary_sponsor_id:"unknown-old-brand",sporting_director_id:"director",team_id:"former-team",target_season_id:"s5",status:"accepted",generation_version:3});
     f.state.failCalendar=true;
     const state=await getSecondarySponsoringStateForAuthUser("user");
     if(state?.kind!=="offers") throw Error("Expected offers");
@@ -398,7 +439,7 @@ describe("secondary sponsor calendar resilience", () => {
     const f=fixture();
     f.tables.secondary_sponsor_contracts.push({id:"signed-contract",offer_id:"offer-a",season_id:"s5",team_id:"team",secondary_sponsor_id:"sponsor-a",status:"planned",logo_x_percent:50,logo_y_percent:48,logo_scale:1,logo_rotation_degrees:0});
     f.tables.secondary_sponsor_objectives=Array.from({length:3},(_,index)=>objective("offer-a",index));
-    f.tables.team_sponsor_contracts=[{id:"primary-contract",team_id:"team",role:"principal",sponsor_id:"primary-brand",selected_jersey_id:"ardennes-outillage-classic",pending_jersey_id:null,pending_jersey_season_id:null,start_season_id:"s4",end_season_id:end,contract_duration_seasons:duration,status:"active"}];
+    f.tables.team_sponsor_contracts=[{id:"primary-contract",team_id:"team",role:"principal",sponsor_id:"primary-brand",selected_jersey_id:"ardennes-outillage-classic",pending_jersey_id:"ardennes-outillage-modern",pending_jersey_season_id:"s5",start_season_id:"s4",end_season_id:end,contract_duration_seasons:duration,status:"active"}];
     f.tables.sponsors=[{id:"primary-brand",catalog_key:"ardennes-outillage"}];
     const state=await getSecondarySponsoringStateForAuthUser("user");
     if(state?.kind!=="signed") throw Error("Expected signed contract");
@@ -425,7 +466,7 @@ describe("secondary sponsor calendar resilience", () => {
   it("does not reroll or read the context of saved V2 offers without a covered principal budget", async () => {
     const f=fixture();
     f.tables.secondary_sponsor_offers.forEach(offer=>{
-      offer.generation_version=2;offer.principal_budget_per_season=null;offer.maximum_reward_budget=null;
+      offer.generation_version=3;offer.principal_budget_per_season=null;offer.maximum_reward_budget=null;
     });
     const existing=["offer-a","offer-b","offer-c"].flatMap(id=>Array.from({length:3},(_,index)=>objective(id,index)));
     f.tables.secondary_sponsor_objectives=structuredClone(existing);

@@ -1,6 +1,8 @@
 import "server-only";
 
 import { SPONSORS } from "@/data/sponsors";
+import { getSecondarySponsorLibraryBrand } from "@/lib/game/secondary-sponsor-library";
+import { getSecondarySponsorLogoBackgroundColor } from "@/lib/game/secondary-sponsor-logo-backgrounds";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type {
   SecondarySponsorIdentity,
@@ -75,6 +77,7 @@ type SecondaryContractRow = {
 
 type SecondaryCatalogRow = {
   id: string;
+  catalog_key: string | null;
   country_id: string;
   name: string;
   prestige: number;
@@ -359,7 +362,7 @@ async function loadActiveSecondaryIdentity({
   const { data: catalog, error: catalogError } = await supabase
     .from("secondary_sponsor_catalog")
     .select(
-      "id, country_id, name, prestige, primary_color, accent_color, logo_variant",
+      "id, catalog_key, country_id, name, prestige, primary_color, accent_color, logo_variant",
     )
     .eq("id", contract.secondary_sponsor_id)
     .maybeSingle<SecondaryCatalogRow>();
@@ -377,6 +380,12 @@ async function loadActiveSecondaryIdentity({
   if (countryError || !country) {
     throw new Error("Le pays du sponsor secondaire actif est indisponible.");
   }
+
+  const libraryBrand = getSecondarySponsorLibraryBrand(catalog.catalog_key);
+  const matchingBrand = libraryBrand?.name === catalog.name &&
+    libraryBrand.countryCode === country.iso_alpha2.trim().toUpperCase()
+      ? libraryBrand
+      : null;
 
   return {
     sponsor: {
@@ -397,6 +406,8 @@ async function loadActiveSecondaryIdentity({
       primaryColor: catalog.primary_color,
       accentColor: catalog.accent_color,
       logoVariant: catalog.logo_variant,
+      ...(matchingBrand ? { logoPath: matchingBrand.logoPath, sector: matchingBrand.sector,
+        logoBackgroundColor: getSecondarySponsorLogoBackgroundColor(matchingBrand.logoPath) } : {}),
     },
     placement: {
       xPercent: Number(contract.logo_x_percent),
