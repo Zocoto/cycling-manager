@@ -4,10 +4,14 @@ import { SPONSORS } from "@/data/sponsors";
 import type { RaceCategoryCode } from "@/lib/game/race-calendar";
 import {
   calculateSecondarySponsorObjectiveReward,
+  calculateSecondarySponsorNationalityReward,
+  getSecondarySponsorFailurePenalty,
+  getSecondarySponsorNationalityTarget,
   getSecondarySponsorEligibleCategoryCodes,
   getSecondarySponsorObjectiveCount,
   getSecondarySponsorTargetRank,
   SECONDARY_SPONSOR_OFFER_COUNT,
+  SECONDARY_SPONSOR_GENERATION_VERSION,
   SECONDARY_SPONSOR_REPUTATION_THRESHOLD,
   SECONDARY_SPONSOR_START_GAME_YEAR,
   type SecondarySponsorIdentity,
@@ -16,6 +20,10 @@ import {
   type SecondarySponsorObjective,
 } from "@/lib/game/secondary-sponsor";
 import { stableHash } from "@/lib/game/sponsor-main-objective";
+import { selectSecondarySponsorCountryCodes } from "@/lib/game/secondary-sponsor-nationality";
+import { resolveSponsorObjectiveSportingLevel } from "@/lib/game/sponsor-objective-sporting-level";
+import { loadSponsorObjectiveSportingContext } from "@/services/sponsor-objective-sporting-context";
+import { loadTeamSponsorCountryAffinity } from "@/services/sponsor-team-affinity";
 import { GAMEPLAY_RULES, isFutureSponsoringWindowOpen } from "@/lib/gameplay-rules";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
@@ -34,6 +42,7 @@ export type SecondarySponsorOffer = {
   sponsor: SecondarySponsorIdentity;
   objectives: SecondarySponsorObjective[];
   totalMaximumReward: number;
+  principalCountryCode?: string | null;
 };
 
 export type SecondarySponsorBaseJersey = {
@@ -52,6 +61,7 @@ export type SecondarySponsorContract = {
   objectives: SecondarySponsorObjective[];
   logoPlacement: SecondarySponsorLogoPlacement;
   baseJersey: SecondarySponsorBaseJersey | null;
+  principalCountryCode?: string | null;
 };
 
 type SecondarySponsoringStateWithActiveContract = {
@@ -94,6 +104,7 @@ export type SecondarySponsoringState = SecondarySponsoringStateWithActiveContrac
 
 type DirectorRow = {
   id: string;
+  country_id: string | null;
   reputation_points: number | string;
 };
 
@@ -122,17 +133,24 @@ type OfferRow = {
   id: string;
   secondary_sponsor_id: string;
   status: "open" | "accepted" | "withdrawn" | "expired";
+  generation_version: number;
+  principal_country_id: string | null;
 };
 
 type ObjectiveRow = {
   id: string;
   offer_id: string;
   display_order: number;
-  race_edition_id: string;
-  race_slug: string;
-  race_label: string;
-  race_category_code: RaceCategoryCode;
-  target_rank: number;
+  objective_kind: "race_result" | "roster_nationality";
+  race_edition_id: string | null;
+  race_slug: string | null;
+  race_label: string | null;
+  race_category_code: RaceCategoryCode | null;
+  target_rank: number | null;
+  target_country_id: string | null;
+  required_rider_count: number | null;
+  current_rider_count: number | null;
+  reputation_penalty: number | string;
   cash_reward: number | string;
   status: SecondarySponsorObjective["status"];
   best_rank: number | null;
@@ -148,6 +166,7 @@ type ContractRow = {
   logo_y_percent: number | string;
   logo_scale: number | string;
   logo_rotation_degrees: number | string;
+  logo_color_mode: SecondarySponsorLogoPlacement["colorMode"];
 };
 
 type RaceEditionRow = {
@@ -185,7 +204,7 @@ export async function getSecondarySponsoringStateForAuthUser(
   const supabase = createSupabaseAdminClient();
   const { data: director, error: directorError } = await supabase
     .from("sporting_directors")
-    .select("id, reputation_points")
+    .select("id, reputation_points, country_id")
     .eq("auth_user_id", normalizedAuthUserId)
     .eq("status", "active")
     .maybeSingle<DirectorRow>();
@@ -331,26 +350,64 @@ export async function getSecondarySponsoringStateForAuthUser(
     targetSeason,
     country,
     reputationPoints,
+    currentSeasonId: activeSeason.id,
+    directorCountryId: director.country_id,
   });
+
+  if (offers.length === 0) {
+    const signed = await loadSecondaryContract({ supabase, teamId: assignment.team_id, seasonId: targetSeason.id });
+    if (signed) return { kind: "signed", activeContract,
+      contract: await hydrateSecondaryContract({ supabase, contract: signed, targetSeason, teamId: assignment.team_id }) };
+  }
 
   return {
     kind: "offers",
     activeContract,
-    countryCode: country.iso_alpha2,
-    countryName: country.name,
+    countryCode: offers[0]?.sponsor.countryCode ?? country.iso_alpha2,
+    countryName: offers[0]?.sponsor.countryName ?? country.name,
     targetGameYear,
     targetSeasonName: targetSeason.name,
     offers,
   };
 }
 
+type SecondaryOfferContext = {
+  roster_size: number;
+  roster_country_counts: Record<string, number>;
+  principal_country_id: string | null;
+};
+const SECONDARY_CATALOG_COLUMNS = "id, country_id, name, prestige, primary_color, accent_color, logo_variant";
+
+async function loadSecondaryCatalog(supabase: SupabaseAdminClient, ids?: string[]): Promise<CatalogRow[]> {
+  if (ids && ids.length === 0) return [];
+  const { data, error } = await collectPaginatedRows({
+    pageSize: SECONDARY_CALENDAR_PAGE_SIZE,
+    fetchPage: async (from, to) => {
+      let query = supabase.from("secondary_sponsor_catalog").select(SECONDARY_CATALOG_COLUMNS);
+      if (ids) query = query.in("id", ids);
+      return await query.order("id", { ascending: true }).range(from, to).returns<CatalogRow[]>();
+    },
+  });
+  if (error) throw new Error(`Impossible de charger le catalogue secondaire : ${error.message}`);
+  return data ?? [];
+}
+
+async function loadSecondaryCountries(supabase: SupabaseAdminClient, ids: readonly string[]): Promise<Map<string, CountryRow>> {
+  const unique = [...new Set(ids)];
+  if (unique.length === 0) return new Map();
+  const { data, error } = await collectChunkedPaginatedRows({
+    values: unique, chunkSize: SECONDARY_RELATION_BATCH_SIZE,
+    pageSize: SECONDARY_CALENDAR_PAGE_SIZE, maxConcurrency: 1,
+    fetchPage: async (batch, from, to) => await supabase.from("countries")
+      .select("id, name, iso_alpha2").in("id", batch).order("id", { ascending: true })
+      .range(from, to).returns<CountryRow[]>(),
+  });
+  if (error) throw new Error(`Impossible de charger les nationalités des partenaires : ${error.message}`);
+  return new Map((data ?? []).map(country => [country.id, country]));
+}
+
 async function ensureAndLoadSecondarySponsorOffers({
-  supabase,
-  directorId,
-  teamId,
-  targetSeason,
-  country,
-  reputationPoints,
+  supabase, directorId, teamId, targetSeason, reputationPoints, currentSeasonId, directorCountryId,
 }: {
   supabase: SupabaseAdminClient;
   directorId: string;
@@ -358,177 +415,114 @@ async function ensureAndLoadSecondarySponsorOffers({
   targetSeason: SeasonRow;
   country: CountryRow;
   reputationPoints: number;
+  currentSeasonId: string;
+  directorCountryId: string | null;
 }): Promise<SecondarySponsorOffer[]> {
-  let offerRows = await loadSecondaryOfferRows({
-    supabase,
-    directorId,
-    targetSeasonId: targetSeason.id,
-  });
-
-  if (offerRows.length === 0) {
-    const { data: catalogRows, error: catalogError } = await supabase
-      .from("secondary_sponsor_catalog")
-      .select(
-        "id, country_id, name, prestige, primary_color, accent_color, logo_variant",
-      )
-      .eq("country_id", country.id)
-      .returns<CatalogRow[]>();
-
-    if (catalogError) {
-      throw new Error(
-        `Impossible de charger le catalogue secondaire : ${catalogError.message}`,
-      );
-    }
-
-    const selectedCatalogRows = [...(catalogRows ?? [])]
-      .sort(
-        (first, second) =>
-          stableHash(`${directorId}:${targetSeason.id}:${first.id}`) -
-            stableHash(`${directorId}:${targetSeason.id}:${second.id}`) ||
-          first.id.localeCompare(second.id),
-      )
-      .slice(0, SECONDARY_SPONSOR_OFFER_COUNT);
-
-    if (selectedCatalogRows.length !== SECONDARY_SPONSOR_OFFER_COUNT) {
-      throw new Error("Le catalogue secondaire du pays est incomplet.");
-    }
-
-    const { error: insertError } = await supabase
-      .from("secondary_sponsor_offers")
-      .insert(
-        selectedCatalogRows.map((sponsor) => ({
-          sporting_director_id: directorId,
-          team_id: teamId,
-          target_season_id: targetSeason.id,
-          secondary_sponsor_id: sponsor.id,
-        })),
-      );
-
-    if (insertError) {
-      throw new Error(
-        `Impossible de créer les offres secondaires : ${insertError.message}`,
-      );
-    }
-
-    offerRows = await loadSecondaryOfferRows({
-      supabase,
-      directorId,
-      targetSeasonId: targetSeason.id,
-    });
-  }
-
-  const sponsorIds = offerRows.map((offer) => offer.secondary_sponsor_id);
-  const { data: sponsors, error: sponsorsError } = await supabase
-    .from("secondary_sponsor_catalog")
-    .select(
-      "id, country_id, name, prestige, primary_color, accent_color, logo_variant",
-    )
-    .in("id", sponsorIds)
-    .returns<CatalogRow[]>();
-
-  if (sponsorsError) {
-    throw new Error(
-      `Impossible de charger les sponsors secondaires : ${sponsorsError.message}`,
-    );
-  }
-
-  const sponsorById = new Map((sponsors ?? []).map((sponsor) => [sponsor.id, sponsor]));
-  const offerIds = offerRows.map((offer) => offer.id);
-  let objectives = await loadSecondaryObjectiveRows({ supabase, offerIds });
-  const existingObjectivesByOfferId = groupObjectivesByOfferId(objectives);
-  const offersWithoutObjectives = offerRows.filter(
-    (offer) =>
-      sponsorById.has(offer.secondary_sponsor_id) &&
-      !existingObjectivesByOfferId.get(offer.id)?.length,
+  let offerRows = await loadSecondaryOfferRows({ supabase, directorId, teamId, targetSeasonId: targetSeason.id });
+  let sponsors = await loadSecondaryCatalog(supabase, offerRows.map(offer => offer.secondary_sponsor_id));
+  let objectives = await loadSecondaryObjectiveRows({ supabase, offerIds: offerRows.map(offer => offer.id) });
+  let sponsorById = new Map(sponsors.map(sponsor => [sponsor.id, sponsor]));
+  const objectivesByOffer = groupObjectivesByOfferId(objectives);
+  const needsGeneration = !offerRows.some(offer => offer.status === "accepted") && (
+    offerRows.filter(offer => offer.status === "open").length !== SECONDARY_SPONSOR_OFFER_COUNT ||
+    offerRows.some(offer => offer.status === "open" && (
+      offer.generation_version < SECONDARY_SPONSOR_GENERATION_VERSION ||
+      (objectivesByOffer.get(offer.id)?.length ?? 0) < getSecondarySponsorObjectiveCount(toSponsorPrestige(sponsorById.get(offer.secondary_sponsor_id)?.prestige ?? 1))
+    ))
   );
-  // A saved proposal does not depend on rereading next season's calendar.
-  const raceCandidates = offersWithoutObjectives.length > 0
-    ? await loadSecondaryRaceCandidates({
-        supabase,
-        seasonId: targetSeason.id,
-        countryId: country.id,
-        reputationPoints,
-      })
-    : [];
 
-  for (const offer of offersWithoutObjectives) {
-    const sponsor = sponsorById.get(offer.secondary_sponsor_id);
-    if (!sponsor) continue;
-
-    const objectiveCount = getSecondarySponsorObjectiveCount(
-      toSponsorPrestige(sponsor.prestige),
-    );
-    const selectedRaces = selectSecondarySponsorRaces({
-      offerId: offer.id,
-      sponsorPrestige: toSponsorPrestige(sponsor.prestige),
-      raceCandidates,
-      count: objectiveCount,
+  if (needsGeneration) {
+    const [catalog, affinity, snapshot, contextResult] = await Promise.all([
+      loadSecondaryCatalog(supabase),
+      loadTeamSponsorCountryAffinity({ supabase, teamId, seasonId: currentSeasonId, directorCountryId }),
+      loadSponsorObjectiveSportingContext({ supabase, teamId, seasonId: targetSeason.id, targetSeasonGameYear: targetSeason.game_year }),
+      supabase.rpc("get_secondary_sponsor_offer_context", { p_team_id: teamId, p_target_season_id: targetSeason.id }),
+    ]);
+    if (contextResult.error || !contextResult.data) throw new Error("Le contexte des objectifs secondaires est indisponible.");
+    const context = contextResult.data as SecondaryOfferContext;
+    const countries = await loadSecondaryCountries(supabase, [
+      ...catalog.map(sponsor => sponsor.country_id), ...(context.principal_country_id ? [context.principal_country_id] : []),
+    ]);
+    const principalCountry = context.principal_country_id ? countries.get(context.principal_country_id) : null;
+    const level = resolveSponsorObjectiveSportingLevel({
+      context: snapshot.teamSportingContext, ratings: snapshot.teamRiderCandidates.map(rider => rider.ratings),
     });
-
-    if (selectedRaces.length !== objectiveCount) {
-      throw new Error(
-        `Le calendrier ne permet pas de créer ${objectiveCount} objectifs secondaires distincts.`,
-      );
-    }
-
-    const { error: objectiveInsertError } = await supabase
-      .from("secondary_sponsor_objectives")
-      .insert(
-        selectedRaces.map((race, index) => {
-          const targetRank = getSecondarySponsorTargetRank({
-            prestige: toSponsorPrestige(sponsor.prestige),
-            categoryCode: race.categoryCode,
-            index,
-          });
-          return {
-            offer_id: offer.id,
-            display_order: index + 1,
-            race_edition_id: race.id,
-            race_slug: race.slug,
-            race_label: race.label,
-            race_category_code: race.categoryCode,
-            target_rank: targetRank,
-            cash_reward: calculateSecondarySponsorObjectiveReward({
-              prestige: toSponsorPrestige(sponsor.prestige),
-              categoryCode: race.categoryCode,
-              targetRank,
-            }),
-          };
-        }),
-      );
-
-    if (objectiveInsertError) {
-      throw new Error(
-        `Impossible de créer les objectifs secondaires : ${objectiveInsertError.message}`,
-      );
-    }
-  }
-
-  if (offersWithoutObjectives.length > 0) {
-    objectives = await loadSecondaryObjectiveRows({ supabase, offerIds });
-  }
-  const objectivesByOfferId = groupObjectivesByOfferId(objectives);
-
-  return offerRows
-    .filter((offer) => offer.status === "open")
-    .map((offer) => {
-      const sponsor = sponsorById.get(offer.secondary_sponsor_id);
-      if (!sponsor) {
-        throw new Error("Une identité de sponsor secondaire est introuvable.");
+    const sportingReputation = Math.max(reputationPoints, level?.division === "elite" ? 10_000 : level?.division === "world" ? 5_000 : reputationPoints);
+    const seed = `${directorId}:${teamId}:${targetSeason.id}:v${SECONDARY_SPONSOR_GENERATION_VERSION}`;
+    const countrySlots = selectSecondarySponsorCountryCodes({
+      affinity, seed, availableCountryCodes: catalog.flatMap(sponsor => {
+        const country = countries.get(sponsor.country_id);
+        return country ? [country.iso_alpha2] : [];
+      }),
+    });
+    const selectedIds = new Set<string>();
+    const targetPrestige = level?.division === "elite" ? 5 : level?.division === "world" ? 4 : 3;
+    const selectedSponsors = countrySlots.map(code => {
+      const sponsor = catalog.filter(candidate => countries.get(candidate.country_id)?.iso_alpha2.trim().toUpperCase() === code && !selectedIds.has(candidate.id))
+        .sort((first, second) => Math.abs(first.prestige - targetPrestige) - Math.abs(second.prestige - targetPrestige)
+          || stableHash(`${seed}:${first.id}`) - stableHash(`${seed}:${second.id}`) || first.id.localeCompare(second.id))[0];
+      if (!sponsor) throw new Error("Le catalogue secondaire ne contient pas trois partenaires distincts adaptés à l’équipe.");
+      selectedIds.add(sponsor.id);
+      return sponsor;
+    });
+    if (selectedSponsors.length !== SECONDARY_SPONSOR_OFFER_COUNT) throw new Error("Le catalogue secondaire est incomplet.");
+    const raceCandidates = await loadSecondaryRaceCandidates({ supabase, seasonId: targetSeason.id, reputationPoints });
+    const proposals = selectedSponsors.map(sponsor => {
+      const sponsorCountry = countries.get(sponsor.country_id);
+      if (!sponsorCountry) throw new Error("La nationalité d’un partenaire est indisponible.");
+      const prestige = toSponsorPrestige(sponsor.prestige);
+      const requiredRiderCount = getSecondarySponsorNationalityTarget({
+        rosterSize: context.roster_size, prestige, sponsorCountryCode: sponsorCountry.iso_alpha2,
+        principalCountryCode: principalCountry?.iso_alpha2 ?? null,
+      });
+      const objectiveCount = getSecondarySponsorObjectiveCount(prestige);
+      const selectedRaces = selectSecondarySponsorRaces({
+        offerId: `${seed}:${sponsor.id}`, raceCandidates, count: objectiveCount - Number(requiredRiderCount > 0),
+        sportingReputation, sponsorCountryId: sponsor.country_id, eliteEligible: level?.division === "elite",
+      });
+      if (selectedRaces.length !== objectiveCount - Number(requiredRiderCount > 0)) {
+        throw new Error(`Le calendrier ne permet pas de créer ${objectiveCount} objectifs secondaires distincts et adaptés.`);
       }
-      const hydratedObjectives = (objectivesByOfferId.get(offer.id) ?? []).map(
-        hydrateSecondaryObjective,
-      );
-      return {
-        id: offer.id,
-        sponsor: hydrateSecondarySponsor(sponsor, country),
-        objectives: hydratedObjectives,
-        totalMaximumReward: hydratedObjectives.reduce(
-          (total, objective) => total + objective.cashReward,
-          0,
-        ),
-      };
+      const goals: Record<string, unknown>[] = selectedRaces.map((race, index) => {
+        const targetRank = getSecondarySponsorTargetRank({ prestige, categoryCode: race.categoryCode, index });
+        const reward = calculateSecondarySponsorObjectiveReward({ prestige, categoryCode: race.categoryCode, targetRank, reputationPoints: sportingReputation });
+        return { objective_kind: "race_result", race_edition_id: race.id, race_slug: race.slug,
+          race_label: race.label, race_category_code: race.categoryCode, target_rank: targetRank,
+          cash_reward: reward, reputation_penalty: getSecondarySponsorFailurePenalty(reward) };
+      });
+      if (requiredRiderCount > 0) {
+        const reward = calculateSecondarySponsorNationalityReward({ targetCount: requiredRiderCount, prestige, reputationPoints: sportingReputation });
+        goals.push({ objective_kind: "roster_nationality", target_country_id: sponsor.country_id,
+          required_rider_count: requiredRiderCount, cash_reward: reward, reputation_penalty: getSecondarySponsorFailurePenalty(reward) });
+      }
+      return { secondary_sponsor_id: sponsor.id, objectives: goals };
     });
+    const { error } = await supabase.rpc("replace_secondary_sponsor_offers", {
+      p_director_id: directorId, p_team_id: teamId, p_target_season_id: targetSeason.id,
+      p_offers: proposals, p_generation_version: SECONDARY_SPONSOR_GENERATION_VERSION,
+    });
+    if (error) throw new Error(`Impossible d’actualiser les propositions secondaires : ${error.message}`);
+    // The atomic RPC may preserve a concurrently signed contract or already complete proposals.
+    offerRows = await loadSecondaryOfferRows({ supabase, directorId, teamId, targetSeasonId: targetSeason.id });
+    sponsors = await loadSecondaryCatalog(supabase, offerRows.map(offer => offer.secondary_sponsor_id));
+    sponsorById = new Map(sponsors.map(sponsor => [sponsor.id, sponsor]));
+    objectives = await loadSecondaryObjectiveRows({ supabase, offerIds: offerRows.map(offer => offer.id) });
+  }
+  const countries = await loadSecondaryCountries(supabase, [
+    ...sponsors.map(sponsor => sponsor.country_id),
+    ...offerRows.flatMap(offer => offer.principal_country_id ? [offer.principal_country_id] : []),
+    ...objectives.flatMap(objective => objective.target_country_id ? [objective.target_country_id] : []),
+  ]);
+  const objectivesByOfferId = groupObjectivesByOfferId(objectives);
+  return offerRows.filter(offer => offer.status === "open").map(offer => {
+    const sponsor = sponsorById.get(offer.secondary_sponsor_id);
+    const country = sponsor ? countries.get(sponsor.country_id) : null;
+    if (!sponsor || !country) throw new Error("Une identité de sponsor secondaire est introuvable.");
+    const hydratedObjectives = (objectivesByOfferId.get(offer.id) ?? []).map(row => hydrateSecondaryObjective(row, countries));
+    return { id: offer.id, sponsor: hydrateSecondarySponsor(sponsor, country), objectives: hydratedObjectives,
+      principalCountryCode: offer.principal_country_id ? countries.get(offer.principal_country_id)?.iso_alpha2 ?? null : null,
+      totalMaximumReward: hydratedObjectives.reduce((total, objective) => total + objective.cashReward, 0) };
+  });
 }
 
 async function loadSecondaryContract({
@@ -543,7 +537,7 @@ async function loadSecondaryContract({
   const { data, error } = await supabase
     .from("secondary_sponsor_contracts")
     .select(
-      "id, offer_id, season_id, secondary_sponsor_id, status, logo_x_percent, logo_y_percent, logo_scale, logo_rotation_degrees",
+      "id, offer_id, season_id, secondary_sponsor_id, status, logo_x_percent, logo_y_percent, logo_scale, logo_rotation_degrees, logo_color_mode",
     )
     .eq("team_id", teamId)
     .eq("season_id", seasonId)
@@ -586,6 +580,7 @@ async function hydrateSecondaryContract({
     throw new Error("L’identité du sponsor secondaire signé est indisponible.");
   }
 
+  const objectiveCountries = await loadSecondaryCountries(supabase, objectiveRows.flatMap(row => row.target_country_id ? [row.target_country_id] : []));
   return {
     id: contract.id,
     status: contract.status,
@@ -593,12 +588,14 @@ async function hydrateSecondaryContract({
     targetGameYear: targetSeason.game_year,
     targetSeasonName: targetSeason.name,
     sponsor: hydrateSecondarySponsor(catalogResult.data, countryResult),
-    objectives: objectiveRows.map(hydrateSecondaryObjective),
+    objectives: objectiveRows.map(row => hydrateSecondaryObjective(row, objectiveCountries)),
+    principalCountryCode: baseJersey?.sponsor.countryCode ?? null,
     logoPlacement: {
       xPercent: Number(contract.logo_x_percent),
       yPercent: Number(contract.logo_y_percent),
       scale: Number(contract.logo_scale),
       rotationDegrees: Number(contract.logo_rotation_degrees),
+      colorMode: contract.logo_color_mode ?? "original",
     },
     baseJersey,
   };
@@ -655,14 +652,24 @@ async function loadFuturePrincipalJersey({
   const contract = planned ?? active;
   if (!contract) return null;
 
-  if (!planned && contract.end_season_id) {
-    const { data: endSeason } = await supabase
+  const years = new Map<string, number>([[targetSeason.id, targetSeason.game_year]]);
+  const missingSeasonIds = [...new Set([contract.start_season_id, contract.end_season_id]
+    .filter((id): id is string => Boolean(id)))].filter(id => !years.has(id));
+  if (missingSeasonIds.length > 0) {
+    const { data: periodSeasons, error: periodError } = await supabase
       .from("seasons")
-      .select("game_year")
-      .eq("id", contract.end_season_id)
-      .maybeSingle<{ game_year: number }>();
-    if (endSeason && endSeason.game_year < targetSeason.game_year) return null;
+      .select("id, game_year")
+      .in("id", missingSeasonIds)
+      .returns<Array<{ id: string; game_year: number }>>();
+    if (periodError) throw new Error("La période du contrat principal est indisponible.");
+    for (const season of periodSeasons ?? []) years.set(season.id, season.game_year);
   }
+  const startYear = years.get(contract.start_season_id);
+  const endYear = contract.end_season_id
+    ? years.get(contract.end_season_id)
+    : startYear === undefined ? undefined : startYear + contract.contract_duration_seasons - 1;
+  if (startYear === undefined || endYear === undefined
+    || targetSeason.game_year < startYear || targetSeason.game_year > endYear) return null;
 
   const { data: sponsorRegistry, error: sponsorError } = await supabase
     .from("sponsors")
@@ -689,17 +696,21 @@ async function loadFuturePrincipalJersey({
 async function loadSecondaryOfferRows({
   supabase,
   directorId,
+  teamId,
   targetSeasonId,
 }: {
   supabase: SupabaseAdminClient;
   directorId: string;
+  teamId: string;
   targetSeasonId: string;
 }): Promise<OfferRow[]> {
   const { data, error } = await supabase
     .from("secondary_sponsor_offers")
-    .select("id, secondary_sponsor_id, status")
+    .select("id, secondary_sponsor_id, status, generation_version, principal_country_id")
     .eq("sporting_director_id", directorId)
+    .eq("team_id", teamId)
     .eq("target_season_id", targetSeasonId)
+    .in("status", ["open", "accepted"])
     .returns<OfferRow[]>();
   if (error) {
     throw new Error(`Impossible de charger les offres secondaires : ${error.message}`);
@@ -718,7 +729,7 @@ async function loadSecondaryObjectiveRows({
   const { data, error } = await supabase
     .from("secondary_sponsor_objectives")
     .select(
-      "id, offer_id, display_order, race_edition_id, race_slug, race_label, race_category_code, target_rank, cash_reward, status, best_rank",
+      "id, offer_id, display_order, race_edition_id, race_slug, race_label, race_category_code, target_rank, cash_reward, status, best_rank, objective_kind, target_country_id, required_rider_count, current_rider_count, reputation_penalty",
     )
     .in("offer_id", [...offerIds])
     .order("display_order", { ascending: true })
@@ -735,18 +746,15 @@ type SecondaryRaceCandidate = {
   label: string;
   countryId: string;
   categoryCode: RaceCategoryCode;
-  isDomestic: boolean;
 };
 
 async function loadSecondaryRaceCandidates({
   supabase,
   seasonId,
-  countryId,
   reputationPoints,
 }: {
   supabase: SupabaseAdminClient;
   seasonId: string;
-  countryId: string;
   reputationPoints: number;
 }): Promise<SecondaryRaceCandidate[]> {
   const { data: editions, error: editionError } = await collectPaginatedRows({
@@ -828,53 +836,32 @@ async function loadSecondaryRaceCandidates({
         label: edition.display_name,
         countryId: race.country_id,
         categoryCode,
-        isDomestic: race.country_id === countryId,
       },
     ];
   });
 }
 
 function selectSecondarySponsorRaces({
-  offerId,
-  sponsorPrestige,
-  raceCandidates,
-  count,
+  offerId, raceCandidates, count, sportingReputation, sponsorCountryId, eliteEligible,
 }: {
-  offerId: string;
-  sponsorPrestige: Sponsor["prestige"];
-  raceCandidates: readonly SecondaryRaceCandidate[];
-  count: number;
+  offerId: string; raceCandidates: readonly SecondaryRaceCandidate[]; count: number;
+  sportingReputation: number; sponsorCountryId: string; eliteEligible: boolean;
 }): SecondaryRaceCandidate[] {
-  const eligibleCategoryCodes = new Set(
-    getSecondarySponsorEligibleCategoryCodes(sponsorPrestige),
-  );
-
-  return raceCandidates
-    .filter((candidate) => eligibleCategoryCodes.has(candidate.categoryCode))
-    .slice()
-    .sort((first, second) => {
-      const firstScore = getSecondaryRaceScore(first, sponsorPrestige);
-      const secondScore = getSecondaryRaceScore(second, sponsorPrestige);
-      return (
-        secondScore - firstScore ||
-        stableHash(`${offerId}:${first.id}`) - stableHash(`${offerId}:${second.id}`)
-      );
-    })
-    .slice(0, count);
-}
-
-function getSecondaryRaceScore(
-  candidate: SecondaryRaceCandidate,
-  prestige: Sponsor["prestige"],
-): number {
-  const categoryOrder: RaceCategoryCode[] =
-    prestige >= 4
-      ? ["elite", "world", "continental", "national", "regional", "local"]
-      : prestige >= 2
-        ? ["continental", "world", "national", "elite", "regional", "local"]
-        : ["national", "continental", "world", "elite", "regional", "local"];
-  const categoryScore = categoryOrder.length - categoryOrder.indexOf(candidate.categoryCode);
-  return (candidate.isDomestic ? 100 : 0) + categoryScore * 10;
+  const categories = new Set(getSecondarySponsorEligibleCategoryCodes(sportingReputation));
+  const categoryRank: Record<RaceCategoryCode, number> = { elite: 3, world: 2, continental: 1, national: 0, regional: -1, local: -2 };
+  const compare = (first: SecondaryRaceCandidate, second: SecondaryRaceCandidate) =>
+    categoryRank[second.categoryCode] - categoryRank[first.categoryCode]
+      || Number(second.countryId === sponsorCountryId) - Number(first.countryId === sponsorCountryId)
+      || stableHash(`${offerId}:${first.id}`) - stableHash(`${offerId}:${second.id}`)
+      || first.id.localeCompare(second.id);
+  const core = raceCandidates.filter(candidate => categories.has(candidate.categoryCode)
+    && (candidate.categoryCode !== "elite" || eliteEligible)).sort(compare).slice(0, count);
+  if (core.length < count) {
+    const domesticNational = raceCandidates.filter(candidate => candidate.categoryCode === "national"
+      && candidate.countryId === sponsorCountryId).sort(compare)[0];
+    if (domesticNational) core.push(domesticNational);
+  }
+  return core;
 }
 
 function hydrateSecondarySponsor(
@@ -893,22 +880,20 @@ function hydrateSecondarySponsor(
   };
 }
 
-function hydrateSecondaryObjective(row: ObjectiveRow): SecondarySponsorObjective {
-  return {
-    id: row.id,
-    name:
-      row.target_rank === 1
-        ? `Remporter ${row.race_label}`
-        : `Top ${row.target_rank} sur ${row.race_label}`,
-    raceLabel: row.race_label,
-    raceSlug: row.race_slug,
-    raceEditionId: row.race_edition_id,
-    categoryCode: row.race_category_code,
-    targetRank: row.target_rank,
-    cashReward: Number(row.cash_reward),
-    status: row.status,
-    bestRank: row.best_rank,
-  };
+function hydrateSecondaryObjective(row: ObjectiveRow, countries: ReadonlyMap<string, CountryRow>): SecondarySponsorObjective {
+  const common = { id: row.id, cashReward: Number(row.cash_reward), reputationPenalty: Number(row.reputation_penalty ?? 0), status: row.status, bestRank: row.best_rank };
+  if (row.objective_kind === "roster_nationality") {
+    const country = row.target_country_id ? countries.get(row.target_country_id) : null;
+    if (!country || !row.required_rider_count) throw new Error("L’objectif de contingent secondaire est incomplet.");
+    return { ...common, kind: "roster_nationality", name: `${row.required_rider_count} coureurs de nationalité ${country.iso_alpha2}`,
+      raceLabel: null, raceSlug: null, raceEditionId: null, categoryCode: null, targetRank: null,
+      nationalityCountryCode: country.iso_alpha2, nationalityCountryName: country.name,
+      requiredRiderCount: row.required_rider_count, currentRiderCount: Number(row.current_rider_count ?? 0) };
+  }
+  if (!row.race_label || !row.race_slug || !row.race_edition_id || !row.race_category_code || !row.target_rank) throw new Error("L’objectif de course secondaire est incomplet.");
+  return { ...common, kind: "race_result", name: row.target_rank === 1 ? `Remporter ${row.race_label}` : `Top ${row.target_rank} sur ${row.race_label}`,
+    raceLabel: row.race_label, raceSlug: row.race_slug, raceEditionId: row.race_edition_id,
+    categoryCode: row.race_category_code, targetRank: row.target_rank };
 }
 
 function groupObjectivesByOfferId(

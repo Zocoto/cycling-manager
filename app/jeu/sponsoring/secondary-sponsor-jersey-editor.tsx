@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { SponsorJerseyPreview } from "@/components/game/sponsor-jersey-preview";
+import { SecondarySponsorLogo } from "@/components/game/secondary-sponsor-logo";
 import type {
   SecondarySponsorIdentity,
   SecondarySponsorLogoPlacement,
@@ -53,6 +54,35 @@ export function SecondarySponsorJerseyEditor({
           Positionnez uniquement le logo secondaire. Le dessin et les couleurs
           du maillot principal restent inchangés.
         </p>
+
+        <fieldset className="mt-5">
+          <legend className="text-sm font-black text-[#193F38]">Couleur du logo</legend>
+          <p className="mt-1 text-xs leading-5 text-[#60756E]">Choisissez un logo noir ou blanc selon le fond du maillot.</p>
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            {([
+              { value: "black", label: "Noir", surface: "bg-white" },
+              { value: "white", label: "Blanc", surface: "bg-[#193F38]" },
+              { value: "original", label: "Couleurs", surface: "bg-[#F4F7F5]" },
+            ] as const).map(option => (
+              <label key={option.value} className="relative cursor-pointer">
+                <input
+                  type="radio"
+                  name="colorMode"
+                  value={option.value}
+                  checked={(placement.colorMode ?? "original") === option.value}
+                  onChange={() => setPlacement(current => ({ ...current, colorMode: option.value }))}
+                  className="peer sr-only"
+                />
+                <span className="flex h-full flex-col items-center gap-2 rounded-xl border-2 border-[#315B3E]/15 p-2 text-xs font-black text-[#193F38] transition hover:border-[#278B70]/60 peer-checked:border-[#176951] peer-checked:bg-[#EAF5F3] peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#176951]">
+                  <span className={`flex h-12 w-full items-center rounded-lg p-1.5 ${option.surface}`} aria-hidden="true">
+                    <SecondarySponsorLogo sponsor={secondarySponsor} colorMode={option.value} />
+                  </span>
+                  {option.label}
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
 
         <div className="mt-6 space-y-5">
           <EditorSlider

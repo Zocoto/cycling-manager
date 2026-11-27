@@ -51,13 +51,20 @@ describe("active sponsor identity independent reads", () => {
       selectedJersey: sponsor.jerseys[0], budgetPerSeason: 120000, currencyCode: "EUR", contractDurationSeasons: 2,
       secondarySponsor: { id: "second", name: "Secondaire", countryCode: "FR", countryName: "France", prestige: 3,
         primaryColor: "#123456", accentColor: "#abcdef", logoVariant: "wordmark" },
-      secondaryLogoPlacement: { xPercent: 40, yPercent: 20, scale: 1.2, rotationDegrees: -5 },
+      secondaryLogoPlacement: { xPercent: 40, yPercent: 20, scale: 1.2, rotationDegrees: -5, colorMode: "original" },
     });
     expect(mock.queries.filter(q => ["team_seasons", "secondary_sponsor_contracts"].includes(q.table))
       .map(q => q.filters)).toEqual([
         { team_id: "team", season_id: "active" },
         { team_id: "team", season_id: "active", status: "active" },
       ]);
+  });
+  it.each(["black", "white"])("restores the saved %s secondary logo", async colorMode => {
+    mock.rows.secondary_sponsor_contracts = {
+      ...(mock.rows.secondary_sponsor_contracts as Record<string, unknown>),
+      logo_color_mode: colorMode,
+    };
+    expect((await getActiveTeamSponsorIdentity("team"))?.secondaryLogoPlacement?.colorMode).toBe(colorMode);
   });
   it("retains the first-season and catalogue fallbacks without a secondary sponsor", async () => {
     mock.rows.seasons = null; mock.rows.team_seasons = null; mock.rows.secondary_sponsor_contracts = null;

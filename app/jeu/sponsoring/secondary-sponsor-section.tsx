@@ -1,6 +1,9 @@
 import { SecondarySponsorLogo } from "@/components/game/secondary-sponsor-logo";
 import { SponsorCountryBadge } from "@/components/game/sponsor-country-badge";
 import { SponsorObjectiveTitle } from "@/components/game/sponsor-objective-title";
+import { TeamNationalityBadges } from "@/components/game/team-nationality-badges";
+import { SecondarySponsorRosterObjective } from "@/components/game/secondary-sponsor-roster-objective";
+import type { SecondarySponsorObjective } from "@/lib/game/secondary-sponsor";
 import type {
   SecondarySponsorContract,
   SecondarySponsorOffer,
@@ -32,7 +35,7 @@ export function SecondarySponsorSection({
   return (
     <>
       {state.activeContract ? (
-        <SecondarySponsorContractCard contract={state.activeContract} />
+        <SecondarySponsorContractDetails contract={state.activeContract} />
       ) : null}
       <SecondarySponsorStateContent state={state} />
     </>
@@ -97,9 +100,8 @@ function SecondarySponsorStateContent({
     return (
       <div className="mt-8">
         <aside className="rounded-2xl border border-[#278B70]/20 bg-[#D7EEE8]/75 p-5 text-sm leading-6 text-[#315B57]">
-          Trois partenaires de {state.countryName} sont disponibles pour{" "}
-          {state.targetSeasonName}. Ils ne versent aucun budget régulier :
-          chaque prime dépend d’un objectif accompli.
+          <p>Ces partenaires sont sélectionnés selon l’identité de votre équipe et de vos coureurs.</p>
+          <p>{`Chaque prime dépend d’un objectif accompli, pour ${state.targetSeasonName}.`}</p>
         </aside>
         <div className="mt-6 grid items-stretch gap-6 xl:grid-cols-3">
           {state.offers.map((offer) => (
@@ -114,12 +116,15 @@ function SecondarySponsorStateContent({
     );
   }
 
-  const contract = state.contract;
+  return <SecondarySponsorContractDetails contract={state.contract} />;
+}
+
+function SecondarySponsorContractDetails({ contract }: { contract: SecondarySponsorContract }) {
   return (
     <div className="space-y-7">
       <SecondarySponsorContractCard contract={contract} />
 
-      {contract.status === "planned" && contract.baseJersey ? (
+      {contract.baseJersey ? (
         <SecondarySponsorJerseyEditor
           contractId={contract.id}
           principalSponsor={contract.baseJersey.sponsor}
@@ -171,27 +176,22 @@ function SecondarySponsorContractCard({
           <p className="mt-3 text-sm leading-6 text-[#60756E]">
             {isActive
               ? "Chaque objectif accompli verse sa prime immédiatement. Ce partenaire n’a ni budget annuel ni jauge de satisfaction."
-              : "Le nouveau nom et le logo entreront en vigueur au J1. Le sponsor secondaire n’a ni budget annuel ni jauge de satisfaction."}
+              : "Le nouveau nom, le logo et la nationalité du partenaire entreront en vigueur au J1. Le sponsor secondaire n’a ni budget annuel ni jauge de satisfaction."}
           </p>
+          <div className="mt-4">
+            <TeamNationalityBadges countryCodes={[contract.baseJersey?.sponsor.countryCode ?? contract.sponsor.countryCode, contract.sponsor.countryCode]} />
+          </div>
           <div className="mt-5 grid gap-2 sm:grid-cols-2">
             {contract.objectives.map((objective) => (
               <article
                 key={objective.id}
                 className="rounded-xl border border-[#315B3E]/10 bg-[#F4F7F5] p-3 text-sm font-bold text-[#193F38] transition hover:border-[#278B70]/35"
               >
-                <SponsorObjectiveTitle
-                  targetDetails={{
-                    kind: "race_result",
-                    raceSlug: objective.raceSlug,
-                    raceLabel: objective.raceLabel,
-                    raceEditionId: objective.raceEditionId,
-                  }}
-                >
-                  {objective.name}
-                </SponsorObjectiveTitle>
+                <SecondaryObjectiveTitle objective={objective} />
                 <span className="mt-1 block text-xs font-black text-[#278B70]">
                   +{moneyFormatter.format(objective.cashReward)}
                 </span>
+                <SecondaryObjectiveTerms objective={objective} />
                 {isActive ? (
                   <span className="mt-1 block text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#72847E]">
                     {formatSecondaryObjectiveStatus(
@@ -247,6 +247,9 @@ function SecondarySponsorOfferCard({
         <h3 className="mt-2 text-2xl font-black tracking-[-0.03em] text-[#082A2A]">
           {sponsor.name}
         </h3>
+        <div className="mt-4">
+          <TeamNationalityBadges countryCodes={[...(offer.principalCountryCode ? [offer.principalCountryCode] : []), sponsor.countryCode]} />
+        </div>
         <section className="mt-5 rounded-xl border border-[#315B3E]/10 bg-[#F4F7F5] p-4">
           <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-[#60756E]">
             {offer.objectives.length} objectifs rémunérés
@@ -257,19 +260,11 @@ function SecondarySponsorOfferCard({
                 key={objective.id}
                 className="text-sm font-bold leading-5 text-[#193F38]"
               >
-                <SponsorObjectiveTitle
-                  targetDetails={{
-                    kind: "race_result",
-                    raceSlug: objective.raceSlug,
-                    raceLabel: objective.raceLabel,
-                    raceEditionId: objective.raceEditionId,
-                  }}
-                >
-                  {objective.name}
-                </SponsorObjectiveTitle>
+                <SecondaryObjectiveTitle objective={objective} />
                 <span className="mt-0.5 block text-xs font-black text-[#278B70]">
                   +{moneyFormatter.format(objective.cashReward)}
                 </span>
+                <SecondaryObjectiveTerms objective={objective} />
               </li>
             ))}
           </ol>
@@ -289,6 +284,24 @@ function SecondarySponsorOfferCard({
       </div>
     </article>
   );
+}
+
+function SecondaryObjectiveTitle({ objective }: { objective: SecondarySponsorObjective }) {
+  if (objective.kind === "roster_nationality") {
+    return <SecondarySponsorRosterObjective countryCode={objective.nationalityCountryCode} requiredCount={objective.requiredRiderCount} />;
+  }
+  return <SponsorObjectiveTitle targetDetails={{ kind: "race_result", raceSlug: objective.raceSlug, raceLabel: objective.raceLabel, raceEditionId: objective.raceEditionId }}>{objective.name}</SponsorObjectiveTitle>;
+}
+
+function SecondaryObjectiveTerms({ objective }: { objective: SecondarySponsorObjective }) {
+  return <>
+    {objective.kind === "roster_nationality" ? (
+      <SecondarySponsorRosterObjective countryCode={objective.nationalityCountryCode} requiredCount={objective.requiredRiderCount} currentCount={objective.currentRiderCount} progress />
+    ) : null}
+    {(objective.reputationPenalty ?? 0) > 0 ? (
+      <p className="mt-1 text-xs font-bold leading-5 text-[#A13A32]">{`En cas d’échec : −${objective.reputationPenalty} réputation`}</p>
+    ) : null}
+  </>;
 }
 
 function formatSecondaryObjectiveStatus(

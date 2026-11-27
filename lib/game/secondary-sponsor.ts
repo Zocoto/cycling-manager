@@ -4,6 +4,8 @@ import type { SponsorPrestige } from "@/types/sponsor";
 export const SECONDARY_SPONSOR_REPUTATION_THRESHOLD = 1_500;
 export const SECONDARY_SPONSOR_START_GAME_YEAR = 4;
 export const SECONDARY_SPONSOR_OFFER_COUNT = 3;
+export const SECONDARY_SPONSOR_GENERATION_VERSION = 2;
+export type SecondarySponsorLogoColorMode = "original" | "black" | "white";
 
 export type SecondarySponsorLogoVariant =
   | "badge"
@@ -28,20 +30,35 @@ export type SecondarySponsorLogoPlacement = {
   yPercent: number;
   scale: number;
   rotationDegrees: number;
+  colorMode?: SecondarySponsorLogoColorMode;
 };
 
 export type SecondarySponsorObjective = {
   id: string;
   name: string;
+  cashReward: number;
+  reputationPenalty?: number;
+  status: "draft" | "active" | "achieved" | "failed" | "cancelled";
+  bestRank: number | null;
+} & ({
+  kind?: "race_result";
   raceLabel: string;
   raceSlug: string;
   raceEditionId: string;
   categoryCode: RaceCategoryCode;
   targetRank: number;
-  cashReward: number;
-  status: "draft" | "active" | "achieved" | "failed" | "cancelled";
-  bestRank: number | null;
-};
+} | {
+  kind: "roster_nationality";
+  raceLabel: null;
+  raceSlug: null;
+  raceEditionId: null;
+  categoryCode: null;
+  targetRank: null;
+  nationalityCountryCode: string;
+  nationalityCountryName: string;
+  requiredRiderCount: number;
+  currentRiderCount: number;
+});
 
 export const DEFAULT_SECONDARY_SPONSOR_LOGO_PLACEMENT: SecondarySponsorLogoPlacement = {
   xPercent: 50,
@@ -51,12 +68,12 @@ export const DEFAULT_SECONDARY_SPONSOR_LOGO_PLACEMENT: SecondarySponsorLogoPlace
 };
 
 const SECONDARY_REWARD_BY_CATEGORY: Record<RaceCategoryCode, number> = {
-  local: 8_000,
-  regional: 8_000,
-  national: 15_000,
-  continental: 25_000,
-  world: 40_000,
-  elite: 55_000,
+  local: 0,
+  regional: 0,
+  national: 35_000,
+  continental: 65_000,
+  world: 110_000,
+  elite: 160_000,
 };
 
 export function getSecondarySponsorObjectiveCount(
@@ -68,11 +85,10 @@ export function getSecondarySponsorObjectiveCount(
 }
 
 export function getSecondarySponsorEligibleCategoryCodes(
-  prestige: SponsorPrestige,
+  reputationPoints: number,
 ): readonly RaceCategoryCode[] {
-  if (prestige >= 4) return ["continental", "world", "elite"];
-  if (prestige >= 3) return ["national", "continental", "world"];
-  return ["national", "continental"];
+  if (reputationPoints >= 5_000) return ["world", "elite"];
+  return ["continental", "world", "elite"];
 }
 
 export function getSecondarySponsorTargetRank({
@@ -93,22 +109,53 @@ export function calculateSecondarySponsorObjectiveReward({
   prestige,
   categoryCode,
   targetRank,
+  reputationPoints = SECONDARY_SPONSOR_REPUTATION_THRESHOLD,
 }: {
   prestige: SponsorPrestige;
   categoryCode: RaceCategoryCode;
   targetRank: number;
+  reputationPoints?: number;
 }): number {
-  const prestigeMultiplier = 0.75 + prestige * 0.08;
-  const rankMultiplier = targetRank === 1 ? 1.25 : targetRank <= 3 ? 1.12 : 1;
+  const prestigeMultiplier = 0.8 + prestige * 0.1;
+  const rankMultiplier = targetRank === 1 ? 1.5 : targetRank <= 3 ? 1.25 : 1;
+  const reputationMultiplier = getSecondarySponsorReputationMultiplier(reputationPoints);
 
   return (
     Math.round(
       (SECONDARY_REWARD_BY_CATEGORY[categoryCode] *
         prestigeMultiplier *
+        reputationMultiplier *
         rankMultiplier) /
         1_000,
     ) * 1_000
   );
+}
+
+export function getSecondarySponsorReputationMultiplier(reputationPoints: number): number {
+  return 1 + Math.min(1, Math.max(0, reputationPoints - SECONDARY_SPONSOR_REPUTATION_THRESHOLD) / 13_500);
+}
+
+export function getSecondarySponsorFailurePenalty(cashReward: number): number {
+  return cashReward >= 200_000 ? Math.min(100, Math.ceil(cashReward / 50_000) * 5) : 0;
+}
+
+export function getSecondarySponsorNationalityTarget({
+  rosterSize, prestige, sponsorCountryCode, principalCountryCode,
+}: {
+  rosterSize: number;
+  prestige: SponsorPrestige;
+  sponsorCountryCode: string;
+  principalCountryCode: string | null;
+}): number {
+  if (!principalCountryCode || sponsorCountryCode === principalCountryCode) return 0;
+  return Math.max(0, Math.min(Math.floor(rosterSize / 10), Math.ceil(prestige / 2), 3));
+}
+
+export function calculateSecondarySponsorNationalityReward({
+  targetCount, prestige, reputationPoints,
+}: { targetCount: number; prestige: SponsorPrestige; reputationPoints: number }): number {
+  return Math.round((35_000 + targetCount * 15_000) * (0.8 + prestige * 0.1)
+    * getSecondarySponsorReputationMultiplier(reputationPoints) / 1_000) * 1_000;
 }
 
 export function normalizeSecondarySponsorLogoPlacement(
@@ -119,6 +166,7 @@ export function normalizeSecondarySponsorLogoPlacement(
     yPercent: clamp(placement.yPercent, 20, 78),
     scale: clamp(placement.scale, 0.5, 1.8),
     rotationDegrees: clamp(placement.rotationDegrees, -45, 45),
+    ...(placement.colorMode ? { colorMode: ["original", "black", "white"].includes(placement.colorMode) ? placement.colorMode : "original" as const } : {}),
   };
 }
 

@@ -694,7 +694,11 @@ export async function updateSecondarySponsorLogoAction(formData: FormData) {
   if (Object.values(rawPlacement).some((value) => !Number.isFinite(value))) {
     redirectSecondaryWithError("Le placement du logo est invalide.");
   }
-  const placement = normalizeSecondarySponsorLogoPlacement(rawPlacement);
+  const colorMode = readRequiredValue(formData, "colorMode") || "original";
+  if (colorMode !== "original" && colorMode !== "black" && colorMode !== "white") {
+    redirectSecondaryWithError("La couleur du logo est invalide.");
+  }
+  const placement = normalizeSecondarySponsorLogoPlacement({ ...rawPlacement, colorMode });
 
   const supabase = await createSupabaseServerClient();
   const {
@@ -709,6 +713,7 @@ export async function updateSecondarySponsorLogoAction(formData: FormData) {
     p_y_percent: placement.yPercent,
     p_scale: placement.scale,
     p_rotation_degrees: placement.rotationDegrees,
+    p_color_mode: placement.colorMode,
   });
   if (error) redirectSecondaryWithError(error.message);
 

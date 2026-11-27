@@ -17,6 +17,7 @@ import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import { TeamJerseyPreview } from "@/components/game/team-jersey-preview";
 import { TeamDivisionBadge } from "@/components/game/team-division-badge";
+import { TeamNationalityBadges } from "@/components/game/team-nationality-badges";
 import { TeamRiderGlossary } from "@/components/game/team-rider-glossary";
 import { TeamSeasonResultsPopover } from "@/components/game/team-season-results-popover";
 import { DEFAULT_AMATEUR_JERSEY } from "@/lib/amateur-team";
@@ -131,7 +132,6 @@ export default async function PublicTeamPage({
     background: `radial-gradient(circle at 12% 0%, ${teamTheme.soft} 0, transparent 34rem), ${teamTheme.surface}`,
   } as CSSProperties;
 
-  const countryHref = `/jeu/nations/${team.country_code.toLowerCase()}`;
   const directorHref = team.sporting_director_username
     ? `/jeu/directeurs-sportifs/${encodeURIComponent(
         team.sporting_director_username
@@ -208,24 +208,10 @@ export default async function PublicTeamPage({
                   href="/jeu/classements?vue=equipes"
                   dark
                 />
-                <Link
-                  href={countryHref}
-                  prefetchOnIntent
-                  className="flex items-center gap-3 rounded-2xl border border-white/15 bg-white/10 px-5 py-4 transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--team-accent)]"
-                >
-                  <CountryFlag
-                    countryCode={team.country_code}
-                    countryName={team.country_name}
-                  />
-                  <span>
-                    <span className="block text-xs font-bold uppercase tracking-[0.14em] text-[#A8DEC6]">
-                      Pays
-                    </span>
-                    <span className="mt-1 block font-black">
-                      {team.country_name}
-                    </span>
-                  </span>
-                </Link>
+                <TeamNationalityBadges
+                  countryCodes={[sponsorIdentity?.sponsor.countryCode ?? team.country_code, ...(sponsorIdentity?.secondarySponsor ? [sponsorIdentity.secondarySponsor.countryCode] : [])]}
+                  dark
+                />
               </div>
             </div>
           </div>

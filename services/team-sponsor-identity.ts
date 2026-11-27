@@ -70,6 +70,7 @@ type SecondaryContractRow = {
   logo_y_percent: number | string;
   logo_scale: number | string;
   logo_rotation_degrees: number | string;
+  logo_color_mode: SecondarySponsorLogoPlacement["colorMode"];
 };
 
 type SecondaryCatalogRow = {
@@ -341,7 +342,7 @@ async function loadActiveSecondaryIdentity({
   const { data: contract, error: contractError } = await supabase
     .from("secondary_sponsor_contracts")
     .select(
-      "secondary_sponsor_id, logo_x_percent, logo_y_percent, logo_scale, logo_rotation_degrees",
+      "secondary_sponsor_id, logo_x_percent, logo_y_percent, logo_scale, logo_rotation_degrees, logo_color_mode",
     )
     .eq("team_id", teamId)
     .eq("season_id", seasonId)
@@ -402,6 +403,7 @@ async function loadActiveSecondaryIdentity({
       yPercent: Number(contract.logo_y_percent),
       scale: Number(contract.logo_scale),
       rotationDegrees: Number(contract.logo_rotation_degrees),
+      colorMode: contract.logo_color_mode ?? "original",
     },
   };
 }

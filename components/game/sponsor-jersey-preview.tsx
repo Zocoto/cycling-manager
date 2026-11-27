@@ -75,7 +75,7 @@ export function SponsorJerseyPreview({
             transform: `translate(-50%, -50%) rotate(${secondaryLogoPlacement.rotationDegrees}deg) scale(${secondaryLogoPlacement.scale})`,
           }}
         >
-          <SecondarySponsorLogo sponsor={secondarySponsor} />
+          <SecondarySponsorLogo sponsor={secondarySponsor} colorMode={secondaryLogoPlacement.colorMode} />
         </span>
       ) : null}
     </div>

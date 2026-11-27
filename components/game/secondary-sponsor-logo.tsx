@@ -1,12 +1,16 @@
-import type { SecondarySponsorIdentity } from "@/lib/game/secondary-sponsor";
+import type { SecondarySponsorIdentity, SecondarySponsorLogoPlacement } from "@/lib/game/secondary-sponsor";
 
 export function SecondarySponsorLogo({
   sponsor,
   className = "h-auto w-full",
+  colorMode = "original",
 }: {
   sponsor: SecondarySponsorIdentity;
   className?: string;
+  colorMode?: SecondarySponsorLogoPlacement["colorMode"];
 }) {
+  const primaryColor = colorMode === "black" ? "#111111" : colorMode === "white" ? "#FFFFFF" : sponsor.primaryColor;
+  const accentColor = colorMode === "black" ? "#FFFFFF" : colorMode === "white" ? "#111111" : sponsor.accentColor;
   const initials = sponsor.name
     .split(/\s+/)
     .slice(0, 2)
@@ -20,16 +24,17 @@ export function SecondarySponsorLogo({
       viewBox="0 0 240 86"
       className={className}
       preserveAspectRatio="xMidYMid meet"
+      data-secondary-logo-color={colorMode}
     >
       {sponsor.logoVariant === "badge" ? (
         <>
           <path
             d="M14 10h60v42c0 16-13 24-30 30C27 76 14 68 14 52Z"
-            fill={sponsor.primaryColor}
+            fill={primaryColor}
           />
           <path
             d="M25 25h38M25 39h38M31 53h26"
-            stroke={sponsor.accentColor}
+            stroke={accentColor}
             strokeWidth="6"
             strokeLinecap="round"
           />
@@ -38,12 +43,12 @@ export function SecondarySponsorLogo({
 
       {sponsor.logoVariant === "monogram" ? (
         <>
-          <circle cx="44" cy="43" r="32" fill={sponsor.primaryColor} />
+          <circle cx="44" cy="43" r="32" fill={primaryColor} />
           <text
             x="44"
             y="53"
             textAnchor="middle"
-            fill={sponsor.accentColor}
+            fill={accentColor}
             fontSize="27"
             fontWeight="900"
           >
@@ -60,18 +65,18 @@ export function SecondarySponsorLogo({
             rx="33"
             ry="19"
             fill="none"
-            stroke={sponsor.primaryColor}
+            stroke={primaryColor}
             strokeWidth="8"
             transform="rotate(-24 44 43)"
           />
-          <circle cx="44" cy="43" r="10" fill={sponsor.accentColor} />
+          <circle cx="44" cy="43" r="10" fill={accentColor} />
         </>
       ) : null}
 
       {sponsor.logoVariant === "stripe" ? (
         <>
-          <path d="M8 63 37 13h18L26 63Z" fill={sponsor.primaryColor} />
-          <path d="M35 63 64 13h14L49 63Z" fill={sponsor.accentColor} />
+          <path d="M8 63 37 13h18L26 63Z" fill={primaryColor} />
+          <path d="M35 63 64 13h14L49 63Z" fill={accentColor} />
         </>
       ) : null}
 
@@ -79,16 +84,16 @@ export function SecondarySponsorLogo({
         <>
           <path
             d="M12 22h58L58 64H0Z"
-            fill={sponsor.primaryColor}
+            fill={primaryColor}
           />
-          <path d="M25 31h30L47 55H17Z" fill={sponsor.accentColor} />
+          <path d="M25 31h30L47 55H17Z" fill={accentColor} />
         </>
       ) : null}
 
       <text
         x="84"
         y="52"
-        fill={sponsor.primaryColor}
+        fill={primaryColor}
         fontSize="28"
         fontWeight="900"
         letterSpacing="-0.8"
