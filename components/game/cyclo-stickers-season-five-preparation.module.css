@@ -1,0 +1,31 @@
+.page{max-width:1260px;margin:auto;padding:28px 24px 70px;color:#193d36;min-width:0}
+.masthead{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;border-bottom:1px solid #b6bba7;padding-bottom:20px}
+.eyebrow{margin:0 0 8px;color:#8e603c;font:800 10px/1.5 system-ui,sans-serif;letter-spacing:.13em;text-transform:uppercase}
+.masthead h1{margin:0;font:italic 34px/1.2 Georgia,serif;letter-spacing:-.04em}
+.masthead a{font:700 12px/1.5 system-ui,sans-serif;text-decoration:underline;text-underline-offset:4px;padding:10px 0}
+.notice{margin:22px 0 28px;padding:16px 20px;border-left:3px solid #af8151;background:#f6efdd;font:12px/1.8 system-ui,sans-serif;color:#52675a}
+.notice strong{color:#23473c}.notice p{margin:3px 0}
+.overview{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(260px,.75fr);gap:64px;align-items:center;padding:15px 20px 35px}
+.notes{min-width:0}.notes h2{font:italic 29px/1.2 Georgia,serif;margin:0 0 15px}.notes>p{font:13px/1.85 system-ui,sans-serif;color:#5a6d60}
+.notes dl{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-block:1px solid #b9b69f;padding:20px 0;margin:25px 0}.notes dt{font:800 10px/1.5 system-ui,sans-serif;text-transform:uppercase;letter-spacing:.08em;color:#7d8063}.notes dd{font:italic 25px/1.4 Georgia,serif;margin:4px 0 0}
+.packPreview{display:flex;gap:24px;align-items:center;margin-top:30px}.packPreview>p{max-width:180px;font:12px/1.8 system-ui,sans-serif;color:#6f765f}.packPreview strong{color:#3b594a}
+.pack{width:154px;min-width:154px;padding:0 8px;background:#224b40;border:1px solid #b89a61;box-shadow:3px 5px #173b3622;transform:rotate(-3deg);color:#f1e3be}.packEdge{height:10px;background:repeating-linear-gradient(90deg,#173b36 0 2px,#64806a 2px 3px);margin:0 -8px}.packBody{padding:10px 5px}.packBody>span{display:block;font:700 7px/1.5 system-ui,sans-serif;letter-spacing:.07em}.packBody>strong{display:block;font:700 17px/.95 Georgia,serif;margin:7px 0 10px;letter-spacing:-.04em}.packBody>svg{width:100%;height:auto;display:block;border:1px solid #bf9e65}.packBody>small{display:block;font:700 6px/1.6 system-ui,sans-serif;margin-top:8px}
+.cover.cover{background:#efe5c5;color:#23473c;border-color:#264e43;box-shadow:inset 5px 0 10px #173b3620,inset 0 0 0 7px #efe5c5,inset 0 0 0 9px #a4824d66}
+.cover.cover h2{font-family:Georgia,'Times New Roman',serif;font-size:clamp(38px,4vw,54px);font-weight:900;letter-spacing:-.055em;line-height:.87;color:#315a48;text-shadow:none;transform:none;margin:20px 0 15px}
+.cover.cover h2>span{font-size:.44em;line-height:1.3;letter-spacing:-.025em;color:#23473c;margin-bottom:6px}
+.coverTheme{font:700 7px/1.7 'Courier New',monospace;letter-spacing:.08em;color:#8c603e;margin:0 0 11px;border-top:1px solid #ae8e6755;padding-top:8px}
+.cover .art{aspect-ratio:640/440;border-color:#264e43;transform:none;box-shadow:3px 4px #a76b4826}
+.spine.spine{background:linear-gradient(90deg,#17372e,#3d6652 55%,#1d4237);border-color:#173b36;color:#dfc493}
+.edition.edition{background:#d2b576;border-color:#264e43;color:#23473c;box-shadow:3px 3px #173b3626}
+.coverActions>button:first-child{background:#264e43;border-color:#264e43;color:#f4e4c1}.coverActions>button:first-child:hover:not(:disabled){background:#7d6741}
+.reader{border:1px solid #b8ad8d;background:#f9f1dd;padding:24px 28px 30px;box-shadow:4px 4px #d6d3ba,8px 8px #546c4917}
+.readerHeader{display:flex;gap:20px;align-items:center;justify-content:space-between;padding-bottom:20px;border-bottom:1px solid #b9ad8c}
+.readerHeader h2{font:italic 28px/1.2 Georgia,serif;margin:5px 0}.readerHeader p{font:12px/1.7 system-ui,sans-serif;margin:5px 0;color:#68715d}
+.button{min-height:44px;border:1px solid #a69c7a;padding:10px 14px;background:#fff9eb;color:#294c3d;font:700 11px/1.5 system-ui,sans-serif;cursor:pointer}.button:disabled{color:#8a8a72;cursor:default;opacity:.6}.button:focus-visible,.reader select:focus-visible{outline:2px solid #a77241;outline-offset:3px}
+.pageNav{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:12px;align-items:end;max-width:650px;margin:24px auto}
+.pagePicker{display:grid;gap:7px;min-width:0;font:700 11px/1.5 system-ui,sans-serif}.pagePicker>span{display:flex;justify-content:space-between;gap:5px;color:#6a735d}.pagePicker select{height:44px;min-width:0;max-width:100%;width:100%;padding:0 10px;background:#fff9eb;border:1px solid #a69c7a;color:#294c3d;font:700 11px system-ui,sans-serif;border-radius:0}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:25px;max-width:790px;margin:30px auto;align-items:start}
+.slot{aspect-ratio:196/324;border:1px dashed #a59975;background:#f0e5cb;padding:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;box-shadow:inset 0 0 0 5px #f8f0dc;color:#6c775e;min-width:0;text-align:center}
+.slot>span:first-child{position:absolute;top:10px;left:10px;font:700 10px/1 'Courier New',monospace;color:#8b865f}.slot>svg{width:45%;height:auto;max-width:90px;margin-bottom:14px;opacity:.65}.slot strong{font:italic 18px/1.3 Georgia,serif;overflow-wrap:anywhere}.slot small{font:10px/1.5 system-ui,sans-serif;margin-top:12px;color:#8c805f}.slot[data-section=memories]{border-color:#b5925f;background:#efe0bd}.slot[data-section=memories]>svg{color:#a77b49}
+.readerFoot{display:flex;justify-content:space-between;gap:20px;border-top:1px solid #b9ad8c;padding-top:18px;font:10px/1.7 system-ui,sans-serif;color:#74795f}
+@media(max-width:760px){.page{padding:22px 15px 65px}.masthead{flex-direction:column;gap:8px}.masthead h1{font-size:29px}.overview{grid-template-columns:minmax(0,1fr);gap:40px;padding:8px 12px 30px}.notes{padding:0 2px}.notice{padding:13px 15px}.reader{padding:18px 13px 22px}.readerHeader{align-items:flex-start;gap:10px}.readerHeader h2{font-size:24px}.readerHeader>.button{font-size:10px;padding:9px}.readerHeader p{font-size:11px}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 12px;margin:24px auto}.slot{padding:11px}.slot strong{font-size:15px}.slot small{font-size:9px}.slot>svg{margin-bottom:10px}.pageNav{gap:7px}.readerFoot{flex-direction:column;gap:5px}.packPreview{gap:20px}}
