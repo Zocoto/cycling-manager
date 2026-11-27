@@ -193,8 +193,8 @@ export async function getFederationSelectionState({
           responses: Object.fromEntries(members.filter((member) => member.selection_list_id === list.id)
             .map((member) => [member.professional_rider_id ?? member.junior_rider_id, member.response_status])),
           riderIds: members
-            .filter((member) => member.selection_list_id === list.id && member.response_status !== "ineligible"
-              && (!(gameYear >= 4 && gameYear % 4 === 0) || member.response_status !== "declined"))
+            .filter((member) => member.selection_list_id === list.id
+              && member.response_status !== "ineligible" && member.response_status !== "declined")
             .map(
               (member) =>
                 member.professional_rider_id ?? member.junior_rider_id,
