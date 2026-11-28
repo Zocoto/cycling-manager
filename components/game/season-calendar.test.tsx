@@ -14,6 +14,7 @@ import {
   getCalendarEditionHref,
   getVisibleCalendarRaceEditions,
   getVisibleStandardCalendarEditions,
+  getNationsCupCalendarEvent,
 } from "./season-calendar";
 
 const calendarSource = readFileSync(
@@ -461,7 +462,7 @@ describe("SeasonCalendar", () => {
     );
   });
 
-  it("affiche une seule entrée Nations Cup ouvrant les cinq épreuves", () => {
+  it("affiche la Nations Cup dans une seule tuile beige au-dessus des courses sur chaque format", () => {
     const nationsCupEditions = [
       ["nations-cup-montagne", "Nations Cup · Montagne"],
       ["nations-cup-vallons", "Nations Cup · Vallons"],
@@ -534,16 +535,36 @@ describe("SeasonCalendar", () => {
     );
 
     expect(markup).toContain("Nations Cup");
-    expect(markup).toContain("5 épreuves");
     expect(markup).not.toContain("Nations Cup · Montagne");
-    expect(markup.match(/data-federation-selection="true"/g)).toHaveLength(2);
+    // Desktop and mobile share the same event, without a duplicate race row.
+    expect(markup.match(/data-season-calendar-event="nations_cup"/g)).toHaveLength(2);
+    expect(markup).not.toContain('data-federation-selection="true"');
+    expect(markup).toContain("bg-[#FFF2C7]");
     expect(markup).toContain('href="/jeu/nations-cup"');
-    expect(markup).toContain("Ouvrir les 5 épreuves");
     expect(markup).toContain("✓ 3 équipe");
     expect(markup).toContain("✓ 3 de votre équipe");
     expect(markup).toContain(
       "3 coureurs de votre équipe mobilisés sur ce créneau par les sélections nationales, toutes nationalités confondues",
     );
+  });
+
+  it("conserve la date réelle de la Nations Cup et exclut les Jeux, juniors et étapes annulées", () => {
+    const nationsCup = createEdition({
+      id: "nc-day-25", name: "Nations Cup · Sprint", categoryCode: "world",
+      dayNumber: 25, daySlot: "late", registrationClosesAt: "2026-08-24T16:00:00Z",
+      accepted: false, competitionType: "nations_cup",
+    });
+    const olympic = { ...nationsCup, id: "games", name: "Jeux quadriennaux · Course en ligne" };
+    const junior = { ...nationsCup, id: "junior", isJuniorChampionship: true };
+    const cancelled = {
+      ...nationsCup, id: "cancelled", stages: nationsCup.stages.map((stage) => ({
+        ...stage, dayNumber: 23, status: "cancelled" as const,
+      })),
+    };
+    expect(getNationsCupCalendarEvent([olympic, junior, cancelled])).toBeNull();
+    expect(getNationsCupCalendarEvent([nationsCup, olympic, junior, cancelled])).toMatchObject({
+      dayNumber: 25, title: "Nations Cup", href: "/jeu/nations-cup",
+    });
   });
 
   it("affiche une seule entrée pour les championnats continentaux pros sans les juniors", () => {

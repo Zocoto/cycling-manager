@@ -40,6 +40,33 @@ const DEFAULT_VISIBLE_LANES = 5;
 export function isQuadrennialGamesCalendarEdition(edition: RaceCalendarEdition) {
   return isProfessionalNationsCupEdition(edition) && edition.name.startsWith("Jeux quadriennaux");
 }
+
+function isNationsCupOverviewEdition(edition: RaceCalendarEdition) {
+  return isProfessionalNationsCupEdition(edition) && !isQuadrennialGamesCalendarEdition(edition);
+}
+
+export function getNationsCupCalendarEvent(
+  editions: readonly RaceCalendarEdition[],
+): SeasonRaceCalendar["events"][number] | null {
+  const nationsCupEditions = editions.filter((edition) =>
+    isNationsCupOverviewEdition(edition) && edition.status !== "cancelled",
+  );
+  const stages = nationsCupEditions.flatMap((edition) => edition.stages)
+    .filter((stage) => stage.status !== "cancelled");
+  if (stages.length === 0) return null;
+
+  return {
+    id: "calendar-event:nations-cup",
+    dayNumber: Math.min(...stages.map((stage) => stage.dayNumber)),
+    eventType: "nations_cup",
+    title: "Nations Cup",
+    description: "Montagne, vallons, sprint, pavés et CLM : ouvrez les épreuves et le classement de votre fédération.",
+    href: "/jeu/nations-cup",
+    currentTeamInternationalRiderCount: nationsCupEditions.reduce(
+      (count, edition) => count + (edition.currentTeamInternationalRiderCount ?? 0), 0,
+    ),
+  };
+}
 const CLOSED_RACE_PATTERN_ON_LIGHT =
   "repeating-linear-gradient(135deg, rgba(11, 48, 43, 0.11) 0, rgba(11, 48, 43, 0.11) 1px, transparent 1px, transparent 7px)";
 const CLOSED_RACE_PATTERN_ON_DARK =
@@ -175,7 +202,7 @@ export function SeasonCalendar({
     [scopeEditions, selectedCategories]
   );
   const weeks = useMemo(
-    () => buildCalendarWeeks(visibleEditions),
+    () => buildCalendarWeeks(visibleEditions.filter((edition) => !isNationsCupOverviewEdition(edition))),
     [visibleEditions]
   );
   const visibleWeeks = useMemo(
@@ -216,7 +243,12 @@ export function SeasonCalendar({
         edition.calendarGroup?.kind === "continental_championships",
     );
 
-    for (const event of calendar.events) {
+    const nationsCupEvent = getNationsCupCalendarEvent(calendar.editions);
+    const events = nationsCupEvent
+      ? [...calendar.events.filter((event) => event.eventType !== "nations_cup"), nationsCupEvent]
+      : calendar.events;
+
+    for (const event of events) {
       if (
         hasConsolidatedContinentalChampionships &&
         event.eventType === "continental_championships"
@@ -233,7 +265,7 @@ export function SeasonCalendar({
     }
 
     return groupedEvents;
-  }, [calendar.events, scopeEditions]);
+  }, [calendar.editions, calendar.events, scopeEditions]);
 
   function toggleCategory(
     categoryCode: RaceCategoryCode
@@ -465,6 +497,7 @@ export function SeasonCalendar({
       <div className="mt-7 space-y-4 md:hidden">
         {visibleDays.map((day) => {
           const dayEditions = visibleEditions
+            .filter((edition) => !isNationsCupOverviewEdition(edition))
             .flatMap((edition) =>
               edition.stages
                 .filter(
@@ -729,7 +762,9 @@ function RaceCalendarList({
                   ? "bg-[#F5EEFF] outline-offset-[-2px]"
                   : edition.isSecondarySponsorObjective
                     ? "bg-[#8B5CF6]/5 outline-offset-[-1px]"
-                    : ""
+                    : isNationsCupOverviewEdition(edition)
+                      ? "bg-[#FFF2C7]"
+                      : ""
               }`}
               style={{
                 backgroundImage:
@@ -1696,6 +1731,14 @@ function SeasonEventBadge({
       <span className="min-w-0 truncate">
         {event.title}
       </span>
+      {(event.currentTeamInternationalRiderCount ?? 0) > 0 ? (
+        <span
+          className="ml-auto shrink-0 rounded-full bg-white/65 px-2 py-0.5 text-[10px] font-black"
+          title={`${event.currentTeamInternationalRiderCount} coureur${event.currentTeamInternationalRiderCount === 1 ? "" : "s"} de votre équipe mobilisé${event.currentTeamInternationalRiderCount === 1 ? "" : "s"} sur ce créneau par les sélections nationales, toutes nationalités confondues`}
+        >
+          ✓ {event.currentTeamInternationalRiderCount} {compact ? "équipe" : "de votre équipe"}
+        </span>
+      ) : null}
     </>
   );
   const className = `flex items-center gap-2 rounded-lg border border-[#B99525]/55 bg-[#FFF2C7] text-[#17261E] shadow-sm ${
@@ -1708,6 +1751,7 @@ function SeasonEventBadge({
     return (
       <Link
         href={event.href}
+        data-season-calendar-event={event.eventType}
         className={`${className} transition hover:border-[#8A6B16] hover:bg-[#FFE58A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]`}
         title={event.description ?? event.title}
       >

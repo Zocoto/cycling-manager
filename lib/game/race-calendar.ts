@@ -508,10 +508,12 @@ export type SeasonCalendarEvent = {
     | "national_time_trial_championships"
     | "national_road_championships"
     | "continental_championships"
-    | "world_championships";
+    | "world_championships"
+    | "nations_cup";
   title: string;
   description: string | null;
   href: string | null;
+  currentTeamInternationalRiderCount?: number;
 };
 
 export function consolidateNationalChampionshipEvents(
