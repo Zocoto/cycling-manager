@@ -19,6 +19,7 @@ import { DashboardChristmasShortcut } from "@/components/game/dashboard-christma
 import { DashboardReferralInvite } from "../../components/game/dashboard-referral-invite";
 import { DashboardNewsTickerLoader } from "@/components/game/dashboard-news-ticker-loader";
 import { DashboardNewsTicker } from "@/components/game/dashboard-news-ticker";
+import { DashboardNationsCupFlags } from "@/components/game/dashboard-nations-cup-flags";
 import { DashboardSponsorCard } from "../../components/game/dashboard-sponsor-card";
 import { GameHeader } from "../../components/game/game-header";
 import { RankingBadge } from "../../components/game/ranking-badge";
@@ -219,10 +220,12 @@ function CardWatermark({
 
 function DashboardFederationGateway({
   countryCode,
+  seasonId,
   nationsCupDay,
   now,
 }: {
   countryCode: string;
+  seasonId: string | null;
   nationsCupDay: number | null;
   now: Date;
 }) {
@@ -319,13 +322,12 @@ function DashboardFederationGateway({
           {beforeRace ? 24 : nationsCupDay}
         </span>
         <span className="relative min-w-0 flex-1">
-          <span className="flex items-center gap-1.5 overflow-hidden">
-            {['fr', 'be', 'it', 'ch', 'gb'].map((flag) => (
-              <span
-                key={flag}
-                className={`fi fi-${flag} shrink-0 text-sm shadow-sm sm:text-base`}
-              />
-            ))}
+          <span className="flex h-4 items-center gap-1.5 overflow-hidden sm:h-5">
+            {seasonId ? (
+              <Suspense fallback={null}>
+                <DashboardNationsCupFlags seasonId={seasonId} />
+              </Suspense>
+            ) : null}
           </span>
           <span className="mt-2 block text-[8px] font-black uppercase tracking-[0.14em] text-[#F2C94C] sm:text-[10px] sm:tracking-[0.18em]">
             {beforeRace ? "Avant-course" : nationsCupDay === 25 ? "J25 · résultats officiels" : "J24 · résultats"}
@@ -745,6 +747,7 @@ export default async function GamePage() {
           {federationCountryCode ? (
             <DashboardFederationGateway
               countryCode={federationCountryCode}
+              seasonId={teamSummary?.season_id ?? null}
               nationsCupDay={teamSummary?.season_day_number ?? null}
               now={new Date()}
             />
