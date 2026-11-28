@@ -119,6 +119,7 @@ export async function ensureContinuingSponsorObjectivePlan({
       {
         offerId,
         sponsor: contract.sponsor,
+        sportingPhilosophy: contract.sportingPhilosophy,
         proposedBudget: persistedBaseBudget,
         mainObjectiveAnnualBudget: proposedBudget,
         relationshipYear: Math.max(

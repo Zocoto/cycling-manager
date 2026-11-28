@@ -35,6 +35,14 @@ describe("sponsor objective requirement families", () => {
     expect(haveOverlappingSponsorObjectiveRequirements(targets[8], { kind: "infrastructure", minimumCompletedCount: 3 })).toBe(true);
   });
 
+  it("keeps separate visibility counters and rejects duplicated thresholds within a counter", () => {
+    const classic = { kind: "race_visibility", metric: "classic_breakaways", minimumCount: 2 } as const;
+    const stages = { ...classic, metric: "stage_breakaways" } as const;
+    expect(haveOverlappingSponsorObjectiveRequirements(classic, stages)).toBe(false);
+    expect(haveOverlappingSponsorObjectiveRequirements(classic, { ...classic, minimumCount: 4 })).toBe(true);
+    expect(getSponsorObjectiveDifficultyWeight(classic, { sportingPhilosophy: "visibility" })).toBeCloseTo(11.5);
+  });
+
   it("validates ten distinct positive commitments with exactly 100 satisfaction points", () => {
     const points = allocateSponsorObjectiveSatisfactionPoints(targets);
     expect(() => assertSponsorObjectivePlanConsistency(targets.map((targetDetails, index) => ({ targetDetails, satisfactionPoints: points[index] })))).not.toThrow();

@@ -119,6 +119,20 @@ describe("future sponsor renewal and preserved alternatives", () => {
     expect(again.offers.map((row) => row.id)).toEqual(result.offers.map((row) => row.id));
     expect(db.inserts).toHaveLength(1); expect(db.withdrawals).toHaveLength(1);
   });
+  it("carries the signed sporting philosophy into a renewal only", async () => {
+    client();
+    const result = await getOrCreateFutureSponsorOffersForAuthUser({
+      ...request, currentSponsorSportingPhilosophy: "visibility",
+    });
+    expect(result.offers[0]).toMatchObject({ isRenewal: true, sportingPhilosophy: "visibility" });
+    expect(mocks.objectives).toHaveBeenCalledWith(expect.objectContaining({
+      offers: [
+        expect.objectContaining({ offerId: "offer-0", sportingPhilosophy: "visibility" }),
+        expect.objectContaining({ offerId: "offer-1", sportingPhilosophy: undefined }),
+        expect.objectContaining({ offerId: "offer-2", sportingPhilosophy: undefined }),
+      ],
+    }));
+  });
   it("improving satisfaction reopens renewal as a fourth choice, without destroying negotiated alternatives", async () => {
     const db = client(); db.refuse(true);
     const refused = await getOrCreateFutureSponsorOffersForAuthUser(request);

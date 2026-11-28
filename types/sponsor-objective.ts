@@ -15,6 +15,7 @@ export type SponsorObjectiveType =
   | "national_championship"
   | "homegrown_roster"
   | "youth_development"
+  | "race_visibility"
   | "rider_recruitment"
   | "infrastructure";
 
@@ -93,6 +94,12 @@ export type YouthDevelopmentObjectiveDetails = {
   minimumCount: number;
 };
 
+export type RaceVisibilityObjectiveDetails = {
+  kind: "race_visibility";
+  metric: "classic_breakaways" | "stage_breakaways" | "combativity_awards";
+  minimumCount: number;
+};
+
 export type InfrastructureObjectiveDetails = {
   kind: "infrastructure";
   minimumCompletedCount: number;
@@ -117,6 +124,7 @@ type SponsorObjectiveTarget =
   | NationalChampionshipObjectiveDetails
   | HomegrownRosterObjectiveDetails
   | YouthDevelopmentObjectiveDetails
+  | RaceVisibilityObjectiveDetails
   | RiderRecruitmentObjectiveDetails
   | InfrastructureObjectiveDetails;
 

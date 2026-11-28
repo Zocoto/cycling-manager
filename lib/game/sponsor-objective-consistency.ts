@@ -6,6 +6,12 @@ const RACE_CATEGORY_DIFFICULTY: Record<RaceCategoryCode, number> = {
   local: 1, regional: 1, national: 1, continental: 1.2, world: 1.4, elite: 1.6,
 };
 
+const RACE_VISIBILITY_DIFFICULTY = {
+  classic_breakaways: { base: 7, perResult: 1.5 },
+  stage_breakaways: { base: 7, perResult: 1.2 },
+  combativity_awards: { base: 10, perResult: 4 },
+} as const;
+
 /** A requirement's family and final target determine its weight, never its slot. */
 export function getSponsorObjectiveDifficultyWeight(
   details: SponsorObjectiveTargetDetails,
@@ -39,11 +45,16 @@ export function getSponsorObjectiveDifficultyWeight(
     case "youth_development":
       weight = details.metric === "development_roster" ? 4 + details.minimumCount : 5 + 3 * details.minimumCount;
       break;
+    case "race_visibility": {
+      const { base, perResult } = RACE_VISIBILITY_DIFFICULTY[details.metric];
+      weight = base + perResult * details.minimumCount;
+      break;
+    }
     case "rider_recruitment": weight = 5 + Math.max(0, details.overallRating - 45) / 3; break;
     case "infrastructure": weight = 5 + 3 * details.minimumCompletedCount; break;
   }
   const philosophy = options.sportingPhilosophy ?? details.sportingPhilosophy;
-  const aligned = philosophy === "national_preference"
+  const aligned = philosophy === "visibility" && details.kind === "race_visibility" || (philosophy === "national_preference"
     ? ["nationality_quota", "national_championship", "nation_uci_ranking"].includes(details.kind)
     : philosophy === "youth_development"
       ? details.kind === "youth_development" || details.kind === "homegrown_roster"
@@ -52,7 +63,7 @@ export function getSponsorObjectiveDifficultyWeight(
         || (philosophy === "medium_stage_races" || philosophy === "grand_tour_general") && ["stages", "stage_race_general"].includes(details.winScope)
         || philosophy === "time_trials" && details.winScope === "stages"
         || philosophy === "sprints" && ["stages", "one_day_races"].includes(details.winScope)
-      );
+      ));
   return weight * (aligned ? 1.15 : 1);
 }
 
@@ -88,6 +99,7 @@ export function getSponsorObjectiveRequirementKey(details: SponsorObjectiveTarge
     case "national_championship": return `championship:${details.countryCode.toUpperCase()}:${details.championshipType}`;
     case "homegrown_roster": return "homegrown";
     case "youth_development": return `youth:${details.metric}`;
+    case "race_visibility": return `visibility:${details.metric}`;
     case "rider_recruitment": return `recruitment:${details.riderId}`;
     case "infrastructure": return "infrastructure";
   }

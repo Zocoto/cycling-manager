@@ -13,7 +13,7 @@ import type { SponsorContractObjective } from "@/services/sponsoring-workflow";
 const ENGLISH_PHILOSOPHIES: Record<SponsorProject["philosophy"], string> = {
   cobbled_classics: "Cobbled classics", ardennes_classics: "Hilly classics", medium_stage_races: "Stage races outside Grand Tours",
   time_trials: "Time trials", sprints: "Sprints", grand_tour_general: "Grand Tour general classification",
-  national_preference: "National preference", youth_development: "Youth development",
+  national_preference: "National preference", youth_development: "Youth development", visibility: "Visibility",
 };
 
 export function SponsorProjectPanel({ project, scope }: { project: SponsorProject | null; scope?: "roster" | "youth" }) {

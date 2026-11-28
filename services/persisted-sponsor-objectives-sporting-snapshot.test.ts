@@ -8,7 +8,7 @@ vi.mock("@/services/sponsor-objectives", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/services/sponsor-objectives")>(),
   generateProvisionalSponsorObjectives: mocks.generate,
 }));
-import { ensureAndLoadSponsorObjectives, repairLegacyRaceObjectives } from "./persisted-sponsor-objectives";
+import { ensureAndLoadSponsorObjectives, repairLegacyRaceObjectives, type SponsorOfferObjectiveContext } from "./persisted-sponsor-objectives";
 
 type Row = Record<string, unknown>;
 const independentTargets = [
@@ -29,7 +29,7 @@ const generated = Array.from({length:10},(_,index)=>({
   satisfactionPoints:10,isProvisional:true,targetDetails:{kind:"uci_ranking",targetRank:20+index},
 }));
 const offers = ["one","two","three"].map(id=>({offerId:id,sponsor:SPONSORS[0],proposedBudget:100000,mainObjectiveAnnualBudget:100000}));
-function fixture(complete:boolean,gameYear=5) {
+function fixture(complete:boolean,gameYear=5,contexts:readonly SponsorOfferObjectiveContext[]=offers) {
   const seasonId=`s${gameYear}`;
   const tables:Record<string,Row[]>={
     seasons:[{id:seasonId,game_year:gameYear,status:"planned"}],
@@ -49,7 +49,9 @@ function fixture(complete:boolean,gameYear=5) {
   const reads:string[]=[];
   const writes:Row[][]=[];
   const updates:Row[]=[];
-  const db={from(table:string){
+  const archivedPhilosophies:Row[]=[];
+  const rpc=vi.fn(() => ({ overrideTypes: async () => ({ data: archivedPhilosophies, error: null }) }));
+  const db={rpc,from(table:string){
     const filters:Array<{kind:"eq"|"neq"|"in";key:string;value:unknown}>=[];
     let incoming:Row[]|null=null;
     let upsertOptions:{onConflict?:string;ignoreDuplicates?:boolean}|undefined;
@@ -84,8 +86,8 @@ function fixture(complete:boolean,gameYear=5) {
     };
     return query;
   }};
-  const load=()=>ensureAndLoadSponsorObjectives({supabase:db as never,seasonId,teamId:"team",teamReputationPoints:400,offers});
-  return {load,reads,writes,updates,tables};
+  const load=()=>ensureAndLoadSponsorObjectives({supabase:db as never,seasonId,teamId:"team",teamReputationPoints:400,offers:contexts});
+  return {load,reads,writes,updates,tables,archivedPhilosophies,rpc};
 }
 
 beforeEach(()=>{
@@ -117,6 +119,34 @@ describe("S5 sponsor sporting snapshot lifecycle",()=>{
     const result=await f.load();
     expect([...result.values()].every(rows=>rows.length===10)).toBe(true);
     expect(f.writes).toHaveLength(1);
+  });
+
+  it("counts available road stages and preserves signed and archived philosophies",async()=>{
+    const sponsor = SPONSORS.find((item) => item.id === "masline")!;
+    const f=fixture(false,6,[
+      {...offers[0],sponsor},
+      {...offers[1],sponsor,sportingPhilosophy:"sprints"},
+      {...offers[2],sponsor},
+    ]);
+    f.archivedPhilosophies.push({sponsor_offer_id:"three",sporting_philosophy:"time_trials"});
+    f.tables.stages=[
+      {race_edition_id:"edition-1",profile_type:"hilly",stage_type:"road",status:"planned"},
+      {race_edition_id:"edition-1",profile_type:"hilly",stage_type:"road",status:"planned"},
+      {race_edition_id:"edition-1",profile_type:"cobbles",stage_type:"road",status:"cancelled"},
+      {race_edition_id:"edition-2",profile_type:"time_trial",stage_type:"team_time_trial",status:"planned"},
+    ];
+    mocks.generate.mockReturnValue(generated.map((row,index)=>({...row,objectiveType:independentTargets[index].kind,targetDetails:independentTargets[index]})));
+    await f.load();
+    expect(mocks.generate).toHaveBeenNthCalledWith(1,expect.objectContaining({
+      sportingPhilosophy:"visibility",
+      raceCandidates:expect.arrayContaining([
+        expect.objectContaining({raceId:"race-1",roadStageCount:2}),
+        expect.objectContaining({raceId:"race-2",roadStageCount:0}),
+      ]),
+    }));
+    expect(mocks.generate).toHaveBeenNthCalledWith(2,expect.objectContaining({sportingPhilosophy:"sprints"}));
+    expect(mocks.generate).toHaveBeenNthCalledWith(3,expect.objectContaining({sportingPhilosophy:"time_trials"}));
+    expect(f.rpc).toHaveBeenCalledExactlyOnceWith("get_archived_sponsor_offer_philosophies",{p_offer_ids:["one","three"]});
   });
 
   it.each([5,6])("leaves an already proposed S%s duplicate portfolio and its weights frozen",async(gameYear)=>{

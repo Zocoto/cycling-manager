@@ -69,6 +69,7 @@ export type SponsorObjectiveRaceCandidate = {
   categoryCode?: RaceCategoryCode;
   raceFormat?: "one_day" | "stage_race";
   profileTypes?: readonly RaceProfileType[];
+  roadStageCount?: number;
   competitionType?: string;
   isMonument?: boolean;
   isGrandTour?: boolean;
@@ -119,6 +120,8 @@ type ObjectiveWithoutDisplayOrder = Omit<
   GeneratedSponsorObjective,
   "displayOrder"
 >;
+
+type RaceVisibilityMetric = Extract<SponsorObjectiveTargetDetails, { kind: "race_visibility" }>["metric"];
 
 export type SponsorObjectiveFocus =
   | "national_identity"
@@ -191,6 +194,19 @@ const NATIONAL_PREFERENCE_SATISFACTION_WEIGHTS: Record<
   nationalChampionship: 12,
   ambition: 5,
   legacy: 2,
+};
+
+const VISIBILITY_SATISFACTION_WEIGHTS: Record<SponsorObjectiveWeightKey, number> = {
+  domesticRace: 10,
+  regionalRace: 8,
+  nationality: 6,
+  seasonWins: 9,
+  specialtyWins: 16,
+  teamRanking: 9,
+  nationRanking: 6,
+  nationalChampionship: 5,
+  ambition: 16,
+  legacy: 15,
 };
 
 const SPONSOR_COUNTRY_NEIGHBORS: Readonly<Record<string, readonly string[]>> = {
@@ -320,7 +336,10 @@ export function generateProvisionalSponsorObjectives({
     : null;
   const weights = sportingPhilosophy === "national_preference"
     ? NATIONAL_PREFERENCE_SATISFACTION_WEIGHTS
-    : SATISFACTION_WEIGHTS[focus];
+    : sportingPhilosophy === "visibility" ? VISIBILITY_SATISFACTION_WEIGHTS : SATISFACTION_WEIGHTS[focus];
+  const visibilityObjectives = sportingPhilosophy === "visibility"
+    ? createVisibilityObjectives({ ambitionLevel, sportingLevel, teamReputationPoints, raceCandidates })
+    : null;
   const previousRaceIds = new Set(
     previousObjectives.flatMap((objective) =>
       objective.kind === "race_result" ? [objective.raceId] : [],
@@ -560,7 +579,7 @@ export function generateProvisionalSponsorObjectives({
           weights.seasonWins
         ),
         withSatisfactionPoints(
-          philosophyRaceObjective,
+          visibilityObjectives?.classic_breakaways ?? philosophyRaceObjective,
           weights.specialtyWins
         ),
         withSatisfactionPoints(
@@ -581,8 +600,8 @@ export function generateProvisionalSponsorObjectives({
           ),
           weights.nationalChampionship
         ),
-        withSatisfactionPoints(ambitionObjective, weights.ambition),
-        withSatisfactionPoints(legacyObjective, weights.legacy),
+        withSatisfactionPoints(visibilityObjectives?.stage_breakaways ?? ambitionObjective, weights.ambition),
+        withSatisfactionPoints(visibilityObjectives?.combativity_awards ?? legacyObjective, weights.legacy),
       ];
 
   const calibratedObjectives = sportingLevel
@@ -987,6 +1006,7 @@ function getRecruitmentPhilosophyScore(
         ratings.flat * 0.15;
     case "national_preference":
     case "youth_development":
+    case "visibility":
       return 0;
   }
 }
@@ -1020,7 +1040,7 @@ function createNewLeaderOpportunityObjective({
   sportingLevel?: SponsorObjectiveSportingLevel | null;
   random: () => number;
 }): ObjectiveWithoutDisplayOrder | null {
-  if (sportingPhilosophy === "youth_development") return null;
+  if (sportingPhilosophy === "youth_development" || sportingPhilosophy === "visibility") return null;
 
   const opportunity = selectNewLeaderOpportunity(
     teamRiderCandidates,
@@ -1304,6 +1324,8 @@ function getObjectiveHistorySignature(
       return `homegrown:${details.minimumPercentage}`;
     case "youth_development":
       return `youth:${details.metric}:${details.minimumCount}`;
+    case "race_visibility":
+      return `visibility:${details.metric}:${details.minimumCount}`;
     case "rider_recruitment":
       return `recruitment:${details.riderId}`;
     case "infrastructure":
@@ -1320,6 +1342,75 @@ function withSatisfactionPoints(
     satisfactionPoints,
     priority: getPriorityForSatisfactionPoints(satisfactionPoints),
     renewalBonusPercent: 0,
+  };
+}
+
+function createVisibilityObjectives({
+  ambitionLevel,
+  sportingLevel,
+  teamReputationPoints,
+  raceCandidates,
+}: {
+  ambitionLevel: SponsorObjectiveAmbitionLevel;
+  sportingLevel: SponsorObjectiveSportingLevel | null;
+  teamReputationPoints: number;
+  raceCandidates: readonly SponsorObjectiveRaceCandidate[];
+}): Partial<Record<RaceVisibilityMetric, ObjectiveWithoutDisplayOrder>> {
+  const eligible = getEligibleSponsorObjectiveRaces({ teamReputationPoints, raceCandidates });
+  let classics = 0;
+  let tourStages = 0;
+  for (const race of eligible) {
+    if (!matchesSponsorSportingPhilosophy(race, "visibility")) continue;
+    if (race.categoryCode === "elite" && sportingLevel && sportingLevel.division !== "elite") continue;
+    if (race.raceFormat === "one_day") classics++;
+    if (race.raceFormat === "stage_race") tourStages += race.roadStageCount ?? 1;
+  }
+
+  // Assume a team can get into only a share of the reachable escapes and that
+  // an official combativity award is rarer than an appearance in the break.
+  const ambition = Math.min(ambitionLevel, (sportingLevel?.teamAmbition ?? 3) + 1);
+  const targets: Record<RaceVisibilityMetric, number> = {
+    classic_breakaways: Math.min(1 + Math.ceil(ambition / 2), Math.ceil(classics / 2)),
+    stage_breakaways: Math.min(2 + ambition, Math.ceil(tourStages / 2)),
+    combativity_awards: classics + tourStages > 0
+      ? Math.min(1 + Math.floor(ambition / 4), Math.max(1, Math.floor((classics + tourStages) / 4)))
+      : 0,
+  };
+  const objectives: Partial<Record<RaceVisibilityMetric, ObjectiveWithoutDisplayOrder>> = {};
+  for (const [metric, minimumCount] of Object.entries(targets) as [RaceVisibilityMetric, number][]) {
+    if (minimumCount > 0) objectives[metric] = createRaceVisibilityObjective(metric, minimumCount);
+  }
+  return objectives;
+}
+
+function createRaceVisibilityObjective(
+  metric: RaceVisibilityMetric,
+  minimumCount: number,
+): ObjectiveWithoutDisplayOrder {
+  const copy: Record<RaceVisibilityMetric, { name: string; description: string }> = {
+    classic_breakaways: {
+      name: "Animer les classiques",
+      description: `Placer un coureur de l’équipe dans une échappée officielle sur au moins ${minimumCount} course(s) d’un jour en ligne pendant la saison.`,
+    },
+    stage_breakaways: {
+      name: "Animer les courses par étapes",
+      description: `Placer un coureur de l’équipe dans une échappée officielle sur au moins ${minimumCount} étape(s) en ligne pendant la saison.`,
+    },
+    combativity_awards: {
+      name: "Décrocher des prix de la combativité",
+      description: `Remporter au moins ${minimumCount} prix officiels de la combativité avec l’équipe sur des classiques ou des étapes en ligne pendant la saison.`,
+    },
+  };
+  return {
+    ...copy[metric],
+    objectiveType: "race_visibility",
+    priority: "important",
+    evaluationTiming: "season_end",
+    evaluationDayNumber: null,
+    satisfactionPoints: 0,
+    renewalBonusPercent: 0,
+    isProvisional: true,
+    targetDetails: { kind: "race_visibility", metric, minimumCount },
   };
 }
 
@@ -1899,6 +1990,12 @@ export function matchesSponsorSportingPhilosophy(
       return profileTypes.has("sprint") || profileTypes.has("flat");
     case "grand_tour_general":
       return candidate.isGrandTour === true;
+    case "visibility":
+      return (candidate.competitionType === undefined || candidate.competitionType === "standard") &&
+        (candidate.raceFormat === "one_day" || candidate.raceFormat === "stage_race") &&
+        (candidate.roadStageCount === undefined
+          ? [...profileTypes].some((type) => type !== "time_trial")
+          : candidate.roadStageCount > 0);
     case "national_preference":
     case "youth_development":
       return false;
@@ -2461,6 +2558,8 @@ function getSeasonWinScopesForPhilosophy(
     case "national_preference":
     case "youth_development":
       return ["all", "one_day_races"];
+    case "visibility":
+      return ["one_day_races", "stages"];
   }
 }
 
@@ -2482,6 +2581,7 @@ function getLegacyWinScopesForPhilosophy(
     case "time_trials":
       return ["stages", "stage_race_general"];
     case "sprints":
+    case "visibility":
       return ["stages", "one_day_races"];
     case "youth_development":
       return ["stage_race_general"];

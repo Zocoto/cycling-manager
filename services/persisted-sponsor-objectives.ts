@@ -24,7 +24,11 @@ import {
   assertSponsorObjectivePlanConsistency,
   haveOverlappingSponsorObjectiveRequirements,
 } from "@/lib/game/sponsor-objective-consistency";
-import { resolveSponsorSportingPhilosophy } from "@/lib/game/sponsor-philosophy";
+import {
+  resolveSponsorSportingPhilosophy,
+  SPONSOR_SPORTING_PHILOSOPHIES,
+  type SponsorSportingPhilosophy,
+} from "@/lib/game/sponsor-philosophy";
 import type { Sponsor } from "@/types/sponsor";
 import type { SponsorObjectiveDifficulty } from "@/lib/game/sponsor-negotiation";
 import {
@@ -63,6 +67,7 @@ export type SponsorOfferObjectiveContext = {
   proposedBudget: number;
   mainObjectiveAnnualBudget: number;
   relationshipYear?: number;
+  sportingPhilosophy?: SponsorSportingPhilosophy;
   objectiveDifficulty?: SponsorObjectiveDifficulty;
   neutralizeMissingObjectives?: boolean;
   includeRiderRecruitmentObjective?: boolean;
@@ -147,6 +152,8 @@ type RaceCategoryRow = {
 type RaceStageRow = {
   race_edition_id: string;
   profile_type: RaceProfileType;
+  stage_type: string;
+  status: string;
 };
 
 type SponsorObjectiveRaceCatalog = {
@@ -262,19 +269,35 @@ export async function ensureAndLoadSponsorObjectives({
   const generationOffers = sportingContextEnabled
     ? offers.filter((offer) => (existingRowsByOfferId.get(offer.offerId)?.length ?? 0) < OBJECTIVE_COUNT_PER_OFFER)
     : offers;
-  const {
-    raceCandidates,
-    continentCodeByCountryCode,
-  } = await loadSponsorObjectiveRaceCandidates({
-    supabase,
-    seasonId,
-  });
+  const archivesToCheck = targetSeasonGameYear >= 6
+    ? generationOffers.filter((offer) =>
+        !offer.sportingPhilosophy
+        && !existingRowsByOfferId.has(offer.offerId)
+        && resolveSponsorSportingPhilosophy(offer.sponsor.id) === "visibility",
+      ).map((offer) => offer.offerId)
+    : [];
+  const [
+    { raceCandidates, continentCodeByCountryCode },
+    archivedPhilosophies,
+  ] = await Promise.all([
+    loadSponsorObjectiveRaceCandidates({ supabase, seasonId }),
+    loadArchivedSponsorOfferPhilosophies(supabase, archivesToCheck),
+  ]);
+  function getSportingPhilosophy(offer: SponsorOfferObjectiveContext) {
+    const rows = existingRowsByOfferId.get(offer.offerId) ?? [];
+    return rows.find((row) => row.target_details.sportingPhilosophy)?.target_details.sportingPhilosophy
+      ?? archivedPhilosophies.get(offer.offerId)
+      ?? offer.sportingPhilosophy
+      ?? resolveSponsorSportingPhilosophy(offer.sponsor.id, {
+        includeVisibility: targetSeasonGameYear >= 6 && rows.length === 0,
+      });
+  }
   const riderRecruitmentOffers = generationOffers.filter(
     (offer) =>
       offer.includeRiderRecruitmentObjective === true &&
       shouldSponsorRequestRiderRecruitment({
         sponsorCatalogKey: offer.sponsor.id,
-        sportingPhilosophy: resolveSponsorSportingPhilosophy(offer.sponsor.id),
+        sportingPhilosophy: getSportingPhilosophy(offer),
       }),
   );
   const riderRecruitmentRequested = riderRecruitmentOffers.length > 0;
@@ -365,6 +388,7 @@ export async function ensureAndLoadSponsorObjectives({
             offer.sponsor.countryCode.trim().toUpperCase(),
           ) ?? null,
         relationshipYear: offer.relationshipYear ?? 1,
+        sportingPhilosophy: getSportingPhilosophy(offer),
         objectiveDifficulty: offer.objectiveDifficulty ?? "balanced",
         riderCandidates,
         teamRiderCandidates,
@@ -947,6 +971,24 @@ async function normalizeObjectiveSatisfactionWeights(
 }
 
 
+async function loadArchivedSponsorOfferPhilosophies(
+  supabase: SupabaseAdminClient,
+  offerIds: string[],
+): Promise<Map<string, SponsorSportingPhilosophy>> {
+  const philosophies = new Map<string, SponsorSportingPhilosophy>();
+  if (!offerIds.length) return philosophies;
+
+  const { data, error } = await supabase.rpc("get_archived_sponsor_offer_philosophies", {
+    p_offer_ids: offerIds,
+  }).overrideTypes<{ sponsor_offer_id: string; sporting_philosophy: string }[], { merge: false }>();
+  if (error) throw new Error(`Impossible de charger les objectifs sponsor : ${error.message}`);
+  for (const row of data ?? []) {
+    const known = SPONSOR_SPORTING_PHILOSOPHIES.find((entry) => entry === row.sporting_philosophy);
+    if (known) philosophies.set(row.sponsor_offer_id, known);
+  }
+  return philosophies;
+}
+
 function getObjectiveSignature(
   details: SponsorObjectiveTargetDetails
 ): string {
@@ -960,6 +1002,10 @@ function getObjectiveSignature(
 
   if (details.kind === "youth_development") {
     return `youth_development:${details.metric}`;
+  }
+
+  if (details.kind === "race_visibility") {
+    return `race_visibility:${details.metric}`;
   }
 
   if (details.kind === "rider_recruitment") {
@@ -1326,7 +1372,7 @@ async function loadSponsorObjectiveRaceCandidates({
   )) {
     const { data, error } = await supabase
       .from("stages")
-      .select("race_edition_id, profile_type")
+      .select("race_edition_id, profile_type, stage_type, status")
       .in("race_edition_id", editionIdBatch)
       .returns<RaceStageRow[]>();
 
@@ -1353,6 +1399,7 @@ async function loadSponsorObjectiveRaceCandidates({
     (categoryRows ?? []).map((category) => [category.id, category.code]),
   );
   const profileTypesByEditionId = new Map<string, Set<RaceProfileType>>();
+  const roadStageCountByEditionId = new Map<string, number>();
 
   for (const stage of stageRows) {
     const profiles =
@@ -1360,6 +1407,12 @@ async function loadSponsorObjectiveRaceCandidates({
       new Set<RaceProfileType>();
     profiles.add(stage.profile_type);
     profileTypesByEditionId.set(stage.race_edition_id, profiles);
+    if (stage.stage_type === "road" && stage.status !== "cancelled") {
+      roadStageCountByEditionId.set(
+        stage.race_edition_id,
+        (roadStageCountByEditionId.get(stage.race_edition_id) ?? 0) + 1,
+      );
+    }
   }
   const candidatesByRaceId = new Map<
     string,
@@ -1396,6 +1449,7 @@ async function loadSponsorObjectiveRaceCandidates({
       profileTypes: [
         ...(profileTypesByEditionId.get(edition.id) ?? []),
       ],
+      roadStageCount: roadStageCountByEditionId.get(edition.id) ?? 0,
       competitionType: race.competition_type,
       isMonument: race.is_monument,
       isGrandTour: race.is_grand_tour,

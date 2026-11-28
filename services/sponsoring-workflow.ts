@@ -643,6 +643,8 @@ async function resolveFutureSponsoringState({
       currentContractId: currentContract?.id ?? null,
       currentSponsorCatalogKey:
         currentContract?.sponsor.id ?? null,
+      currentSponsorSportingPhilosophy:
+        currentContract?.sportingPhilosophy ?? null,
       currentSponsorBudget:
         currentContract?.budgetPerSeason ?? null,
       currentSponsorSatisfactionScore:
@@ -847,7 +849,7 @@ async function hydrateSponsorContract({
   }
 
   let objectives: SponsorContractObjective[] = [];
-  let sportingPhilosophy = resolveSponsorSportingPhilosophy(sponsor.id);
+  let sportingPhilosophy = resolveSponsorSportingPhilosophy(sponsor.id, { includeVisibility: false });
   let progressByObjectiveId = new Map<string, SponsorObjectiveProgress>();
 
   if (contractRow.sponsor_offer_id) {

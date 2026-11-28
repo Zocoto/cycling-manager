@@ -1,4 +1,4 @@
-import type { SponsorObjectiveTargetDetails } from "@/types/sponsor-objective";
+import type { RaceVisibilityObjectiveDetails, SponsorObjectiveTargetDetails } from "@/types/sponsor-objective";
 
 export type SponsorObjectiveProgressDisplay = {
   label: string;
@@ -6,6 +6,12 @@ export type SponsorObjectiveProgressDisplay = {
   targetValue: number;
   percentage: number;
   unit: "count" | "percentage";
+};
+
+const RACE_VISIBILITY_PROGRESS_LABELS: Record<RaceVisibilityObjectiveDetails["metric"], string> = {
+  classic_breakaways: "Classiques avec une échappée",
+  stage_breakaways: "Étapes avec une échappée",
+  combativity_awards: "Prix de la combativité",
 };
 
 export function getSponsorObjectiveProgressDisplay({
@@ -83,6 +89,12 @@ function getProgressDefinition(
     case "youth_development":
       return {
         label: getYouthDevelopmentProgressLabel(targetDetails.metric),
+        targetValue: targetDetails.minimumCount,
+        unit: "count",
+      };
+    case "race_visibility":
+      return {
+        label: RACE_VISIBILITY_PROGRESS_LABELS[targetDetails.metric],
         targetValue: targetDetails.minimumCount,
         unit: "count",
       };

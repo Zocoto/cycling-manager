@@ -17,7 +17,10 @@ import {
   readSponsorRenewalAssessment,
   type SponsorRenewalAssessment,
 } from "@/lib/game/sponsor-renewal-assessment";
-import { resolveSponsorSportingPhilosophy } from "@/lib/game/sponsor-philosophy";
+import {
+  resolveSponsorSportingPhilosophy,
+  type SponsorSportingPhilosophy,
+} from "@/lib/game/sponsor-philosophy";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   ensureAndLoadSponsorObjectives,
@@ -74,6 +77,7 @@ export type FutureSponsorOfferRequest = {
   mode: FutureSponsorOfferMode;
   currentContractId?: string | null;
   currentSponsorCatalogKey: string | null;
+  currentSponsorSportingPhilosophy?: SponsorSportingPhilosophy | null;
   currentSponsorBudget: number | null;
   currentSponsorSatisfactionScore: number | null;
   excludedSponsorCatalogKey: string | null;
@@ -157,6 +161,7 @@ export async function getOrCreateFutureSponsorOffersForAuthUser(
     mode,
     currentContractId,
     currentSponsorCatalogKey,
+    currentSponsorSportingPhilosophy,
     currentSponsorBudget,
     currentSponsorSatisfactionScore,
     excludedSponsorCatalogKey,
@@ -292,6 +297,7 @@ export async function getOrCreateFutureSponsorOffersForAuthUser(
     supabase,
     offerRows: existingOfferRows ?? [],
     renewalSponsorCatalogKey: mode === "renewal" ? currentSponsorCatalogKey : null,
+    renewalSportingPhilosophy: currentSponsorSportingPhilosophy,
   });
   const rowById = new Map((existingOfferRows ?? []).map((row) => [row.id, row]));
   const retainedOffers = existingOffers.filter((offer) =>
@@ -353,6 +359,7 @@ export async function getOrCreateFutureSponsorOffersForAuthUser(
         teamReputationPoints: sportingDirector.reputation_points,
         offerRows: retainedRows, hydratedOffers: retainedOffers,
         renewalSponsorCatalogKey: mode === "renewal" ? currentSponsorCatalogKey : null,
+        renewalSportingPhilosophy: currentSponsorSportingPhilosophy,
       }),
     };
   }
@@ -481,6 +488,7 @@ export async function getOrCreateFutureSponsorOffersForAuthUser(
         mode === "renewal"
           ? currentSponsorCatalogKey
           : null,
+      renewalSportingPhilosophy: currentSponsorSportingPhilosophy,
     }),
   };
 }
@@ -990,6 +998,7 @@ async function hydrateFutureSponsorOffersWithObjectives({
   teamId,
   offerRows,
   renewalSponsorCatalogKey,
+  renewalSportingPhilosophy,
   hydratedOffers: suppliedOffers,
 }: {
   supabase: SupabaseAdminClient;
@@ -998,18 +1007,21 @@ async function hydrateFutureSponsorOffersWithObjectives({
   teamId: string;
   offerRows: readonly SponsorOfferRow[];
   renewalSponsorCatalogKey: string | null;
+  renewalSportingPhilosophy?: SponsorSportingPhilosophy | null;
   hydratedOffers?: Omit<PersistedSponsorOffer, "objectives">[];
 }): Promise<PersistedSponsorOffer[]> {
   const hydratedOffers = suppliedOffers ?? await hydrateFutureSponsorOffers({
     supabase,
     offerRows,
     renewalSponsorCatalogKey,
+    renewalSportingPhilosophy,
   });
 
   const objectiveContexts: SponsorOfferObjectiveContext[] =
     hydratedOffers.map((offer) => ({
       offerId: offer.id,
       sponsor: offer.sponsor,
+      sportingPhilosophy: offer.isRenewal ? offer.sportingPhilosophy : undefined,
       proposedBudget: offer.baseBudget,
       mainObjectiveAnnualBudget: offer.proposedBudget,
       relationshipYear: offer.isRenewal ? 2 : 1,
@@ -1052,10 +1064,12 @@ async function hydrateFutureSponsorOffers({
   supabase,
   offerRows,
   renewalSponsorCatalogKey,
+  renewalSportingPhilosophy,
 }: {
   supabase: SupabaseAdminClient;
   offerRows: readonly SponsorOfferRow[];
   renewalSponsorCatalogKey: string | null;
+  renewalSportingPhilosophy?: SponsorSportingPhilosophy | null;
 }): Promise<Omit<PersistedSponsorOffer, "objectives">[]> {
   if (offerRows.length === 0) {
     return [];
@@ -1132,10 +1146,12 @@ async function hydrateFutureSponsorOffers({
       );
     }
 
+    const isRenewal = renewalSponsorCatalogKey === sponsor.id;
     return {
       id: offerRow.id,
       sponsor,
-      sportingPhilosophy: resolveSponsorSportingPhilosophy(sponsor.id),
+      sportingPhilosophy: (isRenewal ? renewalSportingPhilosophy : null)
+        ?? resolveSponsorSportingPhilosophy(sponsor.id, { includeVisibility: !isRenewal }),
       objectiveDifficulty: offerRow.objective_difficulty,
       baseBudget,
       negotiationBudgetCeiling: Math.max(
@@ -1149,8 +1165,7 @@ async function hydrateFutureSponsorOffers({
       contractDurationSeasons:
         offerRow.contract_duration_seasons,
       status: offerRow.status,
-      isRenewal:
-        renewalSponsorCatalogKey === sponsor.id,
+      isRenewal,
     };
   });
 }

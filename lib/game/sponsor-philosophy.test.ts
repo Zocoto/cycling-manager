@@ -32,4 +32,13 @@ describe("sponsor sporting philosophies", () => {
       SPONSOR_SPORTING_PHILOSOPHY_CONFIG.national_preference.description,
     ).toContain("15 %");
   });
+
+  it.each(["kyiv-broadcast-union", "la-paz-cable-media", "masline", "onda-habana", "paywand-mobile"])(
+    "propose Visibilité pour les nouveaux contrats de %s sans changer son ancienne philosophie",
+    (key) => {
+      expect(resolveSponsorSportingPhilosophy(key)).toBe("visibility");
+      expect(resolveSponsorSportingPhilosophy(key, { includeVisibility: false })).not.toBe("visibility");
+      expect(getSponsorInitialBudgetBonusPercent("visibility")).toBe(0);
+    },
+  );
 });

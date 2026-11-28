@@ -492,6 +492,7 @@ async function settleEditionRaceResults({
   }
 
   let processedStages = 0;
+  let visibilityStageId: string | null = null;
   const finishedSimulations: StageSimulationResult[] = [];
   const persistedStageClassifications: Array<{
     stage: RaceCalendarStage;
@@ -579,6 +580,7 @@ async function settleEditionRaceResults({
         simulation,
         rosterByRiderId,
       });
+      visibilityStageId = stage.id;
     }
 
     if (!stageAlreadyHomologated && stageRows.length !== expectedRosterIds.size) {
@@ -597,6 +599,19 @@ async function settleEditionRaceResults({
       results: officialStageResults,
     });
     finishedSimulations.push(simulation);
+  }
+
+  // The sponsor refresh recomputes the entire edition after its race facts
+  // are settled. One call also covers retries and tours with several stages.
+  if (visibilityStageId) {
+    try {
+      const { error } = await admin.rpc("refresh_sponsor_visibility_for_stage", {
+        p_stage_id: visibilityStageId,
+      });
+      if (error) throw error;
+    } catch (error) {
+      console.error("sponsor_visibility_refresh_failed", { stageId: visibilityStageId, error });
+    }
   }
 
   if (persistedStageClassifications.length === 0) {

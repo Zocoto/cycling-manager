@@ -7,6 +7,7 @@ export const SPONSOR_SPORTING_PHILOSOPHIES = [
   "grand_tour_general",
   "national_preference",
   "youth_development",
+  "visibility",
 ] as const;
 
 const LEGACY_SPONSOR_SPORTING_PHILOSOPHIES = [
@@ -38,6 +39,11 @@ const SPONSOR_SPORTING_PHILOSOPHY_OVERRIDES: Readonly<
   "pura-cadencia-test-team": "youth_development",
   "quebec-nord-racing": "youth_development",
   "savana-racing-project": "youth_development",
+  "kyiv-broadcast-union": "visibility",
+  "la-paz-cable-media": "visibility",
+  "masline": "visibility",
+  "onda-habana": "visibility",
+  "paywand-mobile": "visibility",
 };
 
 export type SponsorSportingPhilosophy =
@@ -99,10 +105,17 @@ export const SPONSOR_SPORTING_PHILOSOPHY_CONFIG: Record<
       "Le sponsor privilégie les promotions du Centre de formation, la Dev Team, les victoires juniors et la valorisation de quelques coureurs formés au club.",
     initialBudgetBonusPercent: 0,
   },
+  visibility: {
+    label: "Visibilité",
+    description:
+      "Le sponsor veut voir l’équipe à l’offensive. Il valorise les échappées sur les classiques et les tours, ainsi que les prix de la combativité.",
+    initialBudgetBonusPercent: 0,
+  },
 };
 
 export function resolveSponsorSportingPhilosophy(
   sponsorCatalogKey: string,
+  { includeVisibility = true }: { includeVisibility?: boolean } = {},
 ): SponsorSportingPhilosophy {
   const normalizedCatalogKey = sponsorCatalogKey.trim().toLowerCase();
 
@@ -115,7 +128,7 @@ export function resolveSponsorSportingPhilosophy(
   const configuredPhilosophy =
     SPONSOR_SPORTING_PHILOSOPHY_OVERRIDES[normalizedCatalogKey];
 
-  if (configuredPhilosophy) {
+  if (configuredPhilosophy && (includeVisibility || configuredPhilosophy !== "visibility")) {
     return configuredPhilosophy;
   }
 

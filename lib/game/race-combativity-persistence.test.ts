@@ -33,4 +33,15 @@ describe("combativity persistence", () => {
     expect(serviceSource).toContain("p_is_victory: false");
     expect(serviceSource).toContain('onConflict: "award_key"');
   });
+
+  it("actualise une fois les objectifs de visibilité après les prix officiels", () => {
+    expect(serviceSource).toMatch(
+      /edition\.competitionType === "standard"\s*&&\s*stage\.stageType === "road"[\s\S]{0,260}await persistStageCombativityAward\([\s\S]{0,180}visibilityStageId = stage\.id/,
+    );
+    expect(serviceSource).toMatch(
+      /finishedSimulations\.push\(simulation\);\s*\}[\s\S]{0,400}admin\.rpc\("refresh_sponsor_visibility_for_stage", \{\s*p_stage_id: visibilityStageId/,
+    );
+    expect(serviceSource.match(/"refresh_sponsor_visibility_for_stage"/g)).toHaveLength(1);
+    expect(serviceSource).toContain('console.error("sponsor_visibility_refresh_failed"');
+  });
 });

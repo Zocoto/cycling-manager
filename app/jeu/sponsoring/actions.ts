@@ -15,6 +15,10 @@ import {
   getSponsorNegotiationBudgetCeiling,
   isSponsorObjectiveDifficulty,
 } from "@/lib/game/sponsor-negotiation";
+import {
+  resolveSponsorSportingPhilosophy,
+  SPONSOR_SPORTING_PHILOSOPHIES,
+} from "@/lib/game/sponsor-philosophy";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ensureAndLoadSponsorObjectives } from "@/services/persisted-sponsor-objectives";
@@ -205,7 +209,7 @@ export async function negotiateContinuingSponsorObjectivesAction(
     admin
       .from("team_sponsor_contracts")
       .select(
-        "id, sponsor_id, start_season_id, contract_duration_seasons, status, pending_sponsor_offer_id",
+        "id, sponsor_id, sponsor_offer_id, start_season_id, objective_season_id, contract_duration_seasons, status, pending_sponsor_offer_id",
       )
       .eq("id", contractId)
       .eq("team_id", assignment.team_id)
@@ -214,7 +218,9 @@ export async function negotiateContinuingSponsorObjectivesAction(
       .maybeSingle<{
         id: string;
         sponsor_id: string;
+        sponsor_offer_id: string | null;
         start_season_id: string;
+        objective_season_id: string | null;
         contract_duration_seasons: number;
         status: "active";
         pending_sponsor_offer_id: string | null;
@@ -275,7 +281,7 @@ export async function negotiateContinuingSponsorObjectivesAction(
     );
   }
 
-  const [targetSeasonResult, startSeasonResult, sponsorResult] =
+  const [targetSeasonResult, startSeasonResult, sponsorResult, signedObjectivesResult] =
     await Promise.all([
       admin
         .from("seasons")
@@ -292,6 +298,15 @@ export async function negotiateContinuingSponsorObjectivesAction(
         .select("catalog_key")
         .eq("id", contract.sponsor_id)
         .maybeSingle<{ catalog_key: string }>(),
+      contract.sponsor_offer_id
+        ? admin
+          .from("sponsor_objectives")
+          .select("sporting_philosophy:target_details->>sportingPhilosophy")
+          .eq("sponsor_offer_id", contract.sponsor_offer_id)
+          .eq("season_id", contract.objective_season_id ?? contract.start_season_id)
+          .order("display_order")
+          .returns<{ sporting_philosophy: string | null }[]>()
+        : Promise.resolve({ data: [], error: null }),
     ]);
 
   const targetSeason = targetSeasonResult.data;
@@ -322,6 +337,9 @@ export async function negotiateContinuingSponsorObjectivesAction(
   if (sponsorResult.error || !sponsorRegistry) {
     redirectWithError("Le sponsor de ce contrat est introuvable.");
   }
+  if (signedObjectivesResult.error) {
+    redirectWithError("Les objectifs annuels de ce contrat sont indisponibles.");
+  }
 
   const sponsor = SPONSORS.find(
     (candidate) => candidate.id === sponsorRegistry.catalog_key,
@@ -331,6 +349,12 @@ export async function negotiateContinuingSponsorObjectivesAction(
   if (!sponsor || !Number.isFinite(baseBudget) || baseBudget <= 0) {
     redirectWithError("Les paramètres de ce contrat sponsor sont invalides.");
   }
+
+  const signedPhilosophy = signedObjectivesResult.data?.find(
+    (objective) => objective.sporting_philosophy,
+  )?.sporting_philosophy;
+  const sportingPhilosophy = SPONSOR_SPORTING_PHILOSOPHIES.find((entry) => entry === signedPhilosophy)
+    ?? resolveSponsorSportingPhilosophy(sponsor.id, { includeVisibility: false });
 
   const budgetCeiling = getSponsorNegotiationBudgetCeiling({
     baseBudget,
@@ -362,6 +386,7 @@ export async function negotiateContinuingSponsorObjectivesAction(
       {
         offerId: offer.id,
         sponsor,
+        sportingPhilosophy,
         proposedBudget: baseBudget,
         mainObjectiveAnnualBudget,
         relationshipYear: Math.max(

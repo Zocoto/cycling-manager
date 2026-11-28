@@ -2,6 +2,13 @@
 
 import { useLocale } from "@/components/i18n/locale-provider";
 import type { SponsorContractObjective } from "@/services/sponsoring-workflow";
+import type { RaceVisibilityObjectiveDetails } from "@/types/sponsor-objective";
+
+const VISIBILITY_OBJECTIVE_NAMES: Record<RaceVisibilityObjectiveDetails["metric"], string> = {
+  classic_breakaways: "One-day races in a breakaway",
+  stage_breakaways: "Tour stages in a breakaway",
+  combativity_awards: "Combativity awards",
+};
 
 /** Translate the signed target, not rider/race proper names or a newly generated goal. */
 export function SponsorObjectiveName({ objective }: { objective: SponsorContractObjective }) {
@@ -18,6 +25,7 @@ export function SponsorObjectiveName({ objective }: { objective: SponsorContract
     case "national_championship": return <>{target.requiredTitleCount} national title(s) ({target.countryCode}, {target.championshipType === "any" ? "road or time trial" : target.championshipType === "road" ? "road" : "time trial"})</>;
     case "homegrown_roster": return <>At least {target.minimumPercentage}% homegrown riders</>;
     case "youth_development": return <>{({ promotions: "Youth promotions", development_roster: "Development team riders", junior_race_wins: "Junior wins", homegrown_sales: "Homegrown rider sales" })[target.metric]}: {target.minimumCount}</>;
+    case "race_visibility": return <>{VISIBILITY_OBJECTIVE_NAMES[target.metric]} · {target.minimumCount}</>;
     case "rider_recruitment": return <>Sign <span data-i18n-skip>{target.riderName}</span></>;
     case "infrastructure": return <>Completed infrastructure projects: {target.minimumCompletedCount}</>;
   }

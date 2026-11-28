@@ -66,7 +66,7 @@ export const getTeamSponsorProject = cache(async (teamId: string | null): Promis
     }
     const stored = objectives.find(item => item.targetDetails.sportingPhilosophy)?.targetDetails.sportingPhilosophy;
     return { contractId: contract.id, seasonId, sponsorName: sponsor.name,
-      philosophy: stored && SPONSOR_SPORTING_PHILOSOPHIES.includes(stored) ? stored : resolveSponsorSportingPhilosophy(sponsor.id),
+      philosophy: stored && SPONSOR_SPORTING_PHILOSOPHIES.includes(stored) ? stored : resolveSponsorSportingPhilosophy(sponsor.id, { includeVisibility: false }),
       satisfactionScore: Math.max(0, Math.min(100, numeric(contract.satisfaction_score) ?? 0)), objectives };
   } catch (error) {
     // Optional guidance must never make a calendar, roster or result page unavailable.

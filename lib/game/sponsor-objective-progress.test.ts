@@ -51,6 +51,21 @@ describe("getSponsorObjectiveProgressDisplay", () => {
       "Infrastructures terminées",
       2,
     ],
+    [
+      { kind: "race_visibility" as const, metric: "classic_breakaways" as const, minimumCount: 4 },
+      "Classiques avec une échappée",
+      4,
+    ],
+    [
+      { kind: "race_visibility" as const, metric: "stage_breakaways" as const, minimumCount: 6 },
+      "Étapes avec une échappée",
+      6,
+    ],
+    [
+      { kind: "race_visibility" as const, metric: "combativity_awards" as const, minimumCount: 2 },
+      "Prix de la combativité",
+      2,
+    ],
   ])(
     "généralise la jauge aux autres objectifs quantifiés",
     (targetDetails, label, targetValue) => {

@@ -120,7 +120,7 @@ describe("next-season sponsor commitment consistency", () => {
   });
 
   it("creates distinct final requirements for varied philosophies, strengths and seeds", () => {
-    const philosophies: SponsorSportingPhilosophy[] = ["cobbled_classics", "ardennes_classics", "medium_stage_races", "grand_tour_general", "time_trials", "sprints", "national_preference", "youth_development"];
+    const philosophies: SponsorSportingPhilosophy[] = ["cobbled_classics", "ardennes_classics", "medium_stage_races", "grand_tour_general", "time_trials", "sprints", "national_preference", "youth_development", "visibility"];
     for (const sportingPhilosophy of philosophies) for (const rating of [54, 78]) for (let seed = 0; seed < 8; seed++) {
       let state = seed + 1;
       const objectives = generate({
@@ -145,6 +145,62 @@ describe("next-season sponsor commitment consistency", () => {
       expect(objectives.every(objective => objective.targetDetails.kind !== "infrastructure" || objective.targetDetails.minimumCompletedCount === 1)).toBe(true);
       expect(objectives.every(objective => objective.targetDetails.kind !== "season_wins" || objective.targetDetails.winScope !== "stage_race_general")).toBe(true);
     }
+  });
+});
+
+describe("S6 sponsor visibility objectives", () => {
+  function visibilityGoals(objectives: readonly GeneratedSponsorObjective[]) {
+    return objectives.flatMap((objective) => objective.targetDetails.kind === "race_visibility"
+      ? [{ ...objective.targetDetails, satisfactionPoints: objective.satisfactionPoints }]
+      : []);
+  }
+
+  it("rewards classics, tour stages and official combativity separately within the 100-point portfolio", () => {
+    const objectives = generate({ targetSeasonGameYear: 6, sportingPhilosophy: "visibility" });
+    const goals = visibilityGoals(objectives);
+
+    assertPortfolio(objectives, 0);
+    expect(() => assertSponsorObjectivePlanConsistency(objectives)).not.toThrow();
+    expect(goals).toHaveLength(3);
+    expect(goals.map(({ metric }) => metric).sort()).toEqual([
+      "classic_breakaways", "combativity_awards", "stage_breakaways",
+    ]);
+    expect(goals.every(goal => goal.minimumCount > 0 && goal.sportingPhilosophy === "visibility")).toBe(true);
+    expect(goals.reduce((sum, goal) => sum + goal.satisfactionPoints, 0)).toBeGreaterThanOrEqual(30);
+  });
+
+  it("accounts for actual road stages and leaves out goals that a projected team cannot contest", () => {
+    const objectives = generate({
+      targetSeasonGameYear: 6, sportingPhilosophy: "visibility", teamReputationPoints: 10_000,
+      teamSportingContext: context("national", 150), teamRiderCandidates: roster(54),
+      raceCandidates: [
+        race("national", "road-classic", { roadStageCount: 1 }),
+        race("national", "all-chrono-tour", { raceFormat: "stage_race", roadStageCount: 0, profileTypes: ["time_trial"] }),
+        race("national", "national-championship", { roadStageCount: 1, competitionType: "national_road" }),
+        race("elite", "unreachable-tour", { raceFormat: "stage_race", roadStageCount: 9 }),
+      ],
+    });
+
+    expect(Object.fromEntries(visibilityGoals(objectives).map(goal => [goal.metric, goal.minimumCount])))
+      .toEqual({ classic_breakaways: 1, combativity_awards: 1 });
+    assertPortfolio(objectives, 0);
+    expect(() => assertSponsorObjectivePlanConsistency(objectives)).not.toThrow();
+  });
+
+  it("raises the stage quota with ambition when the reachable road calendar is deep enough", () => {
+    const options = {
+      targetSeasonGameYear: 6, sportingPhilosophy: "visibility", sponsorPrestige: 5,
+      proposedBudget: 2_000_000, teamReputationPoints: 10_000,
+      teamSportingContext: context("elite", 10), teamRiderCandidates: roster(85),
+      raceCandidates: catalogue().map(candidate => ({
+        ...candidate, roadStageCount: candidate.raceFormat === "stage_race" ? 6 : 1,
+      })),
+    } as const;
+    const stageTarget = (difficulty: "accessible" | "ambitious") => visibilityGoals(generate({
+      ...options, objectiveDifficulty: difficulty,
+    })).find(goal => goal.metric === "stage_breakaways")?.minimumCount ?? 0;
+
+    expect(stageTarget("ambitious")).toBeGreaterThan(stageTarget("accessible"));
   });
 });
 
