@@ -657,6 +657,12 @@ export function getRaceProfileLabel(stage: {
   profileType: RaceProfileType;
   profileVariant?: RaceProfileVariant | null;
 }) {
+  if (
+    stage.profileVariant === "selective_cobbles" &&
+    (stage.profileType === "hilly" || stage.profileType === "cobbles")
+  ) {
+    return "Pavés";
+  }
   if (stage.profileVariant === "flat_hilly" && stage.profileType === "flat") {
     return "Plaine / Vallonné";
   }

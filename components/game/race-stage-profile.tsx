@@ -1,5 +1,9 @@
 import type { RaceStageSegment } from "@/lib/game/race-profiles";
 import {
+  getRaceSegmentGradientLabel,
+  getRaceSegmentTerrainLabel,
+} from "@/lib/game/race-segment-label";
+import {
   getRaceWeatherLabel,
   type RaceWeather,
 } from "@/lib/game/race-weather";
@@ -194,6 +198,18 @@ export function RaceStageProfile({
               </text>
             </>
           ) : null}
+          {!onSelectSegment ? chart.segments.map((entry) => (
+            <rect
+              key={`description-${entry.segment.segmentNumber}`}
+              x={entry.startX}
+              y="0"
+              width={Math.max(2, entry.endX - entry.startX)}
+              height={chart.viewHeight}
+              fill="transparent"
+            >
+              <title>{describeSegment(entry.segment)}</title>
+            </rect>
+          )) : null}
           </svg>
 
           {onSelectSegment ? (
@@ -206,6 +222,7 @@ export function RaceStageProfile({
                   className="h-full min-w-0 outline-none transition hover:bg-white/5 focus-visible:bg-white/10"
                   style={{ flexGrow: entry.segment.distanceKm, flexBasis: 0 }}
                   aria-label={describeSegment(entry.segment)}
+                  title={describeSegment(entry.segment)}
                   aria-current={entry.segment.segmentNumber === activeSegmentNumber ? "step" : undefined}
                 />
               ))}
@@ -358,8 +375,8 @@ function describeProfile(segments: RaceStageSegment[]) {
 }
 
 function describeSegment(segment: RaceStageSegment) {
-  const terrain = segment.terrain === "climb" ? "montée" : segment.terrain === "descent" ? "descente" : "plat";
-  const gradient = segment.averageGradientPct === 0 ? "" : ` à ${segment.averageGradientPct > 0 ? "+" : ""}${segment.averageGradientPct} %`;
+  const terrain = getRaceSegmentTerrainLabel(segment);
+  const gradient = getRaceSegmentGradientLabel(segment);
   const prime = segment.prime?.type === "mountain" ? `, GPM ${segment.prime.category}` : segment.prime ? ", sprint intermédiaire" : "";
   return `Tronçon ${segment.segmentNumber}, ${formatDistance(segment.distanceKm)} kilomètres, ${terrain}${gradient}${prime}`;
 }

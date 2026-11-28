@@ -12,6 +12,7 @@ import { RiderPersonalityBadge } from "@/components/game/rider-personality";
 import { SprintTrainEditor } from "@/components/game/sprint-train-editor";
 import { readSprintTrainOrder } from "@/lib/game/sprint-train";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
+import { formatRaceSegmentOption } from "@/lib/game/race-segment-label";
 import type {
   RaceCalendarStage,
   RaceCompetitionType,
@@ -972,7 +973,7 @@ function StagePreparationForm({
                       }
                       options={stage.segments.map((segment) => ({
                         value: String(segment.segmentNumber),
-                        label: formatSegment(segment),
+                        label: formatRaceSegmentOption(segment),
                       }))}
                     />
                     <AttackSelect
@@ -2237,13 +2238,14 @@ function AttackSelect({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="text-[10px] font-black uppercase tracking-wide text-[#6F5812]">
+    <label className="min-w-0 text-[10px] font-black uppercase tracking-wide text-[#6F5812]">
       {label}
       <select
+        title={options.find((option) => option.value === value)?.label}
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-1.5 min-h-10 w-full rounded-xl border border-[#B98B18]/25 bg-white px-2 text-xs font-bold normal-case tracking-normal text-[#3D351D] outline-none focus:border-[#B98B18] disabled:bg-[#F3ECD9]"
+        className="mt-1.5 min-h-10 w-full min-w-0 max-w-full rounded-xl border border-[#B98B18]/25 bg-white px-2 text-xs font-bold normal-case tracking-normal text-[#3D351D] outline-none focus:border-[#B98B18] disabled:bg-[#F3ECD9]"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -2369,16 +2371,4 @@ function formatProfile(profile: RaceCalendarStage["profileType"]) {
     time_trial: "Contre-la-montre",
     mixed: "Mixte",
   }[profile];
-}
-
-function formatSegment(segment: RaceCalendarStage["segments"][number]) {
-  const terrain =
-    segment.surface === "cobbles"
-      ? "pavés"
-      : segment.terrain === "climb"
-        ? `montée ${Math.abs(segment.averageGradientPct)} %`
-        : segment.terrain === "descent"
-          ? "descente"
-          : "plat";
-  return `T${segment.segmentNumber} · ${terrain} · ${segment.distanceKm} km`;
 }

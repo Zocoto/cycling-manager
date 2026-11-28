@@ -43,6 +43,13 @@ describe("race profile labels", () => {
     expect(getRaceProfileLabel({profileType:"cobbles"})).toBe("Pavés");
     expect(getRaceProfileLabel({profileType:"time_trial",profileVariant:"sprint_cobbles"})).toBe("Contre-la-montre");
   });
+  it("shows a cobbled dominance annotation without changing the sporting domain", () => {
+    const stage = { profileType: "hilly" as const, profileVariant: "selective_cobbles" as const };
+    expect(getRaceProfileLabel(stage)).toBe("Pavés");
+    expect(stage.profileType).toBe("hilly");
+    expect(getRaceProfileLabel({ profileType: "mountain", profileVariant: "selective_cobbles" })).toBe("Montagne");
+    expect(getRaceProfileLabel({ profileType: "time_trial", profileVariant: "selective_cobbles" })).toBe("Contre-la-montre");
+  });
   it("présente l'ancien profil sprint sous l'unique libellé Plaine", () => {
     expect(RACE_PROFILE_LABELS.flat).toBe("Plaine");
     expect(RACE_PROFILE_LABELS.sprint).toBe("Plaine");

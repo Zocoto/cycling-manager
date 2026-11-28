@@ -9,6 +9,22 @@ import type {
 import { RaceStageProfile } from "./race-stage-profile";
 
 describe("RaceStageProfile", () => {
+  it("describes relief, cobbles and slope consistently in selectable profile labels", () => {
+    const html = renderToStaticMarkup(<RaceStageProfile segments={[
+      { ...createTerrainSegment(7, 5, "climb", 6), surface: "cobbles" },
+      { ...createTerrainSegment(12, 3, "descent", -4), surface: "cobbles" },
+    ]} onSelectSegment={() => undefined} />);
+    expect(html).toContain('aria-label="Tronçon 7, 5 kilomètres, Montée pavée +6 %"');
+    expect(html).toContain('title="Tronçon 12, 3 kilomètres, Descente pavée -4 %"');
+  });
+
+  it("provides segment hover descriptions even when the profile is not a selector", () => {
+    const html = renderToStaticMarkup(<RaceStageProfile segments={[
+      { ...createTerrainSegment(7, 5, "climb", 6), surface: "cobbles" },
+    ]} />);
+    expect(html).toContain("<title>Tronçon 7, 5 kilomètres, Montée pavée +6 %</title>");
+  });
+
   it("ne mentionne pas de GPM avec un sprint intermediaire seul", () => {
     const markup = renderToStaticMarkup(
       <RaceStageProfile

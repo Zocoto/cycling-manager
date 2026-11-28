@@ -15,8 +15,8 @@ function calendarClient(failedTable?: string) {
     countries: [{ id: "country", name: "France", iso_alpha2: "FR", continent_code: "EU" }],
     stages: editions.map((e,i) => ({ id: `stage-${e.id}`, race_edition_id: e.id, season_day_id: "day",
       stage_number: 1, day_slot: "early", stage_type: "road", status: "planned", profile_type: i===0?"cobbles":"flat",
-      profile_variant:i===0?"sprint_cobbles":i===1?"hilly_cobbles":null,
-      ...(i===1?{profile_type:"hilly"}:{}),distance_km: 120 })),
+      profile_variant:i===0?"sprint_cobbles":i===1?"hilly_cobbles":i===2?"selective_cobbles":null,
+      ...(i===1||i===2?{profile_type:"hilly"}:{}),distance_km: 120 })),
     get_current_team_visible_calendar_edition_ids: editions.map((edition) => ({ race_edition_id: edition.id })),
     get_current_team_calendar_sponsor_objective_races: [
       { race_edition_id: "edition-0", sponsor_role: "principal" },
@@ -61,6 +61,9 @@ describe("dashboard calendar bounded reads", () => {
     const hybrid=calendar.editions.flatMap(e=>e.stages).find(s=>s.id==="stage-edition-1")!;
     expect(hybrid.profileType).toBe("hilly");
     expect(getRaceProfileLabel(hybrid)).toBe("Pavé / Vallonné");
+    const dominant=calendar.editions.flatMap(e=>e.stages).find(s=>s.id==="stage-edition-2")!;
+    expect(dominant.profileType).toBe("hilly");
+    expect(getRaceProfileLabel(dominant)).toBe("Pavés");
     expect(mock.supabase.from).not.toHaveBeenCalledWith("stage_segments");
   });
   it("chunks every large UUID filter without losing races or stages and shares one deadline", async () => {

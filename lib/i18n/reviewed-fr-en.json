@@ -5696,5 +5696,11 @@
   "Le peloton reprend {{0}}, qui restent distancés.": "The peloton catches {{0}}, who are unable to stay with the group.",
   "Le peloton reprend {{0}}, qui reste distancé.": "The peloton catches {{0}}, who is unable to stay with the group.",
   ", qui restent distancés.": ", who are unable to stay with the group.",
-  ", qui reste distancé.": ", who is unable to stay with the group."
+  ", qui reste distancé.": ", who is unable to stay with the group.",
+  "Montée pavée": "Cobbled climb",
+  "Descente pavée": "Cobbled descent",
+  "Plat pavé": "Cobbled flat",
+  "Plat": "Flat",
+  "Tronçon": "Section",
+  "kilomètres": "kilometres"
 }
