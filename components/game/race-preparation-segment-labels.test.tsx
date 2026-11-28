@@ -19,11 +19,11 @@ const rider: RacePreparationRider = {
   riderId: "rider", generalRole: "auto", firstName: "Test", lastName: "Coureur", stageRoles: {}, timeTrialPlans: {},
   ratings: { mountain: 70, hills: 70, flat: 70, timeTrial: 70, cobbles: 70, sprint: 70, acceleration: 70, downhill: 70, endurance: 70, resistance: 70, recovery: 70, breakaway: 70, prologue: 70 },
 };
-function render(mode: "team" | "federation") {
+function render(mode: "team" | "federation", overrides: Partial<RaceCalendarStage> = {}) {
   const edition: RacePreparationWorkspaceEdition = {
     id: "edition", slug: "flandres", name: "Flandres", shortName: null, countryCode: "BE",
     categoryCode: "elite", categoryName: "Elite", raceFormat: "one_day", competitionType: "standard",
-    pendingWildcard: false, stages: [stage], equipmentPlanning: null,
+    pendingWildcard: false, stages: [{ ...stage, ...overrides }], equipmentPlanning: null,
     plan: {
       editionId: "edition", registrationId: "registration", teamId: "team", riders: [rider],
       stages: { stage: { ...DEFAULT_RACE_TEAM_STRATEGY, teamId: "team", updatedAt: null, timeTrialUpdatedAt: null,
@@ -38,6 +38,16 @@ function render(mode: "team" | "federation") {
 }
 
 describe.each(["team", "federation"] as const)("attack segment choices in %s preparation", mode => {
+  it.each([
+    ["hilly", "selective_cobbles", "Pavés"],
+    ["hilly", "hilly_cobbles", "Pavé / Vallonné"],
+    ["cobbles", "hilly_cobbles", "Pavé / Vallonné"],
+  ] as const)("uses the calendar's %s/%s label in the preparation headings", (profileType, profileVariant, label) => {
+    const html = render(mode, { profileType, profileVariant });
+    expect(html).toContain(`Course en ligne · ${label}`);
+    expect(html).toContain(`22 km · ${label} ·`);
+  });
+
   it("shows paved climbs and descents without changing stored option IDs or the selected attack", () => {
     const original = structuredClone(stage);
     const html = render(mode);

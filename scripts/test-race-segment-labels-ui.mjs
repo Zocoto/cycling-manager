@@ -32,6 +32,7 @@ const bundle=await build({stdin:{resolveDir:process.cwd(),loader:'tsx',contents:
   const root=createRoot(document.getElementById('root'));
   function Harness({locale}){
     const mode='team';
+    const overrides={};
     ${edition}
     const action=async()=>{throw Error('No game action is allowed in offline QA');};
     return <LocaleProvider initialLocale={locale}><main>

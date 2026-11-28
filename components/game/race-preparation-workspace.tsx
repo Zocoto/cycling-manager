@@ -19,6 +19,7 @@ import type {
   RaceFormat,
 } from "@/lib/game/race-calendar";
 import {
+  getRaceProfileLabel,
   RACE_CATEGORY_STYLE,
   RACE_STAGE_TYPE_LABELS,
 } from "@/lib/game/race-calendar";
@@ -628,7 +629,7 @@ function StagePreparationForm({
           </span>
           <span className="mt-1 block text-xs font-semibold text-[#66877C]">
             {RACE_STAGE_TYPE_LABELS[stage.stageType]} · {stage.distanceKm} km ·{" "}
-            {formatProfile(stage.profileType)} · {formatStageDeparture(stage.departureAt)}
+            {getRaceProfileLabel(stage)} · {formatStageDeparture(stage.departureAt)}
           </span>
         </span>
         <span
@@ -1224,7 +1225,7 @@ function TacticalBriefingSection({
               Diagnostic parcours
             </p>
             <p className="mt-1 text-xs font-black text-[#0B302B]">
-              {formatProfile(stage.profileType)} · vent {weather.windSpeedKph} km/h
+              {getRaceProfileLabel(stage)} · vent {weather.windSpeedKph} km/h
             </p>
           </div>
         ) : null}
@@ -1681,7 +1682,7 @@ function TimeTrialPreparationForm({
           </span>
           <span className="mt-1 block text-xs font-semibold text-[#66877C]">
             {RACE_STAGE_TYPE_LABELS[stage.stageType]} · {stage.distanceKm} km ·{" "}
-            {formatProfile(stage.profileType)} · {formatStageDeparture(stage.departureAt)}
+            {getRaceProfileLabel(stage)} · {formatStageDeparture(stage.departureAt)}
           </span>
         </span>
         <span
@@ -2027,7 +2028,7 @@ function StageProfileOverview({ stage }: { stage: RaceCalendarStage }) {
             Profil de l’étape
           </p>
           <h3 className="mt-1 text-base font-black text-[#0B302B]">
-            {RACE_STAGE_TYPE_LABELS[stage.stageType]} · {formatProfile(stage.profileType)}
+            {RACE_STAGE_TYPE_LABELS[stage.stageType]} · {getRaceProfileLabel(stage)}
           </h3>
         </div>
         <span className="rounded-full bg-[#EAF5F0] px-3 py-1 text-[10px] font-black uppercase tracking-wide text-[#176951]">
@@ -2359,16 +2360,4 @@ function formatStageDeparture(value: string | null) {
     minute: "2-digit",
     timeZone: "Europe/Paris",
   }).format(new Date(value));
-}
-
-function formatProfile(profile: RaceCalendarStage["profileType"]) {
-  return {
-    flat: "Plaine",
-    sprint: "Plaine",
-    hilly: "Vallonné",
-    mountain: "Montagne",
-    cobbles: "Pavés",
-    time_trial: "Contre-la-montre",
-    mixed: "Mixte",
-  }[profile];
 }
