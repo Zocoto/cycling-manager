@@ -17,11 +17,11 @@ export const getDashboardNationsCupLeaders = compactDataCache(
     const startedAt = performance.now();
     const { data, error } = await createSupabaseAdminClient()
       .rpc("get_national_federation_nations_cup_standings", { p_season_id: seasonId })
-      .select("country_code,country_name")
+      .select("country_code,country_name,division,division_rank")
       .eq("division", 1)
       .order("division_rank", { ascending: true })
       .limit(5)
-      .abortSignal(AbortSignal.timeout(8000));
+      .abortSignal(AbortSignal.timeout(2500));
     if (error) throw error;
 
     if (!Array.isArray(data)) throw new Error("Invalid Nations Cup leaders response");
