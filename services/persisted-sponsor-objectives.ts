@@ -982,7 +982,8 @@ async function loadArchivedSponsorOfferPhilosophies(
     p_offer_ids: offerIds,
   }).overrideTypes<{ sponsor_offer_id: string; sporting_philosophy: string }[], { merge: false }>();
   if (error) throw new Error(`Impossible de charger les objectifs sponsor : ${error.message}`);
-  for (const row of data ?? []) {
+  if (!Array.isArray(data)) throw new Error("Impossible de charger les objectifs sponsor.");
+  for (const row of data) {
     const known = SPONSOR_SPORTING_PHILOSOPHIES.find((entry) => entry === row.sporting_philosophy);
     if (known) philosophies.set(row.sponsor_offer_id, known);
   }

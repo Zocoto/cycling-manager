@@ -5719,6 +5719,5 @@
   "Remporter au moins": "Win at least",
   "Remporter au moins {{0}} prix officiels de la combativité avec l’équipe sur des classiques ou des étapes en ligne pendant la saison.": "Win at least {{0}} official combativity awards for the team in one-day road races or road stages this season.",
   "Visibilité": "Visibility",
-  "Impossible de charger la philosophie de l’offre sponsor :": "Unable to load the sponsor offer's philosophy:",
-  "Impossible de charger la philosophie de l’offre sponsor : {{0}}": "Unable to load the sponsor offer's philosophy: {{0}}"
+  "Impossible de charger les objectifs sponsor.": "Unable to load sponsor objectives."
 }
