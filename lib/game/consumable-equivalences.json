@@ -179,7 +179,7 @@
     "description": "Un protocole renforcé qui agit sur les traumatismes compatibles avec une reprise accélérée.",
     "effectSummary": "Réduit la convalescence de 2 jours.",
     "iconKey": "medical",
-    "importance": 5,
+    "importance": 4,
     "rarity": "uncommon",
     "members": [
       {
@@ -239,7 +239,7 @@
     "description": "Un traitement par le froid qui accélère la première phase de récupération.",
     "effectSummary": "Réduit la convalescence de 6 h.",
     "iconKey": "medical",
-    "importance": 2,
+    "importance": 1,
     "rarity": "common",
     "members": [
       {
@@ -269,7 +269,7 @@
     "description": "Une prise en charge individuelle destinée à faire gagner une journée de récupération.",
     "effectSummary": "Réduit la convalescence de 1 jour.",
     "iconKey": "medical",
-    "importance": 4,
+    "importance": 3,
     "rarity": "uncommon",
     "members": [
       {
@@ -299,7 +299,7 @@
     "description": "Une sélection complète de soins légers pour raccourcir une indisponibilité.",
     "effectSummary": "Réduit la convalescence de 12 h.",
     "iconKey": "medical",
-    "importance": 3,
+    "importance": 2,
     "rarity": "uncommon",
     "members": [
       {

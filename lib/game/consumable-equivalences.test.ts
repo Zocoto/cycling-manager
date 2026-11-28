@@ -73,6 +73,22 @@ describe("ordinary consumable equivalences",()=>{
       }
     }
   });
+  it.each([
+    ["compressive-dressing", 2, 1, 1],
+    ["cryotherapy-pack", 6, 2, 1],
+    ["recovery-kit", 12, 3, 2],
+    ["physiotherapy-session", 24, 4, 3],
+    ["anti-inflammatory-protocol", 48, 5, 4],
+  ])("uses the new gift tier for %s while preserving its care payload", (name, recoveryHours, level, importance) => {
+    const item = gift({
+      key: `injury-care-${name}`, effectKind: "injury_care",
+      importance: level, payload: { recoveryHours, level },
+    });
+    expect(groupDailyRewardInventoryItems([item])[0]).toMatchObject({
+      id: item.id, importance, payload: item.payload,
+    });
+    expect(groupTeamInventoryItems(dailyRewardsToInventoryItems([item]))[0].dailyReward?.importance).toBe(importance);
+  });
   it("never combines physical equipment, medallions for different abilities or Halloween items",()=>{
     const rows=[stock({id:'equipment-1',source:'equipment'}),stock({id:'equipment-2',source:'equipment'}),
       stock({id:'halloween',source:'halloween'}),stock({id:'ability-1',catalogKey:'medallion-panache',category:'special_ability',effectPayload:{abilityCode:'panache'}}),
