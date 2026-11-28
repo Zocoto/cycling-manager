@@ -87,6 +87,8 @@ function createRankings(): UciRankings {
       rank: index + 1,
       teamId: `team-${index + 1}`,
       teamName: `Équipe ${index + 1}`,
+      countryCode: null,
+      countryName: null,
       directorName: null,
       directorUsername: null,
       points: 1_000 - index * 50,

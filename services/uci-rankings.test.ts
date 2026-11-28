@@ -49,6 +49,25 @@ function fixture(failSecondSummaryPage = false, repeatPageBoundary = false) {
 beforeEach(() => vi.clearAllMocks());
 
 describe("classement UCI complet au-delà de la limite PostgREST", () => {
+  it("utilise le pays d’affiliation de l’équipe, même sans coureur classé de ce pays, sans requête par équipe", async () => {
+    const f = fixture();
+    f.tables.team_seasons = [
+      { team_id: "team-be", display_name: "Équipe belge", registration_country_id: "be", points: 500, final_rank: null, division_id: null, season_id: "s4", status: "active" },
+      { team_id: "team-unknown", display_name: "Équipe sans pays", registration_country_id: null, points: 10, final_rank: null, division_id: null, season_id: "s4", status: "active" },
+    ];
+    f.tables.countries.push({ id: "be", iso_alpha2: "BE", name: "Belgique" });
+    const rankings = await getUciRankings();
+    expect(rankings?.teams).toMatchObject([
+      { rank: 1, teamId: "team-be", countryCode: "BE", countryName: "Belgique", points: 500 },
+      { rank: 2, teamId: "team-unknown", countryCode: null, countryName: null, points: 10 },
+    ]);
+    expect(rankings?.riders.every(rider => rider.countryCode === "CH")).toBe(true);
+    expect(rankings?.nations.map(nation => nation.countryCode)).toEqual(["CH"]);
+    const countryRequests = f.requests.filter(request => request.table === "countries");
+    expect(countryRequests).toHaveLength(1);
+    expect(countryRequests[0].ids).toEqual(expect.arrayContaining(["ch", "be"]));
+  });
+
   it("retrouve un coureur de la deuxième page et l’affiche à son vrai rang", async () => {
     const f = fixture();
     const rankings = await getUciRankings();

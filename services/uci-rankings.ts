@@ -24,6 +24,7 @@ type SeasonRow = { id: string; name: string };
 type TeamSeasonRow = {
   team_id: string;
   display_name: string;
+  registration_country_id: string | null;
   points: number;
   final_rank: number | null;
   division_id: string | null;
@@ -70,6 +71,8 @@ export type TeamRankingEntry = {
   rank: number;
   teamId: string;
   teamName: string;
+  countryCode: string | null;
+  countryName: string | null;
   directorName: string | null;
   directorUsername: string | null;
   points: number;
@@ -116,7 +119,7 @@ export type UciRankings = {
   nations: NationRankingEntry[];
 };
 
-const getCachedUciRankings = compactDataCache(loadUciRankings, ["uci-rankings-complete-v2"], {
+const getCachedUciRankings = compactDataCache(loadUciRankings, ["uci-rankings-complete-v3"], {
   revalidate: 60,
   tags: ["uci-rankings"],
 });
@@ -143,7 +146,7 @@ async function loadUciRankings(): Promise<UciRankings | null> {
     await Promise.all([
       supabase
         .from("team_seasons")
-        .select("team_id, display_name, points, final_rank, division_id")
+        .select("team_id, display_name, registration_country_id, points, final_rank, division_id")
         .eq("season_id", season.id)
         .neq("status", "withdrawn")
         .gt("points", 0)
@@ -286,7 +289,10 @@ async function loadUciRankings(): Promise<UciRankings | null> {
 
   const assignments = assignmentsResult.data ?? [];
   const directorIds = assignments.map((assignment) => assignment.sporting_director_id);
-  const countryIds = [...new Set((ridersResult.data ?? []).map((rider) => rider.country_id))];
+  const countryIds = [...new Set([
+    ...(ridersResult.data ?? []).map((rider) => rider.country_id),
+    ...teamSeasons.flatMap((team) => team.registration_country_id ? [team.registration_country_id] : []),
+  ])];
   const sponsorContractByTeamId = new Map<string, SponsorContractRow>();
   for (const contract of sponsorContractsResult.data ?? []) {
     if (!sponsorContractByTeamId.has(contract.team_id)) {
@@ -372,12 +378,15 @@ async function loadUciRankings(): Promise<UciRankings | null> {
     .map((team, index) => {
       const assignment = assignmentByTeamId.get(team.team_id);
       const director = assignment ? directorById.get(assignment.sporting_director_id) : null;
+      const country = team.registration_country_id ? countryById.get(team.registration_country_id) : null;
       const rank = index + 1;
 
       return {
         rank,
         teamId: team.team_id,
         teamName: team.display_name,
+        countryCode: country?.iso_alpha2 ?? null,
+        countryName: country?.name ?? null,
         directorName: director?.display_name ?? null,
         directorUsername: director?.username ?? null,
         points: team.points,

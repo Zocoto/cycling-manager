@@ -268,12 +268,7 @@ function RookieRanking({ entries }: { entries: RookieTeamRankingEntry[] }) {
                         jersey={entry.jerseyArtwork}
                       />
                       <div className="min-w-0">
-                        <Link
-                          href={`/jeu/equipes/${entry.teamId}`}
-                          className="font-black text-[#183F37] hover:text-[#278B70]"
-                        >
-                          {entry.teamName}
-                        </Link>
+                        <TeamNameLink entry={entry} />
                         <span className="mt-2 block">
                           <TeamDivisionBadge
                             division={entry.division}
@@ -334,7 +329,7 @@ function TeamRows({ entry }: { entry: TeamRankingEntry }) {
             jersey={entry.jerseyArtwork}
           />
           <div className="min-w-0">
-            <Link href={`/jeu/equipes/${entry.teamId}`} className="font-black text-[#183F37] hover:text-[#278B70]">{entry.teamName}</Link>
+            <TeamNameLink entry={entry} />
             <span className="mt-2 block"><TeamDivisionBadge division={entry.division} isProfessional={entry.isProfessional} compact /></span>
           </div>
         </div>
@@ -343,6 +338,23 @@ function TeamRows({ entry }: { entry: TeamRankingEntry }) {
       <PointsCell points={entry.points} />
     </tr>
   </>;
+}
+
+function TeamNameLink({ entry }: { entry: TeamRankingEntry }) {
+  const countryLabel = entry.countryName ?? entry.countryCode ?? undefined;
+  return (
+    <Link href={`/jeu/equipes/${entry.teamId}`} className="inline-flex items-center gap-2 font-black text-[#183F37] hover:text-[#278B70]">
+      {entry.countryCode ? (
+        <span
+          className={`fi fi-${entry.countryCode.toLowerCase()} shrink-0 rounded-sm`}
+          role="img"
+          aria-label={countryLabel}
+          title={countryLabel}
+        />
+      ) : null}
+      <span>{entry.teamName}</span>
+    </Link>
+  );
 }
 
 function RidersTable({ entries }: { entries: RiderRankingEntry[] }) {

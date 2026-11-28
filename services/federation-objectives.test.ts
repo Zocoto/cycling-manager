@@ -20,6 +20,7 @@ const source = readFileSync(
 function rankings(seasonId = "season"): UciRankings {
   const team = (teamId: string, rank: number): UciRankings["teams"][number] => ({
     teamId, rank, teamName: teamId, directorName: null, directorUsername: null,
+    countryCode: null, countryName: null,
     points: 100, division: "amateur", isProfessional: false, projectedDivision: "amateur",
     jerseyArtwork: { kind: "sponsor", imagePath: "/test-jersey.png" },
   });
