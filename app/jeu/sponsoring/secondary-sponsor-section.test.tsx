@@ -57,16 +57,18 @@ describe("secondary sponsor course previews", () => {
     expect(html).not.toContain('name="offerId"');
   });
 
-  it("shows the snapshotted 30 percent cap alongside the primary sponsor budget", () => {
+  it("shows the actual proposal share above thirty percent without presenting a fixed ceiling", () => {
     const html = renderToStaticMarkup(<SecondarySponsorSection state={{
       kind: "offers", activeContract: null, countryCode: "CO", countryName: "Colombie",
       targetGameYear: 6, targetSeasonName: "Saison 6",
-      offers: [{ id: "offer", sponsor, objectives: [{ ...objective, cashReward: 600_000 }], totalMaximumReward: 600_000, principalBudgetPerSeason: 2_000_000, maximumRewardBudget: 600_000 }],
+      offers: [{ id: "offer", sponsor, objectives: [{ ...objective, cashReward: 900_000 }], totalMaximumReward: 900_000, principalBudgetPerSeason: 2_000_000, maximumRewardBudget: 900_000 }],
     }} />);
     const euros = (value: number) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value);
 
-    expect(html).toContain(`Maximum : ${euros(600_000)}`);
-    expect(html).toContain(`Plafond de primes : ${euros(600_000)} (30 % du budget principal de ${euros(2_000_000)}).`);
+    expect(html).toContain(`Maximum : ${euros(900_000)}`);
+    expect(html).toContain(`Jusqu’à ${new Intl.NumberFormat("fr-FR", { style: "percent", maximumFractionDigits: 1 }).format(0.45)} du budget principal, selon les objectifs accomplis.`);
+    expect(html).not.toContain("Plafond de primes");
+    expect(html).not.toContain("30 %");
     expect(captured.targets).toEqual([{ slug: "tour-test", stageNumber: null, raceEditionId: S5_EDITION }]);
     expect(html).toContain('name="offerId" value="offer"');
   });

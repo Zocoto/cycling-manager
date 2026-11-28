@@ -8,6 +8,7 @@ vi.mock("@/services/sponsor-objective-sporting-context", () => ({ loadSponsorObj
 
 import { getSecondarySponsoringStateForAuthUser } from "./secondary-sponsors";
 import { SPONSORS } from "@/data/sponsors";
+import { getSecondarySponsorFailurePenalty } from "@/lib/game/secondary-sponsor";
 
 function libraryRow(key: string, id: string, countryId: string, prestige = 1): Row {
   const brand = SPONSORS.find(sponsor => sponsor.id === key);
@@ -165,11 +166,11 @@ function fixture(raceCount = 6) {
     state.beforeReplace?.();
     const belongsToTeam = (offer: Row) => offer.team_id === args.p_team_id && offer.sporting_director_id === args.p_director_id && offer.target_season_id === args.p_target_season_id;
     if (tables.secondary_sponsor_offers.some(offer => belongsToTeam(offer) && offer.status === "accepted")) return {data:false,error:null};
-    if (tables.secondary_sponsor_offers.filter(offer => belongsToTeam(offer) && offer.status === "open" && Number(offer.generation_version)>=3).length===3) return {data:false,error:null};
+    if (tables.secondary_sponsor_offers.filter(offer => belongsToTeam(offer) && offer.status === "open" && Number(offer.generation_version)>=4).length===3) return {data:false,error:null};
     const proposals = args.p_offers as Array<{ secondary_sponsor_id:string;objectives:Row[] }>;
     tables.secondary_sponsor_offers = proposals.map((offer,index)=>({id:"generated-"+index,secondary_sponsor_id:offer.secondary_sponsor_id,
-      sporting_director_id:args.p_director_id,team_id:args.p_team_id,target_season_id:args.p_target_season_id,status:"open",generation_version:3,principal_country_id:state.principalCountryId,
-      principal_budget_per_season:state.principalBudgetPerSeason,maximum_reward_budget:state.principalBudgetPerSeason===null?null:Math.floor(Math.round(state.principalBudgetPerSeason*100)*3/10)/100}));
+      sporting_director_id:args.p_director_id,team_id:args.p_team_id,target_season_id:args.p_target_season_id,status:"open",generation_version:4,principal_country_id:state.principalCountryId,
+      principal_budget_per_season:state.principalBudgetPerSeason,maximum_reward_budget:offer.objectives.reduce((sum,goal)=>sum+Math.round(Number(goal.cash_reward)*100),0)/100}));
     tables.secondary_sponsor_objectives = proposals.flatMap((offer,index)=>offer.objectives.map((goal,order)=>({
       id:"generated-"+index+"-"+order,offer_id:"generated-"+index,display_order:order+1,status:"draft",best_rank:null,
       current_rider_count:0,reputation_penalty:0,...goal,
@@ -215,8 +216,10 @@ describe("secondary sponsor calendar resilience", () => {
     for(const offer of result.offers) {
       expect(offer.sponsor.name).not.toBe("TerraNova");
       expect(SPONSORS.some(brand=>brand.name===offer.sponsor.name && brand.countryCode===offer.sponsor.countryCode && brand.logoPath===offer.sponsor.logoPath)).toBe(true);
-      expect(offer.totalMaximumReward).toBeLessThanOrEqual(600_000);
+      expect(offer.totalMaximumReward).toBeGreaterThan(0);
+      expect(offer.maximumRewardBudget).toBe(offer.totalMaximumReward);
     }
+    expect(new Set(result.offers.map(offer => offer.totalMaximumReward)).size).toBe(3);
     expect(f.queries.some(query=>query.table==="secondary_sponsor_catalog" && query.filters.some(filter=>filter.column==="available_for_offers" && filter.value===true))).toBe(true);
     expect(f.rpcCalls.filter(call=>call.name==="replace_secondary_sponsor_offers")).toHaveLength(1);
   });
@@ -280,7 +283,7 @@ describe("secondary sponsor calendar resilience", () => {
     const f = fixture();
     const existing = ["offer-a", "offer-b", "offer-c"].flatMap((id) => Array.from({ length: 3 }, (_, index) => objective(id, index)));
     f.tables.secondary_sponsor_objectives = structuredClone(existing);
-    f.tables.secondary_sponsor_offers.forEach(offer => { offer.generation_version=3; });
+    f.tables.secondary_sponsor_offers.forEach(offer => { offer.generation_version=4; });
     f.state.failCalendar = true;
     const state = await getSecondarySponsoringStateForAuthUser("user");
     expect(state?.kind).toBe("offers");
@@ -302,7 +305,7 @@ describe("secondary sponsor calendar resilience", () => {
     expect(result?.kind).toBe("offers");
     expect(f.rpcCalls.filter(call=>call.name==="replace_secondary_sponsor_offers")).toHaveLength(1);
     expect(f.tables.secondary_sponsor_offers).toHaveLength(3);
-    expect(f.tables.secondary_sponsor_offers.every(offer=>offer.generation_version===3)).toBe(true);
+    expect(f.tables.secondary_sponsor_offers.every(offer=>offer.generation_version===4)).toBe(true);
     expect(f.tables.secondary_sponsor_objectives).toHaveLength(9);
     expect(f.inserts).toEqual([]);
   });
@@ -352,10 +355,10 @@ describe("secondary sponsor calendar resilience", () => {
     for(const offer of state.offers) {
       expect(offer.principalCountryCode).toBe("CO");
       expect(offer.principalBudgetPerSeason).toBe(2_000_000);
-      expect(offer.maximumRewardBudget).toBe(600_000);
-      expect(offer.totalMaximumReward).toBe(600_000);
+      expect(offer.maximumRewardBudget).toBe(offer.totalMaximumReward);
+      expect(offer.totalMaximumReward).toBeGreaterThan(0);
       expect(offer.objectives.filter(goal=>goal.kind!=="roster_nationality").every(goal=>goal.categoryCode==="elite" || goal.categoryCode==="world")).toBe(true);
-      expect(offer.objectives.some(goal=>(goal.reputationPenalty??0)>0)).toBe(true);
+      for (const goal of offer.objectives) expect(goal.reputationPenalty).toBe(getSecondarySponsorFailurePenalty(goal.cashReward));
       const roster=offer.objectives.filter(goal=>goal.kind==="roster_nationality");
       expect(roster).toHaveLength(offer.sponsor.countryCode==="CO"?0:1);
       if(roster[0]?.kind==="roster_nationality") {
@@ -417,7 +420,7 @@ describe("secondary sponsor calendar resilience", () => {
 
   it("never loads offers belonging to the director's former team", async () => {
     const f=fixture();
-    f.tables.secondary_sponsor_offers.forEach(offer=>{offer.generation_version=3;});
+    f.tables.secondary_sponsor_offers.forEach(offer=>{offer.generation_version=4;});
     const existing=["offer-a","offer-b","offer-c"].flatMap(id=>Array.from({length:3},(_,index)=>objective(id,index)));
     f.tables.secondary_sponsor_objectives=structuredClone(existing);
     f.tables.secondary_sponsor_offers.push({id:"former-accepted",secondary_sponsor_id:"unknown-old-brand",sporting_director_id:"director",team_id:"former-team",target_season_id:"s5",status:"accepted",generation_version:3});
@@ -463,10 +466,10 @@ describe("secondary sponsor calendar resilience", () => {
     expect(f.tables.secondary_sponsor_offers).toEqual(before);
   });
 
-  it("does not reroll or read the context of saved V2 offers without a covered principal budget", async () => {
+  it("does not reroll or read the context of saved V4 offers without a covered principal budget", async () => {
     const f=fixture();
     f.tables.secondary_sponsor_offers.forEach(offer=>{
-      offer.generation_version=3;offer.principal_budget_per_season=null;offer.maximum_reward_budget=null;
+      offer.generation_version=4;offer.principal_budget_per_season=null;offer.maximum_reward_budget=null;
     });
     const existing=["offer-a","offer-b","offer-c"].flatMap(id=>Array.from({length:3},(_,index)=>objective(id,index)));
     f.tables.secondary_sponsor_objectives=structuredClone(existing);
@@ -479,7 +482,7 @@ describe("secondary sponsor calendar resilience", () => {
     expect(f.tables.secondary_sponsor_objectives).toEqual(existing);
   });
 
-  it("scales only rewards proportionally within 30% while keeping exactly the same countries and races", async () => {
+  it("uses the primary budget as a reference while preserving brands, countries, targets and reward proportions", async () => {
     const prepare=(budget:number)=>{
       const f=fixture(6);
       f.state.principalBudgetPerSeason=budget;
@@ -491,19 +494,56 @@ describe("secondary sponsor calendar resilience", () => {
     const original=await getSecondarySponsoringStateForAuthUser("user");
     if(original?.kind!=="offers") throw Error("Expected original offers");
     prepare(100_000);
-    const capped=await getSecondarySponsoringStateForAuthUser("user");
-    if(capped?.kind!=="offers") throw Error("Expected capped offers");
-    expect(capped.offers.map(offer=>offer.sponsor.id)).toEqual(original.offers.map(offer=>offer.sponsor.id));
-    capped.offers.forEach((offer,index)=>{
+    const smaller=await getSecondarySponsoringStateForAuthUser("user");
+    if(smaller?.kind!=="offers") throw Error("Expected smaller offers");
+    expect(smaller.offers.map(offer=>offer.sponsor.id)).toEqual(original.offers.map(offer=>offer.sponsor.id));
+    expect(new Set(smaller.offers.map(offer=>offer.totalMaximumReward)).size).toBe(3);
+    expect(Math.min(...smaller.offers.map(offer=>offer.totalMaximumReward))).toBeLessThan(30_000);
+    expect(Math.max(...smaller.offers.map(offer=>offer.totalMaximumReward))).toBeGreaterThan(30_000);
+    smaller.offers.forEach((offer,index)=>{
       const reference=original.offers[index];
-      expect(offer.totalMaximumReward).toBe(30_000);
-      expect(offer.maximumRewardBudget).toBe(30_000);
+      expect(offer.maximumRewardBudget).toBe(offer.totalMaximumReward);
+      expect(Math.abs(offer.totalMaximumReward/100_000-reference.totalMaximumReward/10_000_000)).toBeLessThanOrEqual(0.0051);
       expect(offer.objectives.map(goal=>goal.raceEditionId)).toEqual(reference.objectives.map(goal=>goal.raceEditionId));
+      expect(offer.objectives.map(goal=>goal.targetRank)).toEqual(reference.objectives.map(goal=>goal.targetRank));
       offer.objectives.forEach((goal,goalIndex)=>{
         expect(goal.cashReward/offer.totalMaximumReward).toBeCloseTo(reference.objectives[goalIndex].cashReward/reference.totalMaximumReward,4);
         expect(goal.reputationPenalty).toBe(0);
         expect(goal.reputationPenalty).toBeLessThanOrEqual(reference.objectives[goalIndex].reputationPenalty??0);
       });
+    });
+  });
+
+  it("refreshes unsigned V3 prices once and then preserves the saved V4 negotiation", async () => {
+    const f=fixture();
+    f.tables.secondary_sponsor_offers.forEach(offer=>{offer.generation_version=3;});
+    f.tables.secondary_sponsor_objectives=["offer-a","offer-b","offer-c"].flatMap(id=>Array.from({length:3},(_,index)=>objective(id,index)));
+    const first=await getSecondarySponsoringStateForAuthUser("user");
+    expect(first?.kind).toBe("offers");
+    if(first?.kind!=="offers") throw Error("Expected renewed offers");
+    expect(new Set(first.offers.map(offer=>offer.totalMaximumReward)).size).toBe(3);
+    expect(f.tables.secondary_sponsor_offers.every(offer=>offer.generation_version===4)).toBe(true);
+    const calls=f.rpcCalls.length;
+    const second=await getSecondarySponsoringStateForAuthUser("user");
+    expect(second).toEqual(first);
+    expect(f.rpcCalls).toHaveLength(calls);
+  });
+
+  it("prices the actual race format rather than guessing from its name", async () => {
+    const prepare=(grandTour:boolean)=>{
+      const f=fixture();
+      f.tables.races.forEach(race=>{race.race_format=grandTour?"stage_race":"one_day";race.is_grand_tour=grandTour;});
+      return f;
+    };
+    prepare(false);
+    const classics=await getSecondarySponsoringStateForAuthUser("user");
+    prepare(true);
+    const tours=await getSecondarySponsoringStateForAuthUser("user");
+    if(classics?.kind!=="offers"||tours?.kind!=="offers") throw Error("Expected format-based quotes");
+    expect(tours.offers.map(offer=>offer.sponsor.id)).toEqual(classics.offers.map(offer=>offer.sponsor.id));
+    tours.offers.forEach((offer,index)=>{
+      expect(offer.totalMaximumReward).toBeGreaterThan(classics.offers[index].totalMaximumReward);
+      expect(offer.objectives.map(goal=>goal.targetRank)).toEqual(classics.offers[index].objectives.map(goal=>goal.targetRank));
     });
   });
 

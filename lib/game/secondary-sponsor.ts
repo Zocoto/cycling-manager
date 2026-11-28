@@ -1,11 +1,13 @@
 import type { RaceCategoryCode } from "@/lib/game/race-calendar";
 import type { SponsorPrestige } from "@/types/sponsor";
+import { stableHash } from "@/lib/game/sponsor-main-objective";
 
 export const SECONDARY_SPONSOR_REPUTATION_THRESHOLD = 1_500;
 export const SECONDARY_SPONSOR_START_GAME_YEAR = 4;
 export const SECONDARY_SPONSOR_OFFER_COUNT = 3;
-export const SECONDARY_SPONSOR_GENERATION_VERSION = 3;
-export const SECONDARY_SPONSOR_BUDGET_PERCENT = 30;
+export const SECONDARY_SPONSOR_GENERATION_VERSION = 4;
+// Identity and calendar choices survive a pricing-only version change.
+export const SECONDARY_SPONSOR_PLAN_VERSION = 3;
 export type SecondarySponsorLogoColorMode = "original" | "black" | "white";
 
 export type SecondarySponsorLogoVariant =
@@ -99,14 +101,112 @@ export function getSecondarySponsorTargetRank({
   prestige,
   categoryCode,
   index,
+  fundingProfile = 1,
 }: {
   prestige: SponsorPrestige;
   categoryCode: RaceCategoryCode;
   index: number;
+  fundingProfile?: SecondarySponsorFundingProfile;
 }): number {
   const categoryAdjustment = categoryCode === "elite" || categoryCode === "world" ? 1 : 0;
   const baseRank = [10, 8, 5, 3, 1][prestige - 1] ?? 10;
-  return Math.max(1, baseRank + categoryAdjustment + (index % 2));
+  return Math.max(1, baseRank + categoryAdjustment + (index % 2) + [2, 0, -1][fundingProfile]);
+}
+
+export type SecondarySponsorFundingProfile = 0 | 1 | 2;
+export type SecondarySponsorRewardWeight = { weight: number; difficulty: number };
+
+/** Financial appetite is stable for this negotiation, independent of objective pricing. */
+export function getSecondarySponsorFundingProfiles(seed: string, sponsorIds: readonly string[]): Map<string, SecondarySponsorFundingProfile> {
+  if (sponsorIds.length !== 3 || new Set(sponsorIds).size !== 3) throw new RangeError("Three distinct secondary sponsors are required.");
+  return new Map([...sponsorIds].sort((first, second) => pricingFraction(`${seed}:appetite:${first}`)
+    - pricingFraction(`${seed}:appetite:${second}`) || first.localeCompare(second))
+    .map((id, index) => [id, index as SecondarySponsorFundingProfile]));
+}
+
+/** Sporting demand affects the quote as well as each objective's share of it. */
+export function getSecondarySponsorObjectiveDifficulty({ categoryCode, targetRank, raceFormat = "one_day", isGrandTour = false, isMonument = false }: {
+  categoryCode: RaceCategoryCode; targetRank: number; raceFormat?: "one_day" | "stage_race";
+  isGrandTour?: boolean; isMonument?: boolean;
+}): number {
+  const category = { local: 0.4, regional: 0.5, national: 0.7, continental: 0.9, world: 1.15, elite: 1.4 }[categoryCode];
+  const rank = 1 + 0.6 * (20 - Math.min(20, Math.max(1, targetRank))) / 19;
+  const format = isGrandTour ? 1.35 : raceFormat === "stage_race" ? 1.15 : isMonument ? 1.15 : 1;
+  return category * rank * format;
+}
+
+/**
+ * Thirty percent is a population reference, never an offer ceiling. Independent
+ * sponsor signatures and sporting demands vary each quote within disjoint
+ * financing bands; a small share of negotiations receives one exceptional bid.
+ */
+export function priceSecondarySponsorOffers({ principalBudgetPerSeason, seed, offers }: {
+  principalBudgetPerSeason: number; seed: string;
+  offers: readonly { id: string; objectives: readonly SecondarySponsorRewardWeight[] }[];
+}): number[][] {
+  const principalCents = Math.round(principalBudgetPerSeason * 100);
+  if (!Number.isSafeInteger(principalCents) || principalCents < 1) throw new RangeError("Invalid primary sponsor budget.");
+  const profiles = getSecondarySponsorFundingProfiles(seed, offers.map(offer => offer.id));
+  const weights = offers.map(offer => {
+    if (!offer.objectives.length) throw new RangeError("Secondary sponsor objectives are required.");
+    return offer.objectives.map(objective => {
+      const cents = Math.round(objective.weight * 100);
+      if (!Number.isSafeInteger(cents) || cents < 1 || !Number.isFinite(objective.difficulty) || objective.difficulty <= 0) {
+        throw new RangeError("Invalid secondary sponsor reward weight.");
+      }
+      return cents;
+    });
+  });
+  // The existing SQL contract limits a single objective to €5m. Only implausibly
+  // large primary budgets need this reference adjustment; the three bids still
+  // retain their separate bands instead of all saturating at the same total.
+  const referenceCents = Math.min(principalCents, ...weights.map(values =>
+    Math.floor(500_000_000 * (values.reduce((sum, value) => sum + value, 0) / Math.max(...values)) / 0.75)));
+  const rare = pricingFraction(`${seed}:exceptional-bid`);
+  const minimum = Math.max(...weights.map(values => values.length));
+  const quoteByProfile = new Map<SecondarySponsorFundingProfile, number>();
+  const quoted = offers.map(offer => {
+    const profile = profiles.get(offer.id)!;
+    const demand = offer.objectives.reduce((sum, objective) => sum + objective.difficulty, 0) / offer.objectives.length
+      * (0.8 + offer.objectives.length * 0.05);
+    const demandShare = demand / (1 + demand);
+    const signature = pricingFraction(`${seed}:signature:${offer.id}`);
+    const share = rare < 0.075 && profile === 0 ? 0.07 + signature * 0.03 + demandShare * 0.02
+      : rare >= 0.075 && rare < 0.15 && profile === 2 ? 0.56 + signature * 0.07 + demandShare * 0.11
+      : [0.14, 0.27, 0.4][profile] + signature * 0.015 + demandShare * 0.06;
+    const rawCents = referenceCents * share;
+    const cents = referenceCents >= 10_000_000 ? Math.round(rawCents / 100_000) * 100_000 : Math.round(rawCents);
+    return { profile, cents };
+  }).sort((first, second) => first.profile - second.profile);
+  const minimumGap = Math.max(1, Math.round(referenceCents * 0.05));
+  for (const quote of quoted) {
+    const previous = quoteByProfile.get((quote.profile - 1) as SecondarySponsorFundingProfile);
+    quoteByProfile.set(quote.profile, Math.max(quote.cents, previous === undefined ? minimum : previous + minimumGap));
+  }
+  return offers.map((offer, index) => allocateSecondarySponsorRewards(weights[index], quoteByProfile.get(profiles.get(offer.id)!)!));
+}
+
+function pricingFraction(seed: string): number {
+  // Avalanche the stable hash so adjacent season/brand identifiers do not get
+  // correlated financial signatures or exceptional-offer draws.
+  let value = stableHash(seed);
+  value = Math.imul(value ^ value >>> 16, 0x85ebca6b);
+  value = Math.imul(value ^ value >>> 13, 0xc2b2ae35);
+  return ((value ^ value >>> 16) >>> 0) / 4_294_967_296;
+}
+
+function allocateSecondarySponsorRewards(weights: readonly number[], totalCents: number): number[] {
+  const remaining = BigInt(totalCents - weights.length);
+  const denominator = weights.reduce((sum, value) => sum + BigInt(value), BigInt(0));
+  const allocations = weights.map((weight, index) => {
+    const numerator = remaining * BigInt(weight);
+    return { index, cents: 1 + Number(numerator / denominator), remainder: numerator % denominator };
+  });
+  const spare = totalCents - allocations.reduce((sum, allocation) => sum + allocation.cents, 0);
+  const order = [...allocations].sort((first, second) => first.remainder === second.remainder
+    ? first.index - second.index : first.remainder > second.remainder ? -1 : 1);
+  for (let index = 0; index < spare; index++) order[index].cents++;
+  return allocations.map(allocation => allocation.cents / 100);
 }
 
 export function calculateSecondarySponsorObjectiveReward({
@@ -141,42 +241,6 @@ export function getSecondarySponsorReputationMultiplier(reputationPoints: number
 
 export function getSecondarySponsorFailurePenalty(cashReward: number): number {
   return cashReward >= 100_000 ? Math.min(25, Math.ceil(cashReward / 100_000) * 5) : 0;
-}
-
-export function getSecondarySponsorMaximumReward(principalBudgetPerSeason: number): number {
-  if (!Number.isFinite(principalBudgetPerSeason) || principalBudgetPerSeason <= 0) return 0;
-  const principalCents = Math.round(principalBudgetPerSeason * 100);
-  return Math.floor(principalCents * SECONDARY_SPONSOR_BUDGET_PERCENT / 100) / 100;
-}
-
-/** Keeps the whole offer within its budget while preserving the relative objective weights. */
-export function capSecondarySponsorObjectiveRewards(
-  cashRewards: readonly number[],
-  principalBudgetPerSeason: number,
-): number[] {
-  if (cashRewards.length === 0) return [];
-  const weights = cashRewards.map(reward => {
-    const cents = Math.round(reward * 100);
-    if (!Number.isSafeInteger(cents) || cents < 1) throw new RangeError("Invalid secondary sponsor reward.");
-    return cents;
-  });
-  const maximumCents = Math.round(getSecondarySponsorMaximumReward(principalBudgetPerSeason) * 100);
-  const total = weights.reduce((sum, value) => sum + value, 0);
-  if (total <= maximumCents) return weights.map(value => value / 100);
-  if (maximumCents < weights.length) throw new RangeError("Insufficient primary sponsor budget.");
-
-  // Reserve a cent per objective: the database requires positive rewards.
-  const remaining = BigInt(maximumCents - weights.length);
-  const denominator = BigInt(total);
-  const allocations = weights.map((weight, index) => {
-    const numerator = remaining * BigInt(weight);
-    return { index, cents: 1 + Number(numerator / denominator), remainder: numerator % denominator };
-  });
-  const spare = maximumCents - allocations.reduce((sum, allocation) => sum + allocation.cents, 0);
-  const order = [...allocations].sort((first, second) =>
-    first.remainder === second.remainder ? first.index - second.index : first.remainder > second.remainder ? -1 : 1);
-  for (let index = 0; index < spare; index += 1) order[index].cents += 1;
-  return allocations.map(allocation => allocation.cents / 100);
 }
 
 export function getSecondarySponsorNationalityTarget({

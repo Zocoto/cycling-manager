@@ -5685,5 +5685,9 @@
   "Fonction": "Role",
   "Membres affichés ·": "Members shown ·",
   "Toutes les fonctions": "All roles",
-  "Toutes les nationalités": "All nationalities"
+  "Toutes les nationalités": "All nationalities",
+  "du budget principal, selon les objectifs accomplis.": "of the main sponsor's budget, depending on the objectives completed.",
+  "Jusqu’à {{0}} du budget principal, selon les objectifs accomplis.": "Up to {{0}} of the main sponsor's budget, depending on the objectives completed.",
+  "Les dotations secondaires ont été rééquilibrées. Actualisez les offres.": "Secondary sponsor funding has been rebalanced. Refresh the offers.",
+  "Les trois propositions secondaires doivent présenter des dotations différentes.": "The three secondary sponsor offers must provide different funding amounts."
 }

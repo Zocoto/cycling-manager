@@ -18,6 +18,10 @@ const moneyFormatter = new Intl.NumberFormat("fr-FR", {
   currency: "EUR",
   maximumFractionDigits: 0,
 });
+const budgetShareFormatter = new Intl.NumberFormat("fr-FR", {
+  style: "percent",
+  maximumFractionDigits: 1,
+});
 
 export function SecondarySponsorSection({
   state,
@@ -287,10 +291,9 @@ function SecondarySponsorOfferCard({
         <p className="mt-4 text-sm font-black text-[#0B4A3B]">
           Maximum : {moneyFormatter.format(offer.totalMaximumReward)}
         </p>
-        {typeof offer.principalBudgetPerSeason === "number" && offer.principalBudgetPerSeason > 0
-          && typeof offer.maximumRewardBudget === "number" && offer.maximumRewardBudget >= 0 ? (
+        {typeof offer.principalBudgetPerSeason === "number" && offer.principalBudgetPerSeason > 0 ? (
             <p className="mt-1 text-[11px] font-semibold leading-5 text-[#60756E]">
-              {`Plafond de primes : ${moneyFormatter.format(offer.maximumRewardBudget)} (30 % du budget principal de ${moneyFormatter.format(offer.principalBudgetPerSeason)}).`}
+              {`Jusqu’à ${budgetShareFormatter.format(offer.totalMaximumReward / offer.principalBudgetPerSeason)} du budget principal, selon les objectifs accomplis.`}
             </p>
           ) : null}
         <form action={signSecondarySponsorOfferAction} className="mt-auto pt-6">

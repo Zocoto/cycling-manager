@@ -4,7 +4,7 @@ import {
   getSecondarySponsorEligibleCategoryCodes, getSecondarySponsorObjectiveCount,
   getSecondarySponsorTargetRank, getSecondarySponsorFailurePenalty,
   getSecondarySponsorNationalityTarget, normalizeSecondarySponsorLogoPlacement,
-  capSecondarySponsorObjectiveRewards, getSecondarySponsorMaximumReward,
+  getSecondarySponsorFundingProfiles, getSecondarySponsorObjectiveDifficulty, priceSecondarySponsorOffers,
 } from "./secondary-sponsor";
 
 describe("secondary sponsor", () => {
@@ -57,38 +57,94 @@ describe("secondary sponsor", () => {
   });
 });
 
-describe("secondary sponsor budget envelope", () => {
-  it("caps the entire offer, rather than every objective, at thirty percent", () => {
-    expect(getSecondarySponsorMaximumReward(2_000_000)).toBe(600_000);
-    expect(capSecondarySponsorObjectiveRewards([424_000,424_000,424_000,424_000,424_000],2_000_000))
-      .toEqual([120_000,120_000,120_000,120_000,120_000]);
-  });
-  it("preserves weights, objective order and a lower existing total", () => {
-    const rewards=capSecondarySponsorObjectiveRewards([424_000,424_000,424_000,424_000,169_000],2_000_000);
-    expect(Math.round(rewards.reduce((sum,reward)=>sum+reward,0)*100)).toBe(60_000_000);
-    expect(rewards[0]).toBe(rewards[1]);
-    expect(rewards[0]/rewards[4]).toBeCloseTo(424/169,5);
-    expect(capSecondarySponsorObjectiveRewards([45_000,50_000,35_000],2_000_000)).toEqual([45_000,50_000,35_000]);
-  });
-  it("never rounds past the ceiling and keeps tiny goals positive", () => {
-    expect(getSecondarySponsorMaximumReward(3_333.33)).toBe(999.99);
-    const rewards=capSecondarySponsorObjectiveRewards([1_000_000,0.01,0.01],10);
-    expect(rewards).toEqual([2.98,0.01,0.01]);
-    expect(capSecondarySponsorObjectiveRewards([10,10,10],10)).toEqual([1,1,1]);
-  });
-  it("handles every normal offer size with an exact cents total", () => {
-    for(const budget of [1,10,3_333.33,100_000,2_000_000]) {
-      for(const count of [3,4,5]) {
-        const rewards=capSecondarySponsorObjectiveRewards(Array.from({length:count},(_,i)=>424_000/(i+1)),budget);
-        expect(rewards.every(reward=>reward>0)).toBe(true);
-        expect(rewards.reduce((sum,reward)=>sum+Math.round(reward*100),0)).toBe(Math.round(getSecondarySponsorMaximumReward(budget)*100));
-      }
+describe("varied secondary sponsor quotes", () => {
+  const offers = (difficulty = 1.5) => ["brand-a", "brand-b", "brand-c"].map(id => ({ id,
+    objectives: [100_000, 200_000, 300_000].map(weight => ({ weight, difficulty })) }));
+  const totals = (rewards: number[][]) => rewards.map(goals => goals.reduce((sum, amount) => sum + Math.round(amount * 100), 0) / 100);
+
+  it("offers three stable, clearly different totals rather than three thirty-percent ceilings", () => {
+    const input = { principalBudgetPerSeason: 2_000_000, seed: "team-season", offers: offers() };
+    const priced = priceSecondarySponsorOffers(input);
+    expect(priceSecondarySponsorOffers(input)).toEqual(priced);
+    const sorted = totals(priced).sort((a, b) => a - b);
+    expect(sorted[1] - sorted[0]).toBeGreaterThanOrEqual(100_000);
+    expect(sorted[2] - sorted[1]).toBeGreaterThanOrEqual(100_000);
+    expect(sorted[0]).toBeLessThan(600_000);
+    expect(sorted[2]).toBeGreaterThan(600_000);
+    for (const row of priced) {
+      expect(row.every(amount => amount > 0)).toBe(true);
+      expect(row[2] / row[0]).toBeCloseTo(3, 4);
+      expect(row[1] / row[0]).toBeCloseTo(2, 4);
     }
   });
-  it("does not invent a primary sponsor budget or silently drop an objective", () => {
-    expect(getSecondarySponsorMaximumReward(Number.NaN)).toBe(0);
-    expect(getSecondarySponsorMaximumReward(-1)).toBe(0);
-    expect(()=>capSecondarySponsorObjectiveRewards([1,2,3],0)).toThrow("Insufficient primary sponsor budget");
-    expect(()=>capSecondarySponsorObjectiveRewards([1,0,3],100)).toThrow("Invalid secondary sponsor reward");
+
+  it("keeps the funding appetite attached to the same brands when display order changes", () => {
+    const ids = offers().map(offer => offer.id);
+    expect(getSecondarySponsorFundingProfiles("team-season", ids)).toEqual(getSecondarySponsorFundingProfiles("team-season", ids.toReversed()));
+    const normal = priceSecondarySponsorOffers({ principalBudgetPerSeason: 2_000_000, seed: "team-season", offers: offers() });
+    const reversed = priceSecondarySponsorOffers({ principalBudgetPerSeason: 2_000_000, seed: "team-season", offers: offers().toReversed() });
+    expect(reversed).toEqual(normal.toReversed());
+  });
+
+  it("makes the prudent target easier and the ambitious target harder", () => {
+    const target = { prestige: 5 as const, categoryCode: "elite" as const, index: 0 };
+    expect([0, 1, 2].map(fundingProfile => getSecondarySponsorTargetRank({ ...target, fundingProfile: fundingProfile as 0 | 1 | 2 })))
+      .toEqual([4, 2, 1]);
+  });
+
+  it("increases rewards with the actual category, placing and whole-race format", () => {
+    const demand = (categoryCode: "continental" | "elite", targetRank: number, raceFormat: "one_day" | "stage_race" = "one_day", isGrandTour = false) =>
+      getSecondarySponsorObjectiveDifficulty({ categoryCode, targetRank, raceFormat, isGrandTour });
+    const situations = [demand("continental", 10), demand("elite", 10), demand("elite", 3), demand("elite", 1),
+      demand("elite", 1, "stage_race"), demand("elite", 1, "stage_race", true)];
+    expect(situations).toEqual([...situations].sort((a, b) => a - b));
+    const quote = (difficulty: number) => totals(priceSecondarySponsorOffers({ principalBudgetPerSeason: 2_000_000, seed: "same-financial-signatures", offers: offers(difficulty) }));
+    for (let index = 1; index < situations.length; index++) {
+      const previous = quote(situations[index - 1]), harder = quote(situations[index]);
+      expect(harder.every((amount, slot) => amount >= previous[slot])).toBe(true);
+      expect(harder.some((amount, slot) => amount > previous[slot])).toBe(true);
+    }
+    const oneHarder = offers();
+    oneHarder[0].objectives[0] = { weight: 200_000, difficulty: 3 };
+    const old = priceSecondarySponsorOffers({ principalBudgetPerSeason: 2_000_000, seed: "same-financial-signatures", offers: offers() });
+    const next = priceSecondarySponsorOffers({ principalBudgetPerSeason: 2_000_000, seed: "same-financial-signatures", offers: oneHarder });
+    expect(next[0][0]).toBeGreaterThan(old[0][0]);
+  });
+
+  it("centres the population near thirty percent and reserves exceptional bids for a small minority", () => {
+    const ratios: number[] = [];
+    for (let index = 0; index < 1_000; index++) {
+      const amounts = totals(priceSecondarySponsorOffers({ principalBudgetPerSeason: 2_000_000, seed: `pricing-seed-${index}`, offers: offers() }));
+      expect(new Set(amounts).size).toBe(3);
+      ratios.push(...amounts.map(amount => amount / 2_000_000));
+    }
+    const rare = ratios.filter(ratio => ratio < 0.15 || ratio > 0.5);
+    expect(rare.length / ratios.length).toBeGreaterThan(0.035);
+    expect(rare.length / ratios.length).toBeLessThan(0.065);
+    expect(ratios.some(ratio => ratio < 0.12)).toBe(true);
+    expect(ratios.some(ratio => ratio > 0.6)).toBe(true);
+    expect(ratios.reduce((sum, ratio) => sum + ratio, 0) / ratios.length).toBeGreaterThan(0.28);
+    expect(ratios.reduce((sum, ratio) => sum + ratio, 0) / ratios.length).toBeLessThan(0.34);
+    expect(new Set(ratios).size).toBeGreaterThan(100);
+  });
+
+  it.each([0.01, 1, 10, 100_000, 10_000_000, 999_999_999_999.99])("keeps exact positive cents, distinct totals and legal objective amounts at primary budget %s", budget => {
+    const unequal = offers();
+    unequal[0].objectives = [{ weight: 10_000_000, difficulty: 3 }, { weight: 0.01, difficulty: 1 }, { weight: 0.01, difficulty: 1 }];
+    const priced = priceSecondarySponsorOffers({ principalBudgetPerSeason: budget, seed: "edge-budget", offers: unequal });
+    expect(new Set(totals(priced)).size).toBe(3);
+    for (const row of priced) for (const amount of row) {
+      expect(amount).toBeGreaterThanOrEqual(0.01);
+      expect(amount).toBeLessThanOrEqual(5_000_000);
+      expect(Math.round(amount * 100) / 100).toBe(amount);
+    }
+  });
+
+  it("rejects invalid reference budgets, duplicate brands and unusable goal weights", () => {
+    expect(() => priceSecondarySponsorOffers({ principalBudgetPerSeason: 0, seed: "bad", offers: offers() })).toThrow();
+    const duplicate = offers(); duplicate[1].id = duplicate[0].id;
+    expect(() => priceSecondarySponsorOffers({ principalBudgetPerSeason: 2_000_000, seed: "bad", offers: duplicate })).toThrow();
+    const invalid = offers(); invalid[0].objectives[0].weight = 0;
+    expect(() => priceSecondarySponsorOffers({ principalBudgetPerSeason: 2_000_000, seed: "bad", offers: invalid })).toThrow();
   });
 });

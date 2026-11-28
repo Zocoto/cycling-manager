@@ -5,7 +5,9 @@ import type { RaceCategoryCode } from "@/lib/game/race-calendar";
 import {
   calculateSecondarySponsorObjectiveReward,
   calculateSecondarySponsorNationalityReward,
-  capSecondarySponsorObjectiveRewards,
+  getSecondarySponsorFundingProfiles,
+  getSecondarySponsorObjectiveDifficulty,
+  priceSecondarySponsorOffers,
   getSecondarySponsorFailurePenalty,
   getSecondarySponsorNationalityTarget,
   getSecondarySponsorEligibleCategoryCodes,
@@ -13,6 +15,7 @@ import {
   getSecondarySponsorTargetRank,
   SECONDARY_SPONSOR_OFFER_COUNT,
   SECONDARY_SPONSOR_GENERATION_VERSION,
+  SECONDARY_SPONSOR_PLAN_VERSION,
   SECONDARY_SPONSOR_REPUTATION_THRESHOLD,
   SECONDARY_SPONSOR_START_GAME_YEAR,
   type SecondarySponsorIdentity,
@@ -196,7 +199,8 @@ type RaceEditionRow = {
   status: string;
 };
 
-type RaceRow = { id: string; country_id: string; slug: string; status: string };
+type RaceRow = { id: string; country_id: string; slug: string; status: string;
+  race_format?: "one_day" | "stage_race"; is_grand_tour?: boolean; is_monument?: boolean };
 type RaceCategoryRow = { id: string; code: RaceCategoryCode };
 
 type PrincipalContractRow = {
@@ -483,7 +487,8 @@ async function ensureAndLoadSecondarySponsorOffers({
       context: snapshot.teamSportingContext, ratings: snapshot.teamRiderCandidates.map(rider => rider.ratings),
     });
     const sportingReputation = Math.max(reputationPoints, level?.division === "elite" ? 10_000 : level?.division === "world" ? 5_000 : reputationPoints);
-    const seed = `${directorId}:${teamId}:${targetSeason.id}:v${SECONDARY_SPONSOR_GENERATION_VERSION}`;
+    const seed = `${directorId}:${teamId}:${targetSeason.id}:v${SECONDARY_SPONSOR_PLAN_VERSION}`;
+    const pricingSeed = `${seed}:pricing-v${SECONDARY_SPONSOR_GENERATION_VERSION}`;
     const countrySlots = selectSecondarySponsorCountryCodes({
       affinity, seed, availableCountryCodes: catalog.flatMap(sponsor => {
         const country = countries.get(sponsor.country_id);
@@ -506,7 +511,8 @@ async function ensureAndLoadSecondarySponsorOffers({
     });
     if (selectedSponsors.length !== SECONDARY_SPONSOR_OFFER_COUNT) throw new Error("Le catalogue secondaire est incomplet.");
     const raceCandidates = await loadSecondaryRaceCandidates({ supabase, seasonId: targetSeason.id, reputationPoints });
-    const proposals = selectedSponsors.map(sponsor => {
+    const fundingProfiles = getSecondarySponsorFundingProfiles(pricingSeed, selectedSponsors.map(sponsor => sponsor.id));
+    const draftProposals = selectedSponsors.map(sponsor => {
       const sponsorCountry = countries.get(sponsor.country_id);
       if (!sponsorCountry) throw new Error("La nationalité d’un partenaire est indisponible.");
       const prestige = toSponsorPrestige(sponsor.prestige);
@@ -522,23 +528,33 @@ async function ensureAndLoadSecondarySponsorOffers({
       if (selectedRaces.length !== objectiveCount - Number(requiredRiderCount > 0)) {
         throw new Error(`Le calendrier ne permet pas de créer ${objectiveCount} objectifs secondaires distincts et adaptés.`);
       }
+      const rewardWeights: { weight: number; difficulty: number }[] = [];
       const goals: Record<string, unknown>[] = selectedRaces.map((race, index) => {
-        const targetRank = getSecondarySponsorTargetRank({ prestige, categoryCode: race.categoryCode, index });
+        const targetRank = getSecondarySponsorTargetRank({ prestige, categoryCode: race.categoryCode, index,
+          fundingProfile: fundingProfiles.get(sponsor.id) });
         const reward = calculateSecondarySponsorObjectiveReward({ prestige, categoryCode: race.categoryCode, targetRank, reputationPoints: sportingReputation });
+        const difficulty = getSecondarySponsorObjectiveDifficulty({ categoryCode: race.categoryCode, targetRank,
+          raceFormat: race.raceFormat, isGrandTour: race.isGrandTour, isMonument: race.isMonument });
+        rewardWeights.push({ weight: reward * difficulty, difficulty });
         return { objective_kind: "race_result", race_edition_id: race.id, race_slug: race.slug,
           race_label: race.label, race_category_code: race.categoryCode, target_rank: targetRank,
           cash_reward: reward, reputation_penalty: getSecondarySponsorFailurePenalty(reward) };
       });
       if (requiredRiderCount > 0) {
         const reward = calculateSecondarySponsorNationalityReward({ targetCount: requiredRiderCount, prestige, reputationPoints: sportingReputation });
+        const difficulty = 0.5 + requiredRiderCount * 0.12;
+        rewardWeights.push({ weight: reward * difficulty, difficulty });
         goals.push({ objective_kind: "roster_nationality", target_country_id: sponsor.country_id,
           required_rider_count: requiredRiderCount, cash_reward: reward, reputation_penalty: getSecondarySponsorFailurePenalty(reward) });
       }
-      const cappedRewards = capSecondarySponsorObjectiveRewards(goals.map(goal => Number(goal.cash_reward)), principalBudget);
-      return { secondary_sponsor_id: sponsor.id, objectives: goals.map((goal, index) => ({ ...goal,
-        cash_reward: cappedRewards[index], reputation_penalty: getSecondarySponsorFailurePenalty(cappedRewards[index]),
-      })) };
+      return { secondary_sponsor_id: sponsor.id, objectives: goals, rewardWeights };
     });
+    const rewards = priceSecondarySponsorOffers({ principalBudgetPerSeason: principalBudget, seed: pricingSeed,
+      offers: draftProposals.map(offer => ({ id: offer.secondary_sponsor_id, objectives: offer.rewardWeights })) });
+    const proposals = draftProposals.map((offer, offerIndex) => ({ secondary_sponsor_id: offer.secondary_sponsor_id,
+      objectives: offer.objectives.map((goal, index) => ({ ...goal, cash_reward: rewards[offerIndex][index],
+        reputation_penalty: getSecondarySponsorFailurePenalty(rewards[offerIndex][index]),
+      })) }));
     const { error } = await supabase.rpc("replace_secondary_sponsor_offers", {
       p_director_id: directorId, p_team_id: teamId, p_target_season_id: targetSeason.id,
       p_offers: proposals, p_generation_version: SECONDARY_SPONSOR_GENERATION_VERSION,
@@ -785,6 +801,9 @@ type SecondaryRaceCandidate = {
   label: string;
   countryId: string;
   categoryCode: RaceCategoryCode;
+  raceFormat: "one_day" | "stage_race";
+  isGrandTour: boolean;
+  isMonument: boolean;
 };
 
 async function loadSecondaryRaceCandidates({
@@ -828,7 +847,7 @@ async function loadSecondaryRaceCandidates({
       maxConcurrency: 1,
       fetchPage: async (ids, from, to) => await supabase
         .from("races")
-        .select("id, country_id, slug, status")
+        .select("id, country_id, slug, status, race_format, is_grand_tour, is_monument")
         .in("id", ids)
         .order("id", { ascending: true })
         .range(from, to)
@@ -875,6 +894,9 @@ async function loadSecondaryRaceCandidates({
         label: edition.display_name,
         countryId: race.country_id,
         categoryCode,
+        raceFormat: race.race_format ?? "one_day",
+        isGrandTour: race.is_grand_tour === true,
+        isMonument: race.is_monument === true,
       },
     ];
   });
