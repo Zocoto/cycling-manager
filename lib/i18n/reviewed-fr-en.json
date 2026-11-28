@@ -5689,5 +5689,12 @@
   "du budget principal, selon les objectifs accomplis.": "of the main sponsor's budget, depending on the objectives completed.",
   "Jusqu’à {{0}} du budget principal, selon les objectifs accomplis.": "Up to {{0}} of the main sponsor's budget, depending on the objectives completed.",
   "Les dotations secondaires ont été rééquilibrées. Actualisez les offres.": "Secondary sponsor funding has been rebalanced. Refresh the offers.",
-  "Les trois propositions secondaires doivent présenter des dotations différentes.": "The three secondary sponsor offers must provide different funding amounts."
+  "Les trois propositions secondaires doivent présenter des dotations différentes.": "The three secondary sponsor offers must provide different funding amounts.",
+  "avant la fin du tronçon.": "before the end of the segment.",
+  "Le peloton reprend": "The peloton catches",
+  "Le peloton reprend {{0}} avant la fin du tronçon.": "The peloton catches {{0}} before the end of the segment.",
+  "Le peloton reprend {{0}}, qui restent distancés.": "The peloton catches {{0}}, who are unable to stay with the group.",
+  "Le peloton reprend {{0}}, qui reste distancé.": "The peloton catches {{0}}, who is unable to stay with the group.",
+  ", qui restent distancés.": ", who are unable to stay with the group.",
+  ", qui reste distancé.": ", who is unable to stay with the group."
 }

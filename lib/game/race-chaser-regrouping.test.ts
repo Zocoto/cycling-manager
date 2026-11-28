@@ -18,16 +18,17 @@ function state(id: string, group: State["group"], elapsedTimeSeconds: number, en
   };
 }
 
-function resolve(chaserTime: number, options: { energy?: number; roll?: number; peloton?: boolean; gap?: number; since?: number; startGap?: number | null } = {}) {
+function resolve(chaserTime: number, options: { energy?: number; roll?: number; peloton?: boolean; gap?: number; since?: number; startGap?: number | null; commentary?: string[] } = {}) {
   const chaser = state("chaser", "chase", chaserTime, options.energy);
   chaser.groupSinceSegment = options.since ?? 16;
   const peloton = [state("p1", "peloton", 18_400), state("p2", "peloton", 18_402)];
   const states = new Map([["chaser", chaser], ...(options.peloton === false ? [] : peloton.map(rider => [rider.rider.id, rider] as const))]);
   const random = vi.fn(() => options.roll ?? 0.99);
-  const commentary: string[] = [];
+  const commentary: string[] = [...(options.commentary ?? [])];
+  const recordPelotonCatch = vi.fn();
   resolveExistingChasers({ states, segmentIndex: 17, breakawayGapSeconds: options.gap ?? 101,
-    chaserGapsAtSegmentStart: new Map(options.startGap === null ? [] : [["chaser", options.startGap ?? -12]]), random, commentary });
-  return { chaser, peloton, random, commentary };
+    chaserGapsAtSegmentStart: new Map(options.startGap === null ? [] : [["chaser", options.startGap ?? -12]]), random, commentary, recordPelotonCatch });
+  return { chaser, peloton, random, commentary, recordPelotonCatch };
 }
 
 function simulatePlannedChase(seed: string) {
@@ -65,6 +66,13 @@ describe("retour des chasseurs après une jonction manquée", () => {
     expect(resolve(18_401 + gap).chaser).toMatchObject({ group: "peloton", elapsedTimeSeconds: 18_401, lostTimeSeconds: 0 });
   });
 
+  it("records the catch even when there is no room in the commentary", () => {
+    const commentary = ["Incident", "Avarie", "Relais", "Offensive"];
+    const resolved = resolve(18_401, { commentary });
+    expect(resolved.commentary).toEqual(commentary);
+    expect(resolved.recordPelotonCatch).toHaveBeenCalledExactlyOnceWith("chaser", true);
+  });
+
   it.each([4, 11, 25])("preserves a real physical deficit without an additional time penalty (%s seconds)", gap => {
     expect(resolve(18_401 + gap, { startGap: gap }).chaser).toMatchObject({ group: "dropped", elapsedTimeSeconds: 18_401 + gap, lostTimeSeconds: gap });
   });
@@ -74,8 +82,13 @@ describe("retour des chasseurs après une jonction manquée", () => {
   });
 
   it("does not manufacture a catch when the rider is still ahead or no peloton exists", () => {
-    expect(resolve(18_397).chaser.group).toBe("chase");
-    expect(resolve(18_389, { peloton: false }).chaser).toMatchObject({ group: "chase", elapsedTimeSeconds: 18_389 });
+    const ahead = resolve(18_397);
+    const alone = resolve(18_389, { peloton: false });
+    expect(ahead.chaser.group).toBe("chase");
+    expect(alone.chaser).toMatchObject({ group: "chase", elapsedTimeSeconds: 18_389 });
+    expect(ahead.recordPelotonCatch).not.toHaveBeenCalled();
+    expect(alone.recordPelotonCatch).not.toHaveBeenCalled();
+    expect(resolve(18_412, { startGap: 11 }).recordPelotonCatch).not.toHaveBeenCalled();
   });
 
   it("leaves energy and the ordinary physical selection rules in charge of exhaustion", () => {
@@ -130,13 +143,14 @@ describe("chronologie affichée d’une chasse après une attaque programmée", 
     expect(frame.commentary.some(line => line.includes(rider.name) && line.includes("attaque préparée"))).toBe(true);
     expect(frame.commentary).toContain(`${rider.name} est repris par le peloton et se replace dans les roues.`);
     expect(frame.groups.find(group => group.riderIds.includes(rider.id))?.type).toBe("peloton");
+    expect(frame.pelotonCatches).toContainEqual({ riderId: rider.id, rejoined: true });
 
     const journal = buildRaceCourseJournal({ simulation });
     const attackIndex = journal.findIndex(entry =>
       entry.kind === "attack" && entry.detail.includes(rider.name) && entry.detail.includes("attaque préparée"),
     );
     const catchIndex = journal.findIndex(entry =>
-      entry.kind === "junction" && entry.detail.includes(`${rider.name} est repris par le peloton`),
+      entry.kind === "junction" && entry.caughtRiderIds?.includes(rider.id),
     );
     expect(journal[attackIndex]?.distanceKm).toBe(before.completedDistanceKm);
     expect(journal[catchIndex]?.distanceKm).toBe(frame.completedDistanceKm);
@@ -164,11 +178,13 @@ describe("reprise d’une échappée secondaire", () => {
     const states = new Map([["intercalated", intercalated], ["field", peloton]]);
     const segment = createDemoSimulationInput("sprint-littoral", "secondary-catch").segments[0];
 
-    reconcileDetachedRoadGroupsWithPeloton(states, 3, segment, new Set(["intercalated"]), []);
+    const recordPelotonCatch = vi.fn();
+    reconcileDetachedRoadGroupsWithPeloton(states, 3, segment, new Set(["intercalated"]), [], recordPelotonCatch);
 
     expect(intercalated).toMatchObject({
       group: "peloton", elapsedTimeSeconds: 5_553, energy: 71, lostTimeSeconds: 0,
     });
+    expect(recordPelotonCatch).toHaveBeenCalledExactlyOnceWith("intercalated", true);
   });
 
   it.each([
@@ -183,8 +199,11 @@ describe("reprise d’une échappée secondaire", () => {
       id: "puncture", type: "puncture", riderIds: ["intercalated"], abandonedRiderIds: [], label: "Crevaison",
     }] : [];
 
-    reconcileDetachedRoadGroupsWithPeloton(states, 4, segment, new Set(startAhead ? ["intercalated"] : []), incidents);
+    const recordPelotonCatch = vi.fn();
+    reconcileDetachedRoadGroupsWithPeloton(states, 4, segment, new Set(startAhead ? ["intercalated"] : []), incidents, recordPelotonCatch);
 
     expect(rider).toMatchObject({ group: "dropped", elapsedTimeSeconds: 8_586, lostTimeSeconds: 413 });
+    if (startAhead) expect(recordPelotonCatch).toHaveBeenCalledExactlyOnceWith("intercalated", false);
+    else expect(recordPelotonCatch).not.toHaveBeenCalled();
   });
 });

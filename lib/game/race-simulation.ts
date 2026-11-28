@@ -418,7 +418,11 @@ export type RaceTimelineSnapshot = {
   incidents: RaceIncident[];
   abandonments: RaceAbandonment[];
   commentary: string[];
+  /** Road contacts recorded independently of the shortened commentary and finish groups. */
+  pelotonCatches?: RacePelotonCatch[];
 };
+
+export type RacePelotonCatch = { riderId: string; rejoined: boolean };
 
 export type RaceVisualFrame = {
   segmentNumber: number;
@@ -2574,6 +2578,10 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
 
   input.segments.forEach((segment, segmentIndex) => {
     const commentary: string[] = [];
+    const pelotonCatches: RacePelotonCatch[] = [];
+    const recordPelotonCatch = (riderId: string, rejoined: boolean) => {
+      pelotonCatches.push({ riderId, rejoined });
+    };
     commentary.push(...getCrowdSurgeCommentary(
       crowdSurgeStates.filter((state) => state.group !== "abandoned").map((state) => state.rider),
       segment,
@@ -3825,6 +3833,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       chaserGapsAtSegmentStart,
       random,
       commentary,
+      recordPelotonCatch,
     });
 
     resolveSupportedLeaderRecovery({
@@ -4023,6 +4032,12 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
           candidate.group === "breakaway_2" ||
           candidate.group === "chase",
       )) {
+        const riderId = state.rider.id;
+        const cameFromAhead =
+          state.group === "breakaway" ||
+          breakaway.includes(state) ||
+          secondaryBreakawayAheadAtSegmentStart.has(riderId) ||
+          (chaserGapsAtSegmentStart.get(riderId) ?? Number.POSITIVE_INFINITY) <= SAME_TIME_MAX_GAP_SECONDS;
         state.groupSinceSegment = segmentIndex;
         if (state.energy < ABSOLUTE_EXHAUSTION_ENERGY) {
           state.group = "dropped";
@@ -4040,6 +4055,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
           state.elapsedTimeSeconds = pelotonTime;
           state.lostTimeSeconds = 0;
         }
+        if (cameFromAhead) recordPelotonCatch(riderId, state.group === "peloton");
       }
       breakawayGapSeconds = 0;
       breakawayWasCaught = true;
@@ -4087,6 +4103,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       segment,
       secondaryBreakawayAheadAtSegmentStart,
       incidents,
+      recordPelotonCatch,
     );
 
     if (segment.prime) {
@@ -4135,6 +4152,9 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       abandonments,
       commentary,
     });
+    if (pelotonCatches.length > 0) {
+      officialSnapshot.pelotonCatches = pelotonCatches;
+    }
     validateRoadSnapshotGroups(
       officialSnapshot.groups,
       [...states.values()]
@@ -7961,6 +7981,7 @@ export function resolveExistingChasers({
   chaserGapsAtSegmentStart,
   random,
   commentary,
+  recordPelotonCatch,
 }: {
   states: Map<string, RiderState>;
   segmentIndex: number;
@@ -7968,6 +7989,7 @@ export function resolveExistingChasers({
   chaserGapsAtSegmentStart: ReadonlyMap<string, number>;
   random: () => number;
   commentary: string[];
+  recordPelotonCatch?: (riderId: string, rejoined: boolean) => void;
 }) {
   const peloton = getStatesInGroup(states, "peloton");
   const pelotonTime = average(peloton.map((state) => state.elapsedTimeSeconds));
@@ -8001,6 +8023,7 @@ export function resolveExistingChasers({
         state.group = "peloton";
         state.elapsedTimeSeconds = pelotonTime;
         state.lostTimeSeconds = 0;
+        if (caughtFromAhead) recordPelotonCatch?.(state.rider.id, true);
         const catchCommentary = `${state.rider.name} est repris par le peloton et se replace dans les roues.`;
         if (commentary.length < 4) {
           commentary.push(catchCommentary);
@@ -9171,6 +9194,7 @@ export function reconcileDetachedRoadGroupsWithPeloton(
   segment: RaceStageSegment,
   secondaryBreakawayAheadAtSegmentStart: ReadonlySet<string>,
   incidents: RaceIncident[],
+  recordPelotonCatch?: (riderId: string, rejoined: boolean) => void,
 ) {
   const peloton = getStatesInGroup(states, "peloton");
   if (peloton.length === 0) return;
@@ -9184,8 +9208,9 @@ export function reconcileDetachedRoadGroupsWithPeloton(
     const gapSeconds = state.elapsedTimeSeconds - pelotonTimeSeconds;
     if (gapSeconds < -SAME_TIME_MAX_GAP_SECONDS) continue;
 
+    const startedAhead = secondaryBreakawayAheadAtSegmentStart.has(state.rider.id);
     const canRejoinAfterCatch =
-      secondaryBreakawayAheadAtSegmentStart.has(state.rider.id) &&
+      startedAhead &&
       segment.terrain !== "climb" &&
       segment.surface !== "cobbles" &&
       state.energy >= ABSOLUTE_EXHAUSTION_ENERGY &&
@@ -9200,6 +9225,7 @@ export function reconcileDetachedRoadGroupsWithPeloton(
     } else {
       state.lostTimeSeconds = gapSeconds;
     }
+    if (startedAhead) recordPelotonCatch?.(state.rider.id, state.group === "peloton");
   }
 
   for (const state of states.values()) {

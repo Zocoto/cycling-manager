@@ -69,6 +69,70 @@ describe("buildRaceCourseJournal", () => {
     });
   });
 
+  it("signale la reprise d’une attaque préparée qui se termine dans le même tronçon", () => {
+    const simulation = simulateRaceStage(createDemoSimulationInput("collines-ardennes", 7));
+    const [attacker, otherAttacker, pursuer] = simulation.resolvedRiders;
+    const peloton = group("peloton", 0, attacker.id, otherAttacker.id, pursuer.id);
+    simulation.timeline = [
+      snapshot(7, 150, [peloton]),
+      snapshot(8, 170, [peloton], [
+        `${attacker.name}, ${otherAttacker.name} déclenchent l’attaque préparée sur le tronçon 8, à 38 km de l’arrivée.`,
+      ]),
+      snapshot(9, 188, [peloton]),
+    ];
+    simulation.primes = [];
+
+    const journal = buildRaceCourseJournal({ simulation });
+    expect(journal.find((entry) => entry.kind === "attack")).toMatchObject({ distanceKm: 150 });
+    expect(journal.filter((entry) => entry.caughtRiderIds?.length)).toMatchObject([{
+      title: "Reprise par le peloton", distanceKm: 170, segmentNumber: 8,
+      caughtRiderIds: [attacker.id, otherAttacker.id],
+      detail: `Le peloton reprend ${attacker.name} et ${otherAttacker.name} avant la fin du tronçon.`,
+    }]);
+  });
+
+  it("rend les reprises du dernier tronçon enregistrées par le moteur sans doublonner le commentaire", () => {
+    const simulation = simulateRaceStage(createDemoSimulationInput("collines-ardennes", 7));
+    const [attacker, unableToFollow, pursuer] = simulation.resolvedRiders;
+    simulation.timeline = [
+      snapshot(1, 80, [group("breakaway", 0, attacker.id, unableToFollow.id), group("peloton", 20, pursuer.id)]),
+      {
+        ...snapshot(2, 100, [group("peloton", 0, pursuer.id, attacker.id), group("dropped", 7, unableToFollow.id)], [
+          `${attacker.name} est repris par le peloton et se replace dans les roues.`,
+          "L’échappée est reprise : le peloton est de nouveau groupé.",
+        ]),
+        pelotonCatches: [
+          { riderId: attacker.id, rejoined: true },
+          { riderId: unableToFollow.id, rejoined: false },
+        ],
+      },
+    ];
+    simulation.primes = [];
+
+    const journal = buildRaceCourseJournal({ simulation });
+    expect(journal.filter((entry) => entry.caughtRiderIds?.length)).toMatchObject([
+      { title: "Reprise par le peloton", distanceIsSegmentEnd: true, caughtRiderIds: [attacker.id] },
+      { title: "Reprise par le peloton", distanceIsSegmentEnd: true, caughtRiderIds: [unableToFollow.id],
+        detail: expect.stringContaining("reste distancé.") },
+    ]);
+    expect(journal.some((entry) => entry.title === "Échappée reprise")).toBe(false);
+  });
+
+  it("ne déduit pas une reprise d’une simple offensive ni du classement final d’un ancien replay", () => {
+    const simulation = simulateRaceStage(createDemoSimulationInput("collines-ardennes", 7));
+    const [attacker, pursuer] = simulation.resolvedRiders;
+    const peloton = group("peloton", 0, attacker.id, pursuer.id);
+    simulation.timeline = [
+      snapshot(1, 150, [peloton], [`${attacker.name} place une attaque dans le final.`]),
+      snapshot(2, 188, [peloton], [`${attacker.name} déclenche l’attaque préparée sur le tronçon 2.`]),
+    ];
+    simulation.primes = [];
+
+    const journal = buildRaceCourseJournal({ simulation });
+    expect(journal.filter((entry) => entry.kind === "attack")).toHaveLength(2);
+    expect(journal.some((entry) => entry.caughtRiderIds?.length)).toBe(false);
+  });
+
   it("distingue le dernier GPM sur le tronçon final du classement d’étape", () => {
     const simulation = simulateRaceStage(createDemoSimulationInput("collines-ardennes", 7));
     const [gpmWinner, stageWinner] = simulation.resolvedRiders;

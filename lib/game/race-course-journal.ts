@@ -39,6 +39,7 @@ const JUNCTION = /fusionnent|recoll(?:e|ent)|rejoin(?:t|nent)(?: la tête| le gr
 const CAUGHT = /\b(?:est|sont) repris\b|s[’']intègr(?:e|ent) au groupe retardé qui vient de les reprendre|ne (?:peut|peuvent) pas suivre le regroupement/iu;
 const GROUP_CAUGHT = /l[’']échappée est reprise/iu;
 const PLANNED_ATTACK = /déclench(?:e|ent) l[’']attaque préparée/iu;
+const DELAYED_ATTACK = /ont gardé des réserves et passent à l[’']attaque/iu;
 const ATTACK = /place une attaque|attaque dans le final|pass(?:e|ent) à l[’']attaque|contre[- ]attaqu|part seul en chasse-patate|tenter de rejoindre la tête|accélération|offensive décisive/iu;
 const FINISH_ATTACK = /prolonge son attaque jusqu[’']à la ligne/iu;
 const FINISH_EFFORT = /impose son rythme dans la longue ascension finale|déclenche la bataille des leaders dans la dernière ascension|accélère dans les derniers pavés vallonnés|profite de l[’']usure des secteurs pavés|se place au bon moment dans le final pavé roulant|place une accélération tranchante dans le final vallonné/iu;
@@ -93,7 +94,9 @@ export function buildRaceCourseJournal({ simulation }: { simulation: StageSimula
     const distanceKm = snapshot.completedDistanceKm;
     const segmentNumber = snapshot.segmentNumber;
     const isFinish = snapshot === finalSnapshot;
-    const recordedCatches = new Set<string>();
+    const pelotonCatches = snapshot.pelotonCatches ?? [];
+    const recordedCatches = new Set(pelotonCatches.map(({ riderId }) => riderId));
+    const sectorAttackers = new Set<string>();
     let recordedBreakawayCatch: string | undefined;
     const prime = previous?.segmentNumber !== segmentNumber ? primesBySegment.get(segmentNumber) : undefined;
     const primeWinner = prime?.classification.find((rider) => rider.rank === 1);
@@ -156,13 +159,18 @@ export function buildRaceCourseJournal({ simulation }: { simulation: StageSimula
       const detail = polishCommentary(message);
       if (CAUGHT.test(message)) {
         const caughtRiderIds = findRiderIds(message.split(CAUGHT, 1)[0]);
+        if (caughtRiderIds.length > 0 && caughtRiderIds.every((id) => recordedCatches.has(id))) continue;
         for (const riderId of caughtRiderIds) recordedCatches.add(riderId);
         push({ kind: "junction", distanceKm, segmentNumber, title: "Reprise", detail,
           riderIds: findRiderIds(message), caughtRiderIds, priority: 96 });
       } else if (planned || ATTACK.test(message)) {
         const riderIds = findRiderIds(message);
+        const launchesAtSectorStart = planned || DELAYED_ATTACK.test(message);
+        if (launchesAtSectorStart) {
+          for (const riderId of riderIds) sectorAttackers.add(riderId);
+        }
         if (riderIds.length || planned) {
-          push({ kind: "attack", distanceKm: planned ? previous?.completedDistanceKm ?? 0 : distanceKm, segmentNumber,
+          push({ kind: "attack", distanceKm: launchesAtSectorStart ? previous?.completedDistanceKm ?? 0 : distanceKm, segmentNumber,
             title: planned ? "Attaque préparée" : "Offensive", detail, riderIds, priority: 94 });
         }
       } else if (TEMPO.test(message)) {
@@ -181,11 +189,39 @@ export function buildRaceCourseJournal({ simulation }: { simulation: StageSimula
       }
     }
 
+    const rejoined = new Set(pelotonCatches.filter((event) => event.rejoined).map(({ riderId }) => riderId));
+    const unableToFollow = new Set(pelotonCatches.filter((event) => !event.rejoined).map(({ riderId }) => riderId));
+    // These engine messages confirm a rider left the peloton at the start of
+    // the sector. Earlier replays can show the return only in its end groups.
+    if (!isFinish && sectorAttackers.size > 0) {
+      for (const group of snapshot.groups ?? []) {
+        if (group.type !== "peloton") continue;
+        for (const riderId of group.riderIds) {
+          if (!sectorAttackers.has(riderId) || recordedCatches.has(riderId)) continue;
+          rejoined.add(riderId);
+          recordedCatches.add(riderId);
+        }
+      }
+    }
+    for (const [rejoinedPeloton, ids] of [[true, rejoined], [false, unableToFollow]] as const) {
+      if (!ids.size) continue;
+      const riderIds = [...ids];
+      const names = formatRiderNames(riderIds, riderById, 6);
+      const detail = rejoinedPeloton
+        ? `Le peloton reprend ${names} avant la fin du tronçon.`
+        : ids.size > 1
+          ? `Le peloton reprend ${names}, qui restent distancés.`
+          : `Le peloton reprend ${names}, qui reste distancé.`;
+      push({ kind: "junction", distanceKm, segmentNumber, title: "Reprise par le peloton",
+        detail, riderIds, caughtRiderIds: riderIds, priority: 96,
+        ...(isFinish ? { distanceIsSegmentEnd: true } : {}) });
+    }
+
     const reprises = previous && !isFinish
       ? getReprises(previous, snapshot, recordedCatches, riderById)
       : [];
     for (const reprise of reprises) push(reprise);
-    if (recordedBreakawayCatch && !reprises.some((entry) => entry.title === "Échappée reprise")) {
+    if (recordedBreakawayCatch && pelotonCatches.length === 0 && !reprises.some((entry) => entry.title === "Échappée reprise")) {
       push({ kind: "junction", distanceKm, segmentNumber, title: "Échappée reprise",
         detail: recordedBreakawayCatch, priority: 86 });
     }
