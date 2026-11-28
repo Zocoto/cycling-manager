@@ -5680,5 +5680,10 @@
   "Un coureur désisté ne peut plus être convoqué pour cette épreuve.": "A withdrawn rider cannot be called up again for this event.",
   "Voir mes convocations juniors": "View my junior call-ups",
   "Voir toutes mes convocations": "View all my call-ups",
-  "Vous pourrez réinscrire le coureur aux courses de club dont les inscriptions sont encore ouvertes.": "You can re-enter the rider in club races that are still open for registration."
+  "Vous pourrez réinscrire le coureur aux courses de club dont les inscriptions sont encore ouvertes.": "You can re-enter the rider in club races that are still open for registration.",
+  "Aucun membre ne correspond à ces filtres.": "No staff members match these filters.",
+  "Fonction": "Role",
+  "Membres affichés ·": "Members shown ·",
+  "Toutes les fonctions": "All roles",
+  "Toutes les nationalités": "All nationalities"
 }

@@ -23,6 +23,23 @@ export const STAFF_ROLES = [
 
 export type StaffRole = (typeof STAFF_ROLES)[number];
 
+export type TeamStaffFilters = {
+  role?: string;
+  countryCode?: string;
+  level?: string;
+};
+
+export function filterTeamStaffMembers<T extends { role: StaffRole; countryCode: string; level: number }>(
+  members: readonly T[],
+  { role, countryCode, level }: TeamStaffFilters,
+) {
+  return members.filter((member) =>
+    (!role || member.role === role) &&
+    (!countryCode || member.countryCode === countryCode) &&
+    (!level || String(member.level) === level),
+  );
+}
+
 export const TRAINER_SPECIALTIES = [
   "mountain",
   "hills",

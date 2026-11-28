@@ -12,6 +12,7 @@ import {
   calculateStaffSalary,
   calculateStaffSigningFee,
   describeStaffEffect,
+  filterTeamStaffMembers,
   getNutritionistDailyCapacity,
   getArchitectConstructionBonuses,
   getPhysiotherapistRiderCapacity,
@@ -20,6 +21,26 @@ import {
   meetsMinimumStaffLevel,
   selectStaffLevelFromRoll,
 } from "@/lib/game/staff";
+
+describe("team staff filters", () => {
+  const members = [
+    { id: "a", role: "doctor", countryCode: "FR", level: 3 },
+    { id: "b", role: "doctor", countryCode: "FR", level: 4 },
+    { id: "c", role: "doctor", countryCode: "BE", level: 3 },
+    { id: "d", role: "scout", countryCode: "FR", level: 3 },
+  ] as const;
+
+  it("combines role, nationality and exact level", () => {
+    expect(filterTeamStaffMembers(members, { role: "doctor", countryCode: "FR", level: "3" }))
+      .toEqual([members[0]]);
+  });
+
+  it("preserves roster order and handles reset or an empty result", () => {
+    expect(filterTeamStaffMembers(members, { countryCode: "FR" })).toEqual([members[0], members[1], members[3]]);
+    expect(filterTeamStaffMembers(members, { role: "scout", countryCode: "BE" })).toEqual([]);
+    expect(filterTeamStaffMembers(members, {})).toEqual(members);
+  });
+});
 
 describe("staff economy", () => {
   it("traite le niveau du marché comme un seuil minimum inclusif", () => {

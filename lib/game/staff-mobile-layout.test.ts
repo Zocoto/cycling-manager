@@ -7,12 +7,14 @@ const staffPage = readFileSync(
   resolve(process.cwd(), "app/jeu/staff/page.tsx"),
   "utf8",
 );
+const teamStaffList = readFileSync(resolve(process.cwd(), "components/game/team-staff-list.tsx"), "utf8");
 
 describe("staff mobile layout", () => {
   it("keeps the page and every staff-card grid inside the phone viewport", () => {
     expect(staffPage).toContain("min-h-screen overflow-x-hidden");
     expect(staffPage).toContain("w-full min-w-0 max-w-[1500px]");
-    expect(staffPage.match(/grid min-w-0 gap-5/g)).toHaveLength(3);
+    expect(staffPage.match(/grid min-w-0 gap-5/g)).toHaveLength(2);
+    expect(teamStaffList).toContain("grid min-w-0 gap-5 md:grid-cols-2 xl:grid-cols-3");
     expect(staffPage).toContain("min-w-0 max-w-full overflow-hidden");
   });
 

@@ -25,6 +25,7 @@ import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume
 import Link from "@/components/ui/app-link";
 import { StaffCardHeader } from "@/components/game/staff-card-header";
 import { StaffSkills } from "@/components/game/staff-skills";
+import { TeamStaffList } from "@/components/game/team-staff-list";
 import { getStaffAcademyTalentCapacity } from "@/lib/game/staff-academy";
 import {
   STAFF_ROLES,
@@ -533,16 +534,18 @@ function TeamStaff({ overview }: { overview: TeamStaffOverview }) {
           detail="Le salaire saisonnier est réparti sur les jours 7, 14, 21 et 28. Un licenciement règle uniquement les échéances restant dans la saison en cours."
         />
         {overview.teamStaff.length > 0 ? (
-          <div className="mt-5 grid min-w-0 gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {overview.teamStaff.map((member) => (
-              <TeamStaffCard
-                key={member.contractId}
-                member={member}
-                currentBalance={overview.balance}
-                naturalization={overview.staffNaturalization}
-              />
-            ))}
-          </div>
+          <TeamStaffList members={overview.teamStaff.map((member) => ({
+            id: member.contractId ?? member.id,
+            role: member.role,
+            countryCode: member.countryCode,
+            countryName: member.countryName,
+            level: member.level,
+            card: <TeamStaffCard
+              member={member}
+              currentBalance={overview.balance}
+              naturalization={overview.staffNaturalization}
+            />,
+          }))} />
         ) : (
           <EmptyState
             title="Votre staff est encore vide"
