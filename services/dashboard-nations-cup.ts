@@ -14,16 +14,18 @@ type LeaderRow = { country_code: string; country_name: string };
 // Cup overview (heats, startlists and riders) for five small flags.
 export const getDashboardNationsCupLeaders = compactDataCache(
   async (seasonId: string): Promise<DashboardNationsCupLeader[]> => {
+    const startedAt = performance.now();
     const { data, error } = await createSupabaseAdminClient()
       .rpc("get_national_federation_nations_cup_standings", { p_season_id: seasonId })
       .select("country_code,country_name")
       .eq("division", 1)
       .order("division_rank", { ascending: true })
       .limit(5)
-      .abortSignal(AbortSignal.timeout(2500));
+      .abortSignal(AbortSignal.timeout(8000));
     if (error) throw error;
 
-    return (Array.isArray(data) ? data : [])
+    if (!Array.isArray(data)) throw new Error("Invalid Nations Cup leaders response");
+    const countries = data
       .filter((country: unknown): country is LeaderRow => country !== null
         && typeof country === "object"
         && "country_code" in country && typeof country.country_code === "string"
@@ -33,7 +35,12 @@ export const getDashboardNationsCupLeaders = compactDataCache(
         countryCode: country.country_code.toLowerCase(),
         countryName: country.country_name,
       }));
+    console.info("[dashboard-nc-flags] loaded", {
+      seasonId, count: countries.length, countries: countries.map((country) => country.countryCode),
+      elapsedMs: Math.round(performance.now() - startedAt),
+    });
+    return countries;
   },
-  ["dashboard-nations-cup-leaders-v1"],
+  ["dashboard-nations-cup-leaders-v2"],
   { revalidate: 120 },
 );

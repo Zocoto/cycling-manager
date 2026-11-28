@@ -7,8 +7,12 @@ export async function DashboardNationsCupFlags({ seasonId }: { seasonId: string 
   let countries: DashboardNationsCupLeader[] = [];
   try {
     countries = await getDashboardNationsCupLeaders(seasonId);
-  } catch {
+  } catch (error) {
     // A cosmetic enhancement must never prevent opening the DS office.
+    console.warn("[dashboard-nc-flags] unavailable", {
+      code: error && typeof error === "object" && "code" in error ? error.code : undefined,
+      message: error && typeof error === "object" && "message" in error ? error.message : String(error),
+    });
   }
 
   return countries.map((country) => (
