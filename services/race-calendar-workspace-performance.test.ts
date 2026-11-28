@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { isRacePreparationStageAvailable } from "@/lib/game/race-preparation";
+import { PROFESSIONAL_NATIONS_CUP_EVENTS } from "@/lib/game/nations-cup-heats";
 
 const fixture = vi.hoisted(() => ({
   rows: {} as Record<string, Record<string, unknown>[]>, reads: [] as string[],
@@ -41,6 +42,36 @@ function client(): Client {
     return builder;
   }
   return { from: query, rpc: query } as unknown as Client;
+}
+
+function addNationsCupHeat(
+  slug: string,
+  clubCount: number,
+  options: { editionStatus?: string; stageStatus?: string } = {},
+) {
+  fixture.rows.races.push({
+    id: slug, slug, country_id: "fr", name: slug, short_name: slug,
+    race_format: "one_day", competition_type: "nations_cup",
+    is_grand_tour: false, is_monument: false,
+  });
+  fixture.rows.race_editions.push({
+    id: slug, season_id: "season", race_id: slug, host_country_id: null,
+    race_category_id: "continental", display_name: slug,
+    status: options.editionStatus ?? "planned", registration_policy: "closed",
+  });
+  fixture.rows.stages.push({
+    id: `stage-${slug}`, race_edition_id: slug, stage_number: 1,
+    stage_type: "road", profile_type: "flat", distance_km: 50,
+    season_day_id: "day-7", day_slot: "early",
+    departure_at: "2026-10-15T12:00:00Z",
+    status: options.stageStatus ?? "planned", name: slug,
+  });
+  fixture.rows.get_current_team_visible_calendar_edition_ids.push({ race_edition_id: slug });
+  if (clubCount > 0) {
+    (fixture.rows.get_current_team_international_calendar_counts ??= []).push({
+      race_edition_id: slug, rider_category: "professional", engaged_rider_count: clubCount,
+    });
+  }
 }
 
 describe("preparation calendar without unused simulation data", () => {
@@ -193,6 +224,7 @@ describe("preparation calendar without unused simulation data", () => {
 
   it("preserves pending wildcards and authorized national heats omitted from the calendar grid", async () => {
     fixture.rows.races.find((race) => race.id === "international")!.slug = "nations-cup-montagne-d2-a";
+    addNationsCupHeat("nations-cup-montagne", 0);
     const grid = await getActiveSeasonRaceCalendar(fixture.client as Client, now, { includeEngagedRiders: false });
     expect(grid?.editions.map((edition) => edition.id)).not.toContain("international");
     const plans = [preparationPlan("wildcard"), preparationPlan("international")];
@@ -204,5 +236,88 @@ describe("preparation calendar without unused simulation data", () => {
     expect(scoped!.editions[1].stages[0].id).toBe("international");
     expect(fixture.reads).not.toContain("get_calendar_engaged_riders");
     expect(fixture.reads).not.toContain("get_active_calendar_engaged_counts");
+  });
+
+  it("preserves 35 club selections across all five disciplines and national heats before hiding secondary heats", async () => {
+    const pools = ["", "-d2-a", "-d2-b", "-d3-a", "-d3-b", "-d4-a", "-d4-b", "-d4-c"];
+    for (const event of PROFESSIONAL_NATIONS_CUP_EVENTS) {
+      for (const [index, pool] of pools.entries()) {
+        // The authenticated RPC already groups club riders across nationalities.
+        // Seven national selections per profile must survive hiding their heats.
+        addNationsCupHeat(`${event.slug}${pool}`, index < 7 ? 1 : 0);
+      }
+      fixture.rows.get_current_team_calendar_registrations.push({
+        race_edition_id: event.slug, registration_status: "accepted", roster_count: 5,
+      });
+    }
+    // RPC and edition identity are each counted once, never summed twice.
+    fixture.rows.get_current_team_international_calendar_counts.push({
+      ...fixture.rows.get_current_team_international_calendar_counts[0],
+    });
+    fixture.rows.race_editions.push({
+      ...fixture.rows.race_editions.find((edition) => edition.id === "nations-cup-montagne-d2-a")!,
+    });
+    fixture.rows.get_current_team_international_calendar_counts.push({
+      race_edition_id: "nations-cup-montagne-d2-a", rider_category: "junior", engaged_rider_count: 500,
+    });
+    addNationsCupHeat("nations-cup-montagne-d2-c", 500, { editionStatus: "cancelled" });
+    addNationsCupHeat("nations-cup-montagne-d3-c", 500, { stageStatus: "cancelled" });
+    // Withdrawn/refused federation rosters are absent from the authenticated
+    // counts RPC and must not be substituted for the club's engaged riders.
+    fixture.rows.get_current_team_calendar_registrations.push(
+      { race_edition_id: "nations-cup-montagne-d4-c", registration_status: "withdrawn", roster_count: 200 },
+      { race_edition_id: "nations-cup-vallons-d4-c", registration_status: "rejected", roster_count: 200 },
+    );
+    const calendar = await getActiveSeasonRaceCalendar(fixture.client as Client, now, {
+      includeEngagedRiders: false, includeCancelledEditions: true,
+    });
+    const disciplines = calendar!.editions.filter((edition) =>
+      PROFESSIONAL_NATIONS_CUP_EVENTS.some((event) => event.slug === edition.slug),
+    );
+    expect(disciplines).toHaveLength(5);
+    expect(disciplines.map((edition) => edition.currentTeamInternationalRiderCount)).toEqual([7, 7, 7, 7, 7]);
+    expect(disciplines.reduce((sum, edition) => sum + edition.currentTeamInternationalRiderCount!, 0)).toBe(35);
+    expect(calendar!.editions.some((edition) => /-d[2-4]-[a-c]$/.test(edition.slug))).toBe(false);
+    expect(fixture.reads.filter((read) => read === "get_current_team_international_calendar_counts")).toHaveLength(1);
+    expect(fixture.reads).not.toContain("race_rosters");
+    expect(fixture.reads).not.toContain("rider_contracts");
+    expect(fixture.reads).not.toContain("get_calendar_engaged_riders");
+  });
+
+  it.each(["absent", "cancelled", "cancelled-stage"] as const)(
+    "keeps one active representative when the main Nations Cup heat is %s",
+    async (mainStatus) => {
+      if (mainStatus !== "absent") {
+        addNationsCupHeat("nations-cup-montagne", 100, mainStatus === "cancelled"
+          ? { editionStatus: "cancelled" }
+          : { stageStatus: "cancelled" });
+      }
+      addNationsCupHeat("nations-cup-montagne-d2-a", 3);
+      addNationsCupHeat("nations-cup-montagne-d2-b", 4);
+      const calendar = await getActiveSeasonRaceCalendar(fixture.client as Client, now, {
+        includeEngagedRiders: false, includeCancelledEditions: true,
+      });
+      const representatives = calendar!.editions.filter((edition) => edition.slug.startsWith("nations-cup-montagne"));
+      expect(representatives).toHaveLength(1);
+      expect(representatives[0]).toMatchObject({
+        slug: "nations-cup-montagne-d2-a", currentTeamInternationalRiderCount: 7,
+      });
+      expect(fixture.reads.filter((read) => read === "get_current_team_international_calendar_counts")).toHaveLength(1);
+    },
+  );
+
+  it("retains exact per-heat club counts for complete heat loaders and targeted race pages", async () => {
+    addNationsCupHeat("nations-cup-montagne", 2);
+    addNationsCupHeat("nations-cup-montagne-d2-a", 3);
+    const complete = await getActiveSeasonRaceCalendar(fixture.client as Client, now, {
+      includeEngagedRiders: false, includeNationsCupHeats: true,
+    });
+    expect(complete!.editions.find((edition) => edition.slug === "nations-cup-montagne")?.currentTeamInternationalRiderCount).toBe(2);
+    expect(complete!.editions.find((edition) => edition.slug === "nations-cup-montagne-d2-a")?.currentTeamInternationalRiderCount).toBe(3);
+    const targeted = await getActiveSeasonRaceCalendar(fixture.client as Client, now, {
+      includeEngagedRiders: false, raceSlug: "nations-cup-montagne",
+    });
+    expect(targeted!.editions).toHaveLength(1);
+    expect(targeted!.editions[0].currentTeamInternationalRiderCount).toBe(2);
   });
 });

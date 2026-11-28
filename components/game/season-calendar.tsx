@@ -49,7 +49,8 @@ export function getNationsCupCalendarEvent(
   editions: readonly RaceCalendarEdition[],
 ): SeasonRaceCalendar["events"][number] | null {
   const nationsCupEditions = editions.filter((edition) =>
-    isNationsCupOverviewEdition(edition) && edition.status !== "cancelled",
+    isNationsCupOverviewEdition(edition) && edition.status !== "cancelled" &&
+      edition.stages.some((stage) => stage.status !== "cancelled"),
   );
   const stages = nationsCupEditions.flatMap((edition) => edition.stages)
     .filter((stage) => stage.status !== "cancelled");
@@ -60,7 +61,7 @@ export function getNationsCupCalendarEvent(
     dayNumber: Math.min(...stages.map((stage) => stage.dayNumber)),
     eventType: "nations_cup",
     title: "Nations Cup",
-    description: "Montagne, vallons, sprint, pavés et CLM : ouvrez les épreuves et le classement de votre fédération.",
+    description: "Montagne, vallons, sprint, pavés et CLM : 5 coureurs par équipe nationale.",
     href: "/jeu/nations-cup",
     currentTeamInternationalRiderCount: nationsCupEditions.reduce(
       (count, edition) => count + (edition.currentTeamInternationalRiderCount ?? 0), 0,
@@ -1722,26 +1723,35 @@ function SeasonEventBadge({
   event: SeasonRaceCalendar["events"][number];
   compact?: boolean;
 }) {
+  const isNationsCup = event.eventType === "nations_cup";
+  const currentTeamRiderCount = event.currentTeamInternationalRiderCount ?? 0;
   const content = (
     <>
       <span
         aria-hidden="true"
         className="h-2 w-2 shrink-0 rounded-full bg-[#176951]"
       />
-      <span className="min-w-0 truncate">
-        {event.title}
+      <span className="min-w-0 flex-1">
+        <span className="block truncate">{event.title}</span>
+        {isNationsCup ? (
+          <span className="mt-0.5 block text-[10px] font-semibold">
+            5 coureurs par équipe nationale
+          </span>
+        ) : null}
       </span>
-      {(event.currentTeamInternationalRiderCount ?? 0) > 0 ? (
+      {isNationsCup || currentTeamRiderCount > 0 ? (
         <span
-          className="ml-auto shrink-0 rounded-full bg-white/65 px-2 py-0.5 text-[10px] font-black"
-          title={`${event.currentTeamInternationalRiderCount} coureur${event.currentTeamInternationalRiderCount === 1 ? "" : "s"} de votre équipe mobilisé${event.currentTeamInternationalRiderCount === 1 ? "" : "s"} sur ce créneau par les sélections nationales, toutes nationalités confondues`}
+          className={`${isNationsCup ? "w-full" : "ml-auto shrink-0"} rounded-full bg-white/65 px-2 py-0.5 text-[10px] font-black`}
+          title={`${currentTeamRiderCount} coureur${currentTeamRiderCount === 1 ? "" : "s"} de votre équipe mobilisé${currentTeamRiderCount === 1 ? "" : "s"} sur ce créneau par les sélections nationales, toutes nationalités confondues`}
         >
-          ✓ {event.currentTeamInternationalRiderCount} {compact ? "équipe" : "de votre équipe"}
+          {isNationsCup
+            ? `${currentTeamRiderCount} coureur${currentTeamRiderCount === 1 ? "" : "s"} de votre équipe`
+            : <>✓ {currentTeamRiderCount} {compact ? "équipe" : "de votre équipe"}</>}
         </span>
       ) : null}
     </>
   );
-  const className = `flex items-center gap-2 rounded-lg border border-[#B99525]/55 bg-[#FFF2C7] text-[#17261E] shadow-sm ${
+  const className = `flex ${isNationsCup ? "flex-wrap" : ""} items-center gap-2 rounded-lg border border-[#B99525]/55 bg-[#FFF2C7] text-[#17261E] shadow-sm ${
     compact
       ? "px-2 py-1.5 text-[10px] font-extrabold"
       : "px-3 py-2.5 text-xs font-extrabold"

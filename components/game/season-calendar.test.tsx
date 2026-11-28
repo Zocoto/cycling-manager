@@ -469,7 +469,7 @@ describe("SeasonCalendar", () => {
       ["nations-cup-sprint", "Nations Cup · Sprint"],
       ["nations-cup-paves", "Nations Cup · Pavés"],
       ["nations-cup-contre-la-montre", "Nations Cup · Contre-la-montre"],
-    ].map(([id, name], index) => {
+    ].map(([id, name]) => {
       const edition = createEdition({
         id,
         name,
@@ -485,7 +485,7 @@ describe("SeasonCalendar", () => {
       edition.minimumRosterSize = 1;
       edition.maximumRosterSize = 1;
       edition.engagedRiderCount = 32;
-      edition.currentTeamInternationalRiderCount = index < 3 ? 1 : 0;
+      edition.currentTeamInternationalRiderCount = 7;
       return edition;
     });
 
@@ -498,7 +498,7 @@ describe("SeasonCalendar", () => {
     expect(visibleEditions).toHaveLength(1);
     expect(visibleEditions[0]).toMatchObject({
       name: "Nations Cup",
-      currentTeamInternationalRiderCount: 3,
+      currentTeamInternationalRiderCount: 35,
       calendarGroup: {
         kind: "nations_cup",
         editionCount: 5,
@@ -541,10 +541,10 @@ describe("SeasonCalendar", () => {
     expect(markup).not.toContain('data-federation-selection="true"');
     expect(markup).toContain("bg-[#FFF2C7]");
     expect(markup).toContain('href="/jeu/nations-cup"');
-    expect(markup).toContain("✓ 3 équipe");
-    expect(markup).toContain("✓ 3 de votre équipe");
+    expect(markup.match(/5 coureurs par équipe nationale<\/span>/g)).toHaveLength(2);
+    expect(markup.match(/35 coureurs de votre équipe<\/span>/g)).toHaveLength(2);
     expect(markup).toContain(
-      "3 coureurs de votre équipe mobilisés sur ce créneau par les sélections nationales, toutes nationalités confondues",
+      "35 coureurs de votre équipe mobilisés sur ce créneau par les sélections nationales, toutes nationalités confondues",
     );
   });
 
@@ -556,15 +556,42 @@ describe("SeasonCalendar", () => {
     });
     const olympic = { ...nationsCup, id: "games", name: "Jeux quadriennaux · Course en ligne" };
     const junior = { ...nationsCup, id: "junior", isJuniorChampionship: true };
+    nationsCup.currentTeamInternationalRiderCount = 2;
     const cancelled = {
-      ...nationsCup, id: "cancelled", stages: nationsCup.stages.map((stage) => ({
+      ...nationsCup, id: "cancelled", currentTeamInternationalRiderCount: 9, stages: nationsCup.stages.map((stage) => ({
         ...stage, dayNumber: 23, status: "cancelled" as const,
       })),
     };
     expect(getNationsCupCalendarEvent([olympic, junior, cancelled])).toBeNull();
     expect(getNationsCupCalendarEvent([nationsCup, olympic, junior, cancelled])).toMatchObject({
       dayNumber: 25, title: "Nations Cup", href: "/jeu/nations-cup",
+      currentTeamInternationalRiderCount: 2,
     });
+  });
+
+  it("affiche zéro coureur du club sans reprendre les engagés des autres équipes", () => {
+    const edition = createEdition({
+      id: "nations-cup-zero", name: "Nations Cup · Sprint", categoryCode: "world",
+      dayNumber: 24, daySlot: "late", registrationClosesAt: "2026-08-23T16:00:00Z",
+      accepted: false, competitionType: "nations_cup",
+    });
+    edition.engagedRiderCount = 160;
+    edition.currentTeamInternationalRiderCount = 0;
+    const markup = renderToStaticMarkup(
+      <SeasonCalendar
+        calendar={{
+          seasonId: "season-nations-cup-zero", seasonName: "Saison 5", gameYear: 5,
+          startsOn: "2026-08-01", endsOn: "2026-08-28", currentDayNumber: 20,
+          days: [{ id: "day-24", dayNumber: 24, calendarDate: "2026-08-24", label: null }],
+          events: [], editions: [edition],
+        }}
+        reputationPoints={0}
+        nowIso="2026-08-20T08:00:00Z"
+      />,
+    );
+
+    expect(markup).toContain("0 coureurs de votre équipe");
+    expect(markup).not.toContain("160 coureurs");
   });
 
   it("affiche une seule entrée pour les championnats continentaux pros sans les juniors", () => {

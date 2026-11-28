@@ -39,7 +39,10 @@ import {
   type SquadStatus,
 } from "@/lib/game/squad-status";
 import type { FanClubRaceBoost } from "@/lib/game/fan-club-race-boost";
-import { isSecondaryProfessionalNationsCupHeatSlug } from "@/lib/game/nations-cup-heats";
+import {
+  isSecondaryProfessionalNationsCupHeatSlug,
+  PROFESSIONAL_NATIONS_CUP_EVENTS,
+} from "@/lib/game/nations-cup-heats";
 import {
   isRiderSpecialAbility,
   type RiderSpecialAbility,
@@ -1798,6 +1801,37 @@ export async function getActiveSeasonRaceCalendar(
     season.game_year,
     includeStageSegments,
   );
+  const currentTeamNationsCupCountByProfileSlug = new Map<string, number>();
+  const nationsCupRepresentativeByProfileSlug = new Map<string, string>();
+  if (!options.includeNationsCupHeats && !options.raceSlug) {
+    const countedEditionIds = new Set<string>();
+    for (const edition of editionRows) {
+      const race = raceById.get(edition.race_id);
+      if (
+        race?.competition_type !== "nations_cup" ||
+        edition.status === "cancelled" ||
+        countedEditionIds.has(edition.id) ||
+        !(stagesByEditionId.get(edition.id) ?? []).some(
+          (stage) => stage.status !== "cancelled",
+        )
+      ) continue;
+
+      const profileSlug = race.slug.replace(/-d[2-4]-[a-c]$/, "");
+      if (!PROFESSIONAL_NATIONS_CUP_EVENTS.some((event) => event.slug === profileSlug)) continue;
+
+      countedEditionIds.add(edition.id);
+      if (!nationsCupRepresentativeByProfileSlug.has(profileSlug) || race.slug === profileSlug) {
+        nationsCupRepresentativeByProfileSlug.set(profileSlug, edition.id);
+      }
+      // The grid hides secondary heats. Preserve the club's selections in all
+      // national teams on each discipline's representative, using the same RPC.
+      currentTeamNationsCupCountByProfileSlug.set(
+        profileSlug,
+        (currentTeamNationsCupCountByProfileSlug.get(profileSlug) ?? 0) +
+          (currentTeamProfessionalCountByEditionId.get(edition.id) ?? 0),
+      );
+    }
+  }
   const registrationByEditionId = new Map(
     ((registrationsResult.data as CalendarRegistrationRow[] | null) ?? []).map(
       (registration) => [registration.race_edition_id, registration],
@@ -1871,11 +1905,15 @@ export async function getActiveSeasonRaceCalendar(
         return null;
       }
 
+      const nationsCupProfileSlug = race.slug.replace(/-d[2-4]-[a-c]$/, "");
+      const nationsCupRepresentativeId = nationsCupRepresentativeByProfileSlug.get(nationsCupProfileSlug);
       if (
         !options.includeNationsCupHeats &&
         !options.raceSlug &&
         race.competition_type === "nations_cup" &&
-        isSecondaryProfessionalNationsCupHeatSlug(race.slug)
+        (nationsCupRepresentativeId
+          ? nationsCupRepresentativeId !== edition.id
+          : isSecondaryProfessionalNationsCupHeatSlug(race.slug))
       ) {
         return null;
       }
@@ -1973,7 +2011,8 @@ export async function getActiveSeasonRaceCalendar(
           race.competition_type === "world_championship" ||
           race.competition_type === "continental_championship" ||
           race.competition_type === "nations_cup"
-            ? (currentTeamProfessionalCountByEditionId.get(edition.id) ?? 0)
+            ? (currentTeamNationsCupCountByProfileSlug.get(nationsCupProfileSlug) ??
+              currentTeamProfessionalCountByEditionId.get(edition.id) ?? 0)
             : undefined,
         currentTeamRegistration: registrationByEditionId.has(edition.id)
           ? {
